@@ -162,7 +162,7 @@ export default function ListView({
         try {
             await Promise.all(
                 selectedTasks.map((taskId) =>
-                    api.deleteTask(taskId, currentUser.id).catch(() => {}),
+                    api.deleteTask(taskId, currentUser.id).catch(() => { }),
                 ),
             );
             setSelectedTasks([]);
@@ -212,7 +212,7 @@ export default function ListView({
             {/* Header */}
             <div>
                 <h1 className="font-heading text-xl">List View</h1>
-                <p className="text-[12px] text-[#888883] mt-0.5">
+                <p className="text-base text-[#888883] mt-0.5">
                     Search, sort, filter, and bulk-update tasks.
                 </p>
             </div>
@@ -315,9 +315,9 @@ export default function ListView({
             {/* Table */}
             <div className="relative bg-white border border-[#E5E5E3] overflow-hidden corner-brackets rounded-[2px]">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-[12px] border-collapse">
+                    <table className="w-full text-left text-base border-collapse">
                         <thead>
-                            <tr className="border-b border-[#E5E5E3] text-xs font-medium text-[#888883] bg-[#FAFAF9]">
+                            <tr className="border-b border-[#E5E5E3] text-base font-medium text-[#888883] bg-[#FAFAF9]">
                                 <th className="py-2.5 px-3 w-10 text-center">
                                     {!isObserver && (
                                         <input
@@ -325,7 +325,7 @@ export default function ListView({
                                             checked={
                                                 sortedTasks.length > 0 &&
                                                 selectedTasks.length ===
-                                                    sortedTasks.length
+                                                sortedTasks.length
                                             }
                                             onChange={(e) =>
                                                 handleSelectAll(
@@ -381,7 +381,7 @@ export default function ListView({
                                         colSpan={7}
                                         className="py-12 text-center text-[#888883]"
                                     >
-                                        <p className="text-[12px]">
+                                        <p className="text-base">
                                             No matching tasks found.
                                         </p>
                                     </td>
@@ -394,9 +394,8 @@ export default function ListView({
                                     return (
                                         <tr
                                             key={task.id}
-                                            className={`hover:bg-[#FAFAF9] transition-colors cursor-pointer ${
-                                                isChecked ? "bg-[#F5F5F3]" : ""
-                                            }`}
+                                            className={`hover:bg-[#FAFAF9] transition-colors cursor-pointer ${isChecked ? "bg-[#F5F5F3]" : ""
+                                                }`}
                                             onClick={() =>
                                                 onSelectTask(task.id)
                                             }
@@ -426,20 +425,20 @@ export default function ListView({
                                                         {task.title}
                                                     </span>
                                                     {task.description && (
-                                                        <span className="text-xs text-[#888883] truncate max-w-xs">
+                                                        <span className="text-base text-[#888883] truncate max-w-xs">
                                                             {task.description.replace(/<[^>]*>/g, "").trim()}
                                                         </span>
                                                     )}
                                                 </div>
                                             </td>
                                             <td className="py-2.5 px-3 text-center">
-                                                <span className="border border-[#E5E5E3] px-2 py-0.5 rounded-[2px] text-xs font-medium text-[#1A1A1A]">
+                                                <span className="border border-[#E5E5E3] px-2 py-0.5 rounded-[2px] text-base font-medium text-[#1A1A1A]">
                                                     {task.column.name}
                                                 </span>
                                             </td>
                                             <td className="py-2.5 px-3 text-center">
                                                 <span
-                                                    className={`text-xs font-medium ${getPriorityDot(task.priority)}`}
+                                                    className={`text-base font-medium ${getPriorityDot(task.priority)}`}
                                                 >
                                                     ● {task.priority}
                                                 </span>
@@ -447,8 +446,8 @@ export default function ListView({
                                             <td className="py-2.5 px-3 text-right text-[11px] font-medium text-[#1A1A1A] tabular-nums">
                                                 {task.dueDate
                                                     ? new Date(
-                                                          task.dueDate,
-                                                      ).toLocaleDateString()
+                                                        task.dueDate,
+                                                    ).toLocaleDateString()
                                                     : "—"}
                                             </td>
                                             <td className="py-2.5 px-3 text-[11px] text-[#1A1A1A]">

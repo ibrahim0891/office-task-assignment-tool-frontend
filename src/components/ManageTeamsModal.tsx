@@ -32,7 +32,7 @@ export default function ManageTeamsModal({
     // States for inline editing
     const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState("");
-    
+
     // States for create workspace
     const [isCreating, setIsCreating] = useState(false);
     const [newTeamName, setNewTeamName] = useState("");
@@ -46,7 +46,7 @@ export default function ManageTeamsModal({
     if (!isOpen) return null;
 
     const inputClass =
-        "w-full bg-white border border-[#E5E5E3] px-3.5 py-2.5 rounded-[2px] text-[12px] text-[#1A1A1A] placeholder-[#888883] focus:outline-none focus:border-[#1A1A1A] transition-colors leading-normal";
+        "w-full bg-white border border-[#E5E5E3] px-3.5 py-2.5 rounded-[2px] text-base text-[#1A1A1A] placeholder-[#888883] focus:outline-none focus:border-[#1A1A1A] transition-colors leading-normal";
 
     const handleStartEdit = (team: Team) => {
         setEditingTeamId(team.id);
@@ -151,7 +151,7 @@ export default function ManageTeamsModal({
                         <div className="flex flex-col gap-4 animate-fade-in">
                             <div className="p-4 bg-[#FFF5F5] border border-[#F5C6CB] rounded-[2px] flex items-start gap-3 text-[#CB2431]">
                                 <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" />
-                                <div className="text-[12px] flex flex-col gap-1.5">
+                                <div className="text-base flex flex-col gap-1.5">
                                     <span className="font-semibold text-[13px] tracking-tight">
                                         Permanent Cascading Workspace Deletion
                                     </span>
@@ -301,11 +301,10 @@ export default function ManageTeamsModal({
                                         return (
                                             <div
                                                 key={t.id}
-                                                className={`p-3.5 sm:p-4 border rounded-[2px] flex items-center justify-between gap-4 transition-colors corner-brackets ${
-                                                    isCurrent
+                                                className={`p-3.5 sm:p-4 border rounded-[2px] flex items-center justify-between gap-4 transition-colors corner-brackets ${isCurrent
                                                         ? "bg-white border-[#1A1A1A] shadow-xs"
                                                         : "bg-[#FAFAF9] border-[#E5E5E3] hover:border-[#CCCCCC]"
-                                                }`}
+                                                    }`}
                                             >
                                                 {isEditing ? (
                                                     <div className="flex items-center gap-2.5 flex-1">

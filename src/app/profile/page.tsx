@@ -46,7 +46,7 @@ export default function ProfilePage() {
             if (savedUserStr) {
                 try {
                     user = JSON.parse(savedUserStr);
-                } catch (e) {}
+                } catch (e) { }
             }
 
             if (!user) {
@@ -56,7 +56,7 @@ export default function ProfilePage() {
                         user = allUsers[0];
                         localStorage.setItem("sessionUser", JSON.stringify(user));
                     }
-                } catch (e) {}
+                } catch (e) { }
             }
 
             if (user) {
@@ -141,7 +141,7 @@ export default function ProfilePage() {
                 </p>
                 <Link
                     href="/"
-                    className="px-4 py-2 bg-[#1A1A1A] text-white text-[12px] rounded-[3px]"
+                    className="px-4 py-2 bg-[#1A1A1A] text-white text-base rounded-[3px]"
                 >
                     Go to Workspace
                 </Link>
@@ -235,11 +235,10 @@ export default function ProfilePage() {
                                     key={t.id}
                                     type="button"
                                     onClick={() => setActiveTab(t.id)}
-                                    className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
-                                        isActive
+                                    className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${isActive
                                             ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4"
                                             : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#F0F0EE]"
-                                    }`}
+                                        }`}
                                 >
                                     <Icon className="w-3 h-3 shrink-0" />
                                     <span>{t.label}</span>

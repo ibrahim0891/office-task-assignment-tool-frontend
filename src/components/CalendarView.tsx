@@ -176,19 +176,19 @@ export default function CalendarView({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => navigateMonth("prev")}
-                        className="px-2.5 py-1.5 border border-[#E5E5E3] rounded-[3px] text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors text-[12px] cursor-pointer"
+                        className="px-2.5 py-1.5 border border-[#E5E5E3] rounded-[3px] text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors text-base cursor-pointer"
                     >
                         ◀
                     </button>
                     <button
                         onClick={() => setCurrentMonth(new Date())}
-                        className="px-3 py-1.5 border border-[#E5E5E3] rounded-[3px] text-[12px] font-medium text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors cursor-pointer"
+                        className="px-3 py-1.5 border border-[#E5E5E3] rounded-[3px] text-base font-medium text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors cursor-pointer"
                     >
                         Today
                     </button>
                     <button
                         onClick={() => navigateMonth("next")}
-                        className="px-2.5 py-1.5 border border-[#E5E5E3] rounded-[3px] text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors text-[12px] cursor-pointer"
+                        className="px-2.5 py-1.5 border border-[#E5E5E3] rounded-[3px] text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors text-base cursor-pointer"
                     >
                         ▶
                     </button>
@@ -202,7 +202,7 @@ export default function CalendarView({
                     {weekDays.map((d) => (
                         <div
                             key={d}
-                            className="text-xs font-medium text-[#888883] capitalize tracking-[0.05em]"
+                            className="text-base font-medium text-[#888883] capitalize  "
                         >
                             {d}
                         </div>
@@ -225,26 +225,23 @@ export default function CalendarView({
                                 key={index}
                                 data-cell
                                 onClick={() => setActiveDateStr(dateStr)}
-                                className={`p-2 min-h-24 flex flex-col gap-1.5 transition-colors cursor-pointer relative ${
-                                    cell.isPadding
-                                        ? "bg-[#FAFAF9] text-[#DADAD6]"
-                                        : "bg-white hover:bg-[#FAFAF9] text-[#1A1A1A]"
-                                } ${
-                                    isActive
+                                className={`p-2 min-h-24 flex flex-col gap-1.5 transition-colors cursor-pointer relative ${cell.isPadding
+                                    ? "bg-[#FAFAF9] text-[#DADAD6]"
+                                    : "bg-white hover:bg-[#FAFAF9] text-[#1A1A1A]"
+                                    } ${isActive
                                         ? "border-l-2 border-l-[#1A1A1A] bg-[#F5F5F3]"
                                         : ""
-                                }`}
+                                    }`}
                             >
                                 {/* Date Label */}
                                 <div className="flex justify-between items-center">
                                     <span
-                                        className={`text-[11px] font-medium ${
-                                            isToday
-                                                ? "bg-[#1A1A1A] text-white w-5 h-5 rounded-full flex items-center justify-center text-xs"
-                                                : isActive
-                                                  ? "text-[#1A1A1A] font-semibold"
-                                                  : "text-[#888883]"
-                                        }`}
+                                        className={`text-[11px] font-medium ${isToday
+                                            ? "bg-[#1A1A1A] text-white w-5 h-5 rounded-full flex items-center justify-center text-base"
+                                            : isActive
+                                                ? "text-[#1A1A1A] font-semibold"
+                                                : "text-[#888883]"
+                                            }`}
                                     >
                                         {cell.dayNum}
                                     </span>
@@ -312,12 +309,12 @@ export default function CalendarView({
                     className="bg-white border border-[#E5E5E3] shadow-xl w-64 p-3 flex flex-col gap-2 animate-fade-in corner-brackets-thick max-h-[80vh] overflow-hidden"
                 >
                     <div className="flex items-center justify-between border-b border-[#E5E5E3] pb-1.5 shrink-0">
-                        <span className="text-xs font-semibold text-[#1A1A1A] capitalize tracking-[0.05em]">
+                        <span className="text-base font-semibold text-[#1A1A1A] capitalize  ">
                             {popover.dateStr} ({popoverTasks.length} tasks)
                         </span>
                         <button
                             onClick={() => setPopover(null)}
-                            className="text-[#888883] hover:text-[#1A1A1A] text-[12px] leading-none cursor-pointer"
+                            className="text-[#888883] hover:text-[#1A1A1A] text-base leading-none cursor-pointer"
                         >
                             ✕
                         </button>
@@ -331,7 +328,7 @@ export default function CalendarView({
                                     setPopover(null);
                                     onSelectTask(task.id);
                                 }}
-                                className={`px-2 py-1.5 text-xs font-medium border border-[#E5E5E3] rounded-[2px] cursor-pointer transition-colors hover:bg-[#FAFAF9] truncate shrink-0 ${getPriorityColor(task.priority)}`}
+                                className={`px-2 py-1.5 text-base font-medium border border-[#E5E5E3] rounded-[2px] cursor-pointer transition-colors hover:bg-[#FAFAF9] truncate shrink-0 ${getPriorityColor(task.priority)}`}
                                 title={task.title}
                             >
                                 {task.title}

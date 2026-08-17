@@ -20,11 +20,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
     const initials = user.name
         ? user.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")
-              .toUpperCase()
-              .slice(0, 2)
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2)
         : "U";
 
     return (
@@ -46,7 +46,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         ) : (
                             <span>{initials}</span>
                         )}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition-opacity">
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-base transition-opacity">
                             <Camera className="w-4 h-4" />
                         </div>
                     </div>
@@ -79,7 +79,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         <div className="flex items-center justify-between border-b border-[#E5E5E3] pb-3">
                             <div>
                                 <span className="eyebrow block">Media Upload</span>
-                                <h3 className="text-sm font-semibold text-[#1A1A1A] font-heading">
+                                <h3 className="text-base font-semibold text-[#1A1A1A] font-heading">
                                     Upload Profile Photo
                                 </h3>
                             </div>

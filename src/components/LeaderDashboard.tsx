@@ -4,6 +4,7 @@ import { CustomSelect } from "./ui/CustomSelect";
 import UserPickerSelect from "./ui/UserPickerSelect";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { Button } from "./ui/Button";
+import toast from "react-hot-toast";
 
 interface LeaderDashboardProps {
     currentTeam: { id: string; name: string };
@@ -45,13 +46,11 @@ export default function LeaderDashboard({
                 inviteRole,
                 currentUser.id,
             );
-            alert(
-                `Member "${inviteEmail}" invited successfully! Password default: password123`,
-            );
+            toast.success(`Member "${inviteEmail}" added to team`);
             setInviteEmail("");
             onRefresh();
         } catch (err: any) {
-            alert("Error inviting member: " + err.message);
+            toast.error(err.message || "Failed to add member");
         } finally {
             setIsInviting(false);
         }
@@ -61,16 +60,17 @@ export default function LeaderDashboard({
         if (!newMemberId) return;
         try {
             await api.addTeamMember(currentTeam.id, newMemberId, newMemberRole);
+            toast.success("Team member added successfully");
             setNewMemberId("");
             onRefresh();
         } catch (err: any) {
-            alert("Error adding member: " + err.message);
+            toast.error(err.message || "Failed to add member");
         }
     };
 
     const handleRemoveMember = async (userId: string) => {
         if (userId === currentUser.id) {
-            alert("You cannot remove yourself from the team.");
+            toast.error("You cannot remove yourself from the team.");
             return;
         }
         if (
@@ -81,9 +81,10 @@ export default function LeaderDashboard({
             return;
         try {
             await api.removeTeamMember(currentTeam.id, userId, currentUser.id);
+            toast.success("Member removed from team");
             onRefresh();
         } catch (err: any) {
-            alert("Error removing member: " + err.message);
+            toast.error(err.message || "Failed to remove member");
         }
     };
 
@@ -145,7 +146,7 @@ export default function LeaderDashboard({
             {/* Header */}
             <div>
                 <h1 className="font-heading text-xl">Leader Dashboard</h1>
-                <p className="text-[12px] text-[#888883] mt-0.5">
+                <p className="text-base text-[#888883] mt-0.5">
                     Workload metrics and team management for{" "}
                     <span className="text-[#1A1A1A] font-medium">
                         {currentTeam.name}
@@ -196,7 +197,7 @@ export default function LeaderDashboard({
                             <h2 className="text-[13px] font-semibold">
                                 ▪ Team Workloads
                             </h2>
-                            <p className="text-xs text-[#888883] mt-0.5">
+                            <p className="text-base text-[#888883] mt-0.5">
                                 Effort and completion per member.
                             </p>
                         </div>
@@ -204,7 +205,7 @@ export default function LeaderDashboard({
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-[11px] border-collapse">
                                 <thead>
-                                    <tr className="border-b border-[#E5E5E3] text-[9px] font-medium text-[#888883] capitalize tracking-[0.05em]">
+                                    <tr className="border-b border-[#E5E5E3] text-[9px] font-medium text-[#888883] capitalize  ">
                                         <th className="pb-2 px-2">Member</th>
                                         <th className="pb-2 px-2 text-center">
                                             Active
@@ -261,7 +262,7 @@ export default function LeaderDashboard({
                                                             {user.name}
                                                         </span>
                                                         <span
-                                                            className={`text-[8px] font-medium capitalize tracking-[0.05em] ${getRoleColor(role)}`}
+                                                            className={`text-[8px] font-medium capitalize   ${getRoleColor(role)}`}
                                                         >
                                                             {role}
                                                         </span>
@@ -293,7 +294,7 @@ export default function LeaderDashboard({
                             <h2 className="text-[13px] font-semibold text-[#B08800]">
                                 ▪ Aging Task Alerts
                             </h2>
-                            <p className="text-xs text-[#888883] mt-0.5">
+                            <p className="text-base text-[#888883] mt-0.5">
                                 Carried forward 3+ days without completion.
                             </p>
                         </div>
@@ -337,22 +338,19 @@ export default function LeaderDashboard({
                             <h2 className="text-[13px] font-semibold">
                                 ▪ Team Roster
                             </h2>
-                            <p className="text-xs text-[#888883] mt-0.5">
-                                Invite members by email or add registered users.
+                            <p className="text-base text-[#888883] mt-0.5">
+                                Add registered platform users to this workspace.
                             </p>
                         </div>
 
-                        {/* Invite by email */}
+                        {/* Add member by email */}
                         <form
                             onSubmit={handleInviteByEmail}
                             className="border border-[#E5E5E3] p-3 flex flex-col gap-2"
                         >
-                            <h3 className="eyebrow">Invite by Email</h3>
+                            <h3 className="eyebrow">Add Member by Email</h3>
                             <p className="text-xs text-[#888883] leading-relaxed">
-                                New accounts use default password:{" "}
-                                <code className="text-[#1A1A1A] font-medium">
-                                    password123
-                                </code>
+                                Enter the email of a registered platform user to add them to this workspace.
                             </p>
                             <input
                                 type="email"
@@ -379,9 +377,9 @@ export default function LeaderDashboard({
                                 <button
                                     type="submit"
                                     disabled={isInviting || !inviteEmail.trim()}
-                                    className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-30 text-white font-medium text-xs px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center cursor-pointer"
+                                    className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-30 text-white font-medium text-base px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center cursor-pointer"
                                 >
-                                    {isInviting ? "Inviting…" : "Invite"}
+                                    {isInviting ? "Adding…" : "Add Member"}
                                 </button>
                             </div>
                         </form>
@@ -429,7 +427,7 @@ export default function LeaderDashboard({
                                         type="button"
                                         onClick={handleAddMember}
                                         disabled={!newMemberId}
-                                        className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-30 text-white font-medium text-xs px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center cursor-pointer"
+                                        className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-30 text-white font-medium text-base px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center cursor-pointer"
                                     >
                                         Add
                                     </button>
@@ -459,7 +457,7 @@ export default function LeaderDashboard({
                                                     className="w-9 h-9 rounded-[3px] object-cover border border-[#E5E5E3] shrink-0"
                                                 />
                                             ) : (
-                                                <div className="w-9 h-9 rounded-[3px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-xs text-[#1A1A1A] font-bold shrink-0">
+                                                <div className="w-9 h-9 rounded-[3px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-base text-[#1A1A1A] font-bold shrink-0">
                                                     {user.name
                                                         .split(" ")
                                                         .map((n) => n[0])
@@ -474,7 +472,7 @@ export default function LeaderDashboard({
                                                     {user.email}
                                                 </span>
                                                 <span
-                                                    className={`text-[8px] font-medium capitalize tracking-[0.05em] ${getRoleColor(role)}`}
+                                                    className={`text-[8px] font-medium capitalize   ${getRoleColor(role)}`}
                                                 >
                                                     {role}
                                                 </span>

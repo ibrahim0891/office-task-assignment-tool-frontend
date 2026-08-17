@@ -64,28 +64,28 @@ function BookmarkModal({ initial, onClose, onSave }: {
             <div className="relative bg-white border border-[#E5E5E3] rounded-[3px] p-5 w-full max-w-md flex flex-col gap-4 corner-brackets">
                 <div className="flex items-center justify-between border-b border-[#E5E5E3] pb-3">
                     <div>
-                        <span className="eyebrow uppercase tracking-[0.12em] text-[10px]">Bookmark</span>
-                        <h3 className="text-sm font-semibold text-[#1A1A1A] font-heading">{initial ? "Edit Bookmark" : "Add Bookmark"}</h3>
+                        <span className="eyebrow capitalize   text-[10px]">Bookmark</span>
+                        <h3 className="text-base font-semibold text-[#1A1A1A] font-heading">{initial ? "Edit Bookmark" : "Add Bookmark"}</h3>
                     </div>
                     <button onClick={onClose} className="p-1 text-[#888883] hover:text-[#1A1A1A] rounded-[2px] transition-colors cursor-pointer">
-                        <X className="w-4 h-4"/>
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
                 <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                     <div className="flex flex-col gap-1.5">
                         <label className="eyebrow">Title <span className="text-[#CB2431]">*</span></label>
-                        <input type="text" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. React Docs"
-                            className="w-full px-3.5 py-2.5 border border-[#E5E5E3] hover:border-[#DADAD6] focus:border-[#1A1A1A] focus:outline-none text-[12px] bg-white rounded-[2px] transition-colors placeholder-[#BBBBBB]"/>
+                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. React Docs"
+                            className="w-full px-3.5 py-2.5 border border-[#E5E5E3] hover:border-[#DADAD6] focus:border-[#1A1A1A] focus:outline-none text-base bg-white rounded-[2px] transition-colors placeholder-[#BBBBBB]" />
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <label className="eyebrow">URL <span className="text-[#CB2431]">*</span></label>
-                        <input type="url" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://…"
-                            className="w-full px-3.5 py-2.5 border border-[#E5E5E3] hover:border-[#DADAD6] focus:border-[#1A1A1A] focus:outline-none text-[12px] bg-white rounded-[2px] transition-colors placeholder-[#BBBBBB]"/>
+                        <input type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://…"
+                            className="w-full px-3.5 py-2.5 border border-[#E5E5E3] hover:border-[#DADAD6] focus:border-[#1A1A1A] focus:outline-none text-base bg-white rounded-[2px] transition-colors placeholder-[#BBBBBB]" />
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <label className="eyebrow">Description</label>
-                        <textarea value={description} onChange={e=>setDescription(e.target.value)} rows={2} placeholder="Optional note…"
-                            className="w-full px-3.5 py-2.5 border border-[#E5E5E3] hover:border-[#DADAD6] focus:border-[#1A1A1A] focus:outline-none text-[12px] bg-white rounded-[2px] transition-colors placeholder-[#BBBBBB] resize-none"/>
+                        <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Optional note…"
+                            className="w-full px-3.5 py-2.5 border border-[#E5E5E3] hover:border-[#DADAD6] focus:border-[#1A1A1A] focus:outline-none text-base bg-white rounded-[2px] transition-colors placeholder-[#BBBBBB] resize-none" />
                     </div>
                     <div className="flex justify-end gap-2 pt-2 border-t border-[#E5E5E3]">
                         <Button type="button" variant="ghost" size="md" onClick={onClose}>Cancel</Button>
@@ -170,7 +170,7 @@ export default function BookmarksPage() {
         <div className="flex-1 flex flex-col overflow-hidden bg-[#FAFAF9]">
             <div className="px-6 py-3 border-b border-[#E5E5E3] bg-white flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                    <span className="eyebrow uppercase tracking-[0.12em] text-[10px]">Bookmarks</span>
+                    <span className="eyebrow capitalize   text-[10px]">Bookmarks</span>
                     <span className="text-[11px] text-[#888883] font-medium">
                         {isLoading ? "Loading…" : `${bookmarks.length} saved link${bookmarks.length !== 1 ? "s" : ""}`}
                     </span>
@@ -194,9 +194,8 @@ export default function BookmarksPage() {
                                         <button
                                             key={key}
                                             onClick={() => { setSortBy(key as any); setSortOpen(false); }}
-                                            className={`w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] transition-colors cursor-pointer ${
-                                                sortBy === key ? "font-semibold text-[#1A1A1A] bg-[#FAFAF9]" : "text-[#888883]"
-                                            }`}
+                                            className={`w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] transition-colors cursor-pointer ${sortBy === key ? "font-semibold text-[#1A1A1A] bg-[#FAFAF9]" : "text-[#888883]"
+                                                }`}
                                         >
                                             {label}
                                         </button>
@@ -210,7 +209,7 @@ export default function BookmarksPage() {
                         onClick={() => { setEditing(null); setModalOpen(true); }}
                         className="relative corner-brackets-4 px-3 py-1.5 border border-[#E5E5E3] rounded-[2px] bg-white text-[#1A1A1A] hover:bg-[#FAFAF9] text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1.5"
                     >
-                        <Plus className="w-3.5 h-3.5"/> Add Bookmark
+                        <Plus className="w-3.5 h-3.5" /> Add Bookmark
                     </button>
                 </div>
             </div>
@@ -220,19 +219,19 @@ export default function BookmarksPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                                 <div key={i} className="border border-[#E5E5E3] rounded-[3px] bg-white overflow-hidden flex flex-col h-48">
-                                    <div className="h-28 shimmer"/>
+                                    <div className="h-28 shimmer" />
                                     <div className="p-3 flex flex-col gap-2">
-                                        <div className="h-3.5 shimmer rounded w-3/4"/>
-                                        <div className="h-2.5 shimmer rounded w-1/2"/>
+                                        <div className="h-3.5 shimmer rounded w-3/4" />
+                                        <div className="h-2.5 shimmer rounded w-1/2" />
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : sortedBookmarks.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-center">
-                            <BookmarkIcon className="w-10 h-10 text-[#E5E5E3] mb-3"/>
-                            <h3 className="text-sm font-semibold text-[#1A1A1A]">No bookmarks saved yet</h3>
-                            <p className="text-[12px] text-[#888883] mt-1 max-w-xs">Save important document links, Google Sheets, or web tools to your team workspace.</p>
+                            <BookmarkIcon className="w-10 h-10 text-[#E5E5E3] mb-3" />
+                            <h3 className="text-base font-semibold text-[#1A1A1A]">No bookmarks saved yet</h3>
+                            <p className="text-base text-[#888883] mt-1 max-w-xs">Save important document links, Google Sheets, or web tools to your team workspace.</p>
                             <Button size="sm" showDot className="mt-4" onClick={() => setModalOpen(true)}>
                                 Add First Bookmark
                             </Button>
@@ -272,7 +271,7 @@ export default function BookmarksPage() {
                                                         className="px-2 py-1 bg-[#1A1A1A] text-white text-[10px] font-medium rounded-[2px] shadow-sm transition-colors cursor-pointer flex items-center gap-1 hover:bg-[#333333]"
                                                         title="Preview document in split view"
                                                     >
-                                                        <Eye className="w-3 h-3"/> Open Here
+                                                        <Eye className="w-3 h-3" /> Open Here
                                                     </button>
                                                 )}
                                                 <a
@@ -282,30 +281,30 @@ export default function BookmarksPage() {
                                                     className="p-1.5 bg-white/90 backdrop-blur-sm border border-[#E5E5E3] text-[#1A1A1A] hover:bg-white rounded-[2px] shadow-sm transition-colors cursor-pointer"
                                                     title="Open in new tab"
                                                 >
-                                                    <ExternalLink className="w-3 h-3"/>
+                                                    <ExternalLink className="w-3 h-3" />
                                                 </a>
                                                 <button
                                                     onClick={() => setOpenMenuId(isMenuOpen ? null : b.id)}
                                                     className="p-1.5 bg-white/90 backdrop-blur-sm border border-[#E5E5E3] text-[#1A1A1A] hover:bg-white rounded-[2px] shadow-sm transition-colors cursor-pointer"
                                                     title="Actions"
                                                 >
-                                                    <MoreVertical className="w-3 h-3"/>
+                                                    <MoreVertical className="w-3 h-3" />
                                                 </button>
                                                 {isMenuOpen && (
                                                     <>
-                                                        <div className="fixed inset-0 z-30" onClick={() => setOpenMenuId(null)}/>
+                                                        <div className="fixed inset-0 z-30" onClick={() => setOpenMenuId(null)} />
                                                         <div className="absolute right-0 top-7 z-40 w-28 bg-white border border-[#E5E5E3] rounded-[2px] shadow-md py-1 flex flex-col text-[11px]">
                                                             <button
                                                                 onClick={() => { setOpenMenuId(null); setEditing(b); setModalOpen(true); }}
                                                                 className="w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] text-[#1A1A1A] flex items-center gap-1.5 cursor-pointer"
                                                             >
-                                                                <Edit2 className="w-3 h-3 text-[#888883]"/> Edit
+                                                                <Edit2 className="w-3 h-3 text-[#888883]" /> Edit
                                                             </button>
                                                             <button
                                                                 onClick={() => { setOpenMenuId(null); handleDelete(b); }}
                                                                 className="w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] text-[#CB2431] flex items-center gap-1.5 cursor-pointer"
                                                             >
-                                                                <Trash2 className="w-3 h-3 text-[#CB2431]"/> Delete
+                                                                <Trash2 className="w-3 h-3 text-[#CB2431]" /> Delete
                                                             </button>
                                                         </div>
                                                     </>
@@ -315,8 +314,8 @@ export default function BookmarksPage() {
                                         <div className="p-3 flex flex-col flex-1 justify-between gap-2">
                                             <div className="flex flex-col gap-1">
                                                 <div className="flex items-center gap-2">
-                                                    <img src={getFaviconUrl(b.url)} alt="" className="w-4 h-4 rounded-[2px] shrink-0" onError={e=>(e.currentTarget.style.display="none")}/>
-                                                    <h4 className="text-[12px] font-semibold text-[#1A1A1A] line-clamp-1 leading-snug">{b.title}</h4>
+                                                    <img src={getFaviconUrl(b.url)} alt="" className="w-4 h-4 rounded-[2px] shrink-0" onError={e => (e.currentTarget.style.display = "none")} />
+                                                    <h4 className="text-base font-semibold text-[#1A1A1A] line-clamp-1 leading-snug">{b.title}</h4>
                                                 </div>
                                                 {b.description && (
                                                     <p className="text-[10px] text-[#888883] line-clamp-2 leading-relaxed pl-6">{b.description}</p>
@@ -341,21 +340,21 @@ export default function BookmarksPage() {
                     <div className="flex-1 min-w-0 flex flex-col bg-white overflow-hidden">
                         <div className="px-4 py-2.5 border-b border-[#E5E5E3] bg-[#FAFAF9] flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                                <img src={getFaviconUrl(selected.url)} alt="" className="w-4 h-4 rounded-[2px] shrink-0"/>
+                                <img src={getFaviconUrl(selected.url)} alt="" className="w-4 h-4 rounded-[2px] shrink-0" />
                                 <div className="min-w-0">
-                                    <p className="text-[12px] font-semibold text-[#1A1A1A] truncate">{selected.title}</p>
+                                    <p className="text-base font-semibold text-[#1A1A1A] truncate">{selected.title}</p>
                                     <p className="text-[10px] text-[#888883] truncate">{selected.url}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                                {iframeLoading && <Loader2 className="w-3.5 h-3.5 text-[#888883] animate-spin"/>}
+                                {iframeLoading && <Loader2 className="w-3.5 h-3.5 text-[#888883] animate-spin" />}
                                 <a
                                     href={selected.url}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="relative corner-brackets-4 flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium border border-[#E5E5E3] rounded-[2px] bg-white text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors"
                                 >
-                                    <ExternalLink className="w-3 h-3"/> Open Tab
+                                    <ExternalLink className="w-3 h-3" /> Open Tab
                                 </a>
                                 <button
                                     onClick={() => setSelected(null)}
@@ -370,7 +369,7 @@ export default function BookmarksPage() {
                             {iframeLoading && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-[#FAFAF9] z-10">
                                     <div className="flex flex-col items-center gap-2.5">
-                                        <Loader2 className="w-6 h-6 text-[#888883] animate-spin"/>
+                                        <Loader2 className="w-6 h-6 text-[#888883] animate-spin" />
                                         <p className="text-[11px] text-[#888883]">Loading Google Document…</p>
                                     </div>
                                 </div>
@@ -407,7 +406,7 @@ function CardScreenshot({ bookmark }: { bookmark: Bookmark }) {
     if (isDoc) {
         return (
             <div className="relative w-full h-full bg-white overflow-hidden pointer-events-none select-none">
-                {!loaded && <div className="absolute inset-0 shimmer z-10"/>}
+                {!loaded && <div className="absolute inset-0 shimmer z-10" />}
                 <iframe
                     src={bookmark.url}
                     className="w-[400%] h-[400%] border-0 origin-top-left scale-25 transform"
@@ -423,7 +422,7 @@ function CardScreenshot({ bookmark }: { bookmark: Bookmark }) {
         <div className="relative w-full h-full bg-[#F5F5F4] overflow-hidden">
             {!error ? (
                 <>
-                    {!loaded && <div className="absolute inset-0 shimmer"/>}
+                    {!loaded && <div className="absolute inset-0 shimmer" />}
                     <img
                         src={getMicrolinkScreenshot(bookmark.url)}
                         alt=""
@@ -434,7 +433,7 @@ function CardScreenshot({ bookmark }: { bookmark: Bookmark }) {
                 </>
             ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#FAFAF9]">
-                    <img src={getFaviconUrl(bookmark.url)} alt="" className="w-8 h-8 opacity-40"/>
+                    <img src={getFaviconUrl(bookmark.url)} alt="" className="w-8 h-8 opacity-40" />
                 </div>
             )}
         </div>

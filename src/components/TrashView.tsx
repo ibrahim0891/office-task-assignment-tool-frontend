@@ -162,7 +162,7 @@ export default function TrashView({
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse text-[11px]">
                             <thead>
-                                <tr className="border-b border-[#E5E5E3] bg-[#FAFAF9] text-xs text-[#888883] capitalize tracking-[0.05em]">
+                                <tr className="border-b border-[#E5E5E3] bg-[#FAFAF9] text-base text-[#888883] capitalize  ">
                                     <th className="py-2.5 px-4 font-medium">
                                         Task Title
                                     </th>
@@ -228,12 +228,12 @@ export default function TrashView({
                                                     <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] text-[#1A1A1A] font-semibold">
                                                         {task.assignedTo?.name
                                                             ? task.assignedTo.name
-                                                                  .split(" ")
-                                                                  .map(
-                                                                      (n) =>
-                                                                          n[0],
-                                                                  )
-                                                                  .join("")
+                                                                .split(" ")
+                                                                .map(
+                                                                    (n) =>
+                                                                        n[0],
+                                                                )
+                                                                .join("")
                                                             : "U"}
                                                     </div>
                                                 )}
@@ -261,7 +261,7 @@ export default function TrashView({
                                                     onClick={() =>
                                                         setTaskToRestore(task)
                                                     }
-                                                    className="px-2.5 py-1 border border-[#E5E5E3] hover:bg-[#FAFAF9] text-[#1A1A1A] rounded-[3px] text-xs font-medium transition-colors cursor-pointer flex items-center gap-1"
+                                                    className="px-2.5 py-1 border border-[#E5E5E3] hover:bg-[#FAFAF9] text-[#1A1A1A] rounded-[3px] text-base font-medium transition-colors cursor-pointer flex items-center gap-1"
                                                     title="Restore to active board"
                                                 >
                                                     <RotateCcw className="w-3 h-3 text-[#888883]" />
@@ -272,7 +272,7 @@ export default function TrashView({
                                                     onClick={() =>
                                                         setTaskToDelete(task)
                                                     }
-                                                    className="px-2.5 py-1 border border-[#CB2431]/30 hover:bg-[#CB2431]/10 text-[#CB2431] rounded-[3px] text-xs font-medium transition-colors cursor-pointer flex items-center gap-1"
+                                                    className="px-2.5 py-1 border border-[#CB2431]/30 hover:bg-[#CB2431]/10 text-[#CB2431] rounded-[3px] text-base font-medium transition-colors cursor-pointer flex items-center gap-1"
                                                     title="Permanently delete task"
                                                 >
                                                     <Trash2 className="w-3 h-3" />

@@ -34,7 +34,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
         <div className="flex flex-col gap-6">
             {/* ── Identity ── */}
             <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow uppercase tracking-[0.12em] text-[10px] pb-2 border-b border-[#E5E5E3]">Identity</p>
+                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Identity</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <ProfileField label="Full Name" required>
                         <ProfileInput
@@ -58,7 +58,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
 
             {/* ── Health Info ── */}
             <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow uppercase tracking-[0.12em] text-[10px] pb-2 border-b border-[#E5E5E3]">Health Info</p>
+                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Health Info</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <ProfileField label="Blood Group">
                         <ProfileSelect
@@ -72,7 +72,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
 
             {/* ── About ── */}
             <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow uppercase tracking-[0.12em] text-[10px] pb-2 border-b border-[#E5E5E3]">About</p>
+                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">About</p>
                 <ProfileField label="Bio / About Me">
                     <ProfileTextarea
                         rows={4}
@@ -109,7 +109,7 @@ export function ProfileField({
 }
 
 export const profileInputClass =
-    "w-full px-3.5 py-2.5 border border-[#E5E5E3] hover:border-[#DADAD6] focus:border-[#1A1A1A] focus:outline-none text-[12px] bg-white rounded-[2px] transition-colors placeholder-[#BBBBBB] text-[#1A1A1A] leading-normal";
+    "w-full px-3.5 py-2.5 border border-[#E5E5E3] hover:border-[#DADAD6] focus:border-[#1A1A1A] focus:outline-none text-base bg-white rounded-[2px] transition-colors placeholder-[#BBBBBB] text-[#1A1A1A] leading-normal";
 
 export function ProfileInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
     return <input className={profileInputClass} {...props} />;
@@ -144,7 +144,7 @@ export function ProfileSelect({
             {/* Custom caret */}
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#888883]">
                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
-                    <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
             </span>
         </div>

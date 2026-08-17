@@ -22,7 +22,7 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
         <div className="flex flex-col gap-6">
             {/* ── Email ── */}
             <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow uppercase tracking-[0.12em] text-[10px] pb-2 border-b border-[#E5E5E3]">Email</p>
+                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Email</p>
                 <div className="grid grid-cols-1 gap-3">
                     <ProfileField label="Secondary Email">
                         <ProfileInput
@@ -37,7 +37,7 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
 
             {/* ── Phone Numbers ── */}
             <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow uppercase tracking-[0.12em] text-[10px] pb-2 border-b border-[#E5E5E3]">Phone Numbers</p>
+                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Phone Numbers</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <ProfileField label="Primary Phone">
                         <ProfileInput
@@ -60,7 +60,7 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
 
             {/* ── Emergency ── */}
             <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow uppercase tracking-[0.12em] text-[10px] pb-2 border-b border-[#E5E5E3]">Emergency</p>
+                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Emergency</p>
                 <div className="grid grid-cols-1 gap-3">
                     <ProfileField label="Emergency Contact">
                         <ProfileInput

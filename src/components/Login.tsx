@@ -61,7 +61,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
                 {/* Login/Register Form */}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-                    <div className="flex border-b border-[#E5E5E3] text-[12px] font-medium">
+                    <div className="flex border-b border-[#E5E5E3] text-base font-medium">
                         <button
                             type="button"
                             onClick={() => {
@@ -69,11 +69,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                                 setError("");
                                 setSuccess("");
                             }}
-                            className={`flex-1 pb-2.5 text-center transition-colors ${
-                                !isSignUp
+                            className={`flex-1 pb-2.5 text-center transition-colors ${!isSignUp
                                     ? "text-[#1A1A1A] border-b-2 border-[#1A1A1A] font-semibold"
                                     : "text-[#888883] hover:text-[#1A1A1A]"
-                            }`}
+                                }`}
                         >
                             Sign In
                         </button>
@@ -84,11 +83,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                                 setError("");
                                 setSuccess("");
                             }}
-                            className={`flex-1 pb-2.5 text-center transition-colors ${
-                                isSignUp
+                            className={`flex-1 pb-2.5 text-center transition-colors ${isSignUp
                                     ? "text-[#1A1A1A] border-b-2 border-[#1A1A1A] font-semibold"
                                     : "text-[#888883] hover:text-[#1A1A1A]"
-                            }`}
+                                }`}
                         >
                             Register
                         </button>
@@ -116,7 +114,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                                 placeholder="John Doe"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-[12px] text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
+                                className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
                                 required={isSignUp}
                             />
                         </div>
@@ -131,7 +129,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                             placeholder="name@company.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-[12px] text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
+                            className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
                             required
                         />
                     </div>
@@ -145,7 +143,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                             placeholder="••••••••"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-[12px] text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
+                            className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
                             required
                         />
                     </div>
@@ -153,7 +151,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full py-2.5 mt-1 bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-40 text-white font-medium text-[12px] rounded-[3px] transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-2.5 mt-1 bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-40 text-white font-medium text-base rounded-[3px] transition-colors flex items-center justify-center gap-2"
                     >
                         {isLoading ? (
                             <span>Processing…</span>

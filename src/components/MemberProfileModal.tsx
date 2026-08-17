@@ -97,18 +97,18 @@ export default function MemberProfileModal({
                             <div className="w-24 h-24 rounded-[4px] border-4 border-white bg-[#FAFAF9] flex items-center justify-center text-2xl font-heading text-[#1A1A1A] font-bold shadow-md shrink-0">
                                 {user.name
                                     ? user.name
-                                          .split(" ")
-                                          .map((n) => n[0])
-                                          .join("")
-                                          .toUpperCase()
-                                          .slice(0, 2)
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")
+                                        .toUpperCase()
+                                        .slice(0, 2)
                                     : "U"}
                             </div>
                         )}
 
                         <div className="text-right flex flex-col items-end gap-1.5 mb-1">
                             <span
-                                className={`px-2.5 py-0.5 rounded-[2px] border text-[9px] font-semibold capitalize tracking-[0.05em] ${getRoleBadge(userRole)}`}
+                                className={`px-2.5 py-0.5 rounded-[2px] border text-[9px] font-semibold capitalize   ${getRoleBadge(userRole)}`}
                             >
                                 {userRole}
                             </span>
@@ -152,7 +152,7 @@ export default function MemberProfileModal({
                             <span className="text-base font-bold text-[#22863A] tabular-nums">
                                 {completedTasks.length}
                             </span>
-                            <span className="text-[9px] text-[#888883] font-medium capitalize tracking-[0.05em] mt-0.5 flex items-center gap-1">
+                            <span className="text-[9px] text-[#888883] font-medium capitalize   mt-0.5 flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3 text-[#22863A]" />{" "}
                                 Done
                             </span>
@@ -161,7 +161,7 @@ export default function MemberProfileModal({
                             <span className="text-base font-bold text-[#B08800] tabular-nums">
                                 {pendingTasks.length}
                             </span>
-                            <span className="text-[9px] text-[#888883] font-medium capitalize tracking-[0.05em] mt-0.5 flex items-center gap-1">
+                            <span className="text-[9px] text-[#888883] font-medium capitalize   mt-0.5 flex items-center gap-1">
                                 <Clock className="w-3 h-3 text-[#B08800]" /> In
                                 Progress
                             </span>

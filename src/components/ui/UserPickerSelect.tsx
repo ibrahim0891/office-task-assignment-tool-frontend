@@ -205,11 +205,10 @@ export default function UserPickerSelect({
                                             onSelectUser(u.id);
                                             setIsOpen(false);
                                         }}
-                                        className={`px-2 py-1 border rounded-[2px] text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
-                                            selectedUserId === u.id
-                                                ? "bg-[#1A1A1A] text-white border-[#1A1A1A]"
-                                                : "bg-[#FAFAF9] hover:bg-white text-[#1A1A1A] border-[#E5E5E3]"
-                                        }`}
+                                        className={`px-2 py-1 border rounded-[2px] text-base flex items-center gap-1.5 transition-colors cursor-pointer ${selectedUserId === u.id
+                                            ? "bg-[#1A1A1A] text-white border-[#1A1A1A]"
+                                            : "bg-[#FAFAF9] hover:bg-white text-[#1A1A1A] border-[#E5E5E3]"
+                                            }`}
                                     >
                                         {u.avatarUrl ? (
                                             <img
@@ -241,7 +240,7 @@ export default function UserPickerSelect({
                         className="flex-1 overflow-y-auto divide-y divide-[#E5E5E3]/60 max-h-40 pr-1 text-left"
                     >
                         {apiUsers.length === 0 ? (
-                            <div className="py-4 text-center text-xs text-[#888883] italic">
+                            <div className="py-4 text-center text-base text-[#888883] italic">
                                 {isSearching
                                     ? "Searching members…"
                                     : "No matching members found."}
@@ -257,11 +256,10 @@ export default function UserPickerSelect({
                                                 onSelectUser(u.id);
                                                 setIsOpen(false);
                                             }}
-                                            className={`p-2 flex items-center justify-between gap-2 transition-colors cursor-pointer ${
-                                                isSelected
-                                                    ? "bg-[#F5F5F3]"
-                                                    : "hover:bg-[#FAFAF9]"
-                                            }`}
+                                            className={`p-2 flex items-center justify-between gap-2 transition-colors cursor-pointer ${isSelected
+                                                ? "bg-[#F5F5F3]"
+                                                : "hover:bg-[#FAFAF9]"
+                                                }`}
                                         >
                                             <div className="flex items-center gap-2 min-w-0">
                                                 {u.avatarUrl ? (

@@ -20,11 +20,11 @@ export const SocialLinksSection: React.FC<SocialLinksSectionProps> = ({
         <div className="flex flex-col gap-6">
             {/* ── Handles & Profiles ── */}
             <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow uppercase tracking-[0.12em] text-[10px] pb-2 border-b border-[#E5E5E3]">Handles &amp; Profiles</p>
+                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Handles &amp; Profiles</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <ProfileField label="Telegram">
                         <div className="flex items-stretch">
-                            <span className="flex items-center bg-[#FAFAF9] border border-r-0 border-[#E5E5E3] px-3 text-[12px] text-[#888883] rounded-l-[2px] select-none shrink-0">
+                            <span className="flex items-center bg-[#FAFAF9] border border-r-0 border-[#E5E5E3] px-3 text-base text-[#888883] rounded-l-[2px] select-none shrink-0">
                                 @
                             </span>
                             <input

@@ -70,7 +70,7 @@ export default function KanbanBoard({
         if (savedOrder) {
             try {
                 setCustomOrderMap(JSON.parse(savedOrder));
-            } catch (e) {}
+            } catch (e) { }
         }
     }, []);
 
@@ -171,21 +171,21 @@ export default function KanbanBoard({
         switch (priority?.toUpperCase()) {
             case "URGENT":
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium uppercase tracking-wider bg-[#FAF5F5] text-[#7A4040] border border-[#E5D8D8] shrink-0">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium capitalize   bg-[#FAF5F5] text-[#7A4040] border border-[#E5D8D8] shrink-0">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#B87070] shrink-0" />
                         <span>URGENT</span>
                     </span>
                 );
             case "HIGH":
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium uppercase tracking-wider bg-[#FAF8F2] text-[#6A5830] border border-[#E2DAC0] shrink-0">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium capitalize   bg-[#FAF8F2] text-[#6A5830] border border-[#E2DAC0] shrink-0">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#B8A050] shrink-0" />
                         <span>HIGH</span>
                     </span>
                 );
             case "MEDIUM":
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium uppercase tracking-wider bg-[#F5F7F9] text-[#4A5D70] border border-[#D5DCE5] shrink-0">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium capitalize   bg-[#F5F7F9] text-[#4A5D70] border border-[#D5DCE5] shrink-0">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#8A9BAC] shrink-0" />
                         <span>MEDIUM</span>
                     </span>
@@ -193,7 +193,7 @@ export default function KanbanBoard({
             case "LOW":
             default:
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium uppercase tracking-wider bg-[#F5F5F4] text-[#888883] border border-[#E5E5E3] shrink-0">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium capitalize   bg-[#F5F5F4] text-[#888883] border border-[#E5E5E3] shrink-0">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#C8C8C2] shrink-0" />
                         <span>LOW</span>
                     </span>
@@ -326,37 +326,37 @@ export default function KanbanBoard({
                         const columnTasks =
                             sortBy === "custom"
                                 ? (() => {
-                                      const order = customOrderMap[col.id];
-                                      if (!order) return colFiltered;
-                                      return [...colFiltered].sort((a, b) => {
-                                          const idxA = order.indexOf(a.id);
-                                          const idxB = order.indexOf(b.id);
-                                          // Tasks not in the saved order go to the end
-                                          if (idxA === -1 && idxB === -1)
-                                              return 0;
-                                          if (idxA === -1) return 1;
-                                          if (idxB === -1) return -1;
-                                          return idxA - idxB;
-                                      });
-                                  })()
+                                    const order = customOrderMap[col.id];
+                                    if (!order) return colFiltered;
+                                    return [...colFiltered].sort((a, b) => {
+                                        const idxA = order.indexOf(a.id);
+                                        const idxB = order.indexOf(b.id);
+                                        // Tasks not in the saved order go to the end
+                                        if (idxA === -1 && idxB === -1)
+                                            return 0;
+                                        if (idxA === -1) return 1;
+                                        if (idxB === -1) return -1;
+                                        return idxA - idxB;
+                                    });
+                                })()
                                 : colFiltered.sort((a, b) => {
-                                      if (sortBy === "priority-desc") {
-                                          return (
-                                              getPriorityWeight(b.priority) -
-                                              getPriorityWeight(a.priority)
-                                          );
-                                      }
-                                      if (sortBy === "priority-asc") {
-                                          return (
-                                              getPriorityWeight(a.priority) -
-                                              getPriorityWeight(b.priority)
-                                          );
-                                      }
-                                      return (
-                                          new Date(b.createdAt).getTime() -
-                                          new Date(a.createdAt).getTime()
-                                      );
-                                  });
+                                    if (sortBy === "priority-desc") {
+                                        return (
+                                            getPriorityWeight(b.priority) -
+                                            getPriorityWeight(a.priority)
+                                        );
+                                    }
+                                    if (sortBy === "priority-asc") {
+                                        return (
+                                            getPriorityWeight(a.priority) -
+                                            getPriorityWeight(b.priority)
+                                        );
+                                    }
+                                    return (
+                                        new Date(b.createdAt).getTime() -
+                                        new Date(a.createdAt).getTime()
+                                    );
+                                });
 
                         const isWipExceeded =
                             col.wipLimit !== null &&
@@ -365,17 +365,16 @@ export default function KanbanBoard({
                         return (
                             <div
                                 key={col.id}
-                                className={`w-72 shrink-0 bg-white border flex flex-col h-full max-h-[calc(100vh-160px)] ${
-                                    isWipExceeded
-                                        ? "border-[#CB2431]/40"
-                                        : "border-[#E5E5E3]"
-                                }`}
+                                className={`w-72 shrink-0 bg-white border flex flex-col h-full max-h-[calc(100vh-160px)] ${isWipExceeded
+                                    ? "border-[#CB2431]/40"
+                                    : "border-[#E5E5E3]"
+                                    }`}
                             >
                                 {/* Column Header */}
                                 <div className="px-3 py-2.5 border-b border-[#E5E5E3] flex justify-between items-center shrink-0">
                                     <div className="flex flex-col gap-0">
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-semibold text-[12px] text-[#1A1A1A]">
+                                            <h3 className="font-semibold text-base text-[#1A1A1A]">
                                                 {col.name}
                                             </h3>
                                             <span className="text-[10px] text-[#888883] font-medium">
@@ -396,7 +395,7 @@ export default function KanbanBoard({
                                             onClick={() =>
                                                 onAddTaskClick(col.id)
                                             }
-                                            className="w-6 h-6 border border-[#E5E5E3] rounded-[3px] bg-[#FAFAF9] hover:bg-[#F0F0EE] text-[#888883] hover:text-[#1A1A1A] flex items-center justify-center text-[12px] transition-colors"
+                                            className="w-6 h-6 border border-[#E5E5E3] rounded-[3px] bg-[#FAFAF9] hover:bg-[#F0F0EE] text-[#888883] hover:text-[#1A1A1A] flex items-center justify-center text-base transition-colors"
                                         >
                                             +
                                         </button>
@@ -409,11 +408,10 @@ export default function KanbanBoard({
                                         <div
                                             ref={provided.innerRef}
                                             {...provided.droppableProps}
-                                            className={`flex-1 overflow-y-auto p-2.5 flex flex-col gap-2 min-h-[120px] transition-colors ${
-                                                snapshot.isDraggingOver
-                                                    ? "bg-[#F5F5F3]"
-                                                    : ""
-                                            }`}
+                                            className={`flex-1 overflow-y-auto p-2.5 flex flex-col gap-2 min-h-[120px] transition-colors ${snapshot.isDraggingOver
+                                                ? "bg-[#F5F5F3]"
+                                                : ""
+                                                }`}
                                         >
                                             {columnTasks.map((task, index) => {
                                                 const isTaskCreator =
@@ -454,15 +452,13 @@ export default function KanbanBoard({
                                                                         .draggableProps
                                                                         .style,
                                                                 }}
-                                                                className={`p-2.5 bg-white border border-[#E5E5E3] hover:border-[#DADAD6] flex flex-col gap-2 transition-colors text-left ${getPriorityStyle(task.priority)} ${
-                                                                    dragSnapshot.isDragging
-                                                                        ? "border-[#1A1A1A] bg-[#FAFAF9]"
-                                                                        : ""
-                                                                } ${
-                                                                    !isTaskDragDisabled
+                                                                className={`p-2.5 bg-white border border-[#E5E5E3] hover:border-[#DADAD6] flex flex-col gap-2 transition-colors text-left ${getPriorityStyle(task.priority)} ${dragSnapshot.isDragging
+                                                                    ? "border-[#1A1A1A] bg-[#FAFAF9]"
+                                                                    : ""
+                                                                    } ${!isTaskDragDisabled
                                                                         ? "cursor-grab active:cursor-grabbing"
                                                                         : "cursor-pointer"
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 <div className="flex justify-between items-center gap-2">
                                                                     {getPriorityBadge(
@@ -470,18 +466,18 @@ export default function KanbanBoard({
                                                                     )}
                                                                     {task.carryCount >
                                                                         0 && (
-                                                                        <span className="text-[9px] font-medium text-[#B08800] bg-[#FEFCE8] border border-[#B08800]/30 px-1.5 py-0.5 rounded-[2px]">
-                                                                            Carried{" "}
-                                                                            {
-                                                                                task.carryCount
-                                                                            }
-                                                                            d
-                                                                        </span>
-                                                                    )}
+                                                                            <span className="text-[9px] font-medium text-[#B08800] bg-[#FEFCE8] border border-[#B08800]/30 px-1.5 py-0.5 rounded-[2px]">
+                                                                                Carried{" "}
+                                                                                {
+                                                                                    task.carryCount
+                                                                                }
+                                                                                d
+                                                                            </span>
+                                                                        )}
                                                                 </div>
 
                                                                 <div>
-                                                                    <h4 className="text-[12px] font-semibold text-[#1A1A1A] leading-snug line-clamp-2">
+                                                                    <h4 className="text-base font-semibold text-[#1A1A1A] leading-snug line-clamp-2">
                                                                         {
                                                                             task.title
                                                                         }
@@ -498,7 +494,7 @@ export default function KanbanBoard({
                                                                     task
                                                                         .checklist
                                                                         .length >
-                                                                        0 && (
+                                                                    0 && (
                                                                         <div className="flex items-center gap-1.5 text-[10px] text-[#888883]">
                                                                             <span>
                                                                                 {

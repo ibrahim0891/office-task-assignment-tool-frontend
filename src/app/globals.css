@@ -44,12 +44,16 @@
   --color-app-sidebar: var(--app-sidebar);
 }
 
+html {
+  font-size: 15px;
+}
+
 body {
   background: var(--app-bg);
   color: var(--app-text);
   font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -467,4 +471,27 @@ textarea:focus-visible,
   .printable-preview tr {
     page-break-inside: avoid;
   }
+}
+
+/* ─── Range Slider Theme ─── */
+input[type="range"] {
+  accent-color: #1A1A1A;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background: #1A1A1A;
+  cursor: pointer;
+  border: 1px solid #1A1A1A;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  background: #1A1A1A;
+  cursor: pointer;
+  border: 1px solid #1A1A1A;
 }

@@ -172,18 +172,17 @@ export default function MyDayView({
                                                             e.stopPropagation();
                                                             onToggleComplete(task.id, !column.isComplete);
                                                         }}
-                                                        className={`w-4.5 h-4.5 rounded-[2px] border flex items-center justify-center shrink-0 transition-colors cursor-pointer text-xs font-bold ${
-                                                            column.isComplete
-                                                                ? "bg-[#22863A]/10 border-[#22863A] text-[#22863A]"
-                                                                : "border-[#DADAD6] hover:border-[#1A1A1A] bg-white text-transparent hover:text-[#888883]"
-                                                        }`}
+                                                        className={`w-4.5 h-4.5 rounded-[2px] border flex items-center justify-center shrink-0 transition-colors cursor-pointer text-base font-bold ${column.isComplete
+                                                            ? "bg-[#22863A]/10 border-[#22863A] text-[#22863A]"
+                                                            : "border-[#DADAD6] hover:border-[#1A1A1A] bg-white text-transparent hover:text-[#888883]"
+                                                            }`}
                                                         title={column.isComplete ? "Mark incomplete" : "Mark complete"}
                                                     >
                                                         ✓
                                                     </button>
 
                                                     <div className="truncate flex-1 min-w-0">
-                                                        <h3 className={`text-[12px] font-semibold truncate ${column.isComplete ? "line-through text-[#888883]" : "text-[#1A1A1A]"}`}>
+                                                        <h3 className={`text-base font-semibold truncate ${column.isComplete ? "line-through text-[#888883]" : "text-[#1A1A1A]"}`}>
                                                             {task.title}
                                                         </h3>
                                                     </div>
@@ -245,7 +244,7 @@ export default function MyDayView({
                                                     {user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
                                                 </div>
                                             )}
-                                            <span className="text-[12px] font-semibold text-[#1A1A1A] truncate">{user.name}</span>
+                                            <span className="text-base font-semibold text-[#1A1A1A] truncate">{user.name}</span>
                                         </div>
                                         <span className="text-[10px] text-[#888883] border border-[#E5E5E3] px-1.5 py-0.5 rounded-[2px]">
                                             {done}/{total} done
@@ -295,7 +294,7 @@ export default function MyDayView({
                                     >
                                         <div className="flex items-center gap-2 truncate">
                                             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.column?.isComplete ? "bg-[#22863A]" : "bg-[#1A1A1A]"}`} />
-                                            <span className={`text-[12px] font-medium truncate ${t.column?.isComplete ? "line-through text-[#888883]" : "text-[#1A1A1A]"}`}>
+                                            <span className={`text-base font-medium truncate ${t.column?.isComplete ? "line-through text-[#888883]" : "text-[#1A1A1A]"}`}>
                                                 {t.title}
                                             </span>
                                         </div>

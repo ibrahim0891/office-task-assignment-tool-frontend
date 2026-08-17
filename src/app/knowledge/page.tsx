@@ -8,8 +8,37 @@ import { useWorkspace } from "../../context/WorkspaceContext";
 import toast from "react-hot-toast";
 import { Plus, Columns2, Trash2, BookOpen, FilePen, Pencil, Printer } from "lucide-react";
 
+function ArticleAuthorAvatar({
+    avatarUrl,
+    name,
+    initials,
+}: {
+    avatarUrl?: string | null;
+    name: string;
+    initials: string;
+}) {
+    const [imgError, setImgError] = useState(false);
+
+    if (avatarUrl && !imgError) {
+        return (
+            <img
+                src={avatarUrl}
+                alt={name}
+                onError={() => setImgError(true)}
+                className="w-3.5 h-3.5 rounded-full object-cover border border-[#E5E5E3] shrink-0"
+            />
+        );
+    }
+
+    return (
+        <div className="w-3.5 h-3.5 rounded-full border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] font-bold text-[#1A1A1A] shrink-0">
+            {initials}
+        </div>
+    );
+}
+
 export default function KnowledgePage() {
-    const { currentUser, currentTeam, isClient } = useWorkspace();
+    const { currentUser, currentTeam, isClient, users } = useWorkspace();
     const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
     const [selected, setSelected] = useState<KnowledgeArticle | null>(null);
     const [title, setTitle] = useState("Untitled Article");
@@ -154,16 +183,16 @@ export default function KnowledgePage() {
             <aside className="w-64 shrink-0 border-r border-[#E5E5E3] bg-white flex flex-col">
                 {/* Rail Header */}
                 <div className="px-4 py-3 border-b border-[#E5E5E3] flex items-center justify-between">
-                    <span className="eyebrow uppercase tracking-[0.12em] text-[10px]">Docs & Knowledge Base</span>
+                    <span className="eyebrow capitalize   text-[10px]">Docs & Knowledge Base</span>
                     <button onClick={handleNew} title="New article"
                         className="relative corner-brackets-4 p-1.5 border border-[#E5E5E3] rounded-[2px] bg-white text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors cursor-pointer">
-                        <Plus className="w-3.5 h-3.5"/>
+                        <Plus className="w-3.5 h-3.5" />
                     </button>
                 </div>
 
                 {/* List Section Controls: Count on left, Sort on right */}
                 <div className="px-3 py-2 border-b border-[#E5E5E3] bg-[#FAFAF9] flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-[#888883] font-medium uppercase tracking-wider">
+                    <span className="text-[10px] text-[#888883] font-medium capitalize  ">
                         {isLoading ? "…" : `${articles.length} article${articles.length !== 1 ? "s" : ""}`}
                     </span>
                     <select
@@ -181,22 +210,41 @@ export default function KnowledgePage() {
                 {/* Article List */}
                 <div className="flex-1 overflow-y-auto scrollbar-none py-1">
                     {isLoading ? (
-                        <div className="p-4 flex flex-col gap-2">{[1,2,3].map(i=><div key={i} className="h-8 shimmer rounded-[2px]"/>)}</div>
+                        <div className="p-4 flex flex-col gap-2">{[1, 2, 3].map(i => <div key={i} className="h-8 shimmer rounded-[2px]" />)}</div>
                     ) : paginatedArticles.length === 0 ? (
                         <div className="p-4 text-center">
-                            <BookOpen className="w-6 h-6 text-[#E5E5E3] mx-auto mb-2"/>
+                            <BookOpen className="w-6 h-6 text-[#E5E5E3] mx-auto mb-2" />
                             <p className="text-[11px] text-[#888883]">No articles yet</p>
                             <button onClick={handleNew} className="mt-2 text-[11px] text-[#1A1A1A] underline cursor-pointer">Create one</button>
                         </div>
-                    ) : paginatedArticles.map(a => (
-                        <button key={a.id} onClick={() => handleSelect(a)}
-                            className={`w-full text-left px-4 py-2.5 border-b border-[#F5F5F4] transition-colors cursor-pointer ${selected?.id===a.id ? "bg-[#FAFAF9] border-l-2 border-l-[#1A1A1A]" : "hover:bg-[#FAFAF9] border-l-2 border-l-transparent"}`}>
-                            <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{a.title}</p>
-                            <p className="text-[10px] text-[#888883] mt-0.5">
-                                {new Date(a.updatedAt).toLocaleDateString("en-GB",{day:"numeric",month:"short"})} · {a.createdBy.name.split(" ")[0]}
-                            </p>
-                        </button>
-                    ))}
+                    ) : paginatedArticles.map(a => {
+                        const author = users.find(u => u.id === a.createdById || u.id === a.createdBy?.id) || a.createdBy;
+                        const avatarUrl = author?.avatarUrl || a.createdBy?.avatarUrl;
+                        const authorName = author?.name || a.createdBy?.name || "Unknown";
+                        const initials = authorName
+                            ? authorName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase()
+                                .slice(0, 2)
+                            : "U";
+
+                        return (
+                            <button key={a.id} onClick={() => handleSelect(a)}
+                                className={`w-full text-left px-4 py-2.5 border-b border-[#F5F5F4] transition-colors cursor-pointer ${selected?.id === a.id ? "bg-[#FAFAF9] border-l-2 border-l-[#1A1A1A]" : "hover:bg-[#FAFAF9] border-l-2 border-l-transparent"}`}>
+                                <p className="text-base font-medium text-[#1A1A1A] truncate">{a.title}</p>
+                                <div className="flex items-center gap-1.5 text-[10px] text-[#888883] mt-1">
+                                    <span>{new Date(a.updatedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
+                                    <span>·</span>
+                                    <div className="flex items-center gap-1 min-w-0">
+                                        <ArticleAuthorAvatar avatarUrl={avatarUrl} name={authorName} initials={initials} />
+                                        <span className="truncate">{authorName.split(" ")[0]}</span>
+                                    </div>
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {/* Pagination Controls if > 15 articles */}
@@ -237,7 +285,7 @@ export default function KnowledgePage() {
                                 style={{
                                     width: title ? `${Math.max(title.length, 12)}ch` : "14ch",
                                     fontFamily: titleFont || "var(--font-instrument-serif), 'Times New Roman', Times, serif"
-                                }}/>
+                                }} />
                             {!isTitleFocused && (
                                 <Pencil className="w-3.5 h-3.5 text-[#888883] shrink-0" />
                             )}
@@ -249,17 +297,17 @@ export default function KnowledgePage() {
                             setTimeout(() => window.print(), 100);
                         }} title="Print article preview"
                             className="p-1.5 text-[#888883] hover:text-[#1A1A1A] border border-transparent hover:border-[#E5E5E3] rounded-[2px] transition-colors cursor-pointer">
-                            <Printer className="w-3.5 h-3.5"/>
+                            <Printer className="w-3.5 h-3.5" />
                         </button>
                         {selected && (
                             <button onClick={handleDelete} title="Delete article"
                                 className="p-1.5 text-[#888883] hover:text-[#CB2431] border border-transparent hover:border-[#E5E5E3] rounded-[2px] transition-colors cursor-pointer">
-                                <Trash2 className="w-3.5 h-3.5"/>
+                                <Trash2 className="w-3.5 h-3.5" />
                             </button>
                         )}
-                        <button onClick={()=>setIsDualPane(v=>!v)} title={isDualPane?"Single pane":"Dual pane preview"}
-                            className={`relative corner-brackets-4 p-1.5 border rounded-[2px] transition-colors cursor-pointer ${isDualPane?"bg-[#1A1A1A] border-[#1A1A1A] text-white":"bg-white border-[#E5E5E3] text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9]"}`}>
-                            <Columns2 className="w-3.5 h-3.5"/>
+                        <button onClick={() => setIsDualPane(v => !v)} title={isDualPane ? "Single pane" : "Dual pane preview"}
+                            className={`relative corner-brackets-4 p-1.5 border rounded-[2px] transition-colors cursor-pointer ${isDualPane ? "bg-[#1A1A1A] border-[#1A1A1A] text-white" : "bg-white border-[#E5E5E3] text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9]"}`}>
+                            <Columns2 className="w-3.5 h-3.5" />
                         </button>
                         {isDirty && (
                             <>
@@ -275,16 +323,16 @@ export default function KnowledgePage() {
                 </div>
 
                 {/* Editor + Preview */}
-                <div className={`flex-1 flex overflow-hidden ${isDualPane?"divide-x divide-[#E5E5E3]":""}`}>
-                    <div className={`flex flex-col overflow-hidden editor-pane ${isDualPane?"w-1/2":"w-full"}`}>
+                <div className={`flex-1 flex overflow-hidden ${isDualPane ? "divide-x divide-[#E5E5E3]" : ""}`}>
+                    <div className={`flex flex-col overflow-hidden editor-pane ${isDualPane ? "w-1/2" : "w-full"}`}>
                         {isEditing ? (
                             <div className="flex-1 overflow-y-auto p-5 flex flex-col">
-                                <TipTapEditor value={content} onChange={handleContentChange}/>
+                                <TipTapEditor value={content} onChange={handleContentChange} />
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center p-8">
-                                <FilePen className="w-8 h-8 text-[#E5E5E3]"/>
-                                <p className="text-[12px] text-[#888883]">Select an article or create a new one</p>
+                                <FilePen className="w-8 h-8 text-[#E5E5E3]" />
+                                <p className="text-base text-[#888883]">Select an article or create a new one</p>
                                 <Button size="sm" showDot onClick={handleNew}>New Article</Button>
                             </div>
                         )}
@@ -293,8 +341,8 @@ export default function KnowledgePage() {
                         <div className="w-1/2 overflow-y-auto bg-[#FAFAF9] p-5 min-w-0 flex flex-col printable-preview-pane">
                             <div className="printable-preview relative w-full min-h-full bg-white border border-[#E5E5E3] corner-brackets p-5 min-w-0 break-words">
                                 {content
-                                    ? <div className="prose-content text-[13px] leading-relaxed text-[#1A1A1A] break-words" dangerouslySetInnerHTML={{__html:content}}/>
-                                    : <p className="text-[12px] text-[#BBBBB8] italic">Nothing to preview yet…</p>
+                                    ? <div className="prose-content text-[13px] leading-relaxed text-[#1A1A1A] break-words" dangerouslySetInnerHTML={{ __html: content }} />
+                                    : <p className="text-base text-[#BBBBB8] italic">Nothing to preview yet…</p>
                                 }
                             </div>
                         </div>

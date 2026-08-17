@@ -164,11 +164,10 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative border border-dashed rounded-[3px] p-4 flex flex-col sm:flex-row items-center gap-4 transition-all cursor-pointer select-none ${
-                    isDragOver
-                        ? "border-[#1A1A1A] bg-[#F5F5F3] scale-[1.01]"
-                        : "border-[#E5E5E3] bg-[#FAFAF9] hover:border-[#888883] hover:bg-white"
-                }`}
+                className={`relative border border-dashed rounded-[3px] p-4 flex flex-col sm:flex-row items-center gap-4 transition-all cursor-pointer select-none ${isDragOver
+                    ? "border-[#1A1A1A] bg-[#F5F5F3] scale-[1.01]"
+                    : "border-[#E5E5E3] bg-[#FAFAF9] hover:border-[#888883] hover:bg-white"
+                    }`}
             >
                 <input
                     ref={fileInputRef}
@@ -198,12 +197,12 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
                 </div>
 
                 <div className="flex-1 flex flex-col gap-1 text-center sm:text-left">
-                    <span className="text-[12px] font-medium text-[#1A1A1A]">
+                    <span className="text-base font-medium text-[#1A1A1A]">
                         {avatarUrl
                             ? "Click or drag a new photo to replace current picture"
                             : "Drag & drop your photo here, or click to browse"}
                     </span>
-                    <span className="text-xs text-[#888883]">
+                    <span className="text-base text-[#888883]">
                         Only image files (JPEG, PNG, WEBP, GIF). Auto-cropped to
                         square.
                     </span>
@@ -230,7 +229,7 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
                     <div className="bg-white border border-[#E5E5E3] rounded-[6px] p-5 max-w-lg w-full flex flex-col gap-4 shadow-2xl text-left">
                         <div className="flex items-center justify-between border-b border-[#E5E5E3] pb-3">
                             <div>
-                                <h3 className="font-heading text-sm font-bold text-[#1A1A1A]">
+                                <h3 className="font-heading text-base font-bold text-[#1A1A1A]">
                                     Crop Profile Picture
                                 </h3>
                                 <p className="text-[11px] text-[#888883]">
@@ -302,14 +301,14 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
                                     setIsCropModalOpen(false);
                                     setSelectedImageSrc(null);
                                 }}
-                                className="px-3.5 py-1.5 text-[12px] font-medium text-[#888883] hover:text-[#1A1A1A] border border-[#E5E5E3] rounded-[3px] transition-colors"
+                                className="px-3.5 py-1.5 text-base font-medium text-[#888883] hover:text-[#1A1A1A] border border-[#E5E5E3] rounded-[3px] transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="button"
                                 onClick={handleCropSave}
-                                className="px-4 py-1.5 text-[12px] font-medium text-white bg-[#1A1A1A] hover:bg-[#333] rounded-[3px] transition-colors flex items-center gap-1.5"
+                                className="px-4 py-1.5 text-base font-medium text-white bg-[#1A1A1A] hover:bg-[#333] rounded-[3px] transition-colors flex items-center gap-1.5"
                             >
                                 ✂ Crop & Save
                             </button>

@@ -20,7 +20,7 @@ const BLOOD_GROUPS = [
 ];
 
 const inputClass =
-    "w-full px-3 py-1.5 border border-[#E5E5E3] focus:border-[#1A1A1A] focus:outline-none text-[12px] bg-white rounded-[3px] transition-colors cursor-pointer";
+    "w-full px-3 py-1.5 border border-[#E5E5E3] focus:border-[#1A1A1A] focus:outline-none text-base bg-white rounded-[3px] transition-colors cursor-pointer";
 
 export const MedicalInfoSection: React.FC<MedicalInfoSectionProps> = ({
     bloodGroup,
@@ -28,7 +28,7 @@ export const MedicalInfoSection: React.FC<MedicalInfoSectionProps> = ({
 }) => {
     return (
         <div className="flex flex-col gap-3">
-            <h2 className="text-[12px] font-semibold text-[#888883] capitalize capitalize">
+            <h2 className="text-base font-semibold text-[#888883] capitalize capitalize">
                 Medical & Health Info
             </h2>
 

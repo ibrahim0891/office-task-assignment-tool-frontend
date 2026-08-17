@@ -60,6 +60,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         ],
         content: value || "",
         editable: !disabled,
+        immediatelyRender: false,
         onUpdate: ({ editor }) => {
             onChange(editor.getHTML());
         },
@@ -215,9 +216,9 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                             <TableIcon className="w-3.5 h-3.5" />
                         </button>
                         <select
+                            value=""
                             onChange={(e) => {
                                 const action = e.target.value;
-                                e.target.value = "";
                                 if (action === "addRow") editor.chain().focus().addRowAfter().run();
                                 else if (action === "addCol") editor.chain().focus().addColumnAfter().run();
                                 else if (action === "merge") editor.chain().focus().mergeCells().run();
@@ -229,7 +230,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                             className="text-[10px] bg-transparent text-[#888883] hover:text-[#1A1A1A] cursor-pointer focus:outline-none pr-1"
                             title="Table Options"
                         >
-                            <option value="" disabled selected>Table Edit ▾</option>
+                            <option value="" disabled>Table Edit ▾</option>
                             <option value="addRow">+ Add Row Below</option>
                             <option value="addCol">+ Add Column Right</option>
                             <option value="merge">⚡ Merge Cells</option>

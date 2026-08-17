@@ -224,7 +224,7 @@ export default function TaskModal({
             } else {
                 detailsObj = act.details || {};
             }
-        } catch (e) {}
+        } catch (e) { }
 
         let statusFrom = "";
         let statusTo = "";
@@ -488,7 +488,7 @@ export default function TaskModal({
                     url: attachmentUrl,
                     type:
                         attachmentUrl.includes(".png") ||
-                        attachmentUrl.includes(".jpg")
+                            attachmentUrl.includes(".jpg")
                             ? "image/png"
                             : "document",
                 },
@@ -553,7 +553,7 @@ export default function TaskModal({
                             on {new Date(task.createdAt).toLocaleDateString()}
                         </p>
                         {isDirty && (
-                            <span className="text-xs text-[#B08800] bg-[#B08800]/10 px-2 py-0.5 rounded font-medium animate-pulse">
+                            <span className="text-base text-[#B08800] bg-[#B08800]/10 px-2 py-0.5 rounded font-medium animate-pulse">
                                 Unsaved Changes
                             </span>
                         )}
@@ -601,11 +601,10 @@ export default function TaskModal({
                             <button
                                 type="button"
                                 onClick={() => setActiveTab("details")}
-                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
-                                    activeTab === "details"
-                                        ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
-                                        : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
-                                }`}
+                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${activeTab === "details"
+                                    ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
+                                    : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
+                                    }`}
                             >
                                 <FileText className="w-3.5 h-3.5" />
                                 <span>Details</span>
@@ -614,20 +613,18 @@ export default function TaskModal({
                             <button
                                 type="button"
                                 onClick={() => setActiveTab("comments")}
-                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
-                                    activeTab === "comments"
-                                        ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
-                                        : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
-                                }`}
+                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${activeTab === "comments"
+                                    ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
+                                    : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
+                                    }`}
                             >
                                 <MessageSquare className="w-3.5 h-3.5" />
                                 <span>Comments</span>
                                 <span
-                                    className={`text-[9px] px-1.5 py-0.2 rounded-[2px] font-mono ${
-                                        activeTab === "comments"
-                                            ? "bg-[#1A1A1A] text-white"
-                                            : "bg-[#E5E5E3] text-[#1A1A1A]"
-                                    }`}
+                                    className={`text-[9px] px-1.5 py-0.2 rounded-[2px] font-mono ${activeTab === "comments"
+                                        ? "bg-[#1A1A1A] text-white"
+                                        : "bg-[#E5E5E3] text-[#1A1A1A]"
+                                        }`}
                                 >
                                     {task.comments?.length || 0}
                                 </span>
@@ -636,20 +633,18 @@ export default function TaskModal({
                             <button
                                 type="button"
                                 onClick={() => setActiveTab("attachments")}
-                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
-                                    activeTab === "attachments"
-                                        ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
-                                        : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
-                                }`}
+                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${activeTab === "attachments"
+                                    ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
+                                    : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
+                                    }`}
                             >
                                 <Paperclip className="w-3.5 h-3.5" />
                                 <span>Attachments</span>
                                 <span
-                                    className={`text-[9px] px-1.5 py-0.2 rounded-[2px] font-mono ${
-                                        activeTab === "attachments"
-                                            ? "bg-[#1A1A1A] text-white"
-                                            : "bg-[#E5E5E3] text-[#1A1A1A]"
-                                    }`}
+                                    className={`text-[9px] px-1.5 py-0.2 rounded-[2px] font-mono ${activeTab === "attachments"
+                                        ? "bg-[#1A1A1A] text-white"
+                                        : "bg-[#E5E5E3] text-[#1A1A1A]"
+                                        }`}
                                 >
                                     {task.attachments?.length || 0}
                                 </span>
@@ -672,7 +667,7 @@ export default function TaskModal({
                                             value={title}
                                             onChange={(e) => setTitle(e.target.value)}
                                             placeholder="Task title…"
-                                            className={`${inputClass} font-sans font-normal text-[12px]`}
+                                            className={`${inputClass} font-sans font-normal text-base`}
                                         />
                                     </div>
 
@@ -803,11 +798,11 @@ export default function TaskModal({
                                                                 <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] text-[#1A1A1A] font-semibold shrink-0">
                                                                     {c.user?.name
                                                                         ? c.user.name
-                                                                              .split(" ")
-                                                                              .map((n) => n[0])
-                                                                              .join("")
-                                                                              .toUpperCase()
-                                                                              .slice(0, 2)
+                                                                            .split(" ")
+                                                                            .map((n) => n[0])
+                                                                            .join("")
+                                                                            .toUpperCase()
+                                                                            .slice(0, 2)
                                                                         : "U"}
                                                                 </div>
                                                             )}
@@ -1138,7 +1133,7 @@ export default function TaskModal({
                                             onClick={() =>
                                                 setShowAllAuditLog(true)
                                             }
-                                            className="text-xs text-[#1A1A1A] font-medium hover:underline"
+                                            className="text-base text-[#1A1A1A] font-medium hover:underline"
                                         >
                                             View All →
                                         </button>
@@ -1152,7 +1147,7 @@ export default function TaskModal({
                                             parseActivityInfo(act);
                                         return !(
                                             summaryText ===
-                                                "Updated task details." &&
+                                            "Updated task details." &&
                                             diffs.length === 0
                                         );
                                     })
@@ -1252,7 +1247,7 @@ export default function TaskModal({
                             <h3 className="font-heading text-base font-bold text-[#1A1A1A]">
                                 Unsaved Changes Warning
                             </h3>
-                            <p className="text-[12px] text-[#888883]">
+                            <p className="text-base text-[#888883]">
                                 You have unsaved changes to this task. What
                                 would you like to do before closing?
                             </p>
@@ -1304,14 +1299,14 @@ export default function TaskModal({
                                 <h3 className="font-heading text-base">
                                     Task Audit Log
                                 </h3>
-                                <p className="text-xs text-[#888883]">
+                                <p className="text-base text-[#888883]">
                                     Click any row to view exact field changes
                                     for "{task.title}"
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowAllAuditLog(false)}
-                                className="text-[#888883] hover:text-[#1A1A1A] text-[12px] px-1"
+                                className="text-[#888883] hover:text-[#1A1A1A] text-base px-1"
                             >
                                 ✕
                             </button>
@@ -1324,7 +1319,7 @@ export default function TaskModal({
                                         parseActivityInfo(act);
                                     return !(
                                         summaryText ===
-                                            "Updated task details." &&
+                                        "Updated task details." &&
                                         diffs.length === 0
                                     );
                                 })
@@ -1342,13 +1337,12 @@ export default function TaskModal({
                                                     isExpanded ? null : act.id,
                                                 )
                                             }
-                                            className={`p-3 border transition-colors cursor-pointer text-left ${
-                                                isExpanded
-                                                    ? "border-[#1A1A1A] bg-white"
-                                                    : "border-[#E5E5E3] bg-[#FAFAF9] hover:border-[#DADAD6]"
-                                            }`}
+                                            className={`p-3 border transition-colors cursor-pointer text-left ${isExpanded
+                                                ? "border-[#1A1A1A] bg-white"
+                                                : "border-[#E5E5E3] bg-[#FAFAF9] hover:border-[#DADAD6]"
+                                                }`}
                                         >
-                                            <div className="flex justify-between items-center text-xs text-[#888883]">
+                                            <div className="flex justify-between items-center text-base text-[#888883]">
                                                 <span className="font-semibold text-[#1A1A1A]">
                                                     {act.user?.name || "System"}
                                                 </span>
@@ -1362,7 +1356,7 @@ export default function TaskModal({
                                             <div className="text-[#1A1A1A] font-medium text-[11px] mt-1 flex justify-between items-center">
                                                 <span>{summaryText}</span>
                                                 {diffs.length > 0 && (
-                                                    <span className="text-xs text-[#888883] hover:text-[#1A1A1A] font-semibold">
+                                                    <span className="text-base text-[#888883] hover:text-[#1A1A1A] font-semibold">
                                                         {isExpanded
                                                             ? "Collapse ▲"
                                                             : "View Details ▼"}
@@ -1379,7 +1373,7 @@ export default function TaskModal({
                                                     {diffs.map((d, idx) => (
                                                         <div
                                                             key={idx}
-                                                            className="flex justify-between items-center text-xs bg-[#FAFAF9] p-2 border border-[#E5E5E3]"
+                                                            className="flex justify-between items-center text-base bg-[#FAFAF9] p-2 border border-[#E5E5E3]"
                                                         >
                                                             <span className="font-semibold text-[#1A1A1A]">
                                                                 {d.field}

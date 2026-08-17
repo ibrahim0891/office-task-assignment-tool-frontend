@@ -143,9 +143,8 @@ export default function Sidebar({
 
     return (
         <aside
-            className={`${
-                isCollapsed ? "w-16 p-2 overflow-visible" : "w-64 p-5"
-            } bg-white border-r border-[#E5E5E3] flex flex-col shrink-0 select-none transition-all duration-200 relative`}
+            className={`${isCollapsed ? "w-16 p-2 overflow-visible" : "w-64 p-5"
+                } bg-white border-r border-[#E5E5E3] flex flex-col shrink-0 select-none transition-all duration-200 relative`}
         >
             <div
                 className={`flex-1 flex flex-col gap-4 min-h-0 ${isCollapsed ? "overflow-visible" : "overflow-y-auto scrollbar-none"}`}
@@ -165,9 +164,8 @@ export default function Sidebar({
                         title={
                             isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"
                         }
-                        className={`relative corner-brackets-4 p-1.5 border border-[#E5E5E3] rounded-[2px] bg-white text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors flex items-center justify-center cursor-pointer ${
-                            isCollapsed ? "mx-auto" : ""
-                        }`}
+                        className={`relative corner-brackets-4 p-1.5 border border-[#E5E5E3] rounded-[2px] bg-white text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors flex items-center justify-center cursor-pointer ${isCollapsed ? "mx-auto" : ""
+                            }`}
                     >
                         <svg
                             className="w-4 h-4"
@@ -208,9 +206,9 @@ export default function Sidebar({
                                 teams.length === 0
                                     ? [{ value: "", label: "No Workspaces" }]
                                     : teams.map((t) => ({
-                                          value: t.id,
-                                          label: t.name,
-                                      }))
+                                        value: t.id,
+                                        label: t.name,
+                                    }))
                             }
                             value={currentTeam?.id || ""}
                             onChange={(val) => {
@@ -223,12 +221,12 @@ export default function Sidebar({
                 ) : (
                     <button
                         onClick={onCreateTeamClick}
-                        className="w-9 h-9 mx-auto border border-[#E5E5E3] rounded-[3px] text-[12px] text-[#1A1A1A] font-medium hover:bg-[#FAFAF9] flex items-center justify-center relative group cursor-pointer"
+                        className="w-9 h-9 mx-auto border border-[#E5E5E3] rounded-[3px] text-base text-[#1A1A1A] font-medium hover:bg-[#FAFAF9] flex items-center justify-center relative group cursor-pointer"
                         title="Manage Workspaces"
                     >
                         <SlidersHorizontal className="w-4 h-4 text-[#555555]" />
                         {/* Tooltip */}
-                        <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A1A] text-white text-xs rounded-[2px] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
+                        <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A1A] text-white text-base rounded-[2px] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
                             Manage Workspaces
                         </div>
                     </button>
@@ -258,15 +256,13 @@ export default function Sidebar({
                                         setCurrentView(v.id);
                                     }
                                 }}
-                                className={`flex items-center transition-colors relative group ${
-                                    isCollapsed
-                                        ? "w-9 h-9 mx-auto justify-center rounded-[3px]"
-                                        : "w-full justify-between px-2.5 py-2 rounded-[2px] gap-2.5"
-                                } text-[12px] ${
-                                    isActive
+                                className={`flex items-center transition-colors relative group ${isCollapsed
+                                    ? "w-9 h-9 mx-auto justify-center rounded-[3px]"
+                                    : "w-full justify-between px-2.5 py-2 rounded-[2px] gap-2.5"
+                                    } text-[12px] ${isActive
                                         ? "bg-white text-[#1A1A1A] font-semibold border border-[#E5E5E3] corner-brackets-4"
                                         : "text-[#888883] hover:bg-[#FAFAF9] hover:text-[#1A1A1A]"
-                                }`}
+                                    }`}
                             >
                                 <Icon className="w-4 h-4 shrink-0" />
                                 {!isCollapsed && (
@@ -296,25 +292,23 @@ export default function Sidebar({
 
             {/* Footer */}
             <div
-                className={`border-t border-[#E5E5E3] flex flex-col gap-2 ${
-                    isCollapsed ? "pt-3 px-0" : "pt-4 px-0"
-                }`}
+                className={`border-t border-[#E5E5E3] flex flex-col gap-2 ${isCollapsed ? "pt-3 px-0" : "pt-4 px-0"
+                    }`}
             >
                 {userRole === "LEADER" && (
                     <div className="flex flex-col gap-1 mb-1">
                         <button
                             onClick={toggleConfigModal}
-                            className={`flex items-center text-[11px] text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors relative group ${
-                                isCollapsed
-                                    ? "w-9 h-9 mx-auto justify-center rounded-[3px] border border-[#E5E5E3]"
-                                    : "w-full gap-2 px-2.5 py-1.5 rounded-[3px]"
-                            }`}
+                            className={`flex items-center text-[11px] text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors relative group ${isCollapsed
+                                ? "w-9 h-9 mx-auto justify-center rounded-[3px] border border-[#E5E5E3]"
+                                : "w-full gap-2 px-2.5 py-1.5 rounded-[3px]"
+                                }`}
                         >
                             <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
                             {!isCollapsed && <span>Configure Columns</span>}
 
                             {isCollapsed && (
-                                <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A1A] text-white text-xs rounded-[2px] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
+                                <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A1A] text-white text-base rounded-[2px] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
                                     Configure Columns
                                 </div>
                             )}
@@ -328,9 +322,8 @@ export default function Sidebar({
                 {/* User Session Profile Container */}
                 <div
                     ref={menuRef}
-                    className={`relative border border-[#E5E5E3] corner-brackets bg-white transition-all overflow-hidden ${
-                        isCollapsed ? "p-0 group" : ""
-                    }`}
+                    className={`relative border border-[#E5E5E3] corner-brackets bg-white transition-all overflow-hidden ${isCollapsed ? "p-0 group" : ""
+                        }`}
                 >
                     {/* Trigger Button */}
                     <button
@@ -342,9 +335,8 @@ export default function Sidebar({
                                 setIsProfileMenuOpen(!isProfileMenuOpen);
                             }
                         }}
-                        className={`w-full flex items-center justify-between gap-2 p-2.5 hover:bg-[#FAFAF9] transition-colors relative cursor-pointer ${
-                            isCollapsed ? "justify-center" : ""
-                        }`}
+                        className={`w-full flex items-center justify-between gap-2 p-2.5 hover:bg-[#FAFAF9] transition-colors relative cursor-pointer ${isCollapsed ? "justify-center" : ""
+                            }`}
                         title={isCollapsed ? "Profile Settings" : undefined}
                     >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -358,17 +350,17 @@ export default function Sidebar({
                                 <div className="w-7 h-7 rounded-full border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-xs text-[#1A1A1A] font-semibold shrink-0">
                                     {currentUser.name
                                         ? currentUser.name
-                                              .split(" ")
-                                              .map((n) => n[0])
-                                              .join("")
-                                              .toUpperCase()
-                                              .slice(0, 2)
+                                            .split(" ")
+                                            .map((n) => n[0])
+                                            .join("")
+                                            .toUpperCase()
+                                            .slice(0, 2)
                                         : "U"}
                                 </div>
                             )}
                             {!isCollapsed && (
                                 <div className="text-left min-w-0">
-                                    <div className="text-[12px] font-semibold text-[#1A1A1A] truncate">
+                                    <div className="text-sm font-semibold text-[#1A1A1A] truncate">
                                         {currentUser.name}
                                     </div>
                                     <div className="text-xs text-[#888883] truncate capitalize">
@@ -397,7 +389,7 @@ export default function Sidebar({
                             <Link
                                 href="/profile"
                                 onClick={() => setIsProfileMenuOpen(false)}
-                                className="flex items-center gap-2 px-2 py-1.5 rounded-[3px] text-[11px] text-[#1A1A1A] hover:bg-white hover:border hover:border-[#E5E5E3] transition-colors"
+                                className="flex items-center gap-2 px-2 py-1.5 rounded-[3px] text-xs text-[#1A1A1A] hover:bg-white hover:border hover:border-[#E5E5E3] transition-colors"
                             >
                                 <UserIcon className="w-3.5 h-3.5 text-[#888883]" />
                                 <span>Profile Settings</span>
@@ -408,7 +400,7 @@ export default function Sidebar({
                                     setIsProfileMenuOpen(false);
                                     onLogout();
                                 }}
-                                className="flex items-center gap-2 px-2 py-1.5 rounded-[3px] text-[11px] text-[#CB2431] hover:bg-[#CB2431]/10 transition-colors text-left w-full cursor-pointer"
+                                className="flex items-center gap-2 px-2 py-1.5 rounded-[3px] text-xs text-[#CB2431] hover:bg-[#CB2431]/10 transition-colors text-left w-full cursor-pointer"
                             >
                                 <span>Log out</span>
                             </button>

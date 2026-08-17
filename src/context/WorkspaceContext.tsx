@@ -16,6 +16,7 @@ interface WorkspaceContextType {
     users: User[];
     currentUser: User | null;
     isClient: boolean;
+    isInitialized: boolean;
     teams: Team[];
     currentTeam: Team | null;
     setCurrentTeam: (team: Team) => void;
@@ -98,10 +99,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const [users, setUsers] = useState<User[]>([]);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [isClient, setIsClient] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const [teams, setTeams] = useState<Team[]>([]);
     const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
     const [teamMembers, setTeamMembers] = useState<{ user: User; role: string }[]>([]);
+
+    const handleSetCurrentTeam = (team: Team) => {
+        setCurrentTeam(team);
+        if (typeof window !== "undefined" && team?.id) {
+            localStorage.setItem("selected_team_id", team.id);
+        }
+    };
 
     const [tasks, setTasks] = useState<Task[]>([]);
     const [columns, setColumns] = useState<TaskColumn[]>([]);
@@ -145,9 +154,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 setUsers(u);
                 const t = await api.getTeams(userObj?.id);
                 setTeams(t);
-                if (t.length > 0) setCurrentTeam(t[0]);
+                const savedTeamId = localStorage.getItem("selected_team_id");
+                const matched = t.find((team) => team.id === savedTeamId);
+                if (matched) {
+                    setCurrentTeam(matched);
+                } else if (t.length > 0) {
+                    setCurrentTeam(t[0]);
+                    localStorage.setItem("selected_team_id", t[0].id);
+                }
             } catch (err: any) {
                 console.error("Error bootstrapping application:", err);
+            } finally {
+                setIsInitialized(true);
             }
         }
         init();
@@ -365,7 +383,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const handleLogout = () => {
         localStorage.removeItem("sessionUser");
         localStorage.removeItem("task_user");
+        localStorage.removeItem("selected_team_id");
         setCurrentUser(null);
+        setTeams([]);
+        setCurrentTeam(null);
+        setIsInitialized(true);
         router.push("/");
     };
 
@@ -373,9 +395,23 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         localStorage.setItem("sessionUser", JSON.stringify(user));
         localStorage.setItem("task_user", JSON.stringify(user));
         setCurrentUser(user);
-        const t = await api.getTeams(user.id);
-        setTeams(t);
-        if (t.length > 0) setCurrentTeam(t[0]);
+        setIsInitialized(false);
+        try {
+            const t = await api.getTeams(user.id);
+            setTeams(t);
+            const savedTeamId = localStorage.getItem("selected_team_id");
+            const matched = t.find((team) => team.id === savedTeamId);
+            if (matched) {
+                setCurrentTeam(matched);
+            } else if (t.length > 0) {
+                setCurrentTeam(t[0]);
+                localStorage.setItem("selected_team_id", t[0].id);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsInitialized(true);
+        }
     };
 
     return (
@@ -384,9 +420,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 users,
                 currentUser,
                 isClient,
+                isInitialized,
                 teams,
                 currentTeam,
-                setCurrentTeam,
+                setCurrentTeam: handleSetCurrentTeam,
                 teamMembers,
                 userRole,
                 tasks,

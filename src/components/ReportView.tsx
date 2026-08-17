@@ -67,7 +67,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                     <h1 className="font-heading text-xl">
                         Performance Reports
                     </h1>
-                    <p className="text-[12px] text-[#888883] mt-0.5">
+                    <p className="text-base text-[#888883] mt-0.5">
                         Completion ratios, time tracking, and overdue analysis.
                     </p>
                 </div>
@@ -120,7 +120,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                     onChange={(e) =>
                                         setCustomStart(e.target.value)
                                     }
-                                    className="bg-white border border-[#E5E5E3] rounded-[3px] px-2.5 py-1.5 text-[12px] text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A]"
+                                    className="bg-white border border-[#E5E5E3] rounded-[3px] px-2.5 py-1.5 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A]"
                                     required
                                 />
                             </div>
@@ -132,7 +132,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                     onChange={(e) =>
                                         setCustomEnd(e.target.value)
                                     }
-                                    className="bg-white border border-[#E5E5E3] rounded-[3px] px-2.5 py-1.5 text-[12px] text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A]"
+                                    className="bg-white border border-[#E5E5E3] rounded-[3px] px-2.5 py-1.5 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A]"
                                     required
                                 />
                             </div>
@@ -148,7 +148,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
             </div>
 
             {isLoading && (
-                <div className="text-center py-16 text-[#888883] text-[12px]">
+                <div className="text-center py-16 text-[#888883] text-base">
                     Loading report…
                 </div>
             )}
@@ -181,7 +181,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                 <span className="text-2xl font-heading text-[#1A1A1A] print:text-black">
                                     {reportData.completionRate}%
                                 </span>
-                                <span className="text-xs text-[#888883]">
+                                <span className="text-base text-[#888883]">
                                     {reportData.completedTasks} /{" "}
                                     {reportData.totalTasks} tasks
                                 </span>
@@ -192,7 +192,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                 <span className="text-2xl font-heading text-[#1A1A1A]">
                                     {reportData.averageTimeToDone}h
                                 </span>
-                                <span className="text-xs text-[#888883]">
+                                <span className="text-base text-[#888883]">
                                     average completion duration
                                 </span>
                             </div>
@@ -206,7 +206,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                 >
                                     {reportData.overdueCount}
                                 </span>
-                                <span className="text-xs text-[#888883]">
+                                <span className="text-base text-[#888883]">
                                     past due date
                                 </span>
                             </div>
@@ -220,7 +220,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                 >
                                     {reportData.staleTasksCount}
                                 </span>
-                                <span className="text-xs text-[#888883]">
+                                <span className="text-base text-[#888883]">
                                     carried 3+ days
                                 </span>
                             </div>
@@ -245,14 +245,14 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
 
                         {/* Bottom Tasks Audit Trail Section */}
                         <div className="bg-white p-4 flex flex-col gap-3 print:p-0">
-                            <h3 className="text-[12px] font-semibold print:text-base print:font-bold">
+                            <h3 className="text-base font-semibold print:text-base print:font-bold">
                                 ▪ Tasks Audit Trail
                             </h3>
 
                             <div className="overflow-x-auto print:overflow-visible">
                                 <table className="w-full text-left text-[11px] border-collapse">
                                     <thead>
-                                        <tr className="border-b border-[#E5E5E3] text-[9px] font-medium text-[#888883] capitalize tracking-[0.05em] print:border-[#DADAD6] print:text-[#555]">
+                                        <tr className="border-b border-[#E5E5E3] text-[9px] font-medium text-[#888883] capitalize   print:border-[#DADAD6] print:text-[#555]">
                                             <th className="py-2 px-2.5">Title</th>
                                             <th className="py-2 px-2.5 text-center">
                                                 Status

@@ -77,7 +77,7 @@ export default function NotificationsTray({
                                 )}
                             <button
                                 onClick={onClose}
-                                className="text-[#888883] hover:text-[#1A1A1A] transition-colors text-[12px] px-1.5"
+                                className="text-[#888883] hover:text-[#1A1A1A] transition-colors text-base px-1.5"
                             >
                                 ✕
                             </button>
@@ -88,11 +88,10 @@ export default function NotificationsTray({
                     <div className="flex border-b border-[#E5E5E3] text-[11px] font-medium">
                         <button
                             onClick={() => setActiveTab("active")}
-                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${
-                                activeTab === "active"
-                                    ? "border-[#1A1A1A] text-[#1A1A1A]"
-                                    : "border-transparent text-[#888883] hover:text-[#1A1A1A]"
-                            }`}
+                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${activeTab === "active"
+                                ? "border-[#1A1A1A] text-[#1A1A1A]"
+                                : "border-transparent text-[#888883] hover:text-[#1A1A1A]"
+                                }`}
                         >
                             Inbox
                             <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[#F5F5F3] border border-[#E5E5E3]">
@@ -101,11 +100,10 @@ export default function NotificationsTray({
                         </button>
                         <button
                             onClick={() => setActiveTab("archived")}
-                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${
-                                activeTab === "archived"
-                                    ? "border-[#1A1A1A] text-[#1A1A1A]"
-                                    : "border-transparent text-[#888883] hover:text-[#1A1A1A]"
-                            }`}
+                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${activeTab === "archived"
+                                ? "border-[#1A1A1A] text-[#1A1A1A]"
+                                : "border-transparent text-[#888883] hover:text-[#1A1A1A]"
+                                }`}
                         >
                             <Archive className="w-3 h-3" />
                             Archive (30d)
@@ -118,7 +116,7 @@ export default function NotificationsTray({
 
                 {/* 30-Day Storage Notice */}
                 {activeTab === "archived" && (
-                    <div className="bg-[#FAFAF9] border-b border-[#E5E5E3] px-3 py-2 flex items-center gap-2 text-xs text-[#888883]">
+                    <div className="bg-[#FAFAF9] border-b border-[#E5E5E3] px-3 py-2 flex items-center gap-2 text-base text-[#888883]">
                         <Clock className="w-3.5 h-3.5 shrink-0 text-[#1A1A1A]" />
                         <span>
                             Archived items are automatically removed after 30
@@ -131,7 +129,7 @@ export default function NotificationsTray({
                 <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
                     {currentList.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-64 text-[#888883] gap-1">
-                            <p className="text-[12px]">
+                            <p className="text-base">
                                 {activeTab === "active"
                                     ? "No active notifications."
                                     : "No archived notifications."}
@@ -145,11 +143,10 @@ export default function NotificationsTray({
                                     if (n.taskId) onSelectTask(n.taskId);
                                     if (!n.isRead) onMarkRead(n.id);
                                 }}
-                                className={`p-3 border transition-colors text-left cursor-pointer relative group ${
-                                    n.isRead || activeTab === "archived"
-                                        ? "bg-[#FAFAF9] border-[#E5E5E3] text-[#888883]"
-                                        : "bg-white border-[#E5E5E3] hover:border-[#DADAD6] text-[#1A1A1A]"
-                                }`}
+                                className={`p-3 border transition-colors text-left cursor-pointer relative group ${n.isRead || activeTab === "archived"
+                                    ? "bg-[#FAFAF9] border-[#E5E5E3] text-[#888883]"
+                                    : "bg-white border-[#E5E5E3] hover:border-[#DADAD6] text-[#1A1A1A]"
+                                    }`}
                             >
                                 <div className="flex items-start justify-between gap-2 mb-1">
                                     <span
