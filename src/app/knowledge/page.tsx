@@ -278,7 +278,7 @@ export default function KnowledgePage() {
                 <div className={`flex-1 flex overflow-hidden ${isDualPane?"divide-x divide-[#E5E5E3]":""}`}>
                     <div className={`flex flex-col overflow-hidden editor-pane ${isDualPane?"w-1/2":"w-full"}`}>
                         {isEditing ? (
-                            <div className="flex-1 overflow-y-auto p-5">
+                            <div className="flex-1 overflow-y-auto p-5 flex flex-col">
                                 <TipTapEditor value={content} onChange={handleContentChange}/>
                             </div>
                         ) : (
@@ -290,8 +290,8 @@ export default function KnowledgePage() {
                         )}
                     </div>
                     {isDualPane && (
-                        <div className="w-1/2 overflow-y-auto bg-[#FAFAF9] p-5 min-w-0 printable-preview-pane">
-                            <div className="printable-preview relative w-full bg-white border border-[#E5E5E3] corner-brackets p-5 min-w-0 break-words">
+                        <div className="w-1/2 overflow-y-auto bg-[#FAFAF9] p-5 min-w-0 flex flex-col printable-preview-pane">
+                            <div className="printable-preview relative w-full min-h-full bg-white border border-[#E5E5E3] corner-brackets p-5 min-w-0 break-words">
                                 {content
                                     ? <div className="prose-content text-[13px] leading-relaxed text-[#1A1A1A] break-words" dangerouslySetInnerHTML={{__html:content}}/>
                                     : <p className="text-[12px] text-[#BBBBB8] italic">Nothing to preview yet…</p>
