@@ -1,26 +1,470 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Editorial palette — paper / ink / stone */
+  --app-bg: #FAFAF9;
+  --app-card: #FFFFFF;
+  --app-border: #E5E5E3;
+  --app-border-strong: #DADAD6;
+  --app-text: #1A1A1A;
+  --app-muted: #888883;
+  --app-sidebar: #FFFFFF;
+
+  /* Functional accent colors — used sparingly */
+  --color-success: #22863A;
+  --color-error: #CB2431;
+  --color-warning: #B08800;
+  --color-accent: #1A1A1A;
+
+  /* Typography */
+  --font-serif: var(--font-secondary, var(--font-instrument-serif), 'Georgia', serif);
+  --font-sans: var(--font-primary, var(--font-inter), 'Inter', -apple-system, system-ui, sans-serif);
+
+  /* Spacing tokens */
+  --space-card: 14px;
+  --space-card-sm: 10px;
+
+  /* Shadow — only for true floating elements */
+  --shadow-float: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-subtle: 0 1px 2px rgba(0,0,0,0.04);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-background: var(--app-bg);
+  --color-foreground: var(--app-text);
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-app-bg: var(--app-bg);
+  --color-app-card: var(--app-card);
+  --color-app-border: var(--app-border);
+  --color-app-border-strong: var(--app-border-strong);
+  --color-app-text: var(--app-text);
+  --color-app-muted: var(--app-muted);
+  --color-app-sidebar: var(--app-sidebar);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Remove Focus Outlines ─── */
+*:focus,
+*:focus-visible,
+button:focus,
+button:focus-visible,
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+.ProseMirror:focus,
+.ProseMirror:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Serif heading utility */
+.font-heading {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* ─── Corner bracket flourish ─── */
+/* The one "designed" detail: small L-shaped corner marks framing key panels */
+.corner-brackets::before,
+.corner-brackets::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 10;
+}
+.corner-brackets::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--app-text);
+  border-left: 2px solid var(--app-text);
+}
+.corner-brackets::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--app-text);
+  border-right: 2px solid var(--app-text);
+}
+
+.corner-brackets-thick::before,
+.corner-brackets-thick::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  z-index: 10;
+}
+.corner-brackets-thick::before {
+  top: -2px;
+  left: -2px;
+  border-top: 2px solid var(--app-text);
+  border-left: 2px solid var(--app-text);
+}
+.corner-brackets-thick::after {
+  bottom: -2px;
+  right: -2px;
+  border-bottom: 2px solid var(--app-text);
+  border-right: 2px solid var(--app-text);
+}
+
+/* 4-Corner bracket flourish for primary buttons & key triggers */
+.corner-brackets-4 {
+  position: relative;
+}
+.corner-brackets-4::before,
+.corner-brackets-4::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  z-index: 10;
+}
+.corner-brackets-4::before {
+  background: 
+    linear-gradient(to right, #555555 5px, transparent 5px) top left / 100% 1px no-repeat,
+    linear-gradient(to bottom, #555555 5px, transparent 5px) top left / 1px 100% no-repeat,
+    linear-gradient(to left, #555555 5px, transparent 5px) top right / 100% 1px no-repeat,
+    linear-gradient(to bottom, #555555 5px, transparent 5px) top right / 1px 100% no-repeat;
+}
+.corner-brackets-4::after {
+  background: 
+    linear-gradient(to right, #555555 5px, transparent 5px) bottom left / 100% 1px no-repeat,
+    linear-gradient(to top, #555555 5px, transparent 5px) bottom left / 1px 100% no-repeat,
+    linear-gradient(to left, #555555 5px, transparent 5px) bottom right / 100% 1px no-repeat,
+    linear-gradient(to top, #555555 5px, transparent 5px) bottom right / 1px 100% no-repeat;
+}
+
+/* ─── Eyebrow label ─── */
+/* Small structural markers — the only capitalize pattern allowed */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--app-muted);
+}
+
+/* ─── Minimal animations ─── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.12s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.2s ease-out forwards;
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    #f0f0ed 25%,
+    #e0e0db 50%,
+    #f0f0ed 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* ─── Global Minimal Custom Scrollbars ─── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #DADAD6 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #DADAD6;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #888883;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* ─── TipTap Rich Text Formatting Styles ─── */
+.ProseMirror {
+  outline: none !important;
+  min-height: 120px;
+}
+
+/* ─── Selection Text Highlighting ─── */
+::selection,
+.ProseMirror ::selection,
+.prose-content ::selection {
+  background-color: #E5E5E3;
+  color: #1A1A1A;
+}
+
+.ProseMirror p,
+.prose-content p {
+  margin-bottom: 0.5rem;
+}
+.ProseMirror p:last-child,
+.prose-content p:last-child {
+  margin-bottom: 0;
+}
+
+.ProseMirror h1,
+.prose-content h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 0.75rem;
+  margin-bottom: 0.35rem;
+  color: #1A1A1A;
+  line-height: 1.3;
+  font-family: inherit;
+}
+
+.ProseMirror h2,
+.prose-content h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-top: 0.65rem;
+  margin-bottom: 0.3rem;
+  color: #1A1A1A;
+  line-height: 1.3;
+  font-family: inherit;
+}
+
+.ProseMirror h3,
+.prose-content h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  color: #1A1A1A;
+  line-height: 1.3;
+  font-family: inherit;
+}
+
+.ProseMirror ul,
+.prose-content ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.ProseMirror ol,
+.prose-content ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.ProseMirror li,
+.prose-content li {
+  margin-bottom: 0.2rem;
+}
+
+.ProseMirror blockquote,
+.prose-content blockquote {
+  border-left: 3px solid #1A1A1A;
+  padding-left: 0.75rem;
+  color: #555555;
+  font-style: italic;
+  margin: 0.5rem 0;
+}
+
+.ProseMirror code,
+.prose-content code {
+  background-color: #F5F5F3;
+  border: 1px solid #E5E5E3;
+  padding: 0.15rem 0.35rem;
+  font-family: monospace;
+  font-size: 0.85em;
+  border-radius: 2px;
+  color: #CB2431;
+}
+
+.ProseMirror pre,
+.prose-content pre {
+  background-color: #1A1A1A;
+  color: #FAFAF9;
+  padding: 0.75rem;
+  font-family: monospace;
+  font-size: 0.85em;
+  border-radius: 3px;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.ProseMirror pre code,
+.prose-content pre code {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+
+.ProseMirror table,
+.prose-content table {
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.ProseMirror td,
+.ProseMirror th,
+.prose-content td,
+.prose-content th {
+  border: 1px solid #E5E5E3;
+  padding: 0.4rem 0.6rem;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  min-width: 1em;
+}
+
+.ProseMirror th,
+.prose-content th {
+  font-weight: 600;
+  text-align: left;
+  background-color: #FAFAF9;
+}
+
+.ProseMirror .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(26, 26, 26, 0.08);
+  pointer-events: none;
+}
+
+.ProseMirror hr,
+.prose-content hr {
+  border: none;
+  border-top: 1px solid #E5E5E3;
+  margin: 0.85rem 0;
+}
+
+/* ─── Print Styles — Clean Full-Width Printable Document ─── */
+@page {
+  size: A4 portrait;
+  margin: 15mm;
+}
+
+@media print {
+  /* Hide Next.js internal scripts, hydration payloads, metadata, UI controls, and editor pane */
+  script, style, template, iframe, noscript,
+  aside, nav, header, button, svg, input, select,
+  .editor-pane, nextjs-portal, [id^="__NEXT"], [data-nextjs-dialog],
+  .corner-brackets::before, .corner-brackets::after,
+  .corner-brackets-4::before, .corner-brackets-4::after {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Reset layout wrappers without affecting text nodes or scripts */
+  main, body > div, div:has(.printable-preview) {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Target preview pane & container */
+  .printable-preview-pane {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .printable-preview {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  .printable-preview .prose-content {
+    display: block !important;
+    width: 100% !important;
+    font-size: 11pt !important;
+    line-height: 1.6 !important;
+    color: #000000 !important;
+  }
+
+  .printable-preview p,
+  .printable-preview h1,
+  .printable-preview h2,
+  .printable-preview h3,
+  .printable-preview li,
+  .printable-preview blockquote,
+  .printable-preview tr {
+    page-break-inside: avoid;
+  }
 }
