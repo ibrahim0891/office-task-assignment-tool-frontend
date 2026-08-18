@@ -160,15 +160,22 @@ export default function ListView({
     const handleConfirmBulkDelete = async () => {
         setIsBulkDeleting(true);
         try {
-            await Promise.all(
-                selectedTasks.map((taskId) =>
-                    api.deleteTask(taskId, currentUser.id).catch(() => { }),
-                ),
+            const results = await Promise.allSettled(
+                selectedTasks.map((taskId) => api.deleteTask(taskId, currentUser.id))
             );
+            const failedCount = results.filter((r) => r.status === "rejected").length;
+            
             setSelectedTasks([]);
             setIsBulkDeleteConfirmOpen(false);
             onRefresh();
-            toast.success("Bulk archive completed.");
+
+            if (failedCount === 0) {
+                toast.success("Bulk archive completed.");
+            } else if (failedCount < selectedTasks.length) {
+                toast.success(`Archived ${selectedTasks.length - failedCount} tasks. ${failedCount} failed.`);
+            } else {
+                toast.error("Failed to archive selected tasks.");
+            }
         } catch (err: any) {
             toast.error("Error during bulk archive: " + err.message);
         } finally {

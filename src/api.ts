@@ -435,17 +435,27 @@ export const api = {
   },
 
   async deleteTask(taskId: string, userId: string): Promise<any> {
-    return customFetch(`/tasks/${taskId}`, {
+    const res = await customFetch(`${API_BASE}/tasks/${taskId}`, {
       method: 'DELETE',
       headers: { 'x-user-id': userId }
     });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete task.');
+    }
+    return res.json();
   },
 
   async restoreTask(taskId: string, userId: string): Promise<any> {
-    return customFetch(`/tasks/${taskId}/restore`, {
+    const res = await customFetch(`${API_BASE}/tasks/${taskId}/restore`, {
       method: 'POST',
       headers: { 'x-user-id': userId }
     });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to restore task.');
+    }
+    return res.json();
   },
 
   async permanentlyDeleteTask(taskId: string): Promise<any> {
