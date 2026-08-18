@@ -1,9 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import {
     api,
     User,
@@ -12,6 +12,10 @@ import {
     TaskColumn,
     Notification,
 } from "../api";
+
+const clientId = typeof window !== "undefined"
+    ? Math.random().toString(36).substring(2) + Date.now().toString(36)
+    : "";
 
 interface WorkspaceContextType {
     users: User[];
@@ -68,6 +72,7 @@ interface WorkspaceContextType {
     handleClearAllNotifications: () => Promise<void>;
     handleArchiveNotification: (id: string) => Promise<void>;
     handleLoginSuccess: (user: User, token: string) => void;
+    setDraggingCardId: (cardId: string | null) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
@@ -219,8 +224,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         loadTeamMetadata();
     }, [currentTeam?.id]);
 
+    const latestTasksRequestIdRef = React.useRef(0);
+
     const loadTasks = React.useCallback(async () => {
         if (!currentTeam) return;
+        const requestId = ++latestTasksRequestIdRef.current;
         try {
             const params: any = { teamId: currentTeam.id };
             if (
@@ -235,6 +243,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             }
 
             const data = await api.getTasks(params, currentUser?.id);
+            if (requestId !== latestTasksRequestIdRef.current) {
+                return;
+            }
+
             if (Array.isArray(data)) {
                 setTasks(data);
             } else {
@@ -242,15 +254,61 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 setTasks([]);
             }
         } catch (err) {
-            console.error("Error loading tasks:", err);
+            if (requestId === latestTasksRequestIdRef.current) {
+                console.error("Error loading tasks:", err);
+            }
         }
     }, [currentTeam?.id, activeDateStr, currentView, searchQuery, currentUser]);
+
+    const pendingColumnUpdatesRef = React.useRef<Record<string, { timeoutId: NodeJS.Timeout; previousTasks: any[]; targetColumnId: string }>>({});
+    const moveVersionRef = useRef<Record<string, number>>({});
+    const draggingCardIdRef = useRef<string | null>(null);
+    const deferredSocketEventsRef = useRef<Array<{ action: string; taskId: string; columnId?: string; actingUserId?: string; timestamp?: number }>>([]);
+    const socketRef = useRef<any | null>(null);
+
+    const setDraggingCardId = React.useCallback((cardId: string | null) => {
+        const previousCardId = draggingCardIdRef.current;
+        draggingCardIdRef.current = cardId;
+
+        if (cardId === null && previousCardId !== null) {
+            const deferred = [...deferredSocketEventsRef.current];
+            deferredSocketEventsRef.current = [];
+
+            if (deferred.length > 0) {
+                for (const event of deferred) {
+                    if (event.taskId !== previousCardId) {
+                        if (event.action === "update" && event.columnId) {
+                            setTasks((prev) =>
+                                prev.map((t) =>
+                                    t.id === event.taskId ? { ...t, columnId: event.columnId! } : t
+                                )
+                            );
+                        } else {
+                            loadTasks();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }, [loadTasks]);
+
+    useEffect(() => {
+        return () => {
+            Object.values(pendingColumnUpdatesRef.current).forEach((pending) => {
+                clearTimeout(pending.timeoutId);
+            });
+            pendingColumnUpdatesRef.current = {};
+        };
+    }, []);
+
+
 
     useEffect(() => {
         loadTasks();
     }, [loadTasks]);
 
-    // Socket.IO Realtime Kanban Synchronization
+    // Socket.IO Realtime Kanban Synchronization — hardened against race conditions
     useEffect(() => {
         if (!currentTeam?.id) return;
 
@@ -258,21 +316,106 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             ? process.env.NEXT_PUBLIC_API_URL.replace("/api", "")
             : "http://localhost:5000";
 
+        console.log(`[Socket Client] Initializing connection to ${socketUrl}`);
+
         const socket = io(socketUrl, {
             transports: ["websocket", "polling"],
         });
+        socketRef.current = socket;
 
-        socket.emit("join_team", currentTeam.id);
+        socket.on("connect", () => {
+            console.log(`[Socket Client] Connected successfully with ID: ${socket.id}`);
+            // Register user identity so backend can exclude our sockets from broadcasts
+            if (currentUser?.id) {
+                console.log(`[Socket Client] Emitting register_user for user ${currentUser.id}`);
+                socket.emit("register_user", currentUser.id);
+            }
+            console.log(`[Socket Client] Emitting join_team for team ${currentTeam.id}`);
+            socket.emit("join_team", currentTeam.id);
+        });
 
-        socket.on("task_updated", () => {
+        socket.on("connect_error", (err) => {
+            console.error("[Socket Client] Connection error:", err);
+        });
+
+        socket.on("task_updated", (data?: {
+            action?: string;
+            taskId?: string;
+            columnId?: string;
+            actingUserId?: string;
+            clientId?: string;
+            timestamp?: number;
+        }) => {
+            console.log("[Socket Client] Received task_updated event:", data);
+            // Safety: skip if no data or if this event was initiated by this specific client tab
+            if (!data) return;
+            
+            const isSelfEcho = data.clientId 
+                ? data.clientId === clientId 
+                : (data.actingUserId && data.actingUserId === currentUser?.id);
+
+            if (isSelfEcho) {
+                console.debug(`[DragSync] Ignoring self-originated socket echo for task ${data.taskId}, action=${data.action}`);
+                return;
+            }
+
+            const { action, taskId, columnId } = data;
+
+            // If the card being updated is currently being dragged by us, defer the event
+            if (taskId && draggingCardIdRef.current === taskId) {
+                console.debug(`[DragSync] Deferring socket event for actively-dragged card ${taskId}, action=${action}`);
+                deferredSocketEventsRef.current.push({
+                    action: action || "update",
+                    taskId,
+                    columnId,
+                    actingUserId: data.actingUserId,
+                    timestamp: data.timestamp,
+                });
+                return;
+            }
+
+            // Version guard: if we have a pending local move for this card, our version is newer
+            if (taskId && moveVersionRef.current[taskId] !== undefined) {
+                const hasPendingMove = !!pendingColumnUpdatesRef.current[taskId];
+                if (hasPendingMove) {
+                    console.debug(`[DragSync] Discarding socket event for task ${taskId} — local move version is newer (pending debounce)`);
+                    return;
+                }
+            }
+
+            // Granular update: for column moves, just update the columnId locally
+            if (action === "update" && taskId && columnId) {
+                setTasks((prev) => {
+                    const taskExists = prev.some((t) => t.id === taskId);
+                    if (taskExists) {
+                        return prev.map((t) =>
+                            t.id === taskId ? { ...t, columnId } : t
+                        );
+                    }
+                    // Task not in local state — might be new or from a different date. Full reload.
+                    loadTasks();
+                    return prev;
+                });
+                return;
+            }
+
+            // For create/delete actions, we need the full task data — reload
+            if (action === "create" || action === "delete") {
+                loadTasks();
+                return;
+            }
+
+            // Fallback: unknown action shape, reload to be safe
             loadTasks();
         });
 
         return () => {
+            console.log(`[Socket Client] Disconnecting socket for team ${currentTeam.id}`);
             socket.emit("leave_team", currentTeam.id);
             socket.disconnect();
+            socketRef.current = null;
         };
-    }, [currentTeam?.id, loadTasks]);
+    }, [currentTeam?.id, loadTasks, currentUser?.id]);
 
 
 
@@ -327,22 +470,65 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const handleUpdateTaskColumn = async (taskId: string, targetColumnId: string) => {
         if (!currentTeam || !currentUser) return;
-        const previousTasks = tasks;
+
+        // Increment move version for this card
+        const currentVersion = (moveVersionRef.current[taskId] || 0) + 1;
+        moveVersionRef.current[taskId] = currentVersion;
+
+        // Immediately update local state optimistically
         setTasks((prev) =>
             prev.map((t) => (t.id === taskId ? { ...t, columnId: targetColumnId } : t))
         );
 
-        try {
-            await api.updateTask(
-                taskId,
-                { columnId: targetColumnId },
-                { userId: currentUser.id, teamId: currentTeam.id }
-            );
-            loadTasks();
-        } catch (err: any) {
-            setTasks(previousTasks);
-            toast.error(err.message || "Failed to move task");
+        let previousTasks = tasks;
+        const pending = pendingColumnUpdatesRef.current[taskId];
+
+        if (pending) {
+            clearTimeout(pending.timeoutId);
+            previousTasks = pending.previousTasks; // Keep original state from before the first move
+            console.debug(`[DragSync] Debounce reset for card ${taskId}, version ${currentVersion} (superseding previous)`);
         }
+
+        const timeoutId = setTimeout(async () => {
+            delete pendingColumnUpdatesRef.current[taskId];
+            try {
+                const updatedTask = await api.updateTask(
+                    taskId,
+                    { columnId: targetColumnId, clientId },
+                    { userId: currentUser.id, teamId: currentTeam.id }
+                );
+
+                // Version guard: only apply server response if no newer move happened
+                if (moveVersionRef.current[taskId] === currentVersion) {
+                    setTasks((prev) =>
+                        prev.map((t) => (t.id === taskId ? updatedTask : t))
+                    );
+                    // Clean up version tracking — no pending moves for this card
+                    delete moveVersionRef.current[taskId];
+                    console.debug(`[DragSync] API response applied for card ${taskId}, version ${currentVersion}`);
+                } else {
+                    console.debug(
+                        `[DragSync] Discarding stale API response for card ${taskId}: ` +
+                        `response version=${currentVersion}, current version=${moveVersionRef.current[taskId]}`
+                    );
+                }
+            } catch (err: any) {
+                // Only revert if this is still the latest version (no newer drag superseded it)
+                if (moveVersionRef.current[taskId] === currentVersion) {
+                    setTasks(previousTasks);
+                    toast.error(err.message || "Failed to move task");
+                    delete moveVersionRef.current[taskId];
+                } else {
+                    console.debug(`[DragSync] Suppressing error toast for stale move of card ${taskId} (superseded by newer drag)`);
+                }
+            }
+        }, 400); // 400ms debounce — slightly reduced for snappier feel
+
+        pendingColumnUpdatesRef.current[taskId] = {
+            timeoutId,
+            previousTasks,
+            targetColumnId
+        };
     };
 
 
@@ -374,7 +560,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
             await api.updateTask(
                 taskId,
-                { columnId: targetColumnId },
+                { columnId: targetColumnId, clientId },
                 { userId: currentUser.id, teamId: currentTeam.id }
             );
             loadTasks();
@@ -408,17 +594,47 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const handleAddQuickTask = async (title: string, columnId: string, assignedToId?: string) => {
         if (!currentTeam || !currentUser) return;
+        const tempId = `temp-${Date.now()}`;
+        const targetAssigneeId = assignedToId || currentUser.id;
+        const optimisticTask = {
+            id: tempId,
+            title,
+            description: "",
+            columnId,
+            priority: "MEDIUM",
+            status: "TODO",
+            teamId: currentTeam.id,
+            createdById: currentUser.id,
+            assignedToId: targetAssigneeId,
+            isArchived: false,
+            isSoftDeleted: false,
+            carryCount: 0,
+            dueDate: activeDateStr || new Date().toISOString().split("T")[0],
+            createdBy: currentUser,
+            assignedTo: users.find((u) => u.id === targetAssigneeId) || currentUser,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+
+        const previousTasks = tasks;
+        setTasks((prev) => [...prev, optimisticTask as any]);
+
         try {
-            await api.createTask({
+            const createdTask = await api.createTask({
                 title,
                 columnId,
                 teamId: currentTeam.id,
                 createdById: currentUser.id,
-                assignedToId: assignedToId || currentUser.id,
+                assignedToId: targetAssigneeId,
+                dueDate: optimisticTask.dueDate,
+                clientId,
             });
+            setTasks((prev) =>
+                prev.map((t) => (t.id === tempId ? createdTask : t))
+            );
             toast.success("Task created");
-            loadTasks();
         } catch (err: any) {
+            setTasks(previousTasks);
             toast.error(err.message || "Failed to create task");
         }
     };
@@ -569,6 +785,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 handleClearAllNotifications,
                 handleArchiveNotification,
                 handleLoginSuccess,
+                setDraggingCardId,
             }}
         >
             {children}

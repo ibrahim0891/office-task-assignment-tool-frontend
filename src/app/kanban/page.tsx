@@ -21,6 +21,7 @@ export default function KanbanPage() {
         setIsAddTaskOpen,
         handleAddQuickTask,
         currentTeam,
+        setDraggingCardId,
     } = useWorkspace();
 
     if (!currentTeam || columns.length === 0) {
@@ -44,6 +45,8 @@ export default function KanbanPage() {
             }}
             onAddQuickTask={handleAddQuickTask}
             onArchiveTask={handleArchiveTask}
+            onDragStartNotify={setDraggingCardId}
+            onDragEndNotify={() => setDraggingCardId(null)}
         />
     );
 }

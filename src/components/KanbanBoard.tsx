@@ -25,6 +25,8 @@ interface KanbanBoardProps {
     onAddTaskClick: (columnId: string) => void;
     onAddQuickTask: (title: string, columnId: string, assignedToId?: string) => void;
     onArchiveTask?: (taskId: string) => void;
+    onDragStartNotify?: (cardId: string) => void;
+    onDragEndNotify?: () => void;
 }
 
 export default function KanbanBoard({
@@ -40,6 +42,8 @@ export default function KanbanBoard({
     onAddTaskClick,
     onAddQuickTask,
     onArchiveTask,
+    onDragStartNotify,
+    onDragEndNotify,
 }: KanbanBoardProps) {
     const [isMounted, setIsMounted] = useState(false);
     const [cardMenuId, setCardMenuId] = useState<string | null>(null);
@@ -133,9 +137,12 @@ export default function KanbanBoard({
         };
     }, []);
 
-    const handleDragStart = () => {
+    const handleDragStart = (start: any) => {
         dragInfoRef.current.isDragging = true;
         startAutoScrollLoop();
+        if (onDragStartNotify && start.draggableId) {
+            onDragStartNotify(start.draggableId);
+        }
     };
     const [customOrderMap, setCustomOrderMap] = useState<
         Record<string, string[]>
@@ -186,6 +193,9 @@ export default function KanbanBoard({
     const handleDragEnd = (result: DropResult) => {
         dragInfoRef.current.isDragging = false;
         stopAutoScrollLoop();
+        if (onDragEndNotify) {
+            onDragEndNotify();
+        }
 
         const { destination, source, draggableId } = result;
         if (!destination) return;

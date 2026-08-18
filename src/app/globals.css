@@ -35,7 +35,6 @@
 }
 
 /* ─── 1. Nord Dark Theme Palette ─── */
-html[data-theme="dark"],
 html[data-theme="nord-dark"] {
   --app-bg: #2E3440;            /* Nord Polar Night nord0 */
   --app-card: #3B4252;          /* Nord Polar Night nord1 */
@@ -80,6 +79,7 @@ html[data-theme="amoled-dark"] {
 }
 
 /* ─── 3. Learn With Sumit (LWS) Professional Dark Theme Palette ─── */
+html[data-theme="dark"],
 html[data-theme="lws-dark"] {
   --app-bg: #0F172A;            /* Deep Slate 900 */
   --app-card: #1E293B;          /* Slate 800 */

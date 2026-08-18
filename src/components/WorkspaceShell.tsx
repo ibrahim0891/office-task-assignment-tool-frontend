@@ -232,12 +232,40 @@ export default function WorkspaceShell({
     }, []);
 
     const handleToggleTheme = () => {
-        const nextTheme = theme === "light" ? "nord-dark" : "light";
+        const nextTheme = theme === "light" ? "lws-dark" : "light";
         setTheme(nextTheme);
         document.documentElement.setAttribute("data-theme", nextTheme);
         localStorage.setItem("sys_theme", nextTheme);
-        toast.success(`Switched to ${nextTheme === "nord-dark" ? "Nord Dark Mode" : "Light Mode"}`);
+        toast.success(`Switched to ${nextTheme === "lws-dark" ? "LWS Dark Mode" : "Light Mode"}`);
     };
+
+    // Keyboard shortcuts: Ctrl + (increase font scale) / Ctrl - (decrease font scale)
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === "=" || e.key === "+") {
+                    e.preventDefault();
+                    setFontScale((prev) => {
+                        const next = Math.min(1.50, prev + 0.05);
+                        return Math.round(next * 100) / 100;
+                    });
+                    toast.success("Font scale increased", { id: "font-scale-toast" });
+                } else if (e.key === "-") {
+                    e.preventDefault();
+                    setFontScale((prev) => {
+                        const next = Math.max(0.85, prev - 0.05);
+                        return Math.round(next * 100) / 100;
+                    });
+                    toast.success("Font scale decreased", { id: "font-scale-toast" });
+                }
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, []);
 
     // Apply font family dynamically to root element and persist in localStorage
     React.useEffect(() => {
