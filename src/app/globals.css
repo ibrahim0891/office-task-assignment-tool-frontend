@@ -451,6 +451,14 @@ html[data-theme*="dark"] {
       border-left-color: var(--color-accent) !important;
     }
   }
+
+  /* Transparent input/textarea overrides to prevent forced dark backgrounds */
+  input.bg-transparent,
+  textarea.bg-transparent {
+    background-color: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
 }
 
 /* Serif heading utility */

@@ -108,7 +108,7 @@ export function CustomSelect({
                 type="button"
                 disabled={disabled}
                 onClick={handleToggle}
-                className={`w-full bg-white border border-[#E5E5E3] hover:border-[#1A1A1A] rounded-[3px] px-2.5 py-1.5 text-[11px] text-[#1A1A1A] flex items-center justify-between gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full h-full bg-white border border-[#E5E5E3] hover:border-[#1A1A1A] rounded-[3px] px-2.5 py-1.5 text-[11px] text-[#1A1A1A] flex items-center justify-between gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                     isOpen ? "border-[#1A1A1A] ring-1 ring-[#1A1A1A]/10" : ""
                 }`}
             >
