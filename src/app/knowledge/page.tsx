@@ -7,6 +7,7 @@ import { Button } from "../../components/ui/Button";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import toast from "react-hot-toast";
 import { Plus, Columns2, Trash2, BookOpen, FilePen, Pencil, Printer } from "lucide-react";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 
 function ArticleAuthorAvatar({
     avatarUrl,
@@ -45,6 +46,8 @@ export default function KnowledgePage() {
     const [content, setContent] = useState("");
     const [isDualPane, setIsDualPane] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [titleFont, setTitleFont] = useState("");
     const [isTitleFocused, setIsTitleFocused] = useState(false);
@@ -61,18 +64,34 @@ export default function KnowledgePage() {
         return words.slice(0, 5).join(" ");
     };
 
-    const handleContentChange = (newHtml: string) => {
-        setContent(newHtml);
-        if (!isTitleManuallyEdited) {
-            const derived = deriveTitleFromContent(newHtml);
-            setTitle(derived);
-        }
-    };
+    // Sorting & Pagination state
+    const [sortBy, setSortBy] = useState<"updated" | "created" | "title">("updated");
+    const [currentPage, setCurrentPage] = useState(1);
+    const ARTICLES_PER_PAGE = 8;
 
-    // Load articles whenever currentTeam becomes available and auto-select first document
+    // Reset pagination when team changes
     useEffect(() => {
-        if (!isClient || !currentTeam) return;
-        if (loadedForTeam.current === currentTeam.id) return;
+        setCurrentPage(1);
+    }, [currentTeam?.id]);
+
+    const sortedArticles = [...articles].sort((a, b) => {
+        if (sortBy === "updated") return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        if (sortBy === "created") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return a.title.localeCompare(b.title);
+    });
+
+    const totalPages = Math.ceil(sortedArticles.length / ARTICLES_PER_PAGE);
+    const paginatedArticles = sortedArticles.slice(
+        (currentPage - 1) * ARTICLES_PER_PAGE,
+        currentPage * ARTICLES_PER_PAGE
+    );
+
+    const isDirty = selected
+        ? title !== selected.title || content !== selected.content
+        : title !== "Untitled Article" || content !== "";
+
+    useEffect(() => {
+        if (!isClient || !currentTeam || loadedForTeam.current === currentTeam.id) return;
         loadedForTeam.current = currentTeam.id;
         setIsLoading(true);
         api.getKnowledgeArticles(currentTeam.id)
@@ -82,16 +101,22 @@ export default function KnowledgePage() {
                     setSelected(data[0]);
                     setTitle(data[0].title);
                     setContent(data[0].content);
-                    setIsTitleManuallyEdited(true);
+                } else {
+                    setSelected(null);
+                    setTitle("Untitled Article");
+                    setContent("");
                 }
             })
             .catch(() => toast.error("Failed to load articles"))
             .finally(() => setIsLoading(false));
     }, [isClient, currentTeam?.id]);
 
-    const isDirty = selected
-        ? title !== selected.title || content !== selected.content
-        : title.trim() !== "" || content !== "";
+    const handleSelect = (article: KnowledgeArticle) => {
+        setSelected(article);
+        setTitle(article.title);
+        setContent(article.content);
+        setIsTitleManuallyEdited(true);
+    };
 
     const handleNew = () => {
         setSelected(null);
@@ -99,39 +124,13 @@ export default function KnowledgePage() {
         setContent("");
         setIsTitleManuallyEdited(false);
     };
-    const handleSelect = (a: KnowledgeArticle) => {
-        setSelected(a);
-        setTitle(a.title);
-        setContent(a.content);
-        setIsTitleManuallyEdited(true);
+
+    const handleContentChange = (newContent: string) => {
+        setContent(newContent);
+        if (!isTitleManuallyEdited && !selected) {
+            setTitle(deriveTitleFromContent(newContent));
+        }
     };
-
-    const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "alpha-asc" | "alpha-desc">("date-desc");
-    const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 15;
-
-    // Sort articles
-    const sortedArticles = [...articles].sort((a, b) => {
-        if (sortBy === "date-desc") {
-            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-        }
-        if (sortBy === "date-asc") {
-            return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
-        }
-        if (sortBy === "alpha-asc") {
-            return a.title.localeCompare(b.title);
-        }
-        if (sortBy === "alpha-desc") {
-            return b.title.localeCompare(a.title);
-        }
-        return 0;
-    });
-
-    const totalPages = Math.max(1, Math.ceil(sortedArticles.length / ITEMS_PER_PAGE));
-    const paginatedArticles = sortedArticles.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
 
     const handleCancel = () => {
         if (selected) {
@@ -139,14 +138,12 @@ export default function KnowledgePage() {
             setContent(selected.content);
             setIsTitleManuallyEdited(true);
         } else {
-            setTitle("Untitled Article");
-            setContent("");
-            setIsTitleManuallyEdited(false);
+            handleNew();
         }
     };
 
     const handleSave = async () => {
-        if (!currentUser || !currentTeam) return;
+        if (!currentTeam || !currentUser) return;
         if (!title.trim()) { toast.error("Title is required"); return; }
         setIsSaving(true);
         try {
@@ -167,18 +164,32 @@ export default function KnowledgePage() {
 
     const handleDelete = async () => {
         if (!selected) return;
+        setIsDeleting(true);
         try {
             await api.deleteKnowledgeArticle(selected.id);
             setArticles(prev => prev.filter(a => a.id !== selected.id));
             setSelected(null); setTitle("Untitled Article"); setContent("");
             toast.success("Article deleted");
+            setShowDeleteConfirm(false);
         } catch { toast.error("Delete failed"); }
+        finally { setIsDeleting(false); }
     };
 
     const isEditing = selected !== null || title !== "";
 
     return (
         <div className="flex-1 flex overflow-hidden bg-[#FAFAF9]">
+            <ConfirmDialog
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleDelete}
+                title="Delete article"
+                description={`Are you sure you want to delete "${selected?.title || "this article"}"? This action cannot be undone.`}
+                confirmText="Delete Article"
+                isDanger={true}
+                isLoading={isDeleting}
+            />
+
             {/* ── Article List Rail ── */}
             <aside className="w-64 shrink-0 border-r border-[#E5E5E3] bg-white flex flex-col">
                 {/* Rail Header */}
@@ -247,8 +258,8 @@ export default function KnowledgePage() {
                     })}
                 </div>
 
-                {/* Pagination Controls if > 15 articles */}
-                {articles.length > ITEMS_PER_PAGE && (
+                {/* Pagination Controls if > ARTICLES_PER_PAGE articles */}
+                {articles.length > ARTICLES_PER_PAGE && (
                     <div className="px-3 py-2 border-t border-[#E5E5E3] bg-[#FAFAF9] flex items-center justify-between text-[10px] text-[#888883]">
                         <span>Page {currentPage} of {totalPages}</span>
                         <div className="flex items-center gap-1">
@@ -300,7 +311,7 @@ export default function KnowledgePage() {
                             <Printer className="w-3.5 h-3.5" />
                         </button>
                         {selected && (
-                            <button onClick={handleDelete} title="Delete article"
+                            <button onClick={() => setShowDeleteConfirm(true)} title="Delete article"
                                 className="p-1.5 text-[#888883] hover:text-[#CB2431] border border-transparent hover:border-[#E5E5E3] rounded-[2px] transition-colors cursor-pointer">
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>

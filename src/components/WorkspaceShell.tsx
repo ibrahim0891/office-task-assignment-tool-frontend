@@ -168,17 +168,19 @@ export default function WorkspaceShell({
     const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
     const [primaryFont, setPrimaryFont] = useState("Outfit");
     const [secondaryFont, setSecondaryFont] = useState("Lora");
-    const [fontScale, setFontScale] = useState<number>(130);
 
     // Reset settings handler
     const handleResetSettings = () => {
         setPrimaryFont("Outfit");
         setSecondaryFont("Lora");
-        setFontScale(130);
         localStorage.setItem("sys_primary_font", "Outfit");
         localStorage.setItem("sys_secondary_font", "Lora");
-        localStorage.setItem("sys_font_scale", "130");
-        toast.success("Settings reset to Outfit & Lora (130%)");
+        localStorage.removeItem("sys_font_scale");
+        localStorage.removeItem("sys_interface_scale");
+        const root = document.documentElement;
+        root.style.zoom = "100%";
+        root.style.removeProperty("--font-scale");
+        toast.success("Settings reset to Outfit & Lora");
     };
 
     // Load saved preferences from localStorage on initial render
@@ -186,20 +188,13 @@ export default function WorkspaceShell({
         if (typeof window === "undefined") return;
         const savedPrimary = localStorage.getItem("sys_primary_font");
         const savedSecondary = localStorage.getItem("sys_secondary_font");
-        const savedScale = localStorage.getItem("sys_font_scale") || localStorage.getItem("sys_interface_scale");
         if (savedPrimary) setPrimaryFont(savedPrimary);
         if (savedSecondary) setSecondaryFont(savedSecondary);
-        if (savedScale) {
-            const num = parseInt(savedScale, 10);
-            if (!isNaN(num) && num >= 80 && num <= 170) {
-                setFontScale(num);
-            }
-        } else {
-            setFontScale(130);
-        }
+        localStorage.removeItem("sys_font_scale");
+        localStorage.removeItem("sys_interface_scale");
     }, []);
 
-    // Apply font family and scale dynamically to root element and persist in localStorage
+    // Apply font family dynamically to root element and persist in localStorage
     React.useEffect(() => {
         const root = document.documentElement;
 
@@ -217,11 +212,10 @@ export default function WorkspaceShell({
             localStorage.setItem("sys_secondary_font", secondaryFont);
         }
 
-        // Apply global zoom & font scale multiplier
-        root.style.zoom = `${fontScale}%`;
-        root.style.setProperty("--font-scale", `${fontScale / 100}`);
-        localStorage.setItem("sys_font_scale", fontScale.toString());
-    }, [primaryFont, secondaryFont, fontScale]);
+        // Keep 100% natural scale size
+        root.style.zoom = "100%";
+        root.style.removeProperty("--font-scale");
+    }, [primaryFont, secondaryFont]);
 
     if (!isClient || !isInitialized) return null;
 
@@ -1063,54 +1057,7 @@ export default function WorkspaceShell({
                                 </div>
                             </div>
 
-                            {/* Global Font Size Multiplier Slider */}
-                            <div className="flex flex-col gap-2 p-3 bg-white border border-[#E5E5E3] rounded-[2px]">
-                                <div className="flex items-center justify-between">
-                                    <label className="eyebrow">Global Font Size Multiplier</label>
-                                    <span className="text-xs font-semibold text-[#1A1A1A] bg-[#FAFAF9] border border-[#E5E5E3] px-2 py-0.5 rounded-[2px]">
-                                        {fontScale}% · {(fontScale / 100).toFixed(2)}x
-                                    </span>
-                                </div>
 
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[10px] text-[#888883] shrink-0 font-medium">90%</span>
-                                    <input
-                                        type="range"
-                                        min={90}
-                                        max={160}
-                                        step={1}
-                                        value={fontScale}
-                                        onChange={(e) => setFontScale(Number(e.target.value))}
-                                        className="w-full h-1.5 bg-[#E5E5E3] rounded-lg appearance-none cursor-pointer accent-[#1A1A1A]"
-                                    />
-                                    <span className="text-[10px] text-[#888883] shrink-0 font-medium">160%</span>
-                                </div>
-
-                                {/* Quick Scale Presets */}
-                                <div className="grid grid-cols-4 gap-1.5 pt-0.5">
-                                    {[
-                                        { label: "Compact", value: 100 },
-                                        { label: "Default", value: 130 },
-                                        { label: "Comfort", value: 140 },
-                                        { label: "Large", value: 150 },
-                                    ].map((preset) => {
-                                        const isSelected = fontScale === preset.value;
-                                        return (
-                                            <button
-                                                key={preset.label}
-                                                type="button"
-                                                onClick={() => setFontScale(preset.value)}
-                                                className={`px-1.5 py-1 text-[10px] rounded-[2px] border transition-colors cursor-pointer text-center ${isSelected
-                                                        ? "border-[#1A1A1A] bg-[#FAFAF9] font-bold text-[#1A1A1A]"
-                                                        : "border-[#E5E5E3] bg-white text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9]"
-                                                    }`}
-                                            >
-                                                {preset.label} ({preset.value}%)
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
 
                             {/* Sample Preview Box */}
                             <div className="p-3 border border-[#E5E5E3] bg-[#FAFAF9] rounded-[2px] flex flex-col gap-1 mt-0.5">
