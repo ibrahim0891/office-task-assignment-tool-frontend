@@ -118,7 +118,7 @@ export default function NotificationsTray({
 
                 {/* 30-Day Storage Notice */}
                 {activeTab === "archived" && (
-                    <div className="bg-[#FAFAF9] border-b border-[#E5E5E3] px-3 py-2 flex items-center gap-2 text-base text-[#888883]">
+                    <div className="bg-[#FAFAF9] border-b border-[#E5E5E3] px-3 py-2 flex items-center gap-2 text-[11px] text-[#888883]">
                         <Clock className="w-3.5 h-3.5 shrink-0 text-[#1A1A1A]" />
                         <span>
                             Archived items are automatically removed after 30

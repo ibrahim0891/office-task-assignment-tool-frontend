@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { Task, TaskColumn, User, api } from "../api";
 import { CustomSelect } from "./ui/CustomSelect";
+import { Checkbox } from "./ui/Checkbox";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import { Trash2 } from "lucide-react";
 import { Button } from "./ui/Button";
@@ -225,7 +226,7 @@ export default function ListView({
             </div>
 
             {/* Filters */}
-            <div className="relative bg-white border border-[#E5E5E3] p-3.5 flex flex-col gap-3 corner-brackets rounded-[2px]">
+            <div className="relative border border-[#E5E5E3] p-3.5 flex flex-col gap-3 corner-brackets rounded-[2px]">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
                     <input
                         type="text"
@@ -320,26 +321,22 @@ export default function ListView({
             </div>
 
             {/* Table */}
-            <div className="relative bg-white border border-[#E5E5E3] overflow-hidden corner-brackets rounded-[2px]">
+            <div className="relative border border-[#E5E5E3] overflow-hidden corner-brackets rounded-[2px]">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                         <thead>
                             <tr className="border-b border-[#E5E5E3] text-[11px] font-medium text-[#888883] bg-[#FAFAF9]">
                                 <th className="py-2.5 px-3 w-10 text-center">
                                     {!isObserver && (
-                                        <input
-                                            type="checkbox"
+                                        <Checkbox
                                             checked={
                                                 sortedTasks.length > 0 &&
                                                 selectedTasks.length ===
                                                 sortedTasks.length
                                             }
-                                            onChange={(e) =>
-                                                handleSelectAll(
-                                                    e.target.checked,
-                                                )
+                                            onChange={(checked) =>
+                                                handleSelectAll(checked)
                                             }
-                                            className="rounded-[2px] border-[#DADAD6] text-[#1A1A1A] bg-white focus:ring-0 cursor-pointer"
                                         />
                                     )}
                                 </th>
@@ -386,7 +383,7 @@ export default function ListView({
                                 <tr>
                                     <td
                                         colSpan={7}
-                                        className="py-12 text-center text-[#888883]"
+                                        className="py-8 text-center text-[#888883]"
                                     >
                                         <p className="text-[11px]">
                                             No matching tasks found.
@@ -414,15 +411,13 @@ export default function ListView({
                                                 }
                                             >
                                                 {!isObserver && (
-                                                    <input
-                                                        type="checkbox"
+                                                    <Checkbox
                                                         checked={isChecked}
                                                         onChange={() =>
                                                             toggleSelectTask(
                                                                 task.id,
                                                             )
                                                         }
-                                                        className="rounded-[2px] border-[#DADAD6] text-[#1A1A1A] bg-white focus:ring-0 cursor-pointer"
                                                     />
                                                 )}
                                             </td>

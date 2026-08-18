@@ -648,7 +648,7 @@ export default function TaskModal({
                                 <span
                                     className={`text-[9px] px-1.5 py-0.2 rounded-[2px] font-mono ${activeTab === "comments"
                                         ? "bg-[#1A1A1A] text-white"
-                                        : "bg-[#E5E5E3] text-[#1A1A1A]"
+                                        : "bg-[#FAFAF9] dark:bg-[#2E3440] text-[#1A1A1A] dark:text-[#ECEFF4] border border-[#E5E5E3] dark:border-[#4C566A]"
                                         }`}
                                 >
                                     {task.comments?.length || 0}
@@ -668,7 +668,7 @@ export default function TaskModal({
                                 <span
                                     className={`text-[9px] px-1.5 py-0.2 rounded-[2px] font-mono ${activeTab === "attachments"
                                         ? "bg-[#1A1A1A] text-white"
-                                        : "bg-[#E5E5E3] text-[#1A1A1A]"
+                                        : "bg-[#FAFAF9] dark:bg-[#2E3440] text-[#1A1A1A] dark:text-[#ECEFF4] border border-[#E5E5E3] dark:border-[#4C566A]"
                                         }`}
                                 >
                                     {task.attachments?.length || 0}

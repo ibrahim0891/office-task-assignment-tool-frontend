@@ -120,7 +120,7 @@ export default function TrashView({
     return (
         <div className="flex-1 overflow-y-auto p-5 bg-[#FAFAF9] text-[#1A1A1A] flex flex-col gap-4 select-none">
             {/* Trash Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white border border-[#E5E5E3] p-4 corner-brackets">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border border-[#E5E5E3] p-4 corner-brackets">
                 <div>
                     <h1 className="font-heading text-xl flex items-center gap-2">
                         <Trash2 className="w-5 h-5 text-[#888883]" />
@@ -144,7 +144,7 @@ export default function TrashView({
             </div>
 
             {/* Trash Tasks List */}
-            <div className="bg-white border border-[#E5E5E3] flex flex-col flex-1 corner-brackets overflow-hidden">
+            <div className="border border-[#E5E5E3] flex flex-col flex-1 corner-brackets overflow-hidden">
                 {trashTasks.length === 0 ? (
                     <div className="flex flex-col items-center justify-center p-12 text-center my-auto gap-2">
                         <div className="w-12 h-12 rounded-full border border-[#E5E5E3] bg-[#FAFAF9] flex items-center justify-center text-[#888883] mb-1">
@@ -162,7 +162,7 @@ export default function TrashView({
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse text-[11px]">
                             <thead>
-                                <tr className="border-b border-[#E5E5E3] bg-[#FAFAF9] text-base text-[#888883] capitalize  ">
+                                <tr className="border-b border-[#E5E5E3] bg-[#FAFAF9] text-xs text-[#888883] capitalize">
                                     <th className="py-2.5 px-4 font-medium">
                                         Task Title
                                     </th>
@@ -191,7 +191,7 @@ export default function TrashView({
                                     >
                                         <td className="py-3 px-4 font-medium text-[#1A1A1A]">
                                             <div className="flex flex-col gap-0.5">
-                                                <span className="truncate max-w-xs">
+                                                <span className="truncate max-w-xs text-xs">
                                                     {task.title}
                                                 </span>
                                                 {task.description && (
@@ -201,12 +201,12 @@ export default function TrashView({
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="py-3 px-3 text-[#888883]">
+                                        <td className="py-3 px-3 text-[#888883] text-xs">
                                             {task.column?.name || "Unassigned"}
                                         </td>
                                         <td className="py-3 px-3">
                                             <span
-                                                className={`px-1.5 py-0.5 border text-[9px] font-semibold rounded-[2px] ${getPriorityBadge(task.priority)}`}
+                                                className={`px-1.5 py-0.5 border text-[10px] font-semibold rounded-[2px] ${getPriorityBadge(task.priority)}`}
                                             >
                                                 {task.priority}
                                             </span>

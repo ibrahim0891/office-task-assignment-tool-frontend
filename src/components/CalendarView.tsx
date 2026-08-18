@@ -91,13 +91,13 @@ export default function CalendarView({
     const getPriorityColor = (priority: string) => {
         switch (priority) {
             case "URGENT":
-                return "border-l-2 border-l-[#CB2431] text-[#CB2431]";
+                return "border-l-2 border-l-[#BF616A] bg-[#BF616A]/10 text-[#BF616A]";
             case "HIGH":
-                return "border-l-2 border-l-[#B08800] text-[#B08800]";
+                return "border-l-2 border-l-[#EBCB8B] bg-[#EBCB8B]/10 text-[#EBCB8B]";
             case "MEDIUM":
-                return "border-l-2 border-l-[#1A1A1A] text-[#1A1A1A]";
+                return "border-l-2 border-l-[#88C0D0] bg-[#88C0D0]/10 text-[#88C0D0]";
             default:
-                return "border-l-2 border-l-[#DADAD6] text-[#888883]";
+                return "border-l-2 border-l-[#D8DEE9] bg-[#D8DEE9]/10 text-[#D8DEE9]";
         }
     };
 
@@ -229,6 +229,7 @@ export default function CalendarView({
                             <div
                                 key={index}
                                 data-cell
+                                data-padding-cell={cell.isPadding ? "true" : "false"}
                                 onClick={() => {
                                     setActiveDateStr(dateStr);
                                     setAddTaskColId(columns[0]?.id || "");

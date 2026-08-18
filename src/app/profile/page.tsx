@@ -10,8 +10,7 @@ import { ContactInfoSection } from "../../components/profile/ContactInfoSection"
 import { SocialLinksSection } from "../../components/profile/SocialLinksSection";
 import { SkeletonProfile } from "../../components/ui/SkeletonLoader";
 import { Button } from "../../components/ui/Button";
-import { User as UserIcon, Phone, Share2 } from "lucide-react";
-
+import { User as UserIcon, Phone, Share2, ChevronLeft } from "lucide-react";
 
 export default function ProfilePage() {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -169,11 +168,12 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-3">
                         <Link
                             href="/"
-                            className="text-[11px] text-[#888883] hover:text-[#1A1A1A] font-medium transition-colors"
+                            className="text-[11px] text-[#888883] hover:text-[#1A1A1A] font-medium transition-colors flex items-center gap-1"
                         >
-                            ← Workspace
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                            <span>Workspace</span>
                         </Link>
-                        <span className="text-[11px] font-medium text-[#888883] border border-[#E5E5E3] px-2.5 py-1 rounded-[2px] bg-white">
+                        <span className="profile-badge text-[11px] font-medium text-[#888883] border border-[#E5E5E3] px-2.5 py-1 rounded-[2px] bg-white">
                             Profile Settings
                         </span>
                     </div>
@@ -218,9 +218,9 @@ export default function ProfilePage() {
                     {/* Section Divider 1 */}
                     <div className="relative w-full border-t border-[#E5E5E3]">
                         {/* Left T-Bracket ├ */}
-                        <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center">
+                        <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center text-[#1A1A1A]">
                             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M5 0V10M5 5H10" stroke="#1A1A1A" strokeWidth="1.5" />
+                                <path d="M5 0V10M5 5H10" stroke="currentColor" strokeWidth="1.5" />
                             </svg>
                         </div>
                     </div>
@@ -250,9 +250,9 @@ export default function ProfilePage() {
                     {/* Section Divider 2 */}
                     <div className="relative w-full border-t border-[#E5E5E3]">
                         {/* Left T-Bracket ├ */}
-                        <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center">
+                        <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center text-[#1A1A1A]">
                             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M5 0V10M5 5H10" stroke="#1A1A1A" strokeWidth="1.5" />
+                                <path d="M5 0V10M5 5H10" stroke="currentColor" strokeWidth="1.5" />
                             </svg>
                         </div>
                     </div>

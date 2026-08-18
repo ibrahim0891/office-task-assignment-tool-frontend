@@ -73,6 +73,70 @@ export default function KanbanBoard({
             scrollContainerRef.current.scrollBy({ left: 320, behavior: "smooth" });
         }
     };
+
+    const dragInfoRef = useRef({ isDragging: false, clientX: 0 });
+    const autoScrollTimerRef = useRef<number | null>(null);
+
+    const startAutoScrollLoop = () => {
+        if (autoScrollTimerRef.current) return;
+
+        const checkScroll = () => {
+            if (!dragInfoRef.current.isDragging || !scrollContainerRef.current) {
+                stopAutoScrollLoop();
+                return;
+            }
+
+            const container = scrollContainerRef.current;
+            const rect = container.getBoundingClientRect();
+            const { clientX } = dragInfoRef.current;
+
+            const threshold = 180; // distance from edges to trigger scroll
+            const maxSpeed = 75;  // maximum speed of scroll
+
+            const leftDist = clientX - rect.left;
+            const rightDist = rect.right - clientX;
+
+            if (rightDist < threshold && rightDist > -50) {
+                const ratio = Math.max(0, 1 - rightDist / threshold);
+                container.scrollLeft += ratio * maxSpeed;
+            } else if (leftDist < threshold && leftDist > -50) {
+                const ratio = Math.max(0, 1 - leftDist / threshold);
+                container.scrollLeft -= ratio * maxSpeed;
+            }
+
+            autoScrollTimerRef.current = requestAnimationFrame(checkScroll);
+        };
+
+        autoScrollTimerRef.current = requestAnimationFrame(checkScroll);
+    };
+
+    const stopAutoScrollLoop = () => {
+        if (autoScrollTimerRef.current) {
+            cancelAnimationFrame(autoScrollTimerRef.current);
+            autoScrollTimerRef.current = null;
+        }
+    };
+
+    useEffect(() => {
+        const handlePointerMove = (e: MouseEvent | TouchEvent) => {
+            if (!dragInfoRef.current.isDragging) return;
+            const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+            dragInfoRef.current.clientX = clientX;
+        };
+
+        window.addEventListener("mousemove", handlePointerMove);
+        window.addEventListener("touchmove", handlePointerMove);
+        return () => {
+            window.removeEventListener("mousemove", handlePointerMove);
+            window.removeEventListener("touchmove", handlePointerMove);
+            stopAutoScrollLoop();
+        };
+    }, []);
+
+    const handleDragStart = () => {
+        dragInfoRef.current.isDragging = true;
+        startAutoScrollLoop();
+    };
     const [customOrderMap, setCustomOrderMap] = useState<
         Record<string, string[]>
     >({});
@@ -120,6 +184,9 @@ export default function KanbanBoard({
     const isReadOnly = userRole === "LEADER" || userRole === "OBSERVER";
 
     const handleDragEnd = (result: DropResult) => {
+        dragInfoRef.current.isDragging = false;
+        stopAutoScrollLoop();
+
         const { destination, source, draggableId } = result;
         if (!destination) return;
         if (
@@ -241,7 +308,7 @@ export default function KanbanBoard({
     }
 
     return (
-        <DragDropContext onDragEnd={handleDragEnd}>
+        <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="flex-1 flex flex-col overflow-hidden bg-[#FAFAF9] select-none relative">
                 {/* Quick Task Bar */}
                 {userRole !== "OBSERVER" && columns.length > 0 && (
@@ -477,7 +544,7 @@ export default function KanbanBoard({
                                                                         .draggableProps
                                                                         .style,
                                                                 }}
-                                                                className={`group relative p-2.5 bg-white border border-[#E5E5E3] hover:border-[#DADAD6] flex flex-col gap-2 transition-colors text-left ${getPriorityStyle(task.priority)} ${dragSnapshot.isDragging
+                                                                className={`kanban-task-card group relative p-2.5 bg-white border border-[#E5E5E3] hover:border-[#DADAD6] flex flex-col gap-2 transition-colors text-left ${getPriorityStyle(task.priority)} ${dragSnapshot.isDragging
                                                                     ? "border-[#1A1A1A] bg-[#FAFAF9]"
                                                                     : ""
                                                                     } ${!isTaskDragDisabled

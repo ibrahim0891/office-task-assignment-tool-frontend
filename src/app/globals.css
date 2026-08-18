@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Editorial palette — paper / ink / stone */
+  /* Editorial light palette — paper / ink / stone */
   --app-bg: #FAFAF9;
   --app-card: #FFFFFF;
   --app-border: #E5E5E3;
@@ -10,7 +10,7 @@
   --app-muted: #888883;
   --app-sidebar: #FFFFFF;
 
-  /* Functional accent colors — used sparingly */
+  /* Functional accent colors — light */
   --color-success: #22863A;
   --color-error: #CB2431;
   --color-warning: #B08800;
@@ -25,9 +25,80 @@
   --space-card: 14px;
   --space-card-sm: 10px;
 
+  /* Selection active backgrounds */
+  --app-select-bg: #F5F5F3;
+  --app-hover-bg: #F0F0EE;
+
   /* Shadow — only for true floating elements */
   --shadow-float: 0 4px 12px rgba(0,0,0,0.08);
   --shadow-subtle: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* ─── 1. Nord Dark Theme Palette ─── */
+html[data-theme="dark"],
+html[data-theme="nord-dark"] {
+  --app-bg: #2E3440;            /* Nord Polar Night nord0 */
+  --app-card: #3B4252;          /* Nord Polar Night nord1 */
+  --app-border: #4C566A;        /* Nord Polar Night nord3 */
+  --app-border-strong: #434C5E; /* Nord Polar Night nord2 */
+  --app-text: #ECEFF4;          /* Nord Snow Storm nord6 */
+  --app-muted: #D8DEE9;         /* Nord Snow Storm nord4 */
+  --app-sidebar: #2E3440;       /* Nord Polar Night nord0 */
+
+  --color-success: #A3BE8C;     /* Nord Aurora Green nord14 */
+  --color-error: #BF616A;       /* Nord Aurora Red nord11 */
+  --color-warning: #EBCB8B;     /* Nord Aurora Yellow nord13 */
+  --color-accent: #88C0D0;      /* Nord Frost Cyan nord8 */
+
+  --app-select-bg: #434C5E;     /* Nord Polar Night nord2 selection */
+  --app-hover-bg: #3E4554;      /* Subtle hover */
+
+  --shadow-float: 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-subtle: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+/* ─── 2. AMOLED Pitch Black Theme Palette ─── */
+html[data-theme="amoled-dark"] {
+  --app-bg: #000000;            /* Pure Pitch Black */
+  --app-card: #121212;          /* Deep Charcoal Surface */
+  --app-border: #262626;        /* Subtle Border */
+  --app-border-strong: #333333;
+  --app-text: #F5F5F5;
+  --app-muted: #A3A3A3;
+  --app-sidebar: #000000;
+
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-warning: #F59E0B;
+  --color-accent: #3B82F6;
+
+  --app-select-bg: #1F1F1F;     /* Subtle active item background */
+  --app-hover-bg: #161616;      /* Subtle hover */
+
+  --shadow-float: 0 4px 20px rgba(0,0,0,0.8);
+  --shadow-subtle: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* ─── 3. Learn With Sumit (LWS) Professional Dark Theme Palette ─── */
+html[data-theme="lws-dark"] {
+  --app-bg: #0F172A;            /* Deep Slate 900 */
+  --app-card: #1E293B;          /* Slate 800 */
+  --app-border: #334155;        /* Slate 700 */
+  --app-border-strong: #475569; /* Slate 600 */
+  --app-text: #F8FAFC;          /* Slate 50 */
+  --app-muted: #94A3B8;         /* Slate 400 */
+  --app-sidebar: #0F172A;       /* Deep Slate 900 */
+
+  --color-success: #22C55E;     /* Vibrant Emerald */
+  --color-error: #F43F5E;       /* Rose Red */
+  --color-warning: #EAB308;     /* Amber */
+  --color-accent: #00D26A;      /* LWS Emerald Green Accent */
+
+  --app-select-bg: #334155;     /* Slate 700 selection background */
+  --app-hover-bg: #273142;      /* Subtle hover */
+
+  --shadow-float: 0 4px 18px rgba(15, 23, 42, 0.6);
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 @theme inline {
@@ -58,19 +129,328 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ─── Remove Focus Outlines ─── */
-*:focus,
-*:focus-visible,
-button:focus,
-button:focus-visible,
-input:focus,
-input:focus-visible,
-textarea:focus,
-textarea:focus-visible,
-.ProseMirror:focus,
-.ProseMirror:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
+/* ─── Global Dark Theme Overrides (Nested for size and clarity) ─── */
+html[data-theme*="dark"] {
+  body {
+    background: var(--app-bg) !important;
+    color: var(--app-text) !important;
+  }
+
+  header,
+  aside,
+  nav {
+    background-color: var(--app-card) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+  }
+
+  /* General backgrounds & borders */
+  [class*="bg-white"] {
+    background-color: var(--app-card) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  [class*="bg-[#FAFAF9]"],
+  [class*="bg-[#F5F5F3]"],
+  [class*="bg-[#F8F8F7]"] {
+    background-color: var(--app-bg) !important;
+    color: var(--app-text) !important;
+  }
+
+  [class*="border-[#E5E5E3]"],
+  [class*="border-[#DADAD6]"] {
+    border-color: var(--app-border) !important;
+  }
+
+  /* Row dividers & borders */
+  [class*="divide-[#E5E5E3]"] > *,
+  [class*="divide-[#DADAD6]"] > *,
+  [class*="divide-y"] > *,
+  [class*="divide-x"] > * {
+    border-color: var(--app-border) !important;
+  }
+
+  /* Form elements & controls */
+  input,
+  select,
+  textarea {
+    background-color: var(--app-bg) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  /* Text colors */
+  .text-\[\#1A1A1A\] {
+    color: var(--app-text) !important;
+  }
+
+  .text-\[\#888883\],
+  .text-\[\#555555\] {
+    color: var(--app-muted) !important;
+  }
+
+  /* SVG elements */
+  svg path[stroke="#1A1A1A"] {
+    stroke: var(--app-text) !important;
+  }
+
+  /* Rich Text Editor (Tiptap / ProseMirror) */
+  .ProseMirror,
+  div[class*="ProseMirror"],
+  .ProseMirror p,
+  .ProseMirror h1,
+  .ProseMirror h2,
+  .ProseMirror h3,
+  .ProseMirror li,
+  .ProseMirror span,
+  .ProseMirror strong,
+  .ProseMirror em,
+  .ProseMirror td,
+  .ProseMirror th {
+    background-color: transparent !important;
+    color: var(--app-text) !important;
+  }
+
+  /* Sidebar styling */
+  aside {
+    background-color: var(--app-sidebar) !important;
+    border-color: var(--app-border) !important;
+
+    a[class*="bg-white"],
+    div[class*="bg-white"],
+    button[class*="bg-white"] {
+      background-color: var(--app-card) !important;
+      border-color: var(--app-border) !important;
+      color: var(--color-accent) !important;
+    }
+    a[class*="hover:bg-[#FAFAF9]"]:hover,
+    button[class*="hover:bg-[#FAFAF9]"]:hover,
+    div[class*="hover:bg-[#FAFAF9]"]:hover {
+      background-color: var(--app-card) !important;
+      color: var(--app-text) !important;
+    }
+    div[class*="bg-[#FAFAF9]"] {
+      background-color: var(--app-card) !important;
+      border-color: var(--app-border) !important;
+    }
+  }
+
+  /* Button controls */
+  button {
+    color: var(--app-text);
+
+    &[class*="bg-white"] {
+      background-color: var(--app-card) !important;
+      border-color: var(--app-border) !important;
+      color: var(--app-text) !important;
+
+      &:hover {
+        background-color: var(--app-border-strong) !important;
+        border-color: var(--color-accent) !important;
+      }
+    }
+    &[class*="bg-[#FAFAF9]"] {
+      background-color: var(--app-bg) !important;
+      border-color: var(--app-border) !important;
+      color: var(--app-text) !important;
+
+      &:hover {
+        background-color: var(--app-card) !important;
+      }
+    }
+    &[class*="bg-transparent"]:hover {
+      background-color: var(--app-card) !important;
+      border-color: var(--app-border) !important;
+    }
+    &[data-overflow] {
+      background-color: var(--app-bg) !important;
+      color: var(--app-text) !important;
+      border-color: var(--app-border) !important;
+
+      &:hover {
+        background-color: var(--app-border-strong) !important;
+        color: var(--app-text) !important;
+      }
+    }
+  }
+
+  /* Component specific overrides */
+  .kanban-task-card {
+    background-color: var(--app-card) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+
+    &:hover {
+      background-color: var(--app-hover-bg) !important;
+      border-color: var(--app-border-strong) !important;
+    }
+  }
+
+  div[class*="w-72"] {
+    background-color: var(--app-bg) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  span[class*="bg-[#F5F7F9]"],
+  span[class*="bg-[#FAF8F2]"],
+  span[class*="bg-[#FAF5F5]"],
+  span[class*="bg-[#F5F5F4]"] {
+    background-color: var(--app-card) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  div[class*="bg-white"][style*="position: fixed"],
+  div[class*="bg-white"][style*="position: absolute"] {
+    background-color: var(--app-card) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  div[class*="hover:bg-[#FAFAF9]"]:hover,
+  button[class*="hover:bg-[#FAFAF9]"]:hover {
+    background-color: var(--app-border-strong) !important;
+    color: var(--app-text) !important;
+  }
+
+  div[class*="fixed inset-0"] > div[class*="bg-white"] {
+    background-color: var(--app-card) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+  }
+
+  div[class*="border-b"] button span[class*="font-mono"] {
+    background-color: var(--app-bg) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  button[title*="Archive"] span,
+  div[class*="fixed inset-0"] span[class*="rounded-full"] {
+    background-color: var(--app-bg) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  button[class*="hover:bg-[#FFF5F5]"]:hover {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+    border-color: var(--color-error) !important;
+    color: var(--color-error) !important;
+  }
+
+  span[class*="bg-[#FAFAF9]"],
+  div span[class*="bg-[#FAFAF9]"] {
+    background-color: var(--app-bg) !important;
+    color: var(--app-muted) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  .profile-badge {
+    background-color: var(--app-card) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  button[class*="hover:bg-[#F0F0EE]"]:hover {
+    background-color: var(--app-border-strong) !important;
+    color: var(--app-text) !important;
+  }
+
+  button[class*="bg-white"][class*="text-[#1A1A1A]"] {
+    background-color: var(--app-card) !important;
+    color: var(--color-accent) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  div[class*="grid-cols-2"][class*="gap-px"] > div {
+    background-color: var(--app-card) !important;
+    color: var(--app-text) !important;
+
+    span[class*="text-2xl"] {
+      color: var(--app-text) !important;
+    }
+  }
+
+  div[class*="grid-cols-6"] > div,
+  div[class*="grid-cols-2 sm:grid-cols-3 md:grid-cols-6"] > div {
+    background-color: var(--app-card) !important;
+    border-color: var(--app-border) !important;
+
+    span {
+      color: var(--app-text) !important;
+    }
+  }
+
+  /* Table styling overrides */
+  table {
+    background-color: var(--app-card) !important;
+    color: var(--app-text) !important;
+
+    thead,
+    thead tr,
+    thead th {
+      background-color: var(--app-bg) !important;
+      color: var(--app-muted) !important;
+      border-color: var(--app-border) !important;
+    }
+    tbody tr {
+      background-color: transparent !important;
+      color: var(--app-text) !important;
+      border-color: var(--app-border) !important;
+
+      &:hover {
+        background-color: var(--app-hover-bg) !important;
+        color: var(--app-text) !important;
+      }
+    }
+    tbody td {
+      border-color: var(--app-border) !important;
+      color: var(--app-text) !important;
+    }
+  }
+
+  tr[class*="hover:bg-[#FAFAF9]"]:hover {
+    background-color: var(--app-hover-bg) !important;
+    color: var(--app-text) !important;
+  }
+
+  tr[class*="bg-[#FAFAF9]"] {
+    background-color: var(--app-bg) !important;
+  }
+
+  tr[class*="bg-[#F5F5F3]"] {
+    background-color: var(--app-select-bg) !important;
+  }
+
+  /* Calendar View overrides */
+  div[data-cell] {
+    background-color: var(--app-card) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+
+    &:hover {
+      background-color: var(--app-border-strong) !important;
+    }
+
+    &[data-padding-cell="true"] {
+      background-color: var(--app-bg) !important;
+      color: var(--app-muted) !important;
+
+      &:hover {
+        background-color: var(--app-card) !important;
+      }
+      span {
+        color: var(--app-muted) !important;
+      }
+    }
+
+    &[class*="bg-[#F5F5F3]"] {
+      background-color: var(--app-border-strong) !important;
+      border-left-color: var(--color-accent) !important;
+    }
+  }
 }
 
 /* Serif heading utility */
@@ -192,18 +572,18 @@ textarea:focus-visible,
 .shimmer {
   background: linear-gradient(
     90deg,
-    #f0f0ed 25%,
-    #e0e0db 50%,
-    #f0f0ed 75%
+    var(--app-card) 25%,
+    var(--app-border-strong) 50%,
+    var(--app-card) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
 
-/* ─── Global Minimal Custom Scrollbars ─── */
+/* ─── Global Minimal Custom Scrollbars (Theme Aware) ─── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #DADAD6 transparent;
+  scrollbar-color: var(--app-border-strong) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -216,12 +596,12 @@ textarea:focus-visible,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #DADAD6;
+  background: var(--app-border-strong);
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #888883;
+  background: var(--app-muted);
 }
 
 .scrollbar-none::-webkit-scrollbar {

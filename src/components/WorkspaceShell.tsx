@@ -15,7 +15,7 @@ import MemberProfileModal from "./MemberProfileModal";
 import ManageTeamsModal from "./ManageTeamsModal";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { api } from "../api";
-import { Bell, Settings, RotateCcw } from "lucide-react";
+import { Bell, Settings, RotateCcw, Sun, Moon, Palette, Type } from "lucide-react";
 
 const inputClass =
     "px-2.5 py-1.5 border border-[#E5E5E3] focus:border-[#1A1A1A] focus:outline-none text-[11px] bg-white rounded-[3px] transition-colors w-full";
@@ -58,58 +58,19 @@ const FONT_OPTIONS = [
     { value: "Newsreader", label: "Newsreader (Book Serif)" },
     { value: "Cinzel", label: "Cinzel (Classic Display)" },
     { value: "Caveat (Handwriting)", label: "Caveat (Handwriting)" },
-    { value: "Dancing Script (Handwriting)", label: "Dancing Script" },
-    { value: "Pacifico (Handwriting)", label: "Pacifico (Brush)" },
+    { value: "Dancing Script (Handwriting)", label: "Dancing Script (Handwriting)" },
+    { value: "Pacifico (Handwriting)", label: "Pacifico (Handwriting)" },
     { value: "Fira Code (Monospace)", label: "Fira Code (Monospace)" },
-    { value: "System Default", label: "System Default UI" },
+    { value: "System Default", label: "System Default" },
 ];
 
 const FONT_PRESETS = [
-    {
-        name: "Default (Outfit + Lora)",
-        primary: "Outfit",
-        secondary: "Lora",
-    },
-    {
-        name: "Developer Monospace (Code Vibe)",
-        primary: "Fira Code (Monospace)",
-        secondary: "Space Grotesk",
-    },
-    {
-        name: "Terminal / Hacker (Pure Mono)",
-        primary: "Fira Code (Monospace)",
-        secondary: "Fira Code (Monospace)",
-    },
-    {
-        name: "Cyberpunk Tech (Space + Mono)",
-        primary: "Space Grotesk",
-        secondary: "Fira Code (Monospace)",
-    },
-    {
-        name: "Editorial Elegance",
-        primary: "Inter",
-        secondary: "Instrument Serif",
-    },
-    {
-        name: "Modern Bodoni",
-        primary: "Lexend",
-        secondary: "Darius (Bodoni)",
-    },
-    {
-        name: "Executive Serif",
-        primary: "Plus Jakarta Sans",
-        secondary: "Playfair Display",
-    },
-    {
-        name: "Classic Garamond",
-        primary: "Outfit",
-        secondary: "Cormorant Garamond",
-    },
-    {
-        name: "Tech & Roman",
-        primary: "Space Grotesk",
-        secondary: "Cinzel",
-    },
+    { name: "Editorial Elegant (Default)", primary: "Outfit", secondary: "Lora" },
+    { name: "Modern Minimalist", primary: "Inter", secondary: "Plus Jakarta Sans" },
+    { name: "Editorial Bodoni", primary: "Newsreader", secondary: "Darius (Bodoni)" },
+    { name: "Cyberpunk Monospace", primary: "Space Grotesk", secondary: "Fira Code (Monospace)" },
+    { name: "Classic Roman", primary: "Montserrat", secondary: "Cinzel" },
+    { name: "Friendly Handwriting", primary: "Lexend", secondary: "Caveat (Handwriting)" },
 ];
 
 export default function WorkspaceShell({
@@ -211,6 +172,7 @@ export default function WorkspaceShell({
         }
     }, [isAddTaskOpen]);
     const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
+    const [settingsTab, setSettingsTab] = useState<"theme" | "typography">("theme");
     const [primaryFont, setPrimaryFont] = useState("Outfit");
     const [secondaryFont, setSecondaryFont] = useState("Lora");
     const [fontScale, setFontScale] = useState(1.25);
@@ -256,6 +218,26 @@ export default function WorkspaceShell({
             setFontScale(1.25);
         }
     }, []);
+
+    const [theme, setTheme] = useState<"light" | "nord-dark" | "amoled-dark" | "lws-dark">("light");
+
+    // Load saved theme preference on mount
+    React.useEffect(() => {
+        if (typeof window === "undefined") return;
+        const savedTheme = localStorage.getItem("sys_theme") as any;
+        if (savedTheme) {
+            setTheme(savedTheme);
+            document.documentElement.setAttribute("data-theme", savedTheme);
+        }
+    }, []);
+
+    const handleToggleTheme = () => {
+        const nextTheme = theme === "light" ? "nord-dark" : "light";
+        setTheme(nextTheme);
+        document.documentElement.setAttribute("data-theme", nextTheme);
+        localStorage.setItem("sys_theme", nextTheme);
+        toast.success(`Switched to ${nextTheme === "nord-dark" ? "Nord Dark Mode" : "Light Mode"}`);
+    };
 
     // Apply font family dynamically to root element and persist in localStorage
     React.useEffect(() => {
@@ -476,8 +458,8 @@ export default function WorkspaceShell({
                 currentView={currentView}
                 toggleConfigModal={() => setIsConfigModalOpen(true)}
                 userRole={userRole}
-                theme="light"
-                onToggleTheme={() => { }}
+                theme={theme}
+                onToggleTheme={handleToggleTheme}
             />
 
             {/* Main Workspace Frame */}
@@ -503,6 +485,18 @@ export default function WorkspaceShell({
                     </div>
 
                     <div className="flex items-center gap-2.5">
+                        <button
+                            onClick={handleToggleTheme}
+                            className="relative corner-brackets-4 p-2 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#1A1A1A] transition-colors flex items-center justify-center cursor-pointer"
+                            title={`Switch to ${theme === "light" ? "Dark" : "Light"} Mode`}
+                        >
+                            {theme !== "light" ? (
+                                <Sun className="w-4 h-4 shrink-0 text-[#EBCB8B]" />
+                            ) : (
+                                <Moon className="w-4 h-4 shrink-0 text-[#1A1A1A]" />
+                            )}
+                        </button>
+
                         <button
                             onClick={() => setIsNotificationsOpen((p) => !p)}
                             className="relative corner-brackets-4 p-2 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#1A1A1A] transition-colors flex items-center justify-center cursor-pointer"
@@ -1021,11 +1015,11 @@ export default function WorkspaceShell({
                         className="relative bg-white border border-[#E5E5E3] p-5 w-full max-w-md flex flex-col gap-4 animate-fade-in text-left rounded-[3px] corner-brackets shadow-xl"
                         style={{ boxShadow: "var(--shadow-float)" }}
                     >
-                        <div className="flex items-center justify-between pb-2 border-b border-[#E5E5E3]">
+                        <div className="flex items-center justify-between pb-1">
                             <div>
-                                <span className="eyebrow capitalize   text-[10px]">Preferences</span>
+                                <span className="eyebrow capitalize text-[10px]">Preferences</span>
                                 <h2 className="font-heading text-base text-[#1A1A1A]">
-                                    System Appearance & Fonts
+                                    System Preferences
                                 </h2>
                             </div>
                             <button
@@ -1037,100 +1031,166 @@ export default function WorkspaceShell({
                             </button>
                         </div>
 
-                        <div className="flex flex-col gap-3.5 max-h-[70vh] overflow-y-auto pr-0.5">
-                            {/* 2x2 Grid with Primary Font, Secondary Font, and Presets spanning 2 cols */}
-                            <div className="grid grid-cols-2 gap-3">
-                                {/* Row 1, Col 1: Primary Interface Font */}
-                                <div className="flex flex-col gap-1">
-                                    <label className="eyebrow">Primary Interface Font</label>
-                                    <CustomSelect
-                                        options={FONT_OPTIONS}
-                                        value={primaryFont}
-                                        onChange={(val) => setPrimaryFont(val)}
-                                        className="w-full"
-                                    />
-                                </div>
+                        {/* Navigation Tabs Bar */}
+                        <div className="bg-[#FAFAF9] px-2 py-1.5 flex items-center gap-1">
+                            <button
+                                type="button"
+                                onClick={() => setSettingsTab("theme")}
+                                className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
+                                    settingsTab === "theme"
+                                        ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4"
+                                        : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#F0F0EE]"
+                                }`}
+                            >
+                                <Palette className="w-3 h-3 shrink-0" />
+                                <span>Theme & Color</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSettingsTab("typography")}
+                                className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
+                                    settingsTab === "typography"
+                                        ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4"
+                                        : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#F0F0EE]"
+                                }`}
+                            >
+                                <Type className="w-3 h-3 shrink-0" />
+                                <span>Typography & Fonts</span>
+                            </button>
+                        </div>
 
-                                {/* Row 1, Col 2: Secondary / Title Font */}
-                                <div className="flex flex-col gap-1">
-                                    <label className="eyebrow">Secondary / Title Font</label>
-                                    <CustomSelect
-                                        options={FONT_OPTIONS}
-                                        value={secondaryFont}
-                                        onChange={(val) => setSecondaryFont(val)}
-                                        className="w-full"
-                                    />
-                                </div>
+                        {/* Section Divider 1 */}
+                        <div className="relative w-full border-t border-[#E5E5E3]">
+                            {/* Left T-Bracket ├ */}
+                            <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center text-[#1A1A1A]">
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 0V10M5 5H10" stroke="currentColor" strokeWidth="1.5" />
+                                </svg>
+                            </div>
+                        </div>
 
-                                {/* Row 2, Col 1: Preset Combinations Dropdown */}
-                                <div className="flex flex-col gap-1">
-                                    <div className="flex items-center justify-between">
-                                        <label className="eyebrow">Preset Pairings</label>
-                                        <span className="text-[10px] text-[#888883]">1-Click Apply</span>
+                        <div className="flex flex-col gap-4 max-h-[55vh] overflow-y-auto pr-0.5">
+                            {settingsTab === "theme" ? (
+                                <div className="flex flex-col gap-3.5">
+                                    {/* Color Theme Selector */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="eyebrow">Select Workspace Color Palette</label>
+                                        <CustomSelect
+                                            options={[
+                                                { value: "light", label: "Editorial Light (Default)" },
+                                                { value: "nord-dark", label: "Nord Dark Mode" },
+                                                { value: "amoled-dark", label: "AMOLED Pitch Black" },
+                                                { value: "lws-dark", label: "Learn With Sumit (LWS) Dark" },
+                                            ]}
+                                            value={theme}
+                                            onChange={(val) => {
+                                                setTheme(val as any);
+                                                document.documentElement.setAttribute("data-theme", val);
+                                                localStorage.setItem("sys_theme", val);
+                                                toast.success(`Theme updated`);
+                                            }}
+                                            className="w-full"
+                                        />
                                     </div>
-                                    <CustomSelect
-                                        options={FONT_PRESETS.map((p) => ({
-                                            value: `${p.primary}|${p.secondary}`,
-                                            label: p.name,
-                                            sublabel: `${p.primary} + ${p.secondary}`,
-                                        }))}
-                                        value={
-                                            FONT_PRESETS.some(
-                                                (p) => p.primary === primaryFont && p.secondary === secondaryFont
-                                            )
-                                                ? `${primaryFont}|${secondaryFont}`
-                                                : ""
-                                        }
-                                        placeholder="Select a preset combination…"
-                                        onChange={(val) => {
-                                            const [prim, sec] = val.split("|");
-                                            if (prim && sec) {
-                                                setPrimaryFont(prim);
-                                                setSecondaryFont(sec);
-                                            }
-                                        }}
-                                        className="w-full"
-                                    />
+                                    <p className="text-[11px] text-[#888883] leading-relaxed">
+                                        Choose a visual theme for your task workspace. Changes apply instantly across the sidebars, tables, and dialogs.
+                                    </p>
                                 </div>
+                            ) : (
+                                <div className="flex flex-col gap-4">
+                                    {/* 2x2 Grid with Primary Font, Secondary Font, and Presets spanning 2 cols */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* Row 1, Col 1: Primary Interface Font */}
+                                        <div className="flex flex-col gap-1">
+                                            <label className="eyebrow">Primary Interface Font</label>
+                                            <CustomSelect
+                                                options={FONT_OPTIONS}
+                                                value={primaryFont}
+                                                onChange={(val) => setPrimaryFont(val)}
+                                                className="w-full"
+                                            />
+                                        </div>
 
-                                {/* Row 2, Col 2: Font Scale Option Dropdown */}
-                                <div className="flex flex-col gap-1">
-                                    <label className="eyebrow">Font Scale</label>
-                                    <CustomSelect
-                                        options={scaleOptions}
-                                        value={closestScaleOption.value}
-                                        onChange={(val) => setFontScale(parseFloat(val))}
-                                        className="w-full"
-                                    />
+                                        {/* Row 1, Col 2: Secondary / Title Font */}
+                                        <div className="flex flex-col gap-1">
+                                            <label className="eyebrow">Secondary / Title Font</label>
+                                            <CustomSelect
+                                                options={FONT_OPTIONS}
+                                                value={secondaryFont}
+                                                onChange={(val) => setSecondaryFont(val)}
+                                                className="w-full"
+                                            />
+                                        </div>
+
+                                        {/* Row 2, Col 1: Preset Combinations Dropdown */}
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center justify-between">
+                                                <label className="eyebrow">Preset Pairings</label>
+                                                <span className="text-[10px] text-[#888883]">1-Click Apply</span>
+                                            </div>
+                                            <CustomSelect
+                                                options={FONT_PRESETS.map((p) => ({
+                                                    value: `${p.primary}|${p.secondary}`,
+                                                    label: p.name,
+                                                    sublabel: `${p.primary} + ${p.secondary}`,
+                                                }))}
+                                                value={
+                                                    FONT_PRESETS.some(
+                                                        (p) => p.primary === primaryFont && p.secondary === secondaryFont
+                                                    )
+                                                        ? `${primaryFont}|${secondaryFont}`
+                                                        : ""
+                                                }
+                                                placeholder="Select a preset combination…"
+                                                onChange={(val) => {
+                                                    const [prim, sec] = val.split("|");
+                                                    if (prim && sec) {
+                                                        setPrimaryFont(prim);
+                                                        setSecondaryFont(sec);
+                                                    }
+                                                }}
+                                                className="w-full"
+                                            />
+                                        </div>
+
+                                        {/* Row 2, Col 2: Font Scale Option Dropdown */}
+                                        <div className="flex flex-col gap-1">
+                                            <label className="eyebrow">Font Scale Preset</label>
+                                            <CustomSelect
+                                                options={scaleOptions}
+                                                value={closestScaleOption.value}
+                                                onChange={(val) => setFontScale(parseFloat(val))}
+                                                className="w-full"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* System Font Scale Slider */}
+                                    <div className="flex flex-col gap-1.5 border-t border-[#E5E5E3]/60 pt-3">
+                                        <div className="flex justify-between items-center">
+                                            <label className="eyebrow">System Font Scale</label>
+                                            <span className="text-[11px] text-[#1A1A1A] font-semibold">
+                                                {Math.round(fontScale * 100)}%
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] text-[#888883] font-medium">A</span>
+                                            <input
+                                                type="range"
+                                                min="0.85"
+                                                max="1.50"
+                                                step="0.05"
+                                                value={fontScale}
+                                                onChange={(e) => setFontScale(parseFloat(e.target.value))}
+                                                className="flex-1 h-1 bg-[#E5E5E3] rounded-lg appearance-none cursor-pointer"
+                                            />
+                                            <span className="text-sm font-semibold text-[#1A1A1A]">A</span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
-                            {/* System Font Scale Slider */}
-                            <div className="flex flex-col gap-1.5 border-t border-[#E5E5E3]/60 pt-3">
-                                <div className="flex justify-between items-center">
-                                    <label className="eyebrow">System Font Scale</label>
-                                    <span className="text-[11px] text-[#1A1A1A] font-semibold">
-                                        {Math.round(fontScale * 100)}%
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[10px] text-[#888883] font-medium">A</span>
-                                    <input
-                                        type="range"
-                                        min="0.85"
-                                        max="1.50"
-                                        step="0.05"
-                                        value={fontScale}
-                                        onChange={(e) => setFontScale(parseFloat(e.target.value))}
-                                        className="flex-1 h-1 bg-[#E5E5E3] rounded-lg appearance-none cursor-pointer"
-                                    />
-                                    <span className="text-sm font-semibold text-[#1A1A1A]">A</span>
-                                </div>
-                            </div>
-
-
-
-                            {/* Sample Preview Box */}
+                            {/* Sample Preview Box (Visible on both tabs for direct feedback) */}
                             <div className="p-3 border border-[#E5E5E3] bg-[#FAFAF9] rounded-[2px] flex flex-col gap-1 mt-0.5">
                                 <span className="eyebrow text-[9px]">Live Typography Preview</span>
                                 <h4 style={{ fontFamily: fontMap[secondaryFont] || "inherit" }} className="text-base font-semibold text-[#1A1A1A] transition-all">

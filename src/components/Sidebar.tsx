@@ -17,6 +17,7 @@ import {
     ChevronUp,
     BookOpen,
     Bookmark,
+    Moon,
 } from "lucide-react";
 import { User, Team } from "../api";
 import { CustomSelect } from "./ui/CustomSelect";
@@ -32,8 +33,8 @@ interface SidebarProps {
     setCurrentView?: (view: string) => void;
     toggleConfigModal: () => void;
     userRole: string;
-    theme: "light" | "dark";
-    onToggleTheme: () => void;
+    theme: string;
+    onToggleTheme?: () => void;
 }
 
 export default function Sidebar({
@@ -47,6 +48,8 @@ export default function Sidebar({
     setCurrentView,
     toggleConfigModal,
     userRole,
+    theme = "light",
+    onToggleTheme,
 }: SidebarProps) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -296,9 +299,11 @@ export default function Sidebar({
                 className={`border-t border-[#E5E5E3] flex flex-col gap-2 ${isCollapsed ? "pt-3 px-0" : "pt-4 px-0"
                     }`}
             >
+                {/* Configure Columns & Theme Toggle */}
                 {userRole === "LEADER" && (
                     <div className="flex flex-col gap-1 mb-1">
                         <button
+                            type="button"
                             onClick={toggleConfigModal}
                             className={`flex items-center text-[11px] text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors relative group ${isCollapsed
                                 ? "w-9 h-9 mx-auto justify-center rounded-[3px] border border-[#E5E5E3]"

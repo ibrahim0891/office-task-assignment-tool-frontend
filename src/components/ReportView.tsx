@@ -209,7 +209,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                 </span>
                             </div>
 
-                            <div className="bg-[#white] p-4 flex flex-col gap-1">
+                            <div className="bg-white p-4 flex flex-col gap-1">
                                 <span className="eyebrow text-[#B08800]">
                                     Stale Tasks
                                 </span>
