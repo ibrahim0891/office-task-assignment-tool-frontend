@@ -111,6 +111,44 @@ export default function ListView({
         return 0;
     });
 
+    const isLeader = userRole === "LEADER";
+
+    // A task is selectable if the user is a LEADER, or if they created it, or if they are assigned to it.
+    const selectableTasks = isObserver
+        ? []
+        : sortedTasks.filter(
+              (t) =>
+                  isLeader ||
+                  t.createdById === currentUser.id ||
+                  t.assignedToId === currentUser.id
+          );
+
+    const validSelectedTasks = selectedTasks.filter((id) =>
+        selectableTasks.some((t) => t.id === id)
+    );
+
+    const selectedTaskObjects = sortedTasks.filter((t) =>
+        validSelectedTasks.includes(t.id)
+    );
+
+    // Can bulk delete if they created all selected tasks (or are leader)
+    const canBulkDelete =
+        validSelectedTasks.length > 0 &&
+        (isLeader ||
+            selectedTaskObjects.every((t) => t.createdById === currentUser.id));
+
+    // Can bulk reassign if they are leader, or if they are reassigning to themselves
+    // and they created/are assigned to all selected tasks.
+    const canBulkReassign =
+        validSelectedTasks.length > 0 &&
+        (isLeader ||
+            (bulkAssignee === currentUser.id &&
+                selectedTaskObjects.every(
+                    (t) =>
+                        t.createdById === currentUser.id ||
+                        t.assignedToId === currentUser.id
+                )));
+
     const handleSort = (field: SortField) => {
         if (sortField === field) {
             setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -127,10 +165,14 @@ export default function ListView({
             );
             return;
         }
-        if (selectedTasks.length === 0 || !bulkAssignee) return;
+        if (!isLeader && bulkAssignee !== currentUser.id) {
+            alert("Members can only reassign tasks to themselves.");
+            return;
+        }
+        if (validSelectedTasks.length === 0 || !bulkAssignee) return;
         try {
             await Promise.all(
-                selectedTasks.map((taskId) =>
+                validSelectedTasks.map((taskId) =>
                     api.updateTask(
                         taskId,
                         { assignedToId: bulkAssignee },
@@ -154,7 +196,11 @@ export default function ListView({
             );
             return;
         }
-        if (selectedTasks.length === 0) return;
+        if (!canBulkDelete) {
+            toast.error("You can only archive/delete tasks that you created.");
+            return;
+        }
+        if (validSelectedTasks.length === 0) return;
         setIsBulkDeleteConfirmOpen(true);
     };
 
@@ -162,7 +208,7 @@ export default function ListView({
         setIsBulkDeleting(true);
         try {
             const results = await Promise.allSettled(
-                selectedTasks.map((taskId) => api.deleteTask(taskId, currentUser.id))
+                validSelectedTasks.map((taskId) => api.deleteTask(taskId, currentUser.id))
             );
             const failedCount = results.filter((r) => r.status === "rejected").length;
             
@@ -172,8 +218,8 @@ export default function ListView({
 
             if (failedCount === 0) {
                 toast.success("Bulk archive completed.");
-            } else if (failedCount < selectedTasks.length) {
-                toast.success(`Archived ${selectedTasks.length - failedCount} tasks. ${failedCount} failed.`);
+            } else if (failedCount < validSelectedTasks.length) {
+                toast.success(`Archived ${validSelectedTasks.length - failedCount} tasks. ${failedCount} failed.`);
             } else {
                 toast.error("Failed to archive selected tasks.");
             }
@@ -187,7 +233,7 @@ export default function ListView({
     const handleSelectAll = (checked: boolean) => {
         if (isObserver) return;
         if (checked) {
-            setSelectedTasks(sortedTasks.map((t) => t.id));
+            setSelectedTasks(selectableTasks.map((t) => t.id));
         } else {
             setSelectedTasks([]);
         }
@@ -200,6 +246,20 @@ export default function ListView({
                 ? prev.filter((id) => id !== taskId)
                 : [...prev, taskId],
         );
+    };
+
+    const handleUpdateStatus = async (taskId: string, newColumnId: string) => {
+        try {
+            await api.updateTask(
+                taskId,
+                { columnId: newColumnId },
+                { userId: currentUser.id, teamId: currentTeam.id }
+            );
+            toast.success("Status updated!");
+            onRefresh();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update status");
+        }
     };
 
     const getPriorityDot = (p: string) => {
@@ -275,40 +335,46 @@ export default function ListView({
                 </div>
 
                 {/* Bulk Actions */}
-                {selectedTasks.length > 0 && !isObserver && (
+                {validSelectedTasks.length > 0 && !isObserver && (
                     <div className="pt-3 border-t border-[#E5E5E3] flex flex-wrap gap-2 items-center justify-between">
                         <span className="text-[11px] font-semibold text-[#1A1A1A]">
-                            {selectedTasks.length} selected
+                            {validSelectedTasks.length} selected
                         </span>
                         <div className="flex items-center gap-2">
-                            <CustomSelect
-                                options={[
-                                    { value: "", label: "Reassign to…" },
-                                    ...teamMembers.map(({ user }) => ({
-                                        value: user.id,
-                                        label: user.name,
-                                        avatarUrl: user.avatarUrl || null,
-                                    })),
-                                ]}
-                                value={bulkAssignee}
-                                onChange={(val) => setBulkAssignee(val)}
-                                className="w-44"
-                            />
-                            <Button
-                                onClick={handleBulkReassign}
-                                disabled={!bulkAssignee}
-                                showDot
-                            >
-                                Reassign
-                            </Button>
-                            <Button
-                                variant="danger"
-                                onClick={handleBulkDelete}
-                                icon={<Trash2 className="w-3 h-3 text-[#CB2431]" />}
-                                title="Archive selected tasks"
-                            >
-                                Delete
-                            </Button>
+                            {isLeader && (
+                                <>
+                                    <CustomSelect
+                                        options={[
+                                            { value: "", label: "Reassign to…" },
+                                            ...teamMembers.map(({ user }) => ({
+                                                value: user.id,
+                                                label: user.name,
+                                                avatarUrl: user.avatarUrl || null,
+                                            })),
+                                        ]}
+                                        value={bulkAssignee}
+                                        onChange={(val) => setBulkAssignee(val)}
+                                        className="w-44"
+                                    />
+                                    <Button
+                                        onClick={handleBulkReassign}
+                                        disabled={!bulkAssignee || !canBulkReassign}
+                                        showDot
+                                    >
+                                        Reassign
+                                    </Button>
+                                </>
+                            )}
+                            {canBulkDelete && (
+                                <Button
+                                    variant="danger"
+                                    onClick={handleBulkDelete}
+                                    icon={<Trash2 className="w-3 h-3 text-[#CB2431]" />}
+                                    title="Archive selected tasks"
+                                >
+                                    Delete
+                                </Button>
+                            )}
                             <Button
                                 variant="ghost"
                                 onClick={() => setSelectedTasks([])}
@@ -330,9 +396,9 @@ export default function ListView({
                                     {!isObserver && (
                                         <Checkbox
                                             checked={
-                                                sortedTasks.length > 0 &&
-                                                selectedTasks.length ===
-                                                sortedTasks.length
+                                                selectableTasks.length > 0 &&
+                                                validSelectedTasks.length ===
+                                                selectableTasks.length
                                             }
                                             onChange={(checked) =>
                                                 handleSelectAll(checked)
@@ -411,14 +477,23 @@ export default function ListView({
                                                 }
                                             >
                                                 {!isObserver && (
-                                                    <Checkbox
-                                                        checked={isChecked}
-                                                        onChange={() =>
-                                                            toggleSelectTask(
-                                                                task.id,
-                                                            )
-                                                        }
-                                                    />
+                                                    selectableTasks.some((st) => st.id === task.id) ? (
+                                                        <Checkbox
+                                                            checked={isChecked}
+                                                            onChange={() =>
+                                                                toggleSelectTask(
+                                                                    task.id,
+                                                                )
+                                                            }
+                                                        />
+                                                    ) : (
+                                                        <div 
+                                                            className="w-4 h-4 mx-auto flex items-center justify-center text-[10px]" 
+                                                            title="Read-only access: you cannot perform actions on this task"
+                                                        >
+                                                            🔒
+                                                        </div>
+                                                    )
                                                 )}
                                             </td>
                                             <td className="py-2.5 px-3 font-medium text-[#1A1A1A]">
@@ -433,11 +508,26 @@ export default function ListView({
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="py-2.5 px-3 text-center">
-                                                <span className="border border-[#E5E5E3] px-2 py-0.5 rounded-[2px] text-[10px] font-medium text-[#1A1A1A]">
-                                                    {task.column.name}
-                                                </span>
-                                            </td>
+                                             <td 
+                                                 className="py-2.5 px-3 text-center"
+                                                 onClick={(e) => e.stopPropagation()}
+                                             >
+                                                 {!isObserver && (isLeader || task.createdById === currentUser.id || task.assignedToId === currentUser.id) ? (
+                                                     <CustomSelect
+                                                         options={columns.map((c) => ({
+                                                             value: c.id,
+                                                             label: c.name,
+                                                         }))}
+                                                         value={task.columnId}
+                                                         onChange={(val) => handleUpdateStatus(task.id, val)}
+                                                         className="w-28 mx-auto"
+                                                     />
+                                                 ) : (
+                                                     <span className="border border-[#E5E5E3] px-2 py-0.5 rounded-[2px] text-[10px] font-medium text-[#1A1A1A]">
+                                                         {task.column.name}
+                                                     </span>
+                                                 )}
+                                             </td>
                                             <td className="py-2.5 px-3 text-center">
                                                 <span
                                                     className={`text-[10px] font-medium ${getPriorityDot(task.priority)}`}

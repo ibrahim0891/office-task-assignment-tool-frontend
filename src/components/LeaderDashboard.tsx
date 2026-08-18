@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { Task, TaskColumn, User, api } from "../api";
+import { Task, TaskColumn, User, Team, api } from "../api";
 import { CustomSelect } from "./ui/CustomSelect";
 import UserPickerSelect from "./ui/UserPickerSelect";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { Button } from "./ui/Button";
 import toast from "react-hot-toast";
+import Link from "next/link";
 
 interface LeaderDashboardProps {
-    currentTeam: { id: string; name: string };
+    currentTeam: Team;
     currentUser: User;
     tasks: Task[];
     columns: TaskColumn[];
@@ -122,12 +123,32 @@ export default function LeaderDashboard({
 
     const memberWorkload = teamMembers.map(({ user, role }) => {
         const userTasks = activeTasks.filter((t) => t.assignedToId === user.id);
-        const completedTasks = userTasks.filter(
-            (t) => t.columnId === completedColumn?.id,
-        );
-        const pendingTasks = userTasks.filter(
-            (t) => t.columnId !== completedColumn?.id,
-        );
+
+        const needAttentionColIds = columns
+            .filter((c) => c.name.toLowerCase().trim() === "need attention")
+            .map((c) => c.id);
+        const doneColIds = columns
+            .filter((c) => c.isComplete || c.name.toLowerCase().trim() === "done")
+            .map((c) => c.id);
+        const activeColIds = columns
+            .filter((c) => c.name.toLowerCase().trim() === "in progress")
+            .map((c) => c.id);
+        const pendingColIds = columns
+            .filter((c) => {
+                const name = c.name.toLowerCase().trim();
+                return (
+                    name === "to do" ||
+                    name === "todo" ||
+                    name === "need attention later"
+                );
+            })
+            .map((c) => c.id);
+
+        const needAttentionCount = userTasks.filter((t) => needAttentionColIds.includes(t.columnId)).length;
+        const activeCount = userTasks.filter((t) => activeColIds.includes(t.columnId)).length;
+        const pendingCount = userTasks.filter((t) => pendingColIds.includes(t.columnId)).length;
+        const doneCount = userTasks.filter((t) => doneColIds.includes(t.columnId)).length;
+
         const estimatedHours = userTasks.reduce(
             (sum, t) => sum + (t.estimatedTime || 0),
             0,
@@ -136,9 +157,10 @@ export default function LeaderDashboard({
         return {
             user,
             role,
-            total: userTasks.length,
-            completed: completedTasks.length,
-            pending: pendingTasks.length,
+            needAttention: needAttentionCount,
+            active: activeCount,
+            pending: pendingCount,
+            done: doneCount,
             estimatedHours,
         };
     });
@@ -157,14 +179,21 @@ export default function LeaderDashboard({
     return (
         <div className="flex-1 overflow-y-auto p-5 bg-[#FAFAF9] text-[#1A1A1A] flex flex-col gap-5 select-none">
             {/* Header */}
-            <div>
-                <h1 className="font-heading text-xl">Leader Dashboard</h1>
-                <p className="text-base text-[#888883] mt-0.5">
-                    Workload metrics and team management for{" "}
-                    <span className="text-[#1A1A1A] font-medium">
-                        {currentTeam.name}
-                    </span>
-                </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
+                <div>
+                    <h1 className="font-heading text-xl">Leader Dashboard</h1>
+                    <p className="text-base text-[#888883] mt-0.5">
+                        Workload metrics and team management for{" "}
+                        <span className="text-[#1A1A1A] font-medium">
+                            {currentTeam.name}
+                        </span>
+                    </p>
+                </div>
+                <Link href="/kanban" className="shrink-0">
+                    <Button type="button" variant="secondary" size="md" className="relative corner-brackets-4">
+                        Go to Task Board
+                    </Button>
+                </Link>
             </div>
 
             {/* Stats Row */}
@@ -210,28 +239,18 @@ export default function LeaderDashboard({
                             <h2 className="text-[13px] font-semibold">
                                 ▪ Team Workloads
                             </h2>
-                            <p className="text-base text-[#888883] mt-0.5">
-                                Effort and completion per member.
-                            </p>
-                        </div>
+                                                     </div>
 
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-[11px] border-collapse">
                                 <thead>
-                                    <tr className="border-b border-[#E5E5E3] text-[9px] font-medium text-[#888883] capitalize  ">
+                                    <tr className="border-b border-[#E5E5E3] text-[9px] font-medium text-[#888883] capitalize">
                                         <th className="pb-2 px-2">Member</th>
-                                        <th className="pb-2 px-2 text-center">
-                                            Active
-                                        </th>
-                                        <th className="pb-2 px-2 text-center">
-                                            Done
-                                        </th>
-                                        <th className="pb-2 px-2 text-center">
-                                            Pending
-                                        </th>
-                                        <th className="pb-2 px-2 text-right">
-                                            Est. Hrs
-                                        </th>
+                                        <th className="pb-2 px-2 text-center">Need Attention</th>
+                                        <th className="pb-2 px-2 text-center">Active</th>
+                                        <th className="pb-2 px-2 text-center">Pending</th>
+                                        <th className="pb-2 px-2 text-center">Done</th>
+                                        <th className="pb-2 px-2 text-right">Est. Hrs</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#E5E5E3]">
@@ -239,9 +258,10 @@ export default function LeaderDashboard({
                                         ({
                                             user,
                                             role,
-                                            total,
-                                            completed,
+                                            needAttention,
+                                            active,
                                             pending,
+                                            done,
                                             estimatedHours,
                                         }) => (
                                             <tr
@@ -258,10 +278,10 @@ export default function LeaderDashboard({
                                                         <img
                                                             src={user.avatarUrl}
                                                             alt={user.name}
-                                                            className="w-5 h-5 rounded-full object-cover border border-[#E5E5E3] shrink-0"
+                                                            className="w-8 h-8 rounded-[3px] object-cover border border-[#E5E5E3] shrink-0"
                                                         />
                                                     ) : (
-                                                        <div className="w-5 h-5 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[8px] text-[#1A1A1A] font-semibold shrink-0">
+                                                        <div className="w-8 h-8 rounded-[3px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[10px] text-[#1A1A1A] font-semibold shrink-0">
                                                             {user.name
                                                                 .split(" ")
                                                                 .map(
@@ -275,20 +295,23 @@ export default function LeaderDashboard({
                                                             {user.name}
                                                         </span>
                                                         <span
-                                                            className={`text-[8px] font-medium capitalize   ${getRoleColor(role)}`}
+                                                            className={`text-[8px] font-medium capitalize ${getRoleColor(role)}`}
                                                         >
                                                             {role}
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="py-2.5 px-2 text-center font-medium text-[#1A1A1A] tabular-nums">
-                                                    {total}
-                                                </td>
-                                                <td className="py-2.5 px-2 text-center text-[#22863A] font-medium tabular-nums">
-                                                    {completed}
+                                                <td className="py-2.5 px-2 text-center font-medium text-[#CB2431] tabular-nums">
+                                                    {needAttention}
                                                 </td>
                                                 <td className="py-2.5 px-2 text-center text-[#1A1A1A] font-medium tabular-nums">
+                                                    {active}
+                                                </td>
+                                                <td className="py-2.5 px-2 text-center text-[#888883] font-medium tabular-nums">
                                                     {pending}
+                                                </td>
+                                                <td className="py-2.5 px-2 text-center text-[#22863A] font-medium tabular-nums">
+                                                    {done}
                                                 </td>
                                                 <td className="py-2.5 px-2 text-right font-medium text-[#1A1A1A] tabular-nums">
                                                     {estimatedHours}h

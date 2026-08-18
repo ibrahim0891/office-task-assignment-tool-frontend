@@ -3,6 +3,7 @@ import {
     Calendar as CalendarIcon,
     ChevronLeft,
     ChevronRight,
+    ChevronDown,
 } from "lucide-react";
 import { CustomSelect } from "./CustomSelect";
 
@@ -176,7 +177,7 @@ export function CustomDatePicker({
                 <span className="truncate">
                     {formattedValue || placeholder}
                 </span>
-                <CalendarIcon className="w-3.5 h-3.5 text-[#888883] shrink-0" />
+                <ChevronDown className="w-3.5 h-3.5 text-[#888883] shrink-0" />
             </button>
 
             {isOpen && !disabled && (

@@ -43,7 +43,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
                         }`}
                 >
                     {checked && (
-                        <Check className="w-3 h-3 stroke-[2.5] animate-fade-in" />
+                        <Check className="w-3 h-3 text-white dark:text-[#1A1A1A] stroke-[2.5] animate-fade-in" />
                     )}
                 </div>
             </div>

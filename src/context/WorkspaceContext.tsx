@@ -64,8 +64,8 @@ interface WorkspaceContextType {
     handleToggleComplete: (taskId: string, isCompleted: boolean) => Promise<void>;
     handleArchiveTask: (taskId: string) => Promise<void>;
     handleAddQuickTask: (title: string, columnId: string, assignedToId?: string) => Promise<void>;
-    handleCreateTeam: (teamName: string) => Promise<void>;
-    handleUpdateTeam: (teamId: string, name: string) => Promise<void>;
+    handleCreateTeam: (teamName: string, emoji?: string) => Promise<void>;
+    handleUpdateTeam: (teamId: string, name: string, emoji?: string) => Promise<void>;
     handleDeleteTeam: (teamId: string, password: string, confirmationText: string) => Promise<void>;
     handleLeaveTeam: (teamId: string) => Promise<void>;
     handleLogout: () => void;
@@ -100,6 +100,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         if (path.includes("/reports")) return "reports";
         if (path.includes("/trash")) return "trash";
         if (path.includes("/profile")) return "profile";
+        if (path.includes("/map")) return "map";
         return "kanban";
     };
 
@@ -235,7 +236,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             if (
                 currentView === "kanban" ||
                 currentView === "myday" ||
-                currentView === "dashboard"
+                currentView === "dashboard" ||
+                currentView === "map"
             ) {
                 params.date = activeDateStr;
             }
@@ -640,10 +642,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
-    const handleCreateTeam = async (teamName: string) => {
+    const handleCreateTeam = async (teamName: string, emoji?: string) => {
         if (!currentUser) return;
         try {
-            const newTeam = await api.createTeam(teamName, currentUser.id);
+            const newTeam = await api.createTeam(teamName, currentUser.id, emoji);
             toast.success(`Workspace "${newTeam.name}" created!`);
             const updatedTeams = await api.getTeams(currentUser.id);
             setTeams(updatedTeams);
@@ -654,18 +656,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
-    const handleUpdateTeam = async (teamId: string, name: string) => {
+    const handleUpdateTeam = async (teamId: string, name: string, emoji?: string) => {
         if (!currentUser) return;
         try {
-            const updatedTeam = await api.updateTeam(teamId, name, currentUser.id);
-            toast.success(`Workspace renamed to "${updatedTeam.name}"`);
+            const updatedTeam = await api.updateTeam(teamId, name, currentUser.id, emoji);
+            toast.success(`Workspace updated successfully`);
             const updatedTeams = await api.getTeams(currentUser.id);
             setTeams(updatedTeams);
             if (currentTeam?.id === teamId) {
                 setCurrentTeam(updatedTeam);
             }
         } catch (err: any) {
-            toast.error(err.message || "Failed to update workspace name");
+            toast.error(err.message || "Failed to update workspace");
             throw err;
         }
     };

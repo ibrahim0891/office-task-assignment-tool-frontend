@@ -470,6 +470,7 @@ export default function WorkspaceShell({
         if (pathname === "/list") return "List View";
         if (pathname === "/dashboard") return "Leader Dashboard";
         if (pathname === "/myday" || currentView === "myday") return "My Day";
+        if (pathname === "/map" || currentView === "map") return "Workspace Solar Map";
         if (currentView === "kanban" || pathname === "/" || pathname === "/kanban") return "Kanban Board";
         return currentView.charAt(0).toUpperCase() + currentView.slice(1);
     })();
@@ -501,7 +502,8 @@ export default function WorkspaceShell({
                         </span>
 
                         {(currentView === "kanban" ||
-                            currentView === "dashboard") && (
+                            currentView === "dashboard" ||
+                            currentView === "map") && (
                                 <div className="flex items-center gap-2 text-[11px]">
                                     <span className="text-[#888883]">Date:</span>
                                     <CustomDatePicker
@@ -834,7 +836,7 @@ export default function WorkspaceShell({
 
                         <div className="flex-1 overflow-y-auto flex flex-col gap-2 py-1 pr-1">
                             <div className="text-xs text-[#888883] leading-relaxed mb-1 flex flex-col gap-0.5">
-                                <p>Customize board columns, set WIP limits, and configure carry forward rules.</p>
+                                <p>Customize board columns and configure carry forward rules.</p>
                                 <p className="text-[10px] text-[#888883]">
                                     <span className="font-medium text-[#1A1A1A]">▪ Carry Forward:</span> Automatically moves incomplete tasks in checked columns to the next day.
                                 </p>

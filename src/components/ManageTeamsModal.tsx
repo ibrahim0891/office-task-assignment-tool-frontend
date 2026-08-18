@@ -5,6 +5,7 @@ import { Team, User } from "../api";
 import { Button } from "./ui/Button";
 import { X, Edit2, Trash2, Check, Plus, ShieldAlert, LogOut } from "lucide-react";
 import toast from "react-hot-toast";
+import { EmojiPicker } from "./ui/EmojiPicker";
 
 interface ManageTeamsModalProps {
     isOpen: boolean;
@@ -14,8 +15,8 @@ interface ManageTeamsModalProps {
     currentUser: User | null;
     userRole: string;
     onSelectTeam: (team: Team) => void;
-    onCreateTeam: (name: string) => Promise<void>;
-    onUpdateTeam: (teamId: string, name: string) => Promise<void>;
+    onCreateTeam: (name: string, emoji?: string) => Promise<void>;
+    onUpdateTeam: (teamId: string, name: string, emoji?: string) => Promise<void>;
     onDeleteTeam: (
         teamId: string,
         password: string,
@@ -40,10 +41,12 @@ export default function ManageTeamsModal({
     // States for inline editing
     const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState("");
+    const [editingEmoji, setEditingEmoji] = useState("👤");
 
     // States for create workspace
     const [isCreating, setIsCreating] = useState(false);
     const [newTeamName, setNewTeamName] = useState("");
+    const [newTeamEmoji, setNewTeamEmoji] = useState("👤");
 
     // States for deletion flow
     const [deletingTeam, setDeletingTeam] = useState<Team | null>(null);
@@ -59,6 +62,7 @@ export default function ManageTeamsModal({
     const handleStartEdit = (team: Team) => {
         setEditingTeamId(team.id);
         setEditingName(team.name);
+        setEditingEmoji(team.emoji || "👤");
     };
 
     const handleSaveEdit = async (teamId: string) => {
@@ -68,7 +72,7 @@ export default function ManageTeamsModal({
         }
         try {
             setIsSubmitting(true);
-            await onUpdateTeam(teamId, editingName.trim());
+            await onUpdateTeam(teamId, editingName.trim(), editingEmoji);
             setEditingTeamId(null);
         } catch (err) {
             // error toast handled in context
@@ -85,8 +89,9 @@ export default function ManageTeamsModal({
         }
         try {
             setIsSubmitting(true);
-            await onCreateTeam(newTeamName.trim());
+            await onCreateTeam(newTeamName.trim(), newTeamEmoji);
             setNewTeamName("");
+            setNewTeamEmoji("👤");
             setIsCreating(false);
         } catch (err) {
             // error handled in context
@@ -298,23 +303,33 @@ export default function ManageTeamsModal({
                                         onSubmit={handleCreateSubmit}
                                         className="bg-[#FAFAF9] border border-[#E5E5E3] p-4 rounded-[2px] flex flex-col gap-3.5 corner-brackets animate-fade-in mb-2"
                                     >
-                                        <div className="flex flex-col gap-1">
-                                            <span className="eyebrow">
-                                                New Workspace Name
-                                            </span>
-                                            <input
-                                                type="text"
-                                                value={newTeamName}
-                                                onChange={(e) =>
-                                                    setNewTeamName(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="e.g. Mobile Engineering, Marketing"
-                                                className={inputClass}
-                                                autoFocus
-                                                required
-                                            />
+                                        <div className="flex items-end gap-2.5">
+                                            <div className="flex flex-col gap-1 shrink-0">
+                                                <span className="eyebrow">Icon</span>
+                                                <EmojiPicker
+                                                    value={newTeamEmoji}
+                                                    onChange={setNewTeamEmoji}
+                                                    disabled={isSubmitting}
+                                                />
+                                            </div>
+                                            <div className="flex flex-col gap-1 flex-1 min-w-0">
+                                                <span className="eyebrow">
+                                                    New Workspace Name
+                                                </span>
+                                                <input
+                                                    type="text"
+                                                    value={newTeamName}
+                                                    onChange={(e) =>
+                                                        setNewTeamName(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    placeholder="e.g. Mobile Engineering, Marketing"
+                                                    className={inputClass}
+                                                    autoFocus
+                                                    required
+                                                />
+                                            </div>
                                         </div>
                                         <div className="flex justify-end gap-2.5 pt-1">
                                             <Button
@@ -324,6 +339,7 @@ export default function ManageTeamsModal({
                                                 onClick={() => {
                                                     setIsCreating(false);
                                                     setNewTeamName("");
+                                                    setNewTeamEmoji("👤");
                                                 }}
                                                 disabled={isSubmitting}
                                                 className="px-3 py-1.5"
@@ -355,6 +371,8 @@ export default function ManageTeamsModal({
                                         const isLeaderOfTeam = t.id === currentTeam?.id
                                             ? (userRole === "LEADER")
                                             : t.members?.find((m) => m.user.id === currentUser?.id)?.role === "LEADER";
+                                        const isCreatorOfTeam = t.createdById === currentUser?.id;
+                                        const canRenameTeam = isLeaderOfTeam || isCreatorOfTeam;
 
                                         return (
                                             <div
@@ -367,6 +385,11 @@ export default function ManageTeamsModal({
                                             >
                                                 {isEditing ? (
                                                     <div className="flex items-center gap-2.5 flex-1">
+                                                        <EmojiPicker
+                                                            value={editingEmoji}
+                                                            onChange={setEditingEmoji}
+                                                            disabled={isSubmitting}
+                                                        />
                                                         <input
                                                             type="text"
                                                             value={editingName}
@@ -414,6 +437,7 @@ export default function ManageTeamsModal({
                                                     <>
                                                         <div className="flex flex-col gap-1 min-w-0">
                                                             <div className="flex items-center gap-2.5">
+                                                                <span className="text-lg emoji-font shrink-0 leading-none">{t.emoji || "👤"}</span>
                                                                 <span className="font-medium text-[13px] text-[#1A1A1A] truncate">
                                                                     {t.name}
                                                                 </span>
@@ -447,17 +471,19 @@ export default function ManageTeamsModal({
                                                                     Switch
                                                                 </button>
                                                             )}
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleStartEdit(
-                                                                        t,
-                                                                    )
-                                                                }
-                                                                className="p-2 border border-[#E5E5E3] bg-white hover:bg-[#FAFAF9] text-[#555555] hover:text-[#1A1A1A] rounded-[2px] transition-colors cursor-pointer"
-                                                                title="Rename workspace"
-                                                            >
-                                                                <Edit2 className="w-3.5 h-3.5" />
-                                                            </button>
+                                                            {canRenameTeam && (
+                                                                <button
+                                                                    onClick={() =>
+                                                                        handleStartEdit(
+                                                                            t,
+                                                                        )
+                                                                    }
+                                                                    className="p-2 border border-[#E5E5E3] bg-white hover:bg-[#FAFAF9] text-[#555555] hover:text-[#1A1A1A] rounded-[2px] transition-colors cursor-pointer"
+                                                                    title="Rename workspace"
+                                                                >
+                                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
                                                             {isLeaderOfTeam ? (
                                                                 <button
                                                                     onClick={() => {

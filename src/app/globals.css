@@ -1,4 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap');
 @import "tailwindcss";
+
+.emoji-font {
+  font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif !important;
+}
 
 :root {
   /* Editorial light palette — paper / ink / stone */
@@ -194,21 +199,65 @@ html[data-theme*="dark"] {
     stroke: var(--app-text) !important;
   }
 
-  /* Rich Text Editor (Tiptap / ProseMirror) */
+  /* Rich Text Editor (Tiptap) & Markdown Viewer overrides */
   .ProseMirror,
   div[class*="ProseMirror"],
   .ProseMirror p,
+  .prose-content p,
   .ProseMirror h1,
+  .prose-content h1,
   .ProseMirror h2,
+  .prose-content h2,
   .ProseMirror h3,
+  .prose-content h3,
   .ProseMirror li,
+  .prose-content li,
   .ProseMirror span,
+  .prose-content span,
   .ProseMirror strong,
+  .prose-content strong,
   .ProseMirror em,
-  .ProseMirror td,
-  .ProseMirror th {
-    background-color: transparent !important;
+  .prose-content em {
     color: var(--app-text) !important;
+  }
+
+  /* Table overrides in dark mode */
+  .ProseMirror table,
+  .prose-content table {
+    border-color: var(--app-border) !important;
+  }
+
+  .ProseMirror td,
+  .ProseMirror th,
+  .prose-content td,
+  .prose-content th {
+    border: 1px solid var(--app-border) !important;
+    color: var(--app-text) !important;
+  }
+
+  .ProseMirror th,
+  .prose-content th {
+    background-color: var(--app-bg) !important;
+    color: var(--app-text) !important;
+  }
+
+  .ProseMirror td,
+  .prose-content td {
+    background-color: transparent !important;
+  }
+
+  /* Code tags overrides in dark mode */
+  .ProseMirror code,
+  .prose-content code {
+    background-color: var(--app-bg) !important;
+    border: 1px solid var(--app-border) !important;
+    color: #FF7B72 !important; /* Nord/GitHub-like dark red-pink highlight for readability */
+  }
+
+  .ProseMirror pre,
+  .prose-content pre {
+    background-color: var(--app-bg) !important;
+    border: 1px solid var(--app-border) !important;
   }
 
   /* Sidebar styling */
@@ -385,13 +434,13 @@ html[data-theme*="dark"] {
 
   /* Table styling overrides */
   table {
-    background-color: var(--app-card) !important;
+    background-color: transparent !important;
     color: var(--app-text) !important;
 
     thead,
     thead tr,
     thead th {
-      background-color: var(--app-bg) !important;
+      background-color: transparent !important;
       color: var(--app-muted) !important;
       border-color: var(--app-border) !important;
     }
@@ -459,6 +508,61 @@ html[data-theme*="dark"] {
     border-color: transparent !important;
     box-shadow: none !important;
   }
+
+  /* Status Breakdown Cards — Dark Mode Accents */
+  .card-default {
+    background-color: var(--app-hover-bg) !important;
+    border-color: var(--app-border) !important;
+    color: var(--app-text) !important;
+  }
+  .card-default .card-dot { background-color: var(--app-muted) !important; }
+  .card-default .card-label { color: var(--app-muted) !important; }
+  .card-default .card-value { color: var(--app-text) !important; }
+
+  .card-todo {
+    background-color: rgba(74, 93, 112, 0.15) !important;
+    border-color: rgba(74, 93, 112, 0.4) !important;
+    color: #88A0B8 !important;
+  }
+  .card-todo .card-dot { background-color: #88A0B8 !important; }
+  .card-todo .card-label { color: #88A0B8 !important; }
+  .card-todo .card-value { color: var(--app-text) !important; }
+
+  .card-progress {
+    background-color: rgba(184, 160, 80, 0.15) !important;
+    border-color: rgba(184, 160, 80, 0.4) !important;
+    color: #E2C580 !important;
+  }
+  .card-progress .card-dot { background-color: #B8A050 !important; }
+  .card-progress .card-label { color: #E2C580 !important; }
+  .card-progress .card-value { color: var(--app-text) !important; }
+
+  .card-attention {
+    background-color: rgba(184, 136, 80, 0.15) !important;
+    border-color: rgba(184, 136, 80, 0.4) !important;
+    color: #E5B580 !important;
+  }
+  .card-attention .card-dot { background-color: #B88850 !important; }
+  .card-attention .card-label { color: #E5B580 !important; }
+  .card-attention .card-value { color: var(--app-text) !important; }
+
+  .card-done {
+    background-color: rgba(59, 110, 82, 0.15) !important;
+    border-color: rgba(59, 110, 82, 0.4) !important;
+    color: #80C5A0 !important;
+  }
+  .card-done .card-dot { background-color: #80C5A0 !important; }
+  .card-done .card-label { color: #80C5A0 !important; }
+  .card-done .card-value { color: var(--app-text) !important; }
+
+  .card-blocked {
+    background-color: rgba(184, 112, 112, 0.15) !important;
+    border-color: rgba(184, 112, 112, 0.4) !important;
+    color: #E59090 !important;
+  }
+  .card-blocked .card-dot { background-color: #E59090 !important; }
+  .card-blocked .card-label { color: #E59090 !important; }
+  .card-blocked .card-value { color: var(--app-text) !important; }
 }
 
 /* Serif heading utility */
@@ -913,3 +1017,86 @@ input[type="range"]::-moz-range-thumb {
 .text-\[16px\] {
   font-size: calc(16px * var(--font-scale, 1.25)) !important;
 }
+
+/* React Flow Controls Theme Overrides */
+.react-flow__controls {
+  border: 1px solid var(--app-border) !important;
+  background: var(--app-card) !important;
+  border-radius: 3px !important;
+  box-shadow: var(--shadow-subtle) !important;
+}
+
+.react-flow__controls-button {
+  background: var(--app-card) !important;
+  border-bottom: 1px solid var(--app-border) !important;
+  color: var(--app-text) !important;
+  fill: var(--app-text) !important;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--app-hover-bg) !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor !important;
+}
+
+/* Status Breakdown Cards — Light Mode */
+.card-default {
+  background-color: #F5F5F4;
+  border-color: #E5E5E3;
+  color: #1A1A1A;
+}
+.card-default .card-dot { background-color: #888883; }
+.card-default .card-label { color: #1A1A1A; }
+.card-default .card-value { color: #1A1A1A; }
+
+.card-todo {
+  background-color: #F5F7F9;
+  border-color: #D5DCE5;
+  color: #4A5D70;
+}
+.card-todo .card-dot { background-color: #4A5D70; }
+.card-todo .card-label { color: #4A5D70; }
+.card-todo .card-value { color: #4A5D70; }
+
+.card-progress {
+  background-color: #FAF8F2;
+  border-color: #E2DAC0;
+  color: #6A5830;
+}
+.card-progress .card-dot { background-color: #B8A050; }
+.card-progress .card-label { color: #6A5830; }
+.card-progress .card-value { color: #6A5830; }
+
+.card-attention {
+  background-color: #FAF6F2;
+  border-color: #E5D8C0;
+  color: #7A5830;
+}
+.card-attention .card-dot { background-color: #B88850; }
+.card-attention .card-label { color: #7A5830; }
+.card-attention .card-value { color: #7A5830; }
+
+.card-done {
+  background-color: #F4F8F5;
+  border-color: #C8DEC5;
+  color: #3B6E52;
+}
+.card-done .card-dot { background-color: #3B6E52; }
+.card-done .card-label { color: #3B6E52; }
+.card-done .card-value { color: #3B6E52; }
+
+.card-blocked {
+  background-color: #FAF5F5;
+  border-color: #E5D8D8;
+  color: #7A4040;
+}
+.card-blocked .card-dot { background-color: #B87070; }
+.card-blocked .card-label { color: #7A4040; }
+.card-blocked .card-value { color: #7A4040; }

@@ -17,6 +17,7 @@ interface CustomSelectProps {
     className?: string;
     disabled?: boolean;
     searchable?: boolean;
+    renderSelected?: (selected: SelectOption) => React.ReactNode;
 }
 
 export function CustomSelect({
@@ -27,6 +28,7 @@ export function CustomSelect({
     className = "",
     disabled = false,
     searchable = false,
+    renderSelected,
 }: CustomSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -131,9 +133,13 @@ export function CustomSelect({
                                         .slice(0, 2)}
                                 </div>
                             ))}
-                        <span className="font-medium truncate">
-                            {selectedOpt.label}
-                        </span>
+                        {renderSelected ? (
+                            renderSelected(selectedOpt)
+                        ) : (
+                            <span className="font-medium truncate">
+                                {selectedOpt.label}
+                            </span>
+                        )}
                         {selectedOpt.sublabel && (
                             <span className="text-[9px] text-[#888883] truncate">
                                 ({selectedOpt.sublabel})

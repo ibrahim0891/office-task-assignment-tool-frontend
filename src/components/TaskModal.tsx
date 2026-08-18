@@ -787,6 +787,43 @@ export default function TaskModal({
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Quick Comment Section */}
+                                    {!isEditingDescription && canPostComment && (
+                                        <div className="mt-2 pt-3 border-t border-[var(--app-border)] flex flex-col gap-2 shrink-0">
+                                            <label className="eyebrow">Quick Comment</label>
+                                            <form
+                                                onSubmit={async (e) => {
+                                                    e.preventDefault();
+                                                    if (!comment.trim()) return;
+                                                    try {
+                                                        await api.addComment(task.id, currentUser.id, comment);
+                                                        setComment("");
+                                                        onRefresh();
+                                                        toast.success("Comment posted!");
+                                                    } catch (err: any) {
+                                                        toast.error(err.message || "Failed to post comment");
+                                                    }
+                                                }}
+                                                className="flex gap-1.5"
+                                            >
+                                                <input
+                                                    type="text"
+                                                    placeholder="Write a quick comment..."
+                                                    value={comment}
+                                                    onChange={(e) => setComment(e.target.value)}
+                                                    className={`flex-1 ${inputClass}`}
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    className="relative corner-brackets-4 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] px-3.5 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
+                                                >
+                                                    <span className="w-1.5 h-1.5 bg-[var(--app-text)] rounded-[0.5px] inline-block" />
+                                                    <span>Post Comment</span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })()}

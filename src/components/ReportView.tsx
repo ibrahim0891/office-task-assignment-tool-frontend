@@ -254,31 +254,17 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                     Object.entries(reportData.columnsBreakdown).map(([columnName, count]) => {
                                         const lowerName = columnName.toLowerCase().trim();
                                         
-                                        // Muted, subtle theme matching task board card tags & status dots
-                                        let badgeStyle = "bg-[#F5F5F4] text-[#1A1A1A] border-[#E5E5E3]";
-                                        let dotColor = "bg-[#888883]";
-                                        let labelColor = "text-[#1A1A1A]";
-
+                                        let cardClass = "card-default";
                                         if (lowerName.includes("todo") || lowerName.includes("to do")) {
-                                            badgeStyle = "bg-[#F5F7F9] text-[#4A5D70] border-[#D5DCE5]";
-                                            dotColor = "bg-[#4A5D70]";
-                                            labelColor = "text-[#4A5D70]";
+                                            cardClass = "card-todo";
                                         } else if (lowerName.includes("progress")) {
-                                            badgeStyle = "bg-[#FAF8F2] text-[#6A5830] border-[#E2DAC0]";
-                                            dotColor = "bg-[#B8A050]";
-                                            labelColor = "text-[#6A5830]";
+                                            cardClass = "card-progress";
                                         } else if (lowerName.includes("attention")) {
-                                            badgeStyle = "bg-[#FAF6F2] text-[#7A5830] border-[#E5D8C0]";
-                                            dotColor = "bg-[#B88850]";
-                                            labelColor = "text-[#7A5830]";
+                                            cardClass = "card-attention";
                                         } else if (lowerName.includes("done") || lowerName.includes("complete")) {
-                                            badgeStyle = "bg-[#F4F8F5] text-[#3B6E52] border-[#C8DEC5]";
-                                            dotColor = "bg-[#3B6E52]";
-                                            labelColor = "text-[#3B6E52]";
+                                            cardClass = "card-done";
                                         } else if (lowerName.includes("blocked") || lowerName.includes("cancel")) {
-                                            badgeStyle = "bg-[#FAF5F5] text-[#7A4040] border-[#E5D8D8]";
-                                            dotColor = "bg-[#B87070]";
-                                            labelColor = "text-[#7A4040]";
+                                            cardClass = "card-blocked";
                                         }
 
                                         const percentage = reportData.totalTasks > 0 
@@ -288,17 +274,17 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                         return (
                                             <div
                                                 key={columnName}
-                                                className={`p-2.5 rounded-[2px] border ${badgeStyle} flex flex-col justify-between gap-2.5`}
+                                                className={`p-2.5 rounded-[2px] border ${cardClass} flex flex-col justify-between gap-2.5`}
                                             >
                                                 <div className="flex items-center gap-1.5 min-w-0">
-                                                    <span className={`w-1.5 h-1.5 rounded-[0.5px] ${dotColor} shrink-0`} />
-                                                    <span className={`text-[11px] font-semibold truncate ${labelColor}`}>
+                                                    <span className="w-1.5 h-1.5 rounded-[0.5px] card-dot shrink-0" />
+                                                    <span className="text-[11px] font-semibold truncate card-label">
                                                         {columnName}
                                                     </span>
                                                 </div>
 
                                                 <div className="flex items-baseline justify-between mt-auto">
-                                                    <span className="text-2xl font-heading text-[#1A1A1A]">
+                                                    <span className="text-2xl font-heading card-value">
                                                         {count}
                                                     </span>
                                                     <span className="text-[10px] text-[#888883] font-medium">

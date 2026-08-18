@@ -49,6 +49,8 @@ export interface User {
 export interface Team {
   id: string;
   name: string;
+  emoji?: string;
+  createdById?: string;
   columns?: TaskColumn[];
   members?: { user: User; role: string }[];
 }
@@ -259,23 +261,23 @@ export const api = {
     return res.json();
   },
 
-  async createTeam(name: string, creatorId: string): Promise<Team> {
+  async createTeam(name: string, creatorId: string, emoji?: string): Promise<Team> {
     const res = await fetch(`${API_BASE}/teams`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, creatorId })
+      body: JSON.stringify({ name, creatorId, emoji })
     });
     return res.json();
   },
 
-  async updateTeam(teamId: string, name: string, actingUserId: string): Promise<Team> {
+  async updateTeam(teamId: string, name: string, actingUserId: string, emoji?: string): Promise<Team> {
     const res = await fetch(`${API_BASE}/teams/${teamId}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
         'x-user-id': actingUserId
       },
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ name, emoji })
     });
     if (!res.ok) {
       const err = await res.json();

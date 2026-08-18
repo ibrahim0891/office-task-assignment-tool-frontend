@@ -18,6 +18,7 @@ import {
     BookOpen,
     Bookmark,
     Moon,
+    Network,
 } from "lucide-react";
 import { User, Team } from "../api";
 import { CustomSelect } from "./ui/CustomSelect";
@@ -98,6 +99,14 @@ export default function Sidebar({
             leaderOnly: false,
         },
         {
+            id: "map",
+            href: "/map",
+            name: "Solar Map",
+            icon: Network,
+            leaderOnly: false,
+            leaderOrObserverOnly: true,
+        },
+        {
             id: "calendar",
             href: "/calendar",
             name: "Calendar",
@@ -109,7 +118,7 @@ export default function Sidebar({
             href: "/reports",
             name: "Reports",
             icon: BarChart2,
-            leaderOnly: false,
+            leaderOnly: true,
         },
         {
             id: "knowledge",
@@ -148,16 +157,16 @@ export default function Sidebar({
     return (
         <aside
             className={`${isCollapsed ? "w-16 p-2 overflow-visible" : "w-64 p-5"
-                } bg-white border-r border-[#E5E5E3] flex flex-col shrink-0 select-none transition-all duration-200 relative`}
+                } bg-[var(--app-sidebar)] border-r border-[var(--app-border)] flex flex-col shrink-0 select-none transition-all duration-200 relative`}
         >
             <div
                 className={`flex-1 flex flex-col gap-4 min-h-0 ${isCollapsed ? "overflow-visible" : "overflow-y-auto scrollbar-none"}`}
             >
                 {/* Header & Toggle Button */}
-                <div className="pb-3 border-b border-[#E5E5E3] flex items-center justify-between">
+                <div className="pb-3 border-b border-[var(--app-border)] flex items-center justify-between">
                     {!isCollapsed && (
                         <div>
-                            <h1 className="font-heading text-xl text-[#1A1A1A]">
+                            <h1 className="font-heading text-xl text-[var(--app-text)]">
                                 SM Technology
                             </h1>
                             <p className="eyebrow mt-0.5">Assignment Core</p>
@@ -168,7 +177,7 @@ export default function Sidebar({
                         title={
                             isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"
                         }
-                        className={`relative corner-brackets-4 p-1.5 border border-[#E5E5E3] rounded-[2px] bg-white text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors flex items-center justify-center cursor-pointer ${isCollapsed ? "mx-auto" : ""
+                        className={`relative corner-brackets-4 p-1.5 border border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors flex items-center justify-center cursor-pointer ${isCollapsed ? "mx-auto" : ""
                             }`}
                     >
                         <svg
@@ -197,8 +206,8 @@ export default function Sidebar({
                 {!isCollapsed ? (
                     <div className="flex flex-col gap-2">
                         {currentTeam && (
-                            <div className="text-[12px] font-semibold text-[#1A1A1A] truncate border-b border-dashed border-[#E5E5E3] pb-1.5 mb-1 flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#22863A] shrink-0" />
+                            <div className="text-[12px] font-semibold text-[var(--app-text)] truncate border-b border-dashed border-[var(--app-border)] pb-1.5 mb-1 flex items-center gap-1.5">
+                                <span className="text-sm shrink-0 emoji-font">{currentTeam.emoji || "👤"}</span>
                                 <span className="truncate">{currentTeam.name}</span>
                             </div>
                         )}
@@ -206,7 +215,7 @@ export default function Sidebar({
                             <span className="eyebrow">Workspace</span>
                             <button
                                 onClick={onCreateTeamClick}
-                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] text-[10px] font-medium px-2 py-0.5 rounded-[2px] transition-colors cursor-pointer flex items-center gap-1"
+                                className="relative corner-brackets-4 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-[10px] font-medium px-2 py-0.5 rounded-[2px] transition-colors cursor-pointer flex items-center gap-1"
                             >
                                 Manage
                             </button>
@@ -217,7 +226,7 @@ export default function Sidebar({
                                     ? [{ value: "", label: "No Workspaces" }]
                                     : teams.map((t) => ({
                                         value: t.id,
-                                        label: t.name,
+                                        label: `${t.emoji || "👤"} ${t.name}`,
                                     }))
                             }
                             value={currentTeam?.id || ""}
@@ -226,6 +235,11 @@ export default function Sidebar({
                                 if (t) setCurrentTeam(t);
                             }}
                             className="w-full"
+                            renderSelected={() => (
+                                <span className="font-medium truncate text-[11px] text-[var(--app-text)]">
+                                    {currentTeam?.name}
+                                </span>
+                            )}
                         />
                     </div>
                 ) : (
@@ -253,8 +267,10 @@ export default function Sidebar({
                             pathname === v.href ||
                             (pathname === "/" && v.id === "kanban");
                         const isLeaderOnly = v.leaderOnly;
+                        const isLeaderOrObserverOnly = (v as any).leaderOrObserverOnly;
                         const isAllowed =
-                            !isLeaderOnly || userRole === "LEADER";
+                            (!isLeaderOnly || userRole === "LEADER") &&
+                            (!isLeaderOrObserverOnly || userRole === "LEADER" || userRole === "OBSERVER");
                         if (!isAllowed) return null;
 
                         return (
@@ -270,8 +286,8 @@ export default function Sidebar({
                                     ? "w-9 h-9 mx-auto justify-center rounded-[3px]"
                                     : "w-full justify-between px-2.5 py-2 rounded-[2px] gap-2.5"
                                     } text-[12px] ${isActive
-                                        ? "bg-white text-[#1A1A1A] font-semibold border border-[#E5E5E3] corner-brackets-4"
-                                        : "text-[#888883] hover:bg-[#FAFAF9] hover:text-[#1A1A1A]"
+                                        ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold border border-[var(--app-border)] corner-brackets-4"
+                                        : "text-[var(--app-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
                                     }`}
                             >
                                 <Icon className="w-4 h-4 shrink-0" />
@@ -302,7 +318,7 @@ export default function Sidebar({
 
             {/* Footer */}
             <div
-                className={`border-t border-[#E5E5E3] flex flex-col gap-2 ${isCollapsed ? "pt-3 px-0" : "pt-4 px-0"
+                className={`border-t border-[var(--app-border)] flex flex-col gap-2 ${isCollapsed ? "pt-3 px-0" : "pt-4 px-0"
                     }`}
             >
                 {/* Configure Columns & Theme Toggle */}
@@ -311,8 +327,8 @@ export default function Sidebar({
                         <button
                             type="button"
                             onClick={toggleConfigModal}
-                            className={`flex items-center text-[11px] text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors relative group ${isCollapsed
-                                ? "w-9 h-9 mx-auto justify-center rounded-[3px] border border-[#E5E5E3]"
+                            className={`flex items-center text-[11px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors relative group ${isCollapsed
+                                ? "w-9 h-9 mx-auto justify-center rounded-[3px] border border-[var(--app-border)]"
                                 : "w-full gap-2 px-2.5 py-1.5 rounded-[3px]"
                                 }`}
                         >
@@ -329,12 +345,12 @@ export default function Sidebar({
                 )}
 
                 {/* Divider Line */}
-                <div className="border-t border-[#E5E5E3] my-1" />
+                <div className="border-t border-[var(--app-border)] my-1" />
 
                 {/* User Session Profile Container */}
                 <div
                     ref={menuRef}
-                    className={`relative border border-[#E5E5E3] corner-brackets bg-white transition-all overflow-hidden ${isCollapsed ? "p-0 group" : ""
+                    className={`relative border border-[var(--app-border)] corner-brackets bg-[var(--app-card)] transition-all overflow-hidden ${isCollapsed ? "p-0 group" : ""
                         }`}
                 >
                     {/* Trigger Button */}
@@ -347,7 +363,7 @@ export default function Sidebar({
                                 setIsProfileMenuOpen(!isProfileMenuOpen);
                             }
                         }}
-                        className={`w-full flex items-center justify-between gap-2 p-2.5 hover:bg-[#FAFAF9] transition-colors relative cursor-pointer ${isCollapsed ? "justify-center" : ""
+                        className={`w-full flex items-center justify-between gap-2 p-2.5 hover:bg-[var(--app-hover-bg)] transition-colors relative cursor-pointer ${isCollapsed ? "justify-center" : ""
                             }`}
                         title={isCollapsed ? "Profile Settings" : undefined}
                     >
@@ -356,10 +372,10 @@ export default function Sidebar({
                                 <img
                                     src={currentUser.avatarUrl}
                                     alt={currentUser.name}
-                                    className="w-7 h-7 rounded-full object-cover border border-[#E5E5E3] shrink-0"
+                                    className="w-7 h-7 rounded-full object-cover border border-[var(--app-border)] shrink-0"
                                 />
                             ) : (
-                                <div className="w-7 h-7 rounded-full border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-xs text-[#1A1A1A] font-semibold shrink-0">
+                                <div className="w-7 h-7 rounded-full border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-xs text-[var(--app-text)] font-semibold shrink-0">
                                     {currentUser.name
                                         ? currentUser.name
                                             .split(" ")
@@ -372,17 +388,17 @@ export default function Sidebar({
                             )}
                             {!isCollapsed && (
                                 <div className="text-left min-w-0">
-                                    <div className="text-sm font-semibold text-[#1A1A1A] truncate">
+                                    <div className="text-sm font-semibold text-[var(--app-text)] truncate">
                                         {currentUser.name}
                                     </div>
-                                    <div className="text-xs text-[#888883] truncate capitalize">
+                                    <div className="text-xs text-[var(--app-muted)] truncate capitalize">
                                         {userRole.toLowerCase()}
                                     </div>
                                 </div>
                             )}
                         </div>
                         {!isCollapsed && (
-                            <div className="text-[#888883]">
+                            <div className="text-[var(--app-muted)]">
                                 {isProfileMenuOpen ? (
                                     <ChevronUp className="w-3.5 h-3.5" />
                                 ) : (
@@ -394,16 +410,16 @@ export default function Sidebar({
 
                     {/* Inline Expandable Drawer (Expanded Sidebar Mode) */}
                     {!isCollapsed && isProfileMenuOpen && (
-                        <div className="border-t border-[#E5E5E3] p-2 bg-[#FAFAF9] flex flex-col gap-1 animate-fade-in">
-                            <div className="px-2 py-1 text-xs text-[#888883] border-b border-[#E5E5E3]/60 mb-0.5 truncate">
+                        <div className="border-t border-[var(--app-border)] p-2 bg-[var(--app-bg)] flex flex-col gap-1 animate-fade-in">
+                            <div className="px-2 py-1 text-xs text-[var(--app-muted)] border-b border-[var(--app-border)]/60 mb-0.5 truncate">
                                 {currentUser.email}
                             </div>
                             <Link
                                 href="/profile"
                                 onClick={() => setIsProfileMenuOpen(false)}
-                                className="flex items-center gap-2 px-2 py-1.5 rounded-[3px] text-xs text-[#1A1A1A] hover:bg-white hover:border hover:border-[#E5E5E3] transition-colors"
+                                className="flex items-center gap-2 px-2 py-1.5 rounded-[3px] text-xs text-[var(--app-text)] hover:bg-[var(--app-card)] hover:border hover:border-[var(--app-border)] transition-colors"
                             >
-                                <UserIcon className="w-3.5 h-3.5 text-[#888883]" />
+                                <UserIcon className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                                 <span>Profile Settings</span>
                             </Link>
                             <button
