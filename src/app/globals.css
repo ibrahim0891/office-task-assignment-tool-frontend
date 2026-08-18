@@ -19,6 +19,7 @@
   /* Typography */
   --font-serif: var(--font-secondary, var(--font-instrument-serif), 'Georgia', serif);
   --font-sans: var(--font-primary, var(--font-inter), 'Inter', -apple-system, system-ui, sans-serif);
+  --font-scale: 1.25;
 
   /* Spacing tokens */
   --space-card: 14px;
@@ -45,14 +46,14 @@
 }
 
 html {
-  font-size: 15px;
+  font-size: calc(15px * var(--font-scale, 1.25));
 }
 
 body {
   background: var(--app-bg);
   color: var(--app-text);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: calc(14px * var(--font-scale, 1.25));
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
@@ -155,7 +156,7 @@ textarea:focus-visible,
 /* ─── Eyebrow label ─── */
 /* Small structural markers — the only capitalize pattern allowed */
 .eyebrow {
-  font-size: 11px;
+  font-size: calc(11px * var(--font-scale, 1.25));
   font-weight: 500;
   color: var(--app-muted);
 }
@@ -494,4 +495,33 @@ input[type="range"]::-moz-range-thumb {
   background: #1A1A1A;
   cursor: pointer;
   border: 1px solid #1A1A1A;
+}
+
+/* ─── Pixel-Based Font-Size Overrides for Dynamic Scaling ─── */
+.text-\[7px\] {
+  font-size: calc(7px * var(--font-scale, 1.25)) !important;
+}
+.text-\[8px\] {
+  font-size: calc(8px * var(--font-scale, 1.25)) !important;
+}
+.text-\[9px\] {
+  font-size: calc(9px * var(--font-scale, 1.25)) !important;
+}
+.text-\[10px\] {
+  font-size: calc(10px * var(--font-scale, 1.25)) !important;
+}
+.text-\[11px\] {
+  font-size: calc(11px * var(--font-scale, 1.25)) !important;
+}
+.text-\[12px\] {
+  font-size: calc(12px * var(--font-scale, 1.25)) !important;
+}
+.text-\[13px\] {
+  font-size: calc(13px * var(--font-scale, 1.25)) !important;
+}
+.text-\[14px\] {
+  font-size: calc(14px * var(--font-scale, 1.25)) !important;
+}
+.text-\[16px\] {
+  font-size: calc(16px * var(--font-scale, 1.25)) !important;
 }

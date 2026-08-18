@@ -1,5 +1,30 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const headers = new Headers(init?.headers);
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem("sessionToken");
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+  }
+  const res = await window.fetch(input, {
+    ...init,
+    headers,
+  });
+
+  if (typeof window !== 'undefined') {
+    const newToken = res.headers.get("x-refresh-token");
+    if (newToken) {
+      localStorage.setItem("sessionToken", newToken);
+    }
+  }
+
+  return res;
+};
+
+const fetch = customFetch;
+
 export function getIframeProxyUrl(url: string) {
   return `${API_BASE}/iframe-proxy?url=${encodeURIComponent(url)}`;
 }
@@ -52,6 +77,7 @@ export interface Comment {
   taskId: string;
   userId: string;
   content: string;
+  resolved: boolean;
   createdAt: string;
   user: User;
 }
@@ -148,6 +174,7 @@ export interface ReportData {
   completionRate: number;
   averageTimeToDone: number;
   columnsBreakdown: Record<string, number>;
+  teamColumns?: Array<{ id: string; name: string; isComplete: boolean; order: number }>;
   overdueCount: number;
   totalEstimatedHours: number;
   totalActualHours: number;
@@ -167,7 +194,7 @@ export interface ReportData {
 
 // REST Client requests
 export const api = {
-  async login(email: string, password: string): Promise<User> {
+  async login(email: string, password: string): Promise<{ user: User; token: string }> {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -180,7 +207,7 @@ export const api = {
     return res.json();
   },
 
-  async register(name: string, email: string, password: string): Promise<User> {
+  async register(name: string, email: string, password: string): Promise<{ user: User; token: string }> {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -294,6 +321,8 @@ export const api = {
     return res.json();
   },
 
+
+
   async inviteMemberByEmail(teamId: string, email: string, role: string, actingUserId: string): Promise<any> {
     const res = await fetch(`${API_BASE}/teams/${teamId}/members/invite-by-email`, {
       method: 'POST',
@@ -306,6 +335,22 @@ export const api = {
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || 'Failed to invite member.');
+    }
+    return res.json();
+  },
+
+  async updateTeamMemberRole(teamId: string, userId: string, role: string, actingUserId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/teams/${teamId}/members/role`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': actingUserId
+      },
+      body: JSON.stringify({ userId, role })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update member role.');
     }
     return res.json();
   },
@@ -341,7 +386,7 @@ export const api = {
     isSoftDeleted?: boolean;
     isArchived?: boolean;
     archivedOrDeleted?: boolean;
-  }): Promise<Task[]> {
+  }, actingUserId?: string): Promise<Task[]> {
     const query = new URLSearchParams();
     query.append('teamId', params.teamId);
     if (params.date) query.append('date', params.date);
@@ -351,7 +396,14 @@ export const api = {
     if (params.isArchived) query.append('isArchived', 'true');
     if (params.archivedOrDeleted) query.append('archivedOrDeleted', 'true');
 
-    const res = await fetch(`${API_BASE}/tasks?${query.toString()}`);
+    const headers: any = {};
+    if (actingUserId) {
+      headers['x-user-id'] = actingUserId;
+    }
+
+    const res = await fetch(`${API_BASE}/tasks?${query.toString()}`, {
+      headers
+    });
     return res.json();
   },
 
@@ -383,24 +435,17 @@ export const api = {
   },
 
   async deleteTask(taskId: string, userId: string): Promise<any> {
-    const res = await fetch(`${API_BASE}/tasks/${taskId}`, {
+    return customFetch(`/tasks/${taskId}`, {
       method: 'DELETE',
       headers: { 'x-user-id': userId }
     });
-    
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Failed to delete task.');
-    }
-    return res.json();
   },
 
   async restoreTask(taskId: string, userId: string): Promise<any> {
-    const res = await fetch(`${API_BASE}/tasks/${taskId}/restore`, {
+    return customFetch(`/tasks/${taskId}/restore`, {
       method: 'POST',
       headers: { 'x-user-id': userId }
     });
-    return res.json();
   },
 
   async permanentlyDeleteTask(taskId: string): Promise<any> {
@@ -455,7 +500,31 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json();
+      throw new Error(err.error || 'Failed to delete comment.');
+    }
+    return res.json();
+  },
+
+  async resolveComment(taskId: string, commentId: string, userId: string): Promise<Comment> {
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/comments/${commentId}/resolve`, {
+      method: 'PUT',
+      headers: { 'x-user-id': userId }
+    });
+    if (!res.ok) {
+      const err = await res.json();
       throw new Error(err.error || 'Failed to resolve comment.');
+    }
+    return res.json();
+  },
+
+  async reopenComment(taskId: string, commentId: string, userId: string): Promise<Comment> {
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/comments/${commentId}/reopen`, {
+      method: 'PUT',
+      headers: { 'x-user-id': userId }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to reopen comment.');
     }
     return res.json();
   },
@@ -516,18 +585,33 @@ export const api = {
     return res.json();
   },
 
-  getExportUrl(params: {
+  async exportCsv(params: {
     teamId: string;
     daysFromToday?: number;
     startDate?: string;
     endDate?: string;
-  }): string {
+  }): Promise<void> {
     const query = new URLSearchParams();
     query.append('teamId', params.teamId);
     if (params.daysFromToday) query.append('daysFromToday', String(params.daysFromToday));
     if (params.startDate) query.append('startDate', params.startDate);
     if (params.endDate) query.append('endDate', params.endDate);
-    return `${API_BASE}/reports/export?${query.toString()}`;
+
+    const res = await fetch(`${API_BASE}/reports/export?${query.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to export CSV');
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `report-${params.teamId}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
   },
 
   async getNotifications(userId: string): Promise<Notification[]> {
@@ -572,17 +656,28 @@ export const api = {
     if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
     return res.json();
   },
-  async updateKnowledgeArticle(id: string, data: { title: string; content: string }): Promise<KnowledgeArticle> {
+
+
+  async updateKnowledgeArticle(id: string, data: { title: string; content: string }, actingUserId: string): Promise<KnowledgeArticle> {
     const res = await fetch(`${API_BASE}/knowledge/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-user-id': actingUserId
+      },
       body: JSON.stringify(data),
     });
     if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
     return res.json();
   },
-  async deleteKnowledgeArticle(id: string): Promise<void> {
-    await fetch(`${API_BASE}/knowledge/${id}`, { method: 'DELETE' });
+  async deleteKnowledgeArticle(id: string, actingUserId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/knowledge/${id}`, { 
+      method: 'DELETE',
+      headers: {
+        'x-user-id': actingUserId
+      }
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
   },
 
   // Bookmarks

@@ -61,9 +61,13 @@ export default function TaskModal({
     );
 
     const [isSaving, setIsSaving] = useState(false);
+
+
     const [isDeleting, setIsDeleting] = useState(false);
     const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
     const [isDeleteDescConfirmOpen, setIsDeleteDescConfirmOpen] = useState(false);
+    const [isDeleteAttachmentConfirmOpen, setIsDeleteAttachmentConfirmOpen] = useState(false);
+    const [attachmentToDelete, setAttachmentToDelete] = useState<{ id: string; name: string } | null>(null);
     const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
 
     // Modal sub-components state
@@ -138,15 +142,17 @@ export default function TaskModal({
 
     if (!isOpen) return null;
 
+
     const isLeader = userRole === "LEADER";
     const isObserver = userRole === "OBSERVER";
     const isCreator = task.createdById === currentUser.id;
+    const isAssignee = task.assignedToId === currentUser.id;
 
     const canEditDetails = !isObserver;
-    const canEditStatus = !isObserver;
+    const canEditStatus = !isObserver && (isLeader || isCreator || isAssignee);
     const canPostComment = !isObserver;
     const canAddChecklist = !isObserver;
-    const canDeleteTask = !isObserver && (isLeader || isCreator);
+    const canDeleteTask = isLeader || isCreator;
 
     // Handle Closing modal with unsaved check
     const handleAttemptClose = () => {
@@ -454,11 +460,31 @@ export default function TaskModal({
 
     const handleResolveComment = async (commentId: string) => {
         try {
-            await api.deleteComment(task.id, commentId, currentUser.id);
-            toast.success("Comment resolved.");
+            await api.resolveComment(task.id, commentId, currentUser.id);
+            toast.success("Comment marked as resolved.");
             onRefresh();
         } catch (err: any) {
             toast.error(err.message || "Failed to resolve comment.");
+        }
+    };
+
+    const handleReopenComment = async (commentId: string) => {
+        try {
+            await api.reopenComment(task.id, commentId, currentUser.id);
+            toast.success("Comment reopened.");
+            onRefresh();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to reopen comment.");
+        }
+    };
+
+    const handleDeleteComment = async (commentId: string) => {
+        try {
+            await api.deleteComment(task.id, commentId, currentUser.id);
+            toast.success("Comment deleted.");
+            onRefresh();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to delete comment.");
         }
     };
 
@@ -503,9 +529,8 @@ export default function TaskModal({
     };
 
     const handleDeleteTask = () => {
-        if (isObserver) return;
-        if (!isCreator) {
-            toast.error("Only the task creator can delete this task.");
+        if (!canDeleteTask) {
+            toast.error("Only the workspace leader or task creator can delete this task.");
             return;
         }
         setIsArchiveConfirmOpen(true);
@@ -539,7 +564,7 @@ export default function TaskModal({
 
             {/* Main Modal Dialog */}
             <div
-                className="relative w-full max-w-5xl bg-white border border-[#E5E5E3] text-[#1A1A1A] flex flex-col h-[92vh] animate-fade-in corner-brackets"
+                className="relative w-full max-w-5xl bg-white border border-[#E5E5E3] text-[#1A1A1A] flex flex-col h-[90vh] animate-fade-in corner-brackets"
                 style={{ boxShadow: "var(--shadow-float)" }}
             >
                 {/* Modal Top Header Bar */}
@@ -661,9 +686,10 @@ export default function TaskModal({
                                     {/* Title Section */}
                                     <div className="flex flex-col gap-1 shrink-0">
                                         <label className="eyebrow">Title *</label>
+
                                         <input
                                             type="text"
-                                            disabled={!canEditDetails}
+                                            disabled={!canEditDetails || !isCreator}
                                             value={title}
                                             onChange={(e) => setTitle(e.target.value)}
                                             placeholder="Task title…"
@@ -781,7 +807,7 @@ export default function TaskModal({
                                             return (
                                                 <div
                                                     key={c.id}
-                                                    className="border border-[#E5E5E3] bg-white p-2.5 rounded-[3px] text-left transition-colors flex flex-col gap-1"
+                                                    className={`border p-2.5 rounded-[3px] text-left transition-colors flex flex-col gap-1 ${c.resolved ? "border-[#DADAD6] bg-[#FAFAF9] opacity-75" : "border-[#E5E5E3] bg-white"}`}
                                                 >
                                                     <div className="flex justify-between items-center text-[10px]">
                                                         <div
@@ -825,15 +851,43 @@ export default function TaskModal({
                                                                     }
                                                                 )}
                                                             </span>
-                                                            {(c.userId === currentUser.id || task.createdById === currentUser.id) && (
+                                                            {c.resolved && (
+                                                                <span className="px-1.5 py-0.5 rounded-[2px] bg-[#22863A]/10 text-[#22863A] text-[9px] font-semibold flex items-center gap-1 shadow-2xs shrink-0">
+                                                                    ✓ Resolved
+                                                                </span>
+                                                            )}
+                                                            {!c.resolved ? (
+                                                                (c.userId === currentUser.id || task.createdById === currentUser.id || task.assignedToId === currentUser.id) && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleResolveComment(c.id)}
+                                                                        className="px-2 py-0.5 border border-[#CB2431]/30 bg-[#CB2431]/5 hover:bg-[#CB2431] text-[#CB2431] hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                                                        title="Resolve comment"
+                                                                    >
+                                                                        <Check className="w-3 h-3" />
+                                                                        <span>Resolve</span>
+                                                                    </button>
+                                                                )
+                                                            ) : (
+                                                                (c.userId === currentUser.id || task.createdById === currentUser.id || task.assignedToId === currentUser.id) && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleReopenComment(c.id)}
+                                                                        className="px-2 py-0.5 border border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#1A1A1A] hover:text-white text-[#1A1A1A] rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                                                        title="Reopen comment"
+                                                                    >
+                                                                        <span>Reopen</span>
+                                                                    </button>
+                                                                )
+                                                            )}
+                                                            {c.userId === currentUser.id && (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => handleResolveComment(c.id)}
-                                                                    className="px-2 py-0.5 border border-[#CB2431]/30 bg-[#CB2431]/5 hover:bg-[#CB2431] text-[#CB2431] hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
-                                                                    title="Resolve & remove comment"
+                                                                    onClick={() => handleDeleteComment(c.id)}
+                                                                    className="px-2 py-0.5 border border-red-200 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                                                    title="Delete comment permanently"
                                                                 >
-                                                                    <Check className="w-3 h-3" />
-                                                                    <span>Resolve</span>
+                                                                    <span>Delete</span>
                                                                 </button>
                                                             )}
                                                         </div>
@@ -954,9 +1008,11 @@ export default function TaskModal({
                                                         {!isObserver && (
                                                             <button
                                                                 type="button"
+
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    handleDeleteAttachment(att.id, att.name);
+                                                                    setAttachmentToDelete({ id: att.id, name: att.name });
+                                                                    setIsDeleteAttachmentConfirmOpen(true);
                                                                 }}
                                                                 className="absolute top-1.5 right-1.5 bg-white/90 hover:bg-[#CB2431] text-[#888883] hover:text-white border border-[#E5E5E3] hover:border-[#CB2431] p-1 rounded-[2px] shadow-sm transition-colors cursor-pointer z-10 opacity-0 group-hover:opacity-100"
                                                                 title="Delete attachment"
@@ -1024,7 +1080,7 @@ export default function TaskModal({
                                 <span className="text-[9px] text-[#CB2431] font-medium px-0.5 mt-0.5">
                                     {isObserver
                                         ? "Observers have read-only access."
-                                        : "Only workspace leader or task creator can change status."}
+                                        : "Only workspace leader, task creator, or assignee can change status."}
                                 </span>
                             )}
                         </div>
@@ -1046,16 +1102,35 @@ export default function TaskModal({
                             />
                         </div>
 
+
+
                         {/* Assignee */}
                         <div className="flex flex-col gap-1">
                             <label className="eyebrow">Assignee</label>
                             <CustomSelect
                                 disabled={!canEditDetails}
-                                options={teamMembers.map(({ user }) => ({
-                                    value: user.id,
-                                    label: user.id === currentUser.id ? `${user.name} (You)` : user.name,
-                                    avatarUrl: user.avatarUrl || null,
-                                }))}
+                                options={userRole === "MEMBER"
+                                    ? [
+                                          {
+                                              value: currentUser.id,
+                                              label: `${currentUser.name} (You)`,
+                                              avatarUrl: currentUser.avatarUrl || null,
+                                          },
+                                          ...(task.assignedTo && task.assignedTo.id !== currentUser.id
+                                              ? [
+                                                    {
+                                                        value: task.assignedTo.id,
+                                                        label: task.assignedTo.name,
+                                                        avatarUrl: task.assignedTo.avatarUrl || null,
+                                                    },
+                                                ]
+                                              : []),
+                                      ]
+                                    : teamMembers.map(({ user }) => ({
+                                          value: user.id,
+                                          label: user.id === currentUser.id ? `${user.name} (You)` : user.name,
+                                          avatarUrl: user.avatarUrl || null,
+                                      }))}
                                 value={assignedToId}
                                 onChange={(val) => setAssignedToId(val)}
                                 className="w-full"
@@ -1413,6 +1488,28 @@ export default function TaskModal({
                     setIsDeleteDescConfirmOpen(false);
                 }}
                 onClose={() => setIsDeleteDescConfirmOpen(false)}
+            />
+
+
+            {/* Confirm Dialog for Attachment Deletion */}
+            <ConfirmDialog
+                isOpen={isDeleteAttachmentConfirmOpen}
+                title="Delete Attachment"
+                description={`Are you sure you want to delete the attachment "${attachmentToDelete?.name}"? This action cannot be undone.`}
+                confirmText="Delete Attachment"
+                cancelText="Cancel"
+                isDanger={true}
+                onConfirm={async () => {
+                    if (attachmentToDelete) {
+                        await handleDeleteAttachment(attachmentToDelete.id, attachmentToDelete.name);
+                    }
+                    setIsDeleteAttachmentConfirmOpen(false);
+                    setAttachmentToDelete(null);
+                }}
+                onClose={() => {
+                    setIsDeleteAttachmentConfirmOpen(false);
+                    setAttachmentToDelete(null);
+                }}
             />
 
             {/* Custom Confirm Dialog with Corner Marks for Archiving */}

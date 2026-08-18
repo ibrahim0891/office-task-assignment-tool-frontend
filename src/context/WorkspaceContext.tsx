@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { io } from "socket.io-client";
 import {
     api,
     User,
@@ -25,6 +26,7 @@ interface WorkspaceContextType {
     tasks: Task[];
     columns: TaskColumn[];
     notifications: Notification[];
+    isNotificationsLoading: boolean;
     activeDateStr: string;
     setActiveDateStr: (date: string) => void;
     currentView: string;
@@ -56,6 +58,7 @@ interface WorkspaceContextType {
     loadNotifications: () => Promise<void>;
     handleUpdateTaskColumn: (taskId: string, targetColumnId: string) => Promise<void>;
     handleToggleComplete: (taskId: string, isCompleted: boolean) => Promise<void>;
+    handleArchiveTask: (taskId: string) => Promise<void>;
     handleAddQuickTask: (title: string, columnId: string, assignedToId?: string) => Promise<void>;
     handleCreateTeam: (teamName: string) => Promise<void>;
     handleUpdateTeam: (teamId: string, name: string) => Promise<void>;
@@ -64,7 +67,7 @@ interface WorkspaceContextType {
     handleMarkNotificationRead: (id: string) => Promise<void>;
     handleClearAllNotifications: () => Promise<void>;
     handleArchiveNotification: (id: string) => Promise<void>;
-    handleLoginSuccess: (user: User) => void;
+    handleLoginSuccess: (user: User, token: string) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
@@ -107,10 +110,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const handleSetCurrentTeam = (team: Team) => {
         setCurrentTeam(team);
-        if (typeof window !== "undefined" && team?.id) {
-            localStorage.setItem("selected_team_id", team.id);
-        }
     };
+
+    useEffect(() => {
+        if (typeof window !== "undefined" && currentTeam?.id) {
+            localStorage.setItem("selected_team_id", currentTeam.id);
+        }
+    }, [currentTeam?.id]);
 
     const [tasks, setTasks] = useState<Task[]>([]);
     const [columns, setColumns] = useState<TaskColumn[]>([]);
@@ -141,26 +147,42 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsClient(true);
         let userObj: User | null = null;
         const cachedUser = localStorage.getItem("sessionUser") || localStorage.getItem("task_user");
-        if (cachedUser) {
+        const cachedToken = localStorage.getItem("sessionToken");
+
+        if (cachedUser && cachedToken) {
             try {
                 userObj = JSON.parse(cachedUser);
                 setCurrentUser(userObj);
             } catch (e) {}
+        } else {
+            setCurrentUser(null);
+            if (pathname !== "/login") {
+                router.push("/login");
+            }
         }
 
         async function init() {
+            if (!userObj || !cachedToken) {
+                setIsInitialized(true);
+                return;
+            }
+
             try {
                 const u = await api.getUsers();
-                setUsers(u);
-                const t = await api.getTeams(userObj?.id);
-                setTeams(t);
-                const savedTeamId = localStorage.getItem("selected_team_id");
-                const matched = t.find((team) => team.id === savedTeamId);
-                if (matched) {
-                    setCurrentTeam(matched);
-                } else if (t.length > 0) {
-                    setCurrentTeam(t[0]);
-                    localStorage.setItem("selected_team_id", t[0].id);
+                if (Array.isArray(u)) {
+                    setUsers(u);
+                }
+                const t = await api.getTeams(userObj.id);
+                if (Array.isArray(t)) {
+                    setTeams(t);
+                    const savedTeamId = localStorage.getItem("selected_team_id");
+                    const matched = t.find((team) => team.id === savedTeamId);
+                    if (matched) {
+                        setCurrentTeam(matched);
+                    } else if (t.length > 0) {
+                        setCurrentTeam(t[0]);
+                        localStorage.setItem("selected_team_id", t[0].id);
+                    }
                 }
             } catch (err: any) {
                 console.error("Error bootstrapping application:", err);
@@ -169,19 +191,25 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             }
         }
         init();
-    }, []);
+    }, [pathname, router]);
+
+
 
     const loadTeamMetadata = async () => {
         if (!currentTeam) return;
         try {
             const allTeams = await api.getTeams(currentUser?.id);
-            const match = allTeams.find((t) => t.id === currentTeam.id);
-            if (match && match.members) {
-                setTeamMembers(match.members);
+            if (Array.isArray(allTeams)) {
+                const match = allTeams.find((t) => t.id === currentTeam.id);
+                if (match && match.members && Array.isArray(match.members)) {
+                    setTeamMembers(match.members);
+                }
             }
 
             const cols = await api.getColumns(currentTeam.id);
-            setColumns(cols);
+            if (Array.isArray(cols)) {
+                setColumns(cols);
+            }
         } catch (err) {
             console.error("Error loading team metadata:", err);
         }
@@ -191,7 +219,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         loadTeamMetadata();
     }, [currentTeam?.id]);
 
-    const loadTasks = async () => {
+    const loadTasks = React.useCallback(async () => {
         if (!currentTeam) return;
         try {
             const params: any = { teamId: currentTeam.id };
@@ -205,24 +233,61 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             if (searchQuery) {
                 params.search = searchQuery;
             }
-            const data = await api.getTasks(params);
-            setTasks(data);
+
+            const data = await api.getTasks(params, currentUser?.id);
+            if (Array.isArray(data)) {
+                setTasks(data);
+            } else {
+                console.error("loadTasks received non-array data:", data);
+                setTasks([]);
+            }
         } catch (err) {
             console.error("Error loading tasks:", err);
         }
-    };
+    }, [currentTeam?.id, activeDateStr, currentView, searchQuery, currentUser]);
 
     useEffect(() => {
         loadTasks();
-    }, [currentTeam?.id, activeDateStr, currentView, searchQuery]);
+    }, [loadTasks]);
+
+    // Socket.IO Realtime Kanban Synchronization
+    useEffect(() => {
+        if (!currentTeam?.id) return;
+
+        const socketUrl = process.env.NEXT_PUBLIC_API_URL
+            ? process.env.NEXT_PUBLIC_API_URL.replace("/api", "")
+            : "http://localhost:5000";
+
+        const socket = io(socketUrl, {
+            transports: ["websocket", "polling"],
+        });
+
+        socket.emit("join_team", currentTeam.id);
+
+        socket.on("task_updated", () => {
+            loadTasks();
+        });
+
+        return () => {
+            socket.emit("leave_team", currentTeam.id);
+            socket.disconnect();
+        };
+    }, [currentTeam?.id, loadTasks]);
+
+
+
+    const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
 
     const loadNotifications = async () => {
         if (!currentUser) return;
+        setIsNotificationsLoading(true);
         try {
             const data = await api.getNotifications(currentUser.id);
             setNotifications(data);
         } catch (err) {
             console.error("Error loading notifications:", err);
+        } finally {
+            setIsNotificationsLoading(false);
         }
     };
 
@@ -280,6 +345,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
+
     const handleToggleComplete = async (taskId: string, isCompleted: boolean) => {
         if (!currentTeam || !currentUser) return;
         const taskToToggle = tasks.find((t) => t.id === taskId);
@@ -288,12 +354,24 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             toast.error("Observers cannot update task status.");
             return;
         }
+
+        const isLeader = userRole === "LEADER";
+        const isCreator = taskToToggle.createdById === currentUser.id;
+        const isAssignee = taskToToggle.assignedToId === currentUser.id;
+        if (!isLeader && !isCreator && !isAssignee) {
+            toast.error("Only the workspace leader, task creator, or assignee can update status.");
+            return;
+        }
+
+
+
         try {
             const completeCol =
                 columns.find((c) => c.isComplete) || columns[columns.length - 1];
             const incompleteCol =
                 columns.find((c) => !c.isComplete) || columns[0];
             const targetColumnId = isCompleted ? completeCol.id : incompleteCol.id;
+
             await api.updateTask(
                 taskId,
                 { columnId: targetColumnId },
@@ -303,6 +381,28 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             toast.success("Task status updated");
         } catch (err: any) {
             toast.error(err.message);
+        }
+    };
+
+    const handleArchiveTask = async (taskId: string) => {
+        if (!currentTeam || !currentUser) return;
+        const taskToArchive = tasks.find((t) => t.id === taskId);
+        if (!taskToArchive) return;
+
+        const isLeader = userRole === "LEADER";
+        const isCreator = taskToArchive.createdById === currentUser.id;
+
+        if (!isLeader && !isCreator) {
+            toast.error("Only the workspace leader or task creator can delete/archive this task.");
+            return;
+        }
+
+        try {
+            await api.deleteTask(taskId, currentUser.id);
+            toast.success(`"${taskToArchive.title}" moved to trash`);
+            loadTasks();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to archive task.");
         }
     };
 
@@ -381,6 +481,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     const handleLogout = () => {
+        localStorage.removeItem("sessionToken");
         localStorage.removeItem("sessionUser");
         localStorage.removeItem("task_user");
         localStorage.removeItem("selected_team_id");
@@ -388,10 +489,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         setTeams([]);
         setCurrentTeam(null);
         setIsInitialized(true);
-        router.push("/");
+        router.push("/login");
     };
 
-    const handleLoginSuccess = async (user: User) => {
+    const handleLoginSuccess = async (user: User, token: string) => {
+        localStorage.setItem("sessionToken", token);
         localStorage.setItem("sessionUser", JSON.stringify(user));
         localStorage.setItem("task_user", JSON.stringify(user));
         setCurrentUser(user);
@@ -429,6 +531,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 tasks,
                 columns,
                 notifications,
+                isNotificationsLoading,
                 activeDateStr,
                 setActiveDateStr,
                 currentView,
@@ -456,6 +559,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 loadNotifications,
                 handleUpdateTaskColumn,
                 handleToggleComplete,
+                handleArchiveTask,
                 handleAddQuickTask,
                 handleCreateTeam,
                 handleUpdateTeam,

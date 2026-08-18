@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Notification } from "../api";
-import { Archive, Trash2, CheckCircle2, Clock } from "lucide-react";
+import { Archive, Trash2, CheckCircle2, Clock, Loader2, Infinity as InfinityIcon } from "lucide-react";
 
 interface NotificationsTrayProps {
     isOpen: boolean;
     onClose: () => void;
     notifications: Notification[];
+    isLoading?: boolean;
     onMarkRead: (id: string) => void;
     onClearAll: () => void;
     onArchiveNotification: (id: string) => void;
@@ -16,6 +17,7 @@ export default function NotificationsTray({
     isOpen,
     onClose,
     notifications,
+    isLoading = false,
     onMarkRead,
     onClearAll,
     onArchiveNotification,
@@ -127,7 +129,12 @@ export default function NotificationsTray({
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
-                    {currentList.length === 0 ? (
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center h-64 text-[#888883] gap-2">
+                            <InfinityIcon className="w-8 h-8 text-[#1A1A1A] animate-spin" />
+                            <p className="text-xs font-medium text-[#888883]">Loading notifications...</p>
+                        </div>
+                    ) : currentList.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-64 text-[#888883] gap-1">
                             <p className="text-base">
                                 {activeTab === "active"

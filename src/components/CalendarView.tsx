@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Task } from "../api";
+import { useWorkspace } from "../context/WorkspaceContext";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CalendarViewProps {
     tasks: Task[];
@@ -14,6 +16,7 @@ export default function CalendarView({
     activeDateStr,
     setActiveDateStr,
 }: CalendarViewProps) {
+    const { setIsAddTaskOpen, setAddTaskColId, columns } = useWorkspace();
     const [currentMonth, setCurrentMonth] = useState(new Date());
     // popover: { dateStr, rect } | null
     const [popover, setPopover] = useState<{
@@ -175,22 +178,24 @@ export default function CalendarView({
 
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={() => navigateMonth("prev")}
-                        className="px-2.5 py-1.5 border border-[#E5E5E3] rounded-[3px] text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors text-base cursor-pointer"
-                    >
-                        ◀
-                    </button>
-                    <button
                         onClick={() => setCurrentMonth(new Date())}
-                        className="px-3 py-1.5 border border-[#E5E5E3] rounded-[3px] text-base font-medium text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors cursor-pointer"
+                        className="px-3 py-1.5 border border-[#E5E5E3] rounded-[3px] bg-white text-[11px] font-medium text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors cursor-pointer"
                     >
                         Today
                     </button>
                     <button
-                        onClick={() => navigateMonth("next")}
-                        className="px-2.5 py-1.5 border border-[#E5E5E3] rounded-[3px] text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors text-base cursor-pointer"
+                        onClick={() => navigateMonth("prev")}
+                        className="p-1.5 border border-[#E5E5E3] rounded-[3px] bg-white text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors flex items-center justify-center cursor-pointer"
+                        title="Previous Month"
                     >
-                        ▶
+                        <ChevronLeft className="w-4 h-4 shrink-0" />
+                    </button>
+                    <button
+                        onClick={() => navigateMonth("next")}
+                        className="p-1.5 border border-[#E5E5E3] rounded-[3px] bg-white text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors flex items-center justify-center cursor-pointer"
+                        title="Next Month"
+                    >
+                        <ChevronRight className="w-4 h-4 shrink-0" />
                     </button>
                 </div>
             </div>
@@ -224,7 +229,11 @@ export default function CalendarView({
                             <div
                                 key={index}
                                 data-cell
-                                onClick={() => setActiveDateStr(dateStr)}
+                                onClick={() => {
+                                    setActiveDateStr(dateStr);
+                                    setAddTaskColId(columns[0]?.id || "");
+                                    setIsAddTaskOpen(true);
+                                }}
                                 className={`p-2 min-h-24 flex flex-col gap-1.5 transition-colors cursor-pointer relative ${cell.isPadding
                                     ? "bg-[#FAFAF9] text-[#DADAD6]"
                                     : "bg-white hover:bg-[#FAFAF9] text-[#1A1A1A]"

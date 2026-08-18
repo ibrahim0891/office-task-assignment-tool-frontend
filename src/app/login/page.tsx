@@ -1,11 +1,14 @@
-import React, { useState } from "react";
-import { api, User } from "../api";
+"use client";
 
-interface LoginProps {
-    onLoginSuccess: (user: User) => void;
-}
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "../../api";
+import { useWorkspace } from "../../context/WorkspaceContext";
 
-export default function Login({ onLoginSuccess }: LoginProps) {
+export default function LoginPage() {
+    const { currentUser, handleLoginSuccess } = useWorkspace();
+    const router = useRouter();
+
     const [isSignUp, setIsSignUp] = useState(false);
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -13,6 +16,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (currentUser) {
+            router.replace("/kanban");
+        }
+    }, [currentUser, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -27,15 +36,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     setIsLoading(false);
                     return;
                 }
-                await api.register(name, email, password);
-                setSuccess(
-                    "Account created successfully! You can now sign in.",
-                );
-                setIsSignUp(false);
-                setPassword("");
+                const resObj = await api.register(name, email, password);
+                setSuccess("Account created successfully!");
+                handleLoginSuccess(resObj.user, resObj.token);
             } else {
-                const user = await api.login(email, password);
-                onLoginSuccess(user);
+                const resObj = await api.login(email, password);
+                handleLoginSuccess(resObj.user, resObj.token);
             }
         } catch (err: any) {
             setError(
@@ -46,9 +52,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         }
     };
 
+    if (currentUser) return null;
+
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-[#FAFAF9] text-[#1A1A1A] p-4">
-            <div className="corner-brackets w-full max-w-sm bg-white border border-[#E5E5E3] p-6 flex flex-col gap-5">
+            <div className="relative corner-brackets w-full max-w-sm bg-white border border-[#E5E5E3] p-6 flex flex-col gap-5">
                 {/* App Title */}
                 <div className="flex flex-col items-center text-center gap-1">
                     <h1 className="font-heading text-2xl text-[#1A1A1A]">
@@ -69,7 +77,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                                 setError("");
                                 setSuccess("");
                             }}
-                            className={`flex-1 pb-2.5 text-center transition-colors ${!isSignUp
+                            className={`flex-1 pb-2.5 text-center transition-colors cursor-pointer ${!isSignUp
                                     ? "text-[#1A1A1A] border-b-2 border-[#1A1A1A] font-semibold"
                                     : "text-[#888883] hover:text-[#1A1A1A]"
                                 }`}
@@ -83,7 +91,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                                 setError("");
                                 setSuccess("");
                             }}
-                            className={`flex-1 pb-2.5 text-center transition-colors ${isSignUp
+                            className={`flex-1 pb-2.5 text-center transition-colors cursor-pointer ${isSignUp
                                     ? "text-[#1A1A1A] border-b-2 border-[#1A1A1A] font-semibold"
                                     : "text-[#888883] hover:text-[#1A1A1A]"
                                 }`}
@@ -151,7 +159,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full py-2.5 mt-1 bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-40 text-white font-medium text-base rounded-[3px] transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-2.5 mt-1 bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-40 text-white font-medium text-base rounded-[3px] transition-colors flex items-center justify-center gap-2 cursor-pointer"
                     >
                         {isLoading ? (
                             <span>Processing…</span>
@@ -165,9 +173,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     </button>
                 </form>
 
-                <div className="text-[9px] text-[#888883] text-center">
-                    Secure authentication enabled.
-                </div>
+                 
             </div>
         </div>
     );

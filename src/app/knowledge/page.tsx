@@ -39,7 +39,8 @@ function ArticleAuthorAvatar({
 }
 
 export default function KnowledgePage() {
-    const { currentUser, currentTeam, isClient, users } = useWorkspace();
+
+    const { currentUser, currentTeam, isClient, users, userRole } = useWorkspace();
     const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
     const [selected, setSelected] = useState<KnowledgeArticle | null>(null);
     const [title, setTitle] = useState("Untitled Article");
@@ -52,7 +53,13 @@ export default function KnowledgePage() {
     const [titleFont, setTitleFont] = useState("");
     const [isTitleFocused, setIsTitleFocused] = useState(false);
     const [isTitleManuallyEdited, setIsTitleManuallyEdited] = useState(false);
+
+
     const loadedForTeam = useRef<string | null>(null);
+
+    const isLeader = userRole === "LEADER";
+    const isCreator = selected ? selected.createdById === currentUser?.id : false;
+    const canEditArticle = isLeader || (selected ? isCreator : true);
 
     // Helper to extract first 5 words from HTML content
     const deriveTitleFromContent = (html: string) => {
@@ -142,13 +149,15 @@ export default function KnowledgePage() {
         }
     };
 
+
+
     const handleSave = async () => {
         if (!currentTeam || !currentUser) return;
         if (!title.trim()) { toast.error("Title is required"); return; }
         setIsSaving(true);
         try {
             if (selected) {
-                const updated = await api.updateKnowledgeArticle(selected.id, { title, content });
+                const updated = await api.updateKnowledgeArticle(selected.id, { title, content }, currentUser.id);
                 setSelected(updated);
                 setArticles(prev => prev.map(a => a.id === updated.id ? updated : a));
                 toast.success("Saved");
@@ -163,15 +172,15 @@ export default function KnowledgePage() {
     };
 
     const handleDelete = async () => {
-        if (!selected) return;
+        if (!selected || !currentUser) return;
         setIsDeleting(true);
         try {
-            await api.deleteKnowledgeArticle(selected.id);
+            await api.deleteKnowledgeArticle(selected.id, currentUser.id);
             setArticles(prev => prev.filter(a => a.id !== selected.id));
             setSelected(null); setTitle("Untitled Article"); setContent("");
             toast.success("Article deleted");
             setShowDeleteConfirm(false);
-        } catch { toast.error("Delete failed"); }
+        } catch (e: any) { toast.error(e.message || "Delete failed"); }
         finally { setIsDeleting(false); }
     };
 
@@ -194,7 +203,8 @@ export default function KnowledgePage() {
             <aside className="w-64 shrink-0 border-r border-[#E5E5E3] bg-white flex flex-col">
                 {/* Rail Header */}
                 <div className="px-4 py-3 border-b border-[#E5E5E3] flex items-center justify-between">
-                    <span className="eyebrow capitalize   text-[10px]">Docs & Knowledge Base</span>
+                    <span className="eyebrow capitalize text-[10px]">Docs & Knowledge Base</span>
+
                     <button onClick={handleNew} title="New article"
                         className="relative corner-brackets-4 p-1.5 border border-[#E5E5E3] rounded-[2px] bg-white text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors cursor-pointer">
                         <Plus className="w-3.5 h-3.5" />
@@ -288,16 +298,18 @@ export default function KnowledgePage() {
                 <div className="relative border-b border-[#E5E5E3] bg-white px-5 py-3 flex items-center gap-3 shrink-0">
                     <div className="flex-1 flex items-center justify-start min-w-0">
                         <div className="inline-flex items-center gap-1.5 max-w-full">
+
                             <input type="text" value={title} onChange={e => { setTitle(e.target.value); setIsTitleManuallyEdited(true); }}
                                 onFocus={() => setIsTitleFocused(true)}
                                 onBlur={() => setIsTitleFocused(false)}
                                 placeholder="Article title…"
-                                className="text-[14px] font-semibold text-[#1A1A1A] bg-transparent border-0 outline-none placeholder-[#BBBBB8] min-w-0"
+                                disabled={!canEditArticle}
+                                className="text-[14px] font-semibold text-[#1A1A1A] bg-transparent border-0 outline-none placeholder-[#BBBBB8] min-w-0 disabled:cursor-not-allowed"
                                 style={{
                                     width: title ? `${Math.max(title.length, 12)}ch` : "14ch",
                                     fontFamily: titleFont || "var(--font-instrument-serif), 'Times New Roman', Times, serif"
                                 }} />
-                            {!isTitleFocused && (
+                            {canEditArticle && !isTitleFocused && (
                                 <Pencil className="w-3.5 h-3.5 text-[#888883] shrink-0" />
                             )}
                         </div>
@@ -310,7 +322,7 @@ export default function KnowledgePage() {
                             className="p-1.5 text-[#888883] hover:text-[#1A1A1A] border border-transparent hover:border-[#E5E5E3] rounded-[2px] transition-colors cursor-pointer">
                             <Printer className="w-3.5 h-3.5" />
                         </button>
-                        {selected && (
+                        {selected && canEditArticle && (
                             <button onClick={() => setShowDeleteConfirm(true)} title="Delete article"
                                 className="p-1.5 text-[#888883] hover:text-[#CB2431] border border-transparent hover:border-[#E5E5E3] rounded-[2px] transition-colors cursor-pointer">
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -337,8 +349,9 @@ export default function KnowledgePage() {
                 <div className={`flex-1 flex overflow-hidden ${isDualPane ? "divide-x divide-[#E5E5E3]" : ""}`}>
                     <div className={`flex flex-col overflow-hidden editor-pane ${isDualPane ? "w-1/2" : "w-full"}`}>
                         {isEditing ? (
+
                             <div className="flex-1 overflow-y-auto p-5 flex flex-col">
-                                <TipTapEditor value={content} onChange={handleContentChange} />
+                                <TipTapEditor value={content} onChange={handleContentChange} disabled={!canEditArticle} />
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center p-8">

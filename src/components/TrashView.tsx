@@ -33,7 +33,7 @@ export default function TrashView({
             const data = await api.getTasks({
                 teamId,
                 archivedOrDeleted: true,
-            });
+            }, currentUser.id);
             setTrashTasks(data);
         } catch (err: any) {
             toast.error(err.message || "Failed to load trash tasks.");

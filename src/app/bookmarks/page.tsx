@@ -102,7 +102,7 @@ function isGoogleDocsLink(url: string) {
 }
 
 export default function BookmarksPage() {
-    const { currentUser, currentTeam, isClient } = useWorkspace();
+    const { currentUser, currentTeam, isClient, userRole } = useWorkspace();
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [selected, setSelected] = useState<Bookmark | null>(null);
@@ -283,32 +283,40 @@ export default function BookmarksPage() {
                                                 >
                                                     <ExternalLink className="w-3 h-3" />
                                                 </a>
-                                                <button
-                                                    onClick={() => setOpenMenuId(isMenuOpen ? null : b.id)}
-                                                    className="p-1.5 bg-white/90 backdrop-blur-sm border border-[#E5E5E3] text-[#1A1A1A] hover:bg-white rounded-[2px] shadow-sm transition-colors cursor-pointer"
-                                                    title="Actions"
-                                                >
-                                                    <MoreVertical className="w-3 h-3" />
-                                                </button>
-                                                {isMenuOpen && (
-                                                    <>
-                                                        <div className="fixed inset-0 z-30" onClick={() => setOpenMenuId(null)} />
-                                                        <div className="absolute right-0 top-7 z-40 w-28 bg-white border border-[#E5E5E3] rounded-[2px] shadow-md py-1 flex flex-col text-[11px]">
+                                                {(() => {
+                                                    const canManageBookmark = userRole === "LEADER" || b.createdById === currentUser?.id;
+                                                    if (!canManageBookmark) return null;
+                                                    return (
+                                                        <>
                                                             <button
-                                                                onClick={() => { setOpenMenuId(null); setEditing(b); setModalOpen(true); }}
-                                                                className="w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] text-[#1A1A1A] flex items-center gap-1.5 cursor-pointer"
+                                                                onClick={() => setOpenMenuId(isMenuOpen ? null : b.id)}
+                                                                className="p-1.5 bg-white/90 backdrop-blur-sm border border-[#E5E5E3] text-[#1A1A1A] hover:bg-white rounded-[2px] shadow-sm transition-colors cursor-pointer"
+                                                                title="Actions"
                                                             >
-                                                                <Edit2 className="w-3 h-3 text-[#888883]" /> Edit
+                                                                <MoreVertical className="w-3 h-3" />
                                                             </button>
-                                                            <button
-                                                                onClick={() => { setOpenMenuId(null); handleDelete(b); }}
-                                                                className="w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] text-[#CB2431] flex items-center gap-1.5 cursor-pointer"
-                                                            >
-                                                                <Trash2 className="w-3 h-3 text-[#CB2431]" /> Delete
-                                                            </button>
-                                                        </div>
-                                                    </>
-                                                )}
+                                                            {isMenuOpen && (
+                                                                <>
+                                                                    <div className="fixed inset-0 z-30" onClick={() => setOpenMenuId(null)} />
+                                                                    <div className="absolute right-0 top-7 z-40 w-28 bg-white border border-[#E5E5E3] rounded-[2px] shadow-md py-1 flex flex-col text-[11px]">
+                                                                        <button
+                                                                            onClick={() => { setOpenMenuId(null); setEditing(b); setModalOpen(true); }}
+                                                                            className="w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] text-[#1A1A1A] flex items-center gap-1.5 cursor-pointer"
+                                                                        >
+                                                                            <Edit2 className="w-3 h-3 text-[#888883]" /> Edit
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => { setOpenMenuId(null); handleDelete(b); }}
+                                                                            className="w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] text-[#CB2431] flex items-center gap-1.5 cursor-pointer"
+                                                                        >
+                                                                            <Trash2 className="w-3 h-3 text-[#CB2431]" /> Delete
+                                                                        </button>
+                                                                    </div>
+                                                                </>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                         <div className="p-3 flex flex-col flex-1 justify-between gap-2">

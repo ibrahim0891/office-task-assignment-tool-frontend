@@ -79,10 +79,11 @@ export default function Sidebar({
             icon: LayoutDashboard,
             leaderOnly: true,
         },
+
         {
             id: "kanban",
             href: "/kanban",
-            name: "Kanban Board",
+            name: "Task Board",
             icon: Kanban,
             leaderOnly: false,
         },

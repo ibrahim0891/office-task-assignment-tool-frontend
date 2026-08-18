@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { api, ReportData } from "../api";
 import { CustomSelect } from "./ui/CustomSelect";
+import { Button } from "./ui/Button";
 
 interface ReportViewProps {
     currentTeam: { id: string; name: string };
@@ -43,16 +44,19 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
         fetchReport();
     };
 
-    const handleExportCSV = () => {
-        const params: any = { teamId: currentTeam.id };
-        if (rangePreset !== "custom") {
-            params.daysFromToday = parseInt(rangePreset);
-        } else if (customStart && customEnd) {
-            params.startDate = customStart;
-            params.endDate = customEnd;
+    const handleExportCSV = async () => {
+        try {
+            const params: any = { teamId: currentTeam.id };
+            if (rangePreset !== "custom") {
+                params.daysFromToday = parseInt(rangePreset);
+            } else if (customStart && customEnd) {
+                params.startDate = customStart;
+                params.endDate = customEnd;
+            }
+            await api.exportCsv(params);
+        } catch (err: any) {
+            alert("Error exporting CSV: " + err.message);
         }
-        const url = api.getExportUrl(params);
-        window.open(url, "_blank");
     };
 
     const handlePrintPDF = () => {
@@ -73,18 +77,12 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={handleExportCSV}
-                        className="bg-[#1A1A1A] hover:bg-[#333] text-white px-3 py-1.5 rounded-[3px] text-[11px] font-medium transition-colors"
-                    >
+                    <Button onClick={handleExportCSV} variant="secondary">
                         Export CSV
-                    </button>
-                    <button
-                        onClick={handlePrintPDF}
-                        className="border border-[#E5E5E3] hover:bg-[#FAFAF9] text-[#1A1A1A] px-3 py-1.5 rounded-[3px] text-[11px] font-medium transition-colors"
-                    >
+                    </Button>
+                    <Button onClick={handlePrintPDF} variant="default">
                         Print / PDF
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -136,12 +134,12 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                     required
                                 />
                             </div>
-                            <button
-                                type="submit"
-                                className="border border-[#E5E5E3] hover:bg-[#FAFAF9] px-3 py-1.5 rounded-[3px] text-[11px] font-medium text-[#1A1A1A] transition-colors"
+                            <Button
+                                 type="submit"
+                                 size="sm"
                             >
-                                Apply
-                            </button>
+                                 Apply
+                            </Button>
                         </form>
                     )}
                 </div>
@@ -211,7 +209,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                 </span>
                             </div>
 
-                            <div className="bg-white p-4 flex flex-col gap-1">
+                            <div className="bg-[#white] p-4 flex flex-col gap-1">
                                 <span className="eyebrow text-[#B08800]">
                                     Stale Tasks
                                 </span>
@@ -223,6 +221,93 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                 <span className="text-base text-[#888883]">
                                     carried 3+ days
                                 </span>
+                            </div>
+                        </div>
+
+                        {/* Section Intersection Divider */}
+                        <div className="relative w-full border-t border-[#E5E5E3]">
+                            <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center">
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 0V10M5 5H10" stroke="#1A1A1A" strokeWidth="1.5" />
+                                </svg>
+                            </div>
+                            <div className="absolute -right-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center">
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 0V10M5 5H0" stroke="#1A1A1A" strokeWidth="1.5" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* Status Breakdown Section (Constant & Dynamic Kanban Columns) */}
+                        <div className="bg-white p-4 flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-base font-semibold print:text-base print:font-bold">
+                                    ▪ Column & Status Breakdown
+                                </h3>
+                                <span className="text-xs text-[#888883]">
+                                    Total: {reportData.totalTasks} tasks
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                                {reportData.columnsBreakdown &&
+                                    Object.entries(reportData.columnsBreakdown).map(([columnName, count]) => {
+                                        const lowerName = columnName.toLowerCase().trim();
+                                        
+                                        // Muted, subtle theme matching task board card tags & status dots
+                                        let badgeStyle = "bg-[#F5F5F4] text-[#1A1A1A] border-[#E5E5E3]";
+                                        let dotColor = "bg-[#888883]";
+                                        let labelColor = "text-[#1A1A1A]";
+
+                                        if (lowerName.includes("todo") || lowerName.includes("to do")) {
+                                            badgeStyle = "bg-[#F5F7F9] text-[#4A5D70] border-[#D5DCE5]";
+                                            dotColor = "bg-[#4A5D70]";
+                                            labelColor = "text-[#4A5D70]";
+                                        } else if (lowerName.includes("progress")) {
+                                            badgeStyle = "bg-[#FAF8F2] text-[#6A5830] border-[#E2DAC0]";
+                                            dotColor = "bg-[#B8A050]";
+                                            labelColor = "text-[#6A5830]";
+                                        } else if (lowerName.includes("attention")) {
+                                            badgeStyle = "bg-[#FAF6F2] text-[#7A5830] border-[#E5D8C0]";
+                                            dotColor = "bg-[#B88850]";
+                                            labelColor = "text-[#7A5830]";
+                                        } else if (lowerName.includes("done") || lowerName.includes("complete")) {
+                                            badgeStyle = "bg-[#F4F8F5] text-[#3B6E52] border-[#C8DEC5]";
+                                            dotColor = "bg-[#3B6E52]";
+                                            labelColor = "text-[#3B6E52]";
+                                        } else if (lowerName.includes("blocked") || lowerName.includes("cancel")) {
+                                            badgeStyle = "bg-[#FAF5F5] text-[#7A4040] border-[#E5D8D8]";
+                                            dotColor = "bg-[#B87070]";
+                                            labelColor = "text-[#7A4040]";
+                                        }
+
+                                        const percentage = reportData.totalTasks > 0 
+                                            ? Math.round((count / reportData.totalTasks) * 100) 
+                                            : 0;
+
+                                        return (
+                                            <div
+                                                key={columnName}
+                                                className={`p-2.5 rounded-[2px] border ${badgeStyle} flex flex-col justify-between gap-2.5`}
+                                            >
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <span className={`w-1.5 h-1.5 rounded-[0.5px] ${dotColor} shrink-0`} />
+                                                    <span className={`text-[11px] font-semibold truncate ${labelColor}`}>
+                                                        {columnName}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex items-baseline justify-between mt-auto">
+                                                    <span className="text-2xl font-heading text-[#1A1A1A]">
+                                                        {count}
+                                                    </span>
+                                                    <span className="text-[10px] text-[#888883] font-medium">
+                                                        {percentage}%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                             </div>
                         </div>
 

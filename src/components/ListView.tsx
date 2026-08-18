@@ -315,9 +315,9 @@ export default function ListView({
             {/* Table */}
             <div className="relative bg-white border border-[#E5E5E3] overflow-hidden corner-brackets rounded-[2px]">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-base border-collapse">
+                    <table className="w-full text-left text-xs border-collapse">
                         <thead>
-                            <tr className="border-b border-[#E5E5E3] text-base font-medium text-[#888883] bg-[#FAFAF9]">
+                            <tr className="border-b border-[#E5E5E3] text-[11px] font-medium text-[#888883] bg-[#FAFAF9]">
                                 <th className="py-2.5 px-3 w-10 text-center">
                                     {!isObserver && (
                                         <input
@@ -381,7 +381,7 @@ export default function ListView({
                                         colSpan={7}
                                         className="py-12 text-center text-[#888883]"
                                     >
-                                        <p className="text-base">
+                                        <p className="text-[11px]">
                                             No matching tasks found.
                                         </p>
                                     </td>
@@ -421,24 +421,24 @@ export default function ListView({
                                             </td>
                                             <td className="py-2.5 px-3 font-medium text-[#1A1A1A]">
                                                 <div className="flex flex-col gap-0">
-                                                    <span className="truncate max-w-sm">
+                                                    <span className="truncate max-w-sm text-[12px]">
                                                         {task.title}
                                                     </span>
                                                     {task.description && (
-                                                        <span className="text-base text-[#888883] truncate max-w-xs">
+                                                        <span className="text-[10px] text-[#888883] truncate max-w-xs">
                                                             {task.description.replace(/<[^>]*>/g, "").trim()}
                                                         </span>
                                                     )}
                                                 </div>
                                             </td>
                                             <td className="py-2.5 px-3 text-center">
-                                                <span className="border border-[#E5E5E3] px-2 py-0.5 rounded-[2px] text-base font-medium text-[#1A1A1A]">
+                                                <span className="border border-[#E5E5E3] px-2 py-0.5 rounded-[2px] text-[10px] font-medium text-[#1A1A1A]">
                                                     {task.column.name}
                                                 </span>
                                             </td>
                                             <td className="py-2.5 px-3 text-center">
                                                 <span
-                                                    className={`text-base font-medium ${getPriorityDot(task.priority)}`}
+                                                    className={`text-[10px] font-medium ${getPriorityDot(task.priority)}`}
                                                 >
                                                     ● {task.priority}
                                                 </span>

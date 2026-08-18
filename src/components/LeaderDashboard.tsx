@@ -27,7 +27,8 @@ export default function LeaderDashboard({
     onRefresh,
     onSelectTask,
 }: LeaderDashboardProps) {
-    const { openMemberProfile } = useWorkspace();
+
+    const { openMemberProfile, userRole } = useWorkspace();
     const [newMemberId, setNewMemberId] = useState("");
     const [newMemberRole, setNewMemberRole] = useState("MEMBER");
 
@@ -79,12 +80,24 @@ export default function LeaderDashboard({
             )
         )
             return;
+
+
         try {
             await api.removeTeamMember(currentTeam.id, userId, currentUser.id);
             toast.success("Member removed from team");
             onRefresh();
         } catch (err: any) {
             toast.error(err.message || "Failed to remove member");
+        }
+    };
+
+    const handleRoleChange = async (userId: string, newRole: string) => {
+        try {
+            await api.updateTeamMemberRole(currentTeam.id, userId, newRole, currentUser.id);
+            toast.success("Member role updated");
+            onRefresh();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update role");
         }
     };
 
@@ -364,7 +377,7 @@ export default function LeaderDashboard({
                                 <CustomSelect
                                     options={[
                                         { value: "MEMBER", label: "Member" },
-                                        { value: "LEADER", label: "Co-Leader" },
+                                        { value: "LEADER", label: "Leader" },
                                         {
                                             value: "OBSERVER",
                                             label: "Observer",
@@ -384,56 +397,64 @@ export default function LeaderDashboard({
                             </div>
                         </form>
 
+
+
                         {/* Add existing user */}
-                        {availableUsers.length > 0 && (
-                            <div className="border border-[#E5E5E3] p-3 flex flex-col gap-2">
-                                <h3 className="eyebrow">Add Existing User</h3>
-                                <div className="relative z-20">
-                                    <UserPickerSelect
-                                        users={availableUsers}
-                                        selectedUserId={newMemberId}
-                                        onSelectUser={(id) =>
-                                            setNewMemberId(id)
-                                        }
-                                        recentUsers={teamMembers.map(
-                                            (tm) => tm.user,
-                                        )}
-                                        placeholder="Search or select existing member…"
-                                    />
-                                </div>
-                                <div className="flex gap-1.5 items-center relative z-10">
-                                    <CustomSelect
-                                        options={[
-                                            {
-                                                value: "MEMBER",
-                                                label: "Member",
-                                            },
-                                            {
-                                                value: "LEADER",
-                                                label: "Co-Leader",
-                                            },
-                                            {
-                                                value: "OBSERVER",
-                                                label: "Observer",
-                                            },
-                                        ]}
-                                        value={newMemberRole}
-                                        onChange={(val) =>
-                                            setNewMemberRole(val)
-                                        }
-                                        className="flex-1"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleAddMember}
-                                        disabled={!newMemberId}
-                                        className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-30 text-white font-medium text-base px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center cursor-pointer"
-                                    >
-                                        Add
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                        <div className="border border-[#E5E5E3] p-3 flex flex-col gap-2">
+                            <h3 className="eyebrow">Add Existing User</h3>
+                            {availableUsers.length > 0 ? (
+                                <>
+                                    <div className="relative z-20">
+                                        <UserPickerSelect
+                                            users={availableUsers}
+                                            selectedUserId={newMemberId}
+                                            onSelectUser={(id) =>
+                                                setNewMemberId(id)
+                                            }
+                                            recentUsers={teamMembers.map(
+                                                (tm) => tm.user,
+                                            )}
+                                            placeholder="Search or select existing member…"
+                                        />
+                                    </div>
+                                    <div className="flex gap-1.5 items-center relative z-10">
+                                        <CustomSelect
+                                            options={[
+                                                {
+                                                    value: "MEMBER",
+                                                    label: "Member",
+                                                },
+                                                {
+                                                    value: "LEADER",
+                                                    label: "Leader",
+                                                },
+                                                {
+                                                    value: "OBSERVER",
+                                                    label: "Observer",
+                                                },
+                                            ]}
+                                            value={newMemberRole}
+                                            onChange={(val) =>
+                                                setNewMemberRole(val)
+                                            }
+                                            className="flex-1"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleAddMember}
+                                            disabled={!newMemberId}
+                                            className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-30 text-white font-medium text-base px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center cursor-pointer"
+                                        >
+                                            Add
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <p className="text-xs text-[#888883] leading-relaxed italic">
+                                    All registered platform users are already members of this workspace.
+                                </p>
+                            )}
+                        </div>
 
                         {/* Roster list */}
                         <div className="flex flex-col gap-1">
@@ -471,13 +492,28 @@ export default function LeaderDashboard({
                                                 <span className="text-[9px] text-[#888883] truncate block">
                                                     {user.email}
                                                 </span>
-                                                <span
-                                                    className={`text-[8px] font-medium capitalize   ${getRoleColor(role)}`}
-                                                >
-                                                    {role}
-                                                </span>
-                                            </div>
-                                            <span className="text-[9px] font-medium text-[#888883] bg-[#FAFAF9] border border-[#E5E5E3] px-2 py-0.5 rounded-[2px] ml-auto shrink-0 hidden sm:block">
+
+                                                {userRole === "LEADER" && user.id !== currentUser.id ? (
+                                                    <div onClick={(e) => e.stopPropagation()} className="mt-1">
+                                                        <select
+                                                            value={role}
+                                                            onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                                                            className="bg-white border border-[#E5E5E3] hover:border-[#1A1A1A] rounded-[2px] px-1.5 py-0.5 text-[9px] font-medium text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] cursor-pointer transition-colors"
+                                                        >
+                                                            <option value="MEMBER">Member</option>
+                                                            <option value="LEADER">Leader</option>
+                                                            <option value="OBSERVER">Observer</option>
+                                                        </select>
+                                                    </div>
+                                                ) : (
+                                                    <span
+                                                        className={`text-[8px] font-medium capitalize ${getRoleColor(role)}`}
+                                                    >
+                                                        {role === "LEADER" ? "Leader" : role}
+                                                    </span>
+                                                )}
+                                             </div>
+                                             <span className="text-[9px] font-medium text-[#888883] bg-[#FAFAF9] border border-[#E5E5E3] px-2 py-0.5 rounded-[2px] ml-auto shrink-0 hidden sm:block">
                                                 {user.designation ||
                                                     "Team Member"}
                                             </span>

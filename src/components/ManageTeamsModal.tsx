@@ -15,7 +15,11 @@ interface ManageTeamsModalProps {
     onSelectTeam: (team: Team) => void;
     onCreateTeam: (name: string) => Promise<void>;
     onUpdateTeam: (teamId: string, name: string) => Promise<void>;
-    onDeleteTeam: (teamId: string, password: string, confirmationText: string) => Promise<void>;
+    onDeleteTeam: (
+        teamId: string,
+        password: string,
+        confirmationText: string,
+    ) => Promise<void>;
 }
 
 export default function ManageTeamsModal({
@@ -103,7 +107,11 @@ export default function ManageTeamsModal({
 
         try {
             setIsSubmitting(true);
-            await onDeleteTeam(deletingTeam.id, passwordInput, confirmationInput);
+            await onDeleteTeam(
+                deletingTeam.id,
+                passwordInput,
+                confirmationInput,
+            );
             setDeletingTeam(null);
             setConfirmationInput("");
             setPasswordInput("");
@@ -130,7 +138,9 @@ export default function ManageTeamsModal({
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-[#E5E5E3] pb-4 shrink-0">
                     <div className="flex flex-col gap-1">
-                        <span className="eyebrow block">Workspace Settings</span>
+                        <span className="eyebrow block">
+                            Workspace Settings
+                        </span>
                         <h2 className="font-heading text-lg font-semibold text-[#1A1A1A]">
                             Manage Workspaces & Teams
                         </h2>
@@ -156,23 +166,35 @@ export default function ManageTeamsModal({
                                         Permanent Cascading Workspace Deletion
                                     </span>
                                     <p className="text-[11px] leading-relaxed text-[#900C1C]">
-                                        Deleting workspace <strong>"{deletingTeam.name}"</strong> will permanently destroy all columns, tasks, subtasks, checklists, comments, attachments, activities, and user memberships under it.
+                                        Deleting workspace{" "}
+                                        <strong>"{deletingTeam.name}"</strong>{" "}
+                                        will permanently destroy all columns,
+                                        tasks, subtasks, checklists, comments,
+                                        attachments, activities, and user
+                                        memberships under it.
                                     </p>
                                 </div>
                             </div>
 
-                            <form onSubmit={handleConfirmDelete} className="flex flex-col gap-4 mt-1">
+                            <form
+                                onSubmit={handleConfirmDelete}
+                                className="flex flex-col gap-4 mt-1"
+                            >
                                 <div className="flex flex-col gap-1.5">
                                     <label className="eyebrow text-[#CB2431]">
                                         1. Confirmation Statement
                                     </label>
                                     <span className="text-[11px] text-[#888883] mb-0.5">
-                                        Type <strong>"I know what I'm doing"</strong> exactly:
+                                        Type{" "}
+                                        <strong>"I know what I'm doing"</strong>{" "}
+                                        exactly:
                                     </span>
                                     <input
                                         type="text"
                                         value={confirmationInput}
-                                        onChange={(e) => setConfirmationInput(e.target.value)}
+                                        onChange={(e) =>
+                                            setConfirmationInput(e.target.value)
+                                        }
                                         placeholder="I know what I'm doing"
                                         className={`${inputClass} border-[#F5C6CB] focus:border-[#CB2431]`}
                                         autoFocus
@@ -185,12 +207,15 @@ export default function ManageTeamsModal({
                                         2. Account Password
                                     </label>
                                     <span className="text-[11px] text-[#888883] mb-0.5">
-                                        Enter your current account password to authorize deletion:
+                                        Enter your current account password to
+                                        authorize deletion:
                                     </span>
                                     <input
                                         type="password"
                                         value={passwordInput}
-                                        onChange={(e) => setPasswordInput(e.target.value)}
+                                        onChange={(e) =>
+                                            setPasswordInput(e.target.value)
+                                        }
                                         placeholder="Account password"
                                         className={inputClass}
                                         required
@@ -214,7 +239,8 @@ export default function ManageTeamsModal({
                                     <button
                                         type="submit"
                                         disabled={
-                                            confirmationInput !== "I know what I'm doing" ||
+                                            confirmationInput !==
+                                                "I know what I'm doing" ||
                                             !passwordInput ||
                                             isSubmitting
                                         }
@@ -222,7 +248,9 @@ export default function ManageTeamsModal({
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
                                         <span>
-                                            {isSubmitting ? "Deleting..." : "Confirm & Delete Workspace"}
+                                            {isSubmitting
+                                                ? "Deleting..."
+                                                : "Confirm & Delete Workspace"}
                                         </span>
                                     </button>
                                 </div>
@@ -254,11 +282,17 @@ export default function ManageTeamsModal({
                                         className="bg-[#FAFAF9] border border-[#E5E5E3] p-4 rounded-[2px] flex flex-col gap-3.5 corner-brackets animate-fade-in mb-2"
                                     >
                                         <div className="flex flex-col gap-1">
-                                            <span className="eyebrow">New Workspace Name</span>
+                                            <span className="eyebrow">
+                                                New Workspace Name
+                                            </span>
                                             <input
                                                 type="text"
                                                 value={newTeamName}
-                                                onChange={(e) => setNewTeamName(e.target.value)}
+                                                onChange={(e) =>
+                                                    setNewTeamName(
+                                                        e.target.value,
+                                                    )
+                                                }
                                                 placeholder="e.g. Mobile Engineering, Marketing"
                                                 className={inputClass}
                                                 autoFocus
@@ -286,7 +320,9 @@ export default function ManageTeamsModal({
                                                 disabled={isSubmitting}
                                                 className="px-4 py-1.5"
                                             >
-                                                {isSubmitting ? "Creating..." : "Create Workspace"}
+                                                {isSubmitting
+                                                    ? "Creating..."
+                                                    : "Create Workspace"}
                                             </Button>
                                         </div>
                                     </form>
@@ -295,37 +331,59 @@ export default function ManageTeamsModal({
                                 {/* Workspaces List items */}
                                 <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto pr-0.5">
                                     {teams.map((t) => {
-                                        const isCurrent = currentTeam?.id === t.id;
-                                        const isEditing = editingTeamId === t.id;
+                                        const isCurrent =
+                                            currentTeam?.id === t.id;
+                                        const isEditing =
+                                            editingTeamId === t.id;
 
                                         return (
                                             <div
                                                 key={t.id}
-                                                className={`p-3.5 sm:p-4 border rounded-[2px] flex items-center justify-between gap-4 transition-colors corner-brackets ${isCurrent
+                                                className={`p-3.5 sm:p-4 border rounded-[2px] flex items-center justify-between gap-4 transition-colors corner-brackets ${
+                                                    isCurrent
                                                         ? "bg-white border-[#1A1A1A] shadow-xs"
                                                         : "bg-[#FAFAF9] border-[#E5E5E3] hover:border-[#CCCCCC]"
-                                                    }`}
+                                                }`}
                                             >
                                                 {isEditing ? (
                                                     <div className="flex items-center gap-2.5 flex-1">
                                                         <input
                                                             type="text"
                                                             value={editingName}
-                                                            onChange={(e) => setEditingName(e.target.value)}
-                                                            className={inputClass}
+                                                            onChange={(e) =>
+                                                                setEditingName(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className={
+                                                                inputClass
+                                                            }
                                                             autoFocus
                                                         />
                                                         <button
-                                                            onClick={() => handleSaveEdit(t.id)}
-                                                            disabled={isSubmitting}
+                                                            onClick={() =>
+                                                                handleSaveEdit(
+                                                                    t.id,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                isSubmitting
+                                                            }
                                                             className="p-2 bg-[#1A1A1A] text-white rounded-[2px] hover:bg-[#333333] transition-colors cursor-pointer"
                                                             title="Save"
                                                         >
                                                             <Check className="w-4 h-4" />
                                                         </button>
                                                         <button
-                                                            onClick={() => setEditingTeamId(null)}
-                                                            disabled={isSubmitting}
+                                                            onClick={() =>
+                                                                setEditingTeamId(
+                                                                    null,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                isSubmitting
+                                                            }
                                                             className="p-2 border border-[#E5E5E3] text-[#888883] hover:text-[#1A1A1A] rounded-[2px] transition-colors cursor-pointer"
                                                             title="Cancel"
                                                         >
@@ -346,7 +404,12 @@ export default function ManageTeamsModal({
                                                                 )}
                                                             </div>
                                                             <span className="text-[10px] text-[#888883]">
-                                                                ID: {t.id.slice(0, 8)}...
+                                                                ID:{" "}
+                                                                {t.id.slice(
+                                                                    0,
+                                                                    8,
+                                                                )}
+                                                                ...
                                                             </span>
                                                         </div>
 
@@ -354,7 +417,9 @@ export default function ManageTeamsModal({
                                                             {!isCurrent && (
                                                                 <button
                                                                     onClick={() => {
-                                                                        onSelectTeam(t);
+                                                                        onSelectTeam(
+                                                                            t,
+                                                                        );
                                                                         onClose();
                                                                     }}
                                                                     className="px-3 py-1.5 border border-[#E5E5E3] bg-white hover:bg-[#FAFAF9] text-[#1A1A1A] text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer"
@@ -363,7 +428,11 @@ export default function ManageTeamsModal({
                                                                 </button>
                                                             )}
                                                             <button
-                                                                onClick={() => handleStartEdit(t)}
+                                                                onClick={() =>
+                                                                    handleStartEdit(
+                                                                        t,
+                                                                    )
+                                                                }
                                                                 className="p-2 border border-[#E5E5E3] bg-white hover:bg-[#FAFAF9] text-[#555555] hover:text-[#1A1A1A] rounded-[2px] transition-colors cursor-pointer"
                                                                 title="Rename workspace"
                                                             >
@@ -371,9 +440,15 @@ export default function ManageTeamsModal({
                                                             </button>
                                                             <button
                                                                 onClick={() => {
-                                                                    setDeletingTeam(t);
-                                                                    setConfirmationInput("");
-                                                                    setPasswordInput("");
+                                                                    setDeletingTeam(
+                                                                        t,
+                                                                    );
+                                                                    setConfirmationInput(
+                                                                        "",
+                                                                    );
+                                                                    setPasswordInput(
+                                                                        "",
+                                                                    );
                                                                 }}
                                                                 className="p-2 border border-[#E5E5E3] bg-white hover:bg-[#FFF5F5] hover:border-[#CB2431] text-[#888883] hover:text-[#CB2431] rounded-[2px] transition-colors cursor-pointer"
                                                                 title="Delete workspace"

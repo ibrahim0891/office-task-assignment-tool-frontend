@@ -15,6 +15,7 @@ export default function KanbanPage() {
         selectedMemberFilter,
         setSelectedMemberFilter,
         handleUpdateTaskColumn,
+        handleArchiveTask,
         setSelectedTaskId,
         setAddTaskColId,
         setIsAddTaskOpen,
@@ -42,6 +43,7 @@ export default function KanbanPage() {
                 setIsAddTaskOpen(true);
             }}
             onAddQuickTask={handleAddQuickTask}
+            onArchiveTask={handleArchiveTask}
         />
     );
 }
