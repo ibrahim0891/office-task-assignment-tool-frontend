@@ -121,6 +121,7 @@ export default function WorkspaceShell({
         handleCreateTeam,
         handleUpdateTeam,
         handleDeleteTeam,
+        handleLeaveTeam,
         handleLogout,
         handleMarkNotificationRead,
         handleClearAllNotifications,
@@ -1258,10 +1259,12 @@ export default function WorkspaceShell({
                 teams={teams}
                 currentTeam={currentTeam}
                 currentUser={currentUser}
+                userRole={userRole}
                 onSelectTeam={(team) => setCurrentTeam(team)}
                 onCreateTeam={handleCreateTeam}
                 onUpdateTeam={handleUpdateTeam}
                 onDeleteTeam={handleDeleteTeam}
+                onLeaveTeam={handleLeaveTeam}
             />
         </div>
     );

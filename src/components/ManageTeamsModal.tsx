@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Team, User } from "../api";
 import { Button } from "./ui/Button";
-import { X, Edit2, Trash2, Check, Plus, ShieldAlert } from "lucide-react";
+import { X, Edit2, Trash2, Check, Plus, ShieldAlert, LogOut } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface ManageTeamsModalProps {
@@ -12,6 +12,7 @@ interface ManageTeamsModalProps {
     teams: Team[];
     currentTeam: Team | null;
     currentUser: User | null;
+    userRole: string;
     onSelectTeam: (team: Team) => void;
     onCreateTeam: (name: string) => Promise<void>;
     onUpdateTeam: (teamId: string, name: string) => Promise<void>;
@@ -20,6 +21,7 @@ interface ManageTeamsModalProps {
         password: string,
         confirmationText: string,
     ) => Promise<void>;
+    onLeaveTeam: (teamId: string) => Promise<void>;
 }
 
 export default function ManageTeamsModal({
@@ -28,10 +30,12 @@ export default function ManageTeamsModal({
     teams,
     currentTeam,
     currentUser,
+    userRole,
     onSelectTeam,
     onCreateTeam,
     onUpdateTeam,
     onDeleteTeam,
+    onLeaveTeam,
 }: ManageTeamsModalProps) {
     // States for inline editing
     const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
@@ -115,6 +119,19 @@ export default function ManageTeamsModal({
             setDeletingTeam(null);
             setConfirmationInput("");
             setPasswordInput("");
+        } catch (err) {
+            // error handled in context
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleLeave = async (team: Team) => {
+        const confirmed = window.confirm(`Are you sure you want to leave the workspace "${team.name}"? Your active tasks in this workspace will be reassigned to the team leader and marked as Need Attention.`);
+        if (!confirmed) return;
+        try {
+            setIsSubmitting(true);
+            await onLeaveTeam(team.id);
         } catch (err) {
             // error handled in context
         } finally {
@@ -335,6 +352,9 @@ export default function ManageTeamsModal({
                                             currentTeam?.id === t.id;
                                         const isEditing =
                                             editingTeamId === t.id;
+                                        const isLeaderOfTeam = t.id === currentTeam?.id
+                                            ? (userRole === "LEADER")
+                                            : t.members?.find((m) => m.user.id === currentUser?.id)?.role === "LEADER";
 
                                         return (
                                             <div
@@ -370,7 +390,7 @@ export default function ManageTeamsModal({
                                                             disabled={
                                                                 isSubmitting
                                                             }
-                                                            className="p-2 bg-[#1A1A1A] text-white rounded-[2px] hover:bg-[#333333] transition-colors cursor-pointer"
+                                                            className="relative corner-brackets-4 flex items-center justify-center h-[46px] w-[46px] bg-[#1A1A1A] text-white rounded-[2px] hover:bg-[#333333] transition-colors cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                                                             title="Save"
                                                         >
                                                             <Check className="w-4 h-4" />
@@ -384,7 +404,7 @@ export default function ManageTeamsModal({
                                                             disabled={
                                                                 isSubmitting
                                                             }
-                                                            className="p-2 border border-[#E5E5E3] text-[#888883] hover:text-[#1A1A1A] rounded-[2px] transition-colors cursor-pointer"
+                                                            className="relative corner-brackets-4 flex items-center justify-center h-[46px] w-[46px] border border-[#E5E5E3] text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] rounded-[2px] transition-colors cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                                                             title="Cancel"
                                                         >
                                                             <X className="w-4 h-4" />
@@ -438,23 +458,33 @@ export default function ManageTeamsModal({
                                                             >
                                                                 <Edit2 className="w-3.5 h-3.5" />
                                                             </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setDeletingTeam(
-                                                                        t,
-                                                                    );
-                                                                    setConfirmationInput(
-                                                                        "",
-                                                                    );
-                                                                    setPasswordInput(
-                                                                        "",
-                                                                    );
-                                                                }}
-                                                                className="p-2 border border-[#E5E5E3] bg-white hover:bg-[#FFF5F5] hover:border-[#CB2431] text-[#888883] hover:text-[#CB2431] rounded-[2px] transition-colors cursor-pointer"
-                                                                title="Delete workspace"
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                            </button>
+                                                            {isLeaderOfTeam ? (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setDeletingTeam(
+                                                                            t,
+                                                                        );
+                                                                        setConfirmationInput(
+                                                                            "",
+                                                                        );
+                                                                        setPasswordInput(
+                                                                            "",
+                                                                        );
+                                                                    }}
+                                                                    className="p-2 border border-[#E5E5E3] bg-white hover:bg-[#FFF5F5] hover:border-[#CB2431] text-[#888883] hover:text-[#CB2431] rounded-[2px] transition-colors cursor-pointer"
+                                                                    title="Delete workspace"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => handleLeave(t)}
+                                                                    className="p-2 border border-[#E5E5E3] bg-white hover:bg-[#FFF5F5] hover:border-[#CB2431] text-[#888883] hover:text-[#CB2431] rounded-[2px] transition-colors cursor-pointer"
+                                                                    title="Leave workspace"
+                                                                >
+                                                                    <LogOut className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </>
                                                 )}

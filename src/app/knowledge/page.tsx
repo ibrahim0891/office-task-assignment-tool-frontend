@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import useSWR from "swr";
 import { api, KnowledgeArticle } from "../../api";
 import { TipTapEditor } from "../../components/ui/TipTapEditor";
 import { Button } from "../../components/ui/Button";
@@ -41,7 +42,14 @@ function ArticleAuthorAvatar({
 export default function KnowledgePage() {
 
     const { currentUser, currentTeam, isClient, users, userRole } = useWorkspace();
-    const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
+
+    // Fetch articles using SWR
+    const { data: articlesData, error, isLoading, mutate } = useSWR<KnowledgeArticle[]>(
+        isClient && currentTeam ? ["knowledge", currentTeam.id] : null,
+        ([, teamId]) => api.getKnowledgeArticles(teamId as string)
+    );
+    const articles = articlesData || [];
+
     const [selected, setSelected] = useState<KnowledgeArticle | null>(null);
     const [title, setTitle] = useState("Untitled Article");
     const [content, setContent] = useState("");
@@ -49,13 +57,12 @@ export default function KnowledgePage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
     const [titleFont, setTitleFont] = useState("");
     const [isTitleFocused, setIsTitleFocused] = useState(false);
     const [isTitleManuallyEdited, setIsTitleManuallyEdited] = useState(false);
 
-
-    const loadedForTeam = useRef<string | null>(null);
+    // Track auto-selection per team
+    const autoSelectedTeamRef = useRef<string | null>(null);
 
     const isLeader = userRole === "LEADER";
     const isCreator = selected ? selected.createdById === currentUser?.id : false;
@@ -98,25 +105,20 @@ export default function KnowledgePage() {
         : title !== "Untitled Article" || content !== "";
 
     useEffect(() => {
-        if (!isClient || !currentTeam || loadedForTeam.current === currentTeam.id) return;
-        loadedForTeam.current = currentTeam.id;
-        setIsLoading(true);
-        api.getKnowledgeArticles(currentTeam.id)
-            .then(data => {
-                setArticles(data);
-                if (data.length > 0) {
-                    setSelected(data[0]);
-                    setTitle(data[0].title);
-                    setContent(data[0].content);
-                } else {
-                    setSelected(null);
-                    setTitle("Untitled Article");
-                    setContent("");
-                }
-            })
-            .catch(() => toast.error("Failed to load articles"))
-            .finally(() => setIsLoading(false));
-    }, [isClient, currentTeam?.id]);
+        if (!currentTeam || !articlesData) return;
+        if (autoSelectedTeamRef.current === currentTeam.id) return;
+        autoSelectedTeamRef.current = currentTeam.id;
+
+        if (articlesData.length > 0) {
+            setSelected(articlesData[0]);
+            setTitle(articlesData[0].title);
+            setContent(articlesData[0].content);
+        } else {
+            setSelected(null);
+            setTitle("Untitled Article");
+            setContent("");
+        }
+    }, [currentTeam?.id, articlesData]);
 
     const handleSelect = (article: KnowledgeArticle) => {
         setSelected(article);
@@ -159,11 +161,11 @@ export default function KnowledgePage() {
             if (selected) {
                 const updated = await api.updateKnowledgeArticle(selected.id, { title, content }, currentUser.id);
                 setSelected(updated);
-                setArticles(prev => prev.map(a => a.id === updated.id ? updated : a));
+                mutate(articles.map(a => a.id === updated.id ? updated : a), { revalidate: false });
                 toast.success("Saved");
             } else {
                 const created = await api.createKnowledgeArticle({ teamId: currentTeam.id, title, content, createdById: currentUser.id });
-                setArticles(prev => [created, ...prev]);
+                mutate([created, ...articles], { revalidate: false });
                 setSelected(created);
                 toast.success("Article created");
             }
@@ -176,7 +178,7 @@ export default function KnowledgePage() {
         setIsDeleting(true);
         try {
             await api.deleteKnowledgeArticle(selected.id, currentUser.id);
-            setArticles(prev => prev.filter(a => a.id !== selected.id));
+            mutate(articles.filter(a => a.id !== selected.id), { revalidate: false });
             setSelected(null); setTitle("Untitled Article"); setContent("");
             toast.success("Article deleted");
             setShowDeleteConfirm(false);

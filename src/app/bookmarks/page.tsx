@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import useSWR from "swr";
 import { api, Bookmark, getIframeProxyUrl } from "../../api";
 import { Button } from "../../components/ui/Button";
 import { useWorkspace } from "../../context/WorkspaceContext";
@@ -103,36 +104,30 @@ function isGoogleDocsLink(url: string) {
 
 export default function BookmarksPage() {
     const { currentUser, currentTeam, isClient, userRole } = useWorkspace();
-    const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+
+    // Fetch bookmarks using SWR
+    const { data: bookmarksData, error, isLoading, mutate } = useSWR<Bookmark[]>(
+        isClient && currentTeam ? ["bookmarks", currentTeam.id] : null,
+        ([, teamId]) => api.getBookmarks(teamId as string)
+    );
+    const bookmarks = bookmarksData || [];
+
     const [selected, setSelected] = useState<Bookmark | null>(null);
     const [iframeLoading, setIframeLoading] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<Bookmark | null>(null);
     const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "alpha-asc" | "alpha-desc">("date-desc");
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-    const loadedForTeam = useRef<string | null>(null);
-
-    useEffect(() => {
-        if (!isClient || !currentTeam) return;
-        if (loadedForTeam.current === currentTeam.id) return;
-        loadedForTeam.current = currentTeam.id;
-        setIsLoading(true);
-        api.getBookmarks(currentTeam.id)
-            .then(data => setBookmarks(data))
-            .catch(() => toast.error("Failed to load bookmarks"))
-            .finally(() => setIsLoading(false));
-    }, [isClient, currentTeam?.id]);
 
     const handleSave = async (data: { title: string; url: string; description: string }) => {
         if (!currentUser || !currentTeam) return;
         if (editing) {
             const updated = await api.updateBookmark(editing.id, data);
-            setBookmarks(prev => prev.map(b => b.id === updated.id ? updated : b));
+            mutate(bookmarks.map(b => b.id === updated.id ? updated : b), { revalidate: false });
             toast.success("Bookmark updated");
         } else {
             const created = await api.createBookmark({ ...data, teamId: currentTeam.id, createdById: currentUser.id });
-            setBookmarks(prev => [created, ...prev]);
+            mutate([created, ...bookmarks], { revalidate: false });
             toast.success("Bookmark added");
         }
         setEditing(null);
@@ -141,7 +136,7 @@ export default function BookmarksPage() {
     const handleDelete = async (bookmark: Bookmark) => {
         try {
             await api.deleteBookmark(bookmark.id);
-            setBookmarks(prev => prev.filter(b => b.id !== bookmark.id));
+            mutate(bookmarks.filter(b => b.id !== bookmark.id), { revalidate: false });
             if (selected?.id === bookmark.id) setSelected(null);
             toast.success("Deleted");
         } catch { toast.error("Delete failed"); }

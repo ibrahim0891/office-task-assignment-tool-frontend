@@ -196,6 +196,12 @@ export default function Sidebar({
                 {/* Team Selector */}
                 {!isCollapsed ? (
                     <div className="flex flex-col gap-2">
+                        {currentTeam && (
+                            <div className="text-[12px] font-semibold text-[#1A1A1A] truncate border-b border-dashed border-[#E5E5E3] pb-1.5 mb-1 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#22863A] shrink-0" />
+                                <span className="truncate">{currentTeam.name}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between items-center">
                             <span className="eyebrow">Workspace</span>
                             <button

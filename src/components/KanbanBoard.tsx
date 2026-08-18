@@ -576,7 +576,7 @@ export default function KanbanBoard({
                                                                     </div>
 
                                                                     {/* 3-dot menu trigger visible on hover */}
-                                                                    {userRole !== "OBSERVER" && (
+                                                                     {userRole !== "OBSERVER" && task.createdById === currentUser.id && (
                                                                         <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
                                                                             <button
                                                                                 type="button"
@@ -605,17 +605,19 @@ export default function KanbanBoard({
                                                                                             <Edit2 className="w-3 h-3 text-[#888883]" />
                                                                                             Edit
                                                                                         </button>
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => {
-                                                                                                setCardMenuId(null);
-                                                                                                setTaskToArchive(task);
-                                                                                            }}
-                                                                                            className="w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] text-[#CB2431] flex items-center gap-2 transition-colors cursor-pointer"
-                                                                                        >
-                                                                                            <Archive className="w-3 h-3 text-[#CB2431]" />
-                                                                                            Archive
-                                                                                        </button>
+                                                                                        {(userRole === "LEADER" || task.createdById === currentUser.id) && (
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => {
+                                                                                                    setCardMenuId(null);
+                                                                                                    setTaskToArchive(task);
+                                                                                                }}
+                                                                                                className="w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] text-[#CB2431] flex items-center gap-2 transition-colors cursor-pointer"
+                                                                                            >
+                                                                                                <Archive className="w-3 h-3 text-[#CB2431]" />
+                                                                                                Archive
+                                                                                            </button>
+                                                                                        )}
                                                                                     </div>
                                                                                 </>
                                                                             )}

@@ -598,7 +598,7 @@ export default function TaskModal({
                         {/* Save Changes — only rendered when there are unsaved changes */}
                         {!isObserver && isDirty && (
                             <button
-                                onClick={() => handleSaveChanges(false)}
+                                onClick={() => handleSaveChanges(true)}
                                 disabled={isSaving}
                                 className="relative corner-brackets-4 px-3 py-1 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >

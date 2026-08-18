@@ -67,6 +67,7 @@ interface WorkspaceContextType {
     handleCreateTeam: (teamName: string) => Promise<void>;
     handleUpdateTeam: (teamId: string, name: string) => Promise<void>;
     handleDeleteTeam: (teamId: string, password: string, confirmationText: string) => Promise<void>;
+    handleLeaveTeam: (teamId: string) => Promise<void>;
     handleLogout: () => void;
     handleMarkNotificationRead: (id: string) => Promise<void>;
     handleClearAllNotifications: () => Promise<void>;
@@ -696,6 +697,35 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
+    const handleLeaveTeam = async (teamId: string) => {
+        if (!currentUser) return;
+        try {
+            await api.removeTeamMember(teamId, currentUser.id, currentUser.id);
+            toast.success("Left workspace successfully");
+            const updatedTeams = await api.getTeams(currentUser.id);
+            setTeams(updatedTeams);
+            
+            if (currentTeam?.id === teamId) {
+                if (updatedTeams.length > 0) {
+                    setCurrentTeam(updatedTeams[0]);
+                    localStorage.setItem("selected_team_id", updatedTeams[0].id);
+                } else {
+                    const defaultTeam = await api.createTeam(
+                        `${currentUser.name.split(" ")[0]}'s Personal Space`,
+                        currentUser.id
+                    );
+                    const finalTeams = await api.getTeams(currentUser.id);
+                    setTeams(finalTeams);
+                    setCurrentTeam(defaultTeam);
+                    localStorage.setItem("selected_team_id", defaultTeam.id);
+                }
+            }
+        } catch (err: any) {
+            toast.error(err.message || "Failed to leave workspace");
+            throw err;
+        }
+    };
+
     const handleLogout = () => {
         localStorage.removeItem("sessionToken");
         localStorage.removeItem("sessionUser");
@@ -780,6 +810,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 handleCreateTeam,
                 handleUpdateTeam,
                 handleDeleteTeam,
+                handleLeaveTeam,
                 handleLogout,
                 handleMarkNotificationRead,
                 handleClearAllNotifications,
