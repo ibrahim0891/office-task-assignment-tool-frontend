@@ -86,7 +86,7 @@ export default function Sidebar({
 
         {
             id: "kanban",
-            href: "/kanban",
+            href: "/task-board",
             name: "Task Board",
             icon: Kanban,
             leaderOnly: false,
@@ -156,8 +156,9 @@ export default function Sidebar({
 
     return (
         <aside
-            className={`${isCollapsed ? "w-16 p-2 overflow-visible" : "w-64 p-5"
-                } bg-[var(--app-sidebar)] border-r border-[var(--app-border)] flex flex-col shrink-0 select-none transition-all duration-200 relative`}
+            className={`${
+                isCollapsed ? "w-16 p-2 overflow-visible" : "w-64 p-5"
+            } bg-[var(--app-sidebar)] border-r border-[var(--app-border)] flex flex-col shrink-0 select-none transition-all duration-200 relative`}
         >
             <div
                 className={`flex-1 flex flex-col gap-4 min-h-0 ${isCollapsed ? "overflow-visible" : "overflow-y-auto scrollbar-none"}`}
@@ -181,8 +182,9 @@ export default function Sidebar({
                         title={
                             isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"
                         }
-                        className={`relative corner-brackets-4 p-1.5 border border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors flex items-center justify-center cursor-pointer ${isCollapsed ? "mx-auto" : ""
-                            }`}
+                        className={`relative corner-brackets-4 p-1.5 border border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors flex items-center justify-center cursor-pointer ${
+                            isCollapsed ? "mx-auto" : ""
+                        }`}
                     >
                         <svg
                             className="w-4 h-4"
@@ -211,8 +213,12 @@ export default function Sidebar({
                     <div className="flex flex-col gap-2">
                         {currentTeam && (
                             <div className="text-[12px] font-semibold text-[var(--app-text)] truncate border-b border-dashed border-[var(--app-border)] pb-1.5 mb-1 flex items-center gap-1.5">
-                                <span className="text-sm shrink-0 emoji-font">{currentTeam.emoji || "🧑‍💻"}</span>
-                                <span className="truncate">{currentTeam.name}</span>
+                                <span className="text-sm shrink-0 emoji-font">
+                                    {currentTeam.emoji || "🧑‍💻"}
+                                </span>
+                                <span className="truncate">
+                                    {currentTeam.name}
+                                </span>
                             </div>
                         )}
                         <div className="flex justify-between items-center">
@@ -229,9 +235,9 @@ export default function Sidebar({
                                 teams.length === 0
                                     ? [{ value: "", label: "No Workspaces" }]
                                     : teams.map((t) => ({
-                                        value: t.id,
-                                        label: `${t.emoji || "🧑‍💻"} ${t.name}`,
-                                    }))
+                                          value: t.id,
+                                          label: `${t.emoji || "🧑‍💻"} ${t.name}`,
+                                      }))
                             }
                             value={currentTeam?.id || ""}
                             onChange={(val) => {
@@ -269,10 +275,13 @@ export default function Sidebar({
                         const Icon = v.icon;
                         const isActive = pathname === v.href;
                         const isLeaderOnly = v.leaderOnly;
-                        const isLeaderOrObserverOnly = (v as any).leaderOrObserverOnly;
+                        const isLeaderOrObserverOnly = (v as any)
+                            .leaderOrObserverOnly;
                         const isAllowed =
                             (!isLeaderOnly || userRole === "LEADER") &&
-                            (!isLeaderOrObserverOnly || userRole === "LEADER" || userRole === "OBSERVER");
+                            (!isLeaderOrObserverOnly ||
+                                userRole === "LEADER" ||
+                                userRole === "OBSERVER");
                         if (!isAllowed) return null;
 
                         return (
@@ -284,13 +293,15 @@ export default function Sidebar({
                                         setCurrentView(v.id);
                                     }
                                 }}
-                                className={`flex items-center transition-colors relative group ${isCollapsed
-                                    ? "w-9 h-9 mx-auto justify-center rounded-[3px]"
-                                    : "w-full justify-between px-2.5 py-2 rounded-[2px] gap-2.5"
-                                    } text-[12px] ${isActive
+                                className={`flex items-center transition-colors relative group ${
+                                    isCollapsed
+                                        ? "w-9 h-9 mx-auto justify-center rounded-[3px]"
+                                        : "w-full justify-between px-2.5 py-2 rounded-[2px] gap-2.5"
+                                } text-[12px] ${
+                                    isActive
                                         ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold border border-[var(--app-border)] corner-brackets-4"
                                         : "text-[var(--app-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
-                                    }`}
+                                }`}
                             >
                                 <Icon className="w-4 h-4 shrink-0" />
                                 {!isCollapsed && (
@@ -320,8 +331,9 @@ export default function Sidebar({
 
             {/* Footer */}
             <div
-                className={`border-t border-[var(--app-border)] flex flex-col gap-2 ${isCollapsed ? "pt-3 px-0" : "pt-4 px-0"
-                    }`}
+                className={`border-t border-[var(--app-border)] flex flex-col gap-2 ${
+                    isCollapsed ? "pt-3 px-0" : "pt-4 px-0"
+                }`}
             >
                 {/* Configure Columns & Theme Toggle */}
                 {userRole === "LEADER" && (
@@ -329,10 +341,11 @@ export default function Sidebar({
                         <button
                             type="button"
                             onClick={toggleConfigModal}
-                            className={`flex items-center text-[11px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors relative group ${isCollapsed
-                                ? "w-9 h-9 mx-auto justify-center rounded-[3px] border border-[var(--app-border)]"
-                                : "w-full gap-2 px-2.5 py-1.5 rounded-[3px]"
-                                }`}
+                            className={`flex items-center text-[11px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors relative group ${
+                                isCollapsed
+                                    ? "w-9 h-9 mx-auto justify-center rounded-[3px] border border-[var(--app-border)]"
+                                    : "w-full gap-2 px-2.5 py-1.5 rounded-[3px]"
+                            }`}
                         >
                             <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
                             {!isCollapsed && <span>Configure Columns</span>}
@@ -352,8 +365,9 @@ export default function Sidebar({
                 {/* User Session Profile Container */}
                 <div
                     ref={menuRef}
-                    className={`relative border border-[var(--app-border)] corner-brackets bg-[var(--app-card)] transition-all overflow-hidden ${isCollapsed ? "p-0 group" : ""
-                        }`}
+                    className={`relative border border-[var(--app-border)] corner-brackets bg-[var(--app-card)] transition-all overflow-hidden ${
+                        isCollapsed ? "p-0 group" : ""
+                    }`}
                 >
                     {/* Trigger Button */}
                     <button
@@ -365,8 +379,9 @@ export default function Sidebar({
                                 setIsProfileMenuOpen(!isProfileMenuOpen);
                             }
                         }}
-                        className={`w-full flex items-center justify-between gap-2 p-2.5 hover:bg-[var(--app-hover-bg)] transition-colors relative cursor-pointer ${isCollapsed ? "justify-center" : ""
-                            }`}
+                        className={`w-full flex items-center justify-between gap-2 p-2.5 hover:bg-[var(--app-hover-bg)] transition-colors relative cursor-pointer ${
+                            isCollapsed ? "justify-center" : ""
+                        }`}
                         title={isCollapsed ? "Profile Settings" : undefined}
                     >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -380,11 +395,11 @@ export default function Sidebar({
                                 <div className="w-7 h-7 rounded-full border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-xs text-[var(--app-text)] font-semibold shrink-0">
                                     {currentUser.name
                                         ? currentUser.name
-                                            .split(" ")
-                                            .map((n) => n[0])
-                                            .join("")
-                                            .toUpperCase()
-                                            .slice(0, 2)
+                                              .split(" ")
+                                              .map((n) => n[0])
+                                              .join("")
+                                              .toUpperCase()
+                                              .slice(0, 2)
                                         : "U"}
                                 </div>
                             )}

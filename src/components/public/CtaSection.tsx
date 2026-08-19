@@ -20,13 +20,16 @@ export default function CtaSection({ currentUser }: CtaSectionProps) {
                     Transform Your Team's Daily Velocity Today.
                 </h2>
                 <p className="text-sm text-[var(--app-muted)] max-w-xl leading-relaxed">
-                    Start assigning tasks, organizing knowledge, and tracking orbital workflow progress in minutes.
+                    Start assigning tasks, organizing knowledge, and tracking
+                    orbital workflow progress in minutes.
                 </p>
                 <Link
-                    href={currentUser ? "/kanban" : "/login"}
+                    href={currentUser ? "/task-board" : "/login"}
                     className="btn-glass-shimmer mt-2 px-9 py-4 bg-[var(--app-text)] text-[var(--app-bg)] hover:opacity-95 font-bold text-[14.5px] rounded-[3px] shadow-sm transition-all flex items-center gap-2 hover:-translate-y-0.5 active:scale-95"
                 >
-                    <span>{currentUser ? "Go to Workspace" : "Get Started — Free"}</span>
+                    <span>
+                        {currentUser ? "Go to Workspace" : "Get Started — Free"}
+                    </span>
                     <ArrowRight className="w-4 h-4" />
                 </Link>
             </div>

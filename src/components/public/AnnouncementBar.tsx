@@ -19,10 +19,11 @@ export default function AnnouncementBar({ currentUser }: AnnouncementBarProps) {
                 Role-based task assignment, Solar Map visualization are live.
             </span>
             <Link
-                href={currentUser ? "/kanban" : "/login"}
+                href={currentUser ? "/task-board" : "/login"}
                 className="underline font-medium hover:text-[var(--app-text)] ml-1 flex items-center gap-0.5 text-[var(--app-text)]"
             >
-                {currentUser ? "Open Workspace" : "Try Now"} <ChevronRight className="w-3 h-3" />
+                {currentUser ? "Open Workspace" : "Try Now"}{" "}
+                <ChevronRight className="w-3 h-3" />
             </Link>
         </div>
     );

@@ -16,20 +16,30 @@ import {
 import "@xyflow/react/dist/style.css";
 import { Task, Team, User } from "../api";
 
+// Helper to clean leading emojis from workspace name
+const cleanWorkspaceName = (name: string, emoji?: string) => {
+    let clean = name.trim();
+    if (emoji && clean.startsWith(emoji)) {
+        clean = clean.slice(emoji.length).trim();
+    }
+    // Remove any leading emoji character safely
+    clean = clean.replace(/^\p{Emoji_Presentation}\s*/u, "");
+    return clean;
+};
+
 // ─── 1. Custom Node: Leader Node ───
-function LeaderNode({ data }: { data: { label: string; name: string; teamName?: string } }) {
+function LeaderNode({ data }: { data: { label?: string; name?: string; teamName?: string; emoji?: string } }) {
+    const displayName = cleanWorkspaceName(data.teamName || "Workspace", data.emoji);
+
     return (
-        <div className="px-5 py-3 rounded-[3px] border-2 border-[var(--color-error)] bg-[var(--app-card)] shadow-lg text-center min-w-[150px] relative corner-brackets font-sans">
+        <div className="px-5 py-4 rounded-[4px] border border-[var(--app-border-strong)] bg-gradient-to-b from-[var(--app-card)] to-[var(--app-select-bg)] shadow-[var(--shadow-float)] text-center min-w-[170px] relative corner-brackets font-sans flex flex-col items-center gap-2">
             <Handle type="source" position={Position.Bottom} className="opacity-0" />
             <Handle type="target" position={Position.Top} className="opacity-0" />
-            <div className="text-[9px] capitalize font-bold   text-[var(--color-error)] mb-0.5 emoji-font">
-                {data.teamName || "Leader"}
+            <div className="w-10 h-10 rounded-full bg-[var(--app-card)] border border-[var(--app-border)] flex items-center justify-center text-lg shadow-sm emoji-font shrink-0">
+                {data.emoji || "🧑‍💻"}
             </div>
-            <div className="text-sm font-semibold text-[var(--app-text)] leading-tight">
-                {data.name}
-            </div>
-            <div className="text-[9px] text-[var(--app-muted)] font-medium mt-0.5 capitalize">
-                Leader
+            <div className="text-xs font-bold text-[var(--app-text)] leading-tight">
+                {displayName}
             </div>
         </div>
     );
@@ -194,7 +204,12 @@ export default function SolarMapView({
             id: `top-leader-${leaderId}`,
             type: "leader",
             position: { x: leaderX, y: leaderY },
-            data: { label: "Leader", name: leaderName, teamName: `${currentTeam.emoji || "🧑‍💻"} ${currentTeam.name}` },
+            data: {
+                label: "Leader",
+                name: leaderName,
+                teamName: currentTeam.name,
+                emoji: currentTeam.emoji || "🧑‍💻"
+            },
         });
 
         // 2. Member Columns (Level 2 Headers & Level 3 Tasks)
@@ -225,7 +240,7 @@ export default function SolarMapView({
                 id: `edge-top-leader-${member.user.id}`,
                 source: `top-leader-${leaderId}`,
                 target: member.user.id,
-                style: { stroke: "var(--app-border-strong)", strokeWidth: 1.5 },
+                style: { stroke: "var(--color-accent)", strokeWidth: 1.5 },
             });
 
             // Render Level 3 Nodes: Tasks stacked vertically below their assignee card
@@ -272,7 +287,7 @@ export default function SolarMapView({
                 id: "edge-top-leader-unassigned",
                 source: `top-leader-${leaderId}`,
                 target: "unassigned-header",
-                style: { stroke: "var(--app-border-strong)", strokeWidth: 1.5 },
+                style: { stroke: "var(--color-accent)", strokeWidth: 1.5 },
             });
 
             // Render Level 3 Nodes: Unassigned tasks stacked vertically

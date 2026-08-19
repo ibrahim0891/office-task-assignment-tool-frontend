@@ -29,7 +29,6 @@ export default function LeaderDashboard({
     onRefresh,
     onSelectTask,
 }: LeaderDashboardProps) {
-
     const { openMemberProfile, userRole } = useWorkspace();
     const [newMemberId, setNewMemberId] = useState("");
     const [newMemberRole, setNewMemberRole] = useState("MEMBER");
@@ -87,7 +86,6 @@ export default function LeaderDashboard({
         )
             return;
 
-
         try {
             await api.removeTeamMember(currentTeam.id, userId, currentUser.id);
             toast.success("Member removed from team");
@@ -99,7 +97,12 @@ export default function LeaderDashboard({
 
     const handleRoleChange = async (userId: string, newRole: string) => {
         try {
-            await api.updateTeamMemberRole(currentTeam.id, userId, newRole, currentUser.id);
+            await api.updateTeamMemberRole(
+                currentTeam.id,
+                userId,
+                newRole,
+                currentUser.id,
+            );
             toast.success("Member role updated");
             onRefresh();
         } catch (err: any) {
@@ -133,7 +136,9 @@ export default function LeaderDashboard({
             .filter((c) => c.name.toLowerCase().trim() === "need attention")
             .map((c) => c.id);
         const doneColIds = columns
-            .filter((c) => c.isComplete || c.name.toLowerCase().trim() === "done")
+            .filter(
+                (c) => c.isComplete || c.name.toLowerCase().trim() === "done",
+            )
             .map((c) => c.id);
         const activeColIds = columns
             .filter((c) => c.name.toLowerCase().trim() === "in progress")
@@ -149,10 +154,18 @@ export default function LeaderDashboard({
             })
             .map((c) => c.id);
 
-        const needAttentionCount = userTasks.filter((t) => needAttentionColIds.includes(t.columnId)).length;
-        const activeCount = userTasks.filter((t) => activeColIds.includes(t.columnId)).length;
-        const pendingCount = userTasks.filter((t) => pendingColIds.includes(t.columnId)).length;
-        const doneCount = userTasks.filter((t) => doneColIds.includes(t.columnId)).length;
+        const needAttentionCount = userTasks.filter((t) =>
+            needAttentionColIds.includes(t.columnId),
+        ).length;
+        const activeCount = userTasks.filter((t) =>
+            activeColIds.includes(t.columnId),
+        ).length;
+        const pendingCount = userTasks.filter((t) =>
+            pendingColIds.includes(t.columnId),
+        ).length;
+        const doneCount = userTasks.filter((t) =>
+            doneColIds.includes(t.columnId),
+        ).length;
 
         const estimatedHours = userTasks.reduce(
             (sum, t) => sum + (t.estimatedTime || 0),
@@ -194,8 +207,13 @@ export default function LeaderDashboard({
                         </span>
                     </p>
                 </div>
-                <Link href="/kanban" className="shrink-0">
-                    <Button type="button" variant="secondary" size="md" className="relative corner-brackets-4">
+                <Link href="/task-board" className="shrink-0">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="md"
+                        className="relative corner-brackets-4"
+                    >
                         Go to Task Board
                     </Button>
                 </Link>
@@ -244,18 +262,28 @@ export default function LeaderDashboard({
                             <h2 className="text-[13px] font-semibold">
                                 ▪ Team Workloads
                             </h2>
-                                                     </div>
+                        </div>
 
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-[11px] border-collapse">
                                 <thead>
                                     <tr className="border-b border-[#E5E5E3] text-[9px] font-medium text-[#888883] capitalize">
                                         <th className="pb-2 px-2">Member</th>
-                                        <th className="pb-2 px-2 text-center">Need Attention</th>
-                                        <th className="pb-2 px-2 text-center">Active</th>
-                                        <th className="pb-2 px-2 text-center">Pending</th>
-                                        <th className="pb-2 px-2 text-center">Done</th>
-                                        <th className="pb-2 px-2 text-right">Est. Hrs</th>
+                                        <th className="pb-2 px-2 text-center">
+                                            Need Attention
+                                        </th>
+                                        <th className="pb-2 px-2 text-center">
+                                            Active
+                                        </th>
+                                        <th className="pb-2 px-2 text-center">
+                                            Pending
+                                        </th>
+                                        <th className="pb-2 px-2 text-center">
+                                            Done
+                                        </th>
+                                        <th className="pb-2 px-2 text-right">
+                                            Est. Hrs
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#E5E5E3]">
@@ -391,7 +419,8 @@ export default function LeaderDashboard({
                         >
                             <h3 className="eyebrow">Add Member by Email</h3>
                             <p className="text-xs text-[#888883] leading-relaxed">
-                                Enter the email of a registered platform user to add them to this workspace.
+                                Enter the email of a registered platform user to
+                                add them to this workspace.
                             </p>
                             <input
                                 type="email"
@@ -420,13 +449,15 @@ export default function LeaderDashboard({
                                     disabled={isInviting || !inviteEmail.trim()}
                                     className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-[11px] px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center gap-1.5 cursor-pointer"
                                 >
-                                    {isInviting && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
-                                    <span>{isInviting ? "Adding…" : "Add Member"}</span>
+                                    {isInviting && (
+                                        <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                    )}
+                                    <span>
+                                        {isInviting ? "Adding…" : "Add Member"}
+                                    </span>
                                 </button>
                             </div>
                         </form>
-
-
 
                         {/* Add existing user */}
                         <div className="border border-[#E5E5E3] p-3 flex flex-col gap-2">
@@ -471,17 +502,26 @@ export default function LeaderDashboard({
                                         <button
                                             type="button"
                                             onClick={handleAddMember}
-                                            disabled={!newMemberId || isAddingMember}
+                                            disabled={
+                                                !newMemberId || isAddingMember
+                                            }
                                             className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-[11px] px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center gap-1.5 cursor-pointer"
                                         >
-                                            {isAddingMember && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
-                                            <span>{isAddingMember ? "Adding…" : "Add"}</span>
+                                            {isAddingMember && (
+                                                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                            )}
+                                            <span>
+                                                {isAddingMember
+                                                    ? "Adding…"
+                                                    : "Add"}
+                                            </span>
                                         </button>
                                     </div>
                                 </>
                             ) : (
                                 <p className="text-xs text-[#888883] leading-relaxed italic">
-                                    All registered platform users are already members of this workspace.
+                                    All registered platform users are already
+                                    members of this workspace.
                                 </p>
                             )}
                         </div>
@@ -523,27 +563,47 @@ export default function LeaderDashboard({
                                                     {user.email}
                                                 </span>
 
-                                                {userRole === "LEADER" && user.id !== currentUser.id ? (
-                                                    <div onClick={(e) => e.stopPropagation()} className="mt-1">
+                                                {userRole === "LEADER" &&
+                                                user.id !== currentUser.id ? (
+                                                    <div
+                                                        onClick={(e) =>
+                                                            e.stopPropagation()
+                                                        }
+                                                        className="mt-1"
+                                                    >
                                                         <select
                                                             value={role}
-                                                            onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                                                            onChange={(e) =>
+                                                                handleRoleChange(
+                                                                    user.id,
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
                                                             className="bg-white border border-[#E5E5E3] hover:border-[#1A1A1A] rounded-[2px] px-1.5 py-0.5 text-[9px] font-medium text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] cursor-pointer transition-colors"
                                                         >
-                                                            <option value="MEMBER">Member</option>
-                                                            <option value="LEADER">Leader</option>
-                                                            <option value="OBSERVER">Observer</option>
+                                                            <option value="MEMBER">
+                                                                Member
+                                                            </option>
+                                                            <option value="LEADER">
+                                                                Leader
+                                                            </option>
+                                                            <option value="OBSERVER">
+                                                                Observer
+                                                            </option>
                                                         </select>
                                                     </div>
                                                 ) : (
                                                     <span
                                                         className={`text-[8px] font-medium capitalize ${getRoleColor(role)}`}
                                                     >
-                                                        {role === "LEADER" ? "Leader" : role}
+                                                        {role === "LEADER"
+                                                            ? "Leader"
+                                                            : role}
                                                     </span>
                                                 )}
-                                             </div>
-                                             <span className="text-[9px] font-medium text-[#888883] bg-[#FAFAF9] border border-[#E5E5E3] px-2 py-0.5 rounded-[2px] ml-auto shrink-0 hidden sm:block">
+                                            </div>
+                                            <span className="text-[9px] font-medium text-[#888883] bg-[#FAFAF9] border border-[#E5E5E3] px-2 py-0.5 rounded-[2px] ml-auto shrink-0 hidden sm:block">
                                                 {user.designation ||
                                                     "Team Member"}
                                             </span>
