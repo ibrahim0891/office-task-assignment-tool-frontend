@@ -36,9 +36,24 @@ export default function RootLayout({
     return (
         <html
             lang="en"
+            suppressHydrationWarning
             className={`${inter.variable} ${instrumentSerif.variable} h-full`}
         >
             <head>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            (function() {
+                                try {
+                                    var theme = localStorage.getItem('sys_theme');
+                                    if (theme) {
+                                        document.documentElement.setAttribute('data-theme', theme);
+                                    }
+                                } catch (e) {}
+                            })();
+                        `,
+                    }}
+                />
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <link
