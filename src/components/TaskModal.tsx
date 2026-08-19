@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useLayoutEffect } from "react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "./ui/CustomSelect";
 import { CustomDatePicker } from "./ui/CustomDatePicker";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import { TipTapEditor } from "./ui/TipTapEditor";
-import { Task, TaskColumn, User, api } from "../api";
+import { Task, TaskColumn, User, Comment, api } from "../api";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { APP_CONFIG } from "../config/appConfig";
 import {
@@ -43,7 +43,7 @@ export default function TaskModal({
     onRefresh,
     initialTab = "details",
 }: TaskModalProps) {
-    const { openMemberProfile } = useWorkspace();
+    const { openMemberProfile, commentUpdateTrigger } = useWorkspace();
     // Form Local State (prevents auto-saving on every keystroke)
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description || "");
@@ -96,11 +96,25 @@ export default function TaskModal({
         null,
     );
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const commentInputRef = React.useRef<HTMLInputElement>(null);
 
     const prevTaskIdRef = React.useRef<string | null>(null);
     const prevIsOpenRef = React.useRef<boolean>(false);
     const prevTaskRef = React.useRef<Task | null>(null);
-    const visibleComments = (task.comments || []).filter(
+    const [commentsList, setCommentsList] = useState<Comment[]>([]);
+    const [commentsPage, setCommentsPage] = useState(1);
+    const [hasMoreComments, setHasMoreComments] = useState(false);
+    const [isLoadingComments, setIsLoadingComments] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [showLoadMore, setShowLoadMore] = useState(false);
+    const [commentToDeleteId, setCommentToDeleteId] = useState<string | null>(null);
+    const commentsEndRef = React.useRef<HTMLDivElement>(null);
+    const commentsContainerRef = React.useRef<HTMLDivElement>(null);
+    const prevScrollHeightRef = React.useRef<number>(0);
+    const lastScrollTopRef = React.useRef<number>(0);
+    const shouldScrollToBottomRef = React.useRef<boolean>(false);
+
+    const visibleComments = (commentsList || []).filter(
         (c) => !hiddenCommentIds.includes(c.id),
     );
 
@@ -140,6 +154,8 @@ export default function TaskModal({
             else if (initialTab === "details") mappedTab = "comments";
             setActiveTab(mappedTab);
             setHiddenCommentIds([]);
+            setCommentsList([]);
+            setShowLoadMore(false);
         } else {
             // Same task updating. Only update inputs that have not been modified locally!
             if (title === prevTask.title) {
@@ -179,6 +195,86 @@ export default function TaskModal({
         prevIsOpenRef.current = isOpen;
         prevTaskRef.current = task;
     }, [task, isOpen, initialTab]);
+
+    const loadTaskComments = useCallback(async (page: number, append = false, silent = false) => {
+        if (!silent) {
+            if (page === 1) {
+                setIsLoadingComments(true);
+            } else {
+                setIsLoadingMore(true);
+            }
+        }
+        try {
+            // Check if user was already at or near bottom
+            const isNearBottom = commentsContainerRef.current
+                ? (commentsContainerRef.current.scrollHeight - commentsContainerRef.current.scrollTop - commentsContainerRef.current.clientHeight <= 100)
+                : true;
+
+            // Preserve current scrollTop before updates
+            if (commentsContainerRef.current) {
+                lastScrollTopRef.current = commentsContainerRef.current.scrollTop;
+            }
+
+            const res = await api.getTaskComments(task.id, page, 15);
+            if (append) {
+                if (commentsContainerRef.current) {
+                    prevScrollHeightRef.current = commentsContainerRef.current.scrollHeight;
+                }
+                shouldScrollToBottomRef.current = false;
+                setCommentsList(prev => [...res.comments, ...prev]);
+            } else {
+                if (page === 1) {
+                    shouldScrollToBottomRef.current = !silent || isNearBottom;
+                } else {
+                    shouldScrollToBottomRef.current = false;
+                }
+                setCommentsList(res.comments);
+            }
+            setHasMoreComments(res.hasMore);
+            setCommentsPage(page);
+        } catch (err: any) {
+            console.error(err);
+            toast.error("Failed to load comments.");
+        } finally {
+            if (!silent) {
+                setIsLoadingComments(false);
+                setIsLoadingMore(false);
+            }
+        }
+    }, [task.id]);
+
+    useEffect(() => {
+        if (isOpen && activeTab === "comments") {
+            const silent = commentsList.length > 0;
+            loadTaskComments(1, false, silent);
+        }
+    }, [isOpen, task.id, activeTab, commentUpdateTrigger, loadTaskComments]);
+
+    useLayoutEffect(() => {
+        if (!isOpen || activeTab !== "comments") return;
+        if (!commentsContainerRef.current) return;
+        
+        const container = commentsContainerRef.current;
+        
+        if (shouldScrollToBottomRef.current) {
+            if (commentsEndRef.current) {
+                commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
+            }
+            shouldScrollToBottomRef.current = false;
+        } else if (prevScrollHeightRef.current > 0) {
+            container.scrollTop = container.scrollHeight - prevScrollHeightRef.current;
+            prevScrollHeightRef.current = 0;
+        } else if (lastScrollTopRef.current > 0) {
+            container.scrollTop = lastScrollTopRef.current;
+            lastScrollTopRef.current = 0;
+        }
+    }, [commentsList, isOpen, activeTab]);
+
+    const handleCommentsScroll = () => {
+        if (!commentsContainerRef.current) return;
+        const { scrollTop } = commentsContainerRef.current;
+        setShowLoadMore(scrollTop <= 15);
+    };
 
     // Calculate dirty status (un-saved changes exist)
     const isTitleDirty = title !== task.title;
@@ -443,9 +539,14 @@ export default function TaskModal({
         if (!comment.trim() || isSendingComment) return;
         setIsSendingComment(true);
         try {
-            await api.addComment(task.id, currentUser.id, comment);
+            const newComment = await api.addComment(task.id, currentUser.id, comment);
             setComment("");
+            setCommentsList(prev => [...prev, newComment]);
             onRefresh();
+            setTimeout(() => {
+                commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                commentInputRef.current?.focus();
+            }, 50);
         } catch (err: any) {
             toast.error(err.message);
         } finally {
@@ -547,9 +648,14 @@ export default function TaskModal({
     };
 
     const handleResolveComment = async (commentId: string) => {
+        if (commentsContainerRef.current) {
+            lastScrollTopRef.current = commentsContainerRef.current.scrollTop;
+        }
+        shouldScrollToBottomRef.current = false;
         try {
             await api.resolveComment(task.id, commentId, currentUser.id);
             toast.success("Comment marked as resolved.");
+            loadTaskComments(commentsPage, false, true);
             onRefresh();
         } catch (err: any) {
             toast.error(err.message || "Failed to resolve comment.");
@@ -557,9 +663,14 @@ export default function TaskModal({
     };
 
     const handleReopenComment = async (commentId: string) => {
+        if (commentsContainerRef.current) {
+            lastScrollTopRef.current = commentsContainerRef.current.scrollTop;
+        }
+        shouldScrollToBottomRef.current = false;
         try {
             await api.reopenComment(task.id, commentId, currentUser.id);
             toast.success("Comment reopened.");
+            loadTaskComments(commentsPage, false, true);
             onRefresh();
         } catch (err: any) {
             toast.error(err.message || "Failed to reopen comment.");
@@ -568,43 +679,24 @@ export default function TaskModal({
 
     const handleDeleteComment = async (commentId: string) => {
         // Optimistically hide the comment
+        if (commentsContainerRef.current) {
+            lastScrollTopRef.current = commentsContainerRef.current.scrollTop;
+        }
+        shouldScrollToBottomRef.current = false;
         setHiddenCommentIds((prev) => [...prev, commentId]);
 
-        const timer = setTimeout(async () => {
-            try {
-                await api.deleteComment(task.id, commentId, currentUser.id);
-                onRefresh();
-            } catch (err: any) {
-                toast.error(err.message || "Failed to delete comment.");
-                // Revert optimistic deletion if the API call fails
-                setHiddenCommentIds((prev) =>
-                    prev.filter((id) => id !== commentId),
-                );
-            }
-        }, 5000);
-
-        toast(
-            (t) => (
-                <div className="flex items-center justify-between gap-3 w-full text-xs py-0.5">
-                    <span className="font-sans font-medium text-[var(--app-text)]">
-                        Comment deleted.
-                    </span>
-                    <button
-                        onClick={() => {
-                            clearTimeout(timer);
-                            setHiddenCommentIds((prev) =>
-                                prev.filter((id) => id !== commentId),
-                            );
-                            toast.dismiss(t.id);
-                        }}
-                        className="px-2.5 py-1 rounded-[2px] bg-[var(--app-text)] text-[var(--app-bg)] text-[10px] font-bold hover:opacity-90 transition-opacity cursor-pointer shadow-xs shrink-0"
-                    >
-                        Undo
-                    </button>
-                </div>
-            ),
-            { duration: 5000 },
-        );
+        try {
+            await api.deleteComment(task.id, commentId, currentUser.id);
+            toast.success("Comment deleted.");
+            loadTaskComments(commentsPage, false, true);
+            onRefresh();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to delete comment.");
+            // Revert optimistic deletion if the API call fails
+            setHiddenCommentIds((prev) =>
+                prev.filter((id) => id !== commentId),
+            );
+        }
     };
 
     const handleDeleteAttachment = async (
@@ -816,9 +908,33 @@ export default function TaskModal({
                         {/* TAB 1: COMMENTS */}
                         {activeTab === "comments" && (
                             <div className="relative flex flex-col flex-1 min-h-0 h-full gap-3 animate-fade-in border border-[#E5E5E3] bg-[#FAFAF9] p-3 rounded-[3px] corner-brackets">
-                                {/* Comment Thread List filling available height */}
-                                <div className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-0 pr-1">
-                                    {visibleComments.length === 0 ? (
+                                {/* Load More Button at the top */}
+                                {hasMoreComments && showLoadMore && (
+                                    <div className="flex justify-center shrink-0 mb-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => loadTaskComments(commentsPage + 1, true)}
+                                            disabled={isLoadingMore}
+                                            className="text-[10px] text-[#888883] hover:text-[#1A1A1A] font-semibold flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] border border-[#E5E5E3] bg-white hover:bg-[#FAFAF9] transition-all disabled:opacity-50 cursor-pointer shadow-3xs"
+                                        >
+                                            {isLoadingMore && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                                            <span>Load previous comments</span>
+                                        </button>
+                                    </div>
+                                )}
+
+                                 {/* Comment Thread List filling available height */}
+                                <div
+                                    ref={commentsContainerRef}
+                                    onScroll={handleCommentsScroll}
+                                    className="flex-1 overflow-y-auto flex flex-col gap-3 min-h-0 pr-1"
+                                >
+                                    {isLoadingComments ? (
+                                        <div className="flex flex-col items-center justify-center h-full gap-2 text-[#888883] text-[11px] my-auto">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <span>Loading comments...</span>
+                                        </div>
+                                    ) : visibleComments.length === 0 ? (
                                         <div className="p-8 text-center flex flex-col items-center justify-center gap-1 text-[#888883] my-auto">
                                             <MessageSquare className="w-4 h-4 text-[#DADAD6]" />
                                             <span className="text-[11px] font-medium text-[#1A1A1A] mt-0.5">
@@ -830,180 +946,163 @@ export default function TaskModal({
                                             </span>
                                         </div>
                                     ) : (
-                                        visibleComments.map((c) => {
-                                            return (
-                                                <div
-                                                    key={c.id}
-                                                    className={`border p-2.5 rounded-[3px] text-left transition-colors flex flex-col gap-1 ${c.resolved ? "border-[#DADAD6] bg-[#FAFAF9] opacity-75" : "border-[#E5E5E3] bg-white"}`}
-                                                >
-                                                    <div className="flex justify-between items-center text-[10px]">
-                                                        <div
-                                                            onClick={() =>
-                                                                c.user &&
-                                                                openMemberProfile(
-                                                                    c.user,
-                                                                )
-                                                            }
-                                                            className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
-                                                        >
-                                                            {c.user
-                                                                ?.avatarUrl ? (
-                                                                <img
-                                                                    src={
-                                                                        c.user
-                                                                            .avatarUrl
-                                                                    }
-                                                                    alt={
-                                                                        c.user
-                                                                            .name
-                                                                    }
-                                                                    className="w-4 h-4 rounded-full object-cover border border-[#E5E5E3] shrink-0"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] text-[#1A1A1A] font-semibold shrink-0">
-                                                                    {c.user
-                                                                        ?.name
-                                                                        ? c.user.name
-                                                                              .split(
-                                                                                  " ",
-                                                                              )
-                                                                              .map(
-                                                                                  (
-                                                                                      n,
-                                                                                  ) =>
-                                                                                      n[0],
-                                                                              )
-                                                                              .join(
-                                                                                  "",
-                                                                              )
-                                                                              .toUpperCase()
-                                                                              .slice(
-                                                                                  0,
-                                                                                  2,
-                                                                              )
-                                                                        : "U"}
-                                                                </div>
-                                                            )}
-                                                            <span className="font-semibold text-[#1A1A1A]">
-                                                                {c.user?.name}
-                                                            </span>
+                                        <div className="flex flex-col gap-2 pb-2">
+                                            {visibleComments.map((c) => {
+                                                return (
+                                                    <div
+                                                        key={c.id}
+                                                        className={`border p-2.5 rounded-[3px] text-left transition-colors flex flex-col gap-1 ${c.resolved ? "border-[#DADAD6] bg-[#FAFAF9] opacity-75" : "border-[#E5E5E3] bg-white"}`}
+                                                    >
+                                                        <div className="flex justify-between items-center text-[10px]">
+                                                            <div
+                                                                onClick={() =>
+                                                                    c.user &&
+                                                                    openMemberProfile(
+                                                                        c.user,
+                                                                    )
+                                                                }
+                                                                className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+                                                            >
+                                                                {c.user?.avatarUrl ? (
+                                                                    <img
+                                                                        src={c.user.avatarUrl}
+                                                                        alt={c.user.name}
+                                                                        className="w-4 h-4 rounded-full object-cover border border-[#E5E5E3] shrink-0"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] text-[#1A1A1A] font-semibold shrink-0">
+                                                                        {c.user?.name
+                                                                            ? c.user.name
+                                                                                  .split(" ")
+                                                                                  .map((n) => n[0])
+                                                                                  .join("")
+                                                                                  .toUpperCase()
+                                                                                  .slice(0, 2)
+                                                                            : "U"}
+                                                                    </div>
+                                                                )}
+                                                                <span className="font-semibold text-[#1A1A1A]">
+                                                                    {c.user?.name}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-[#888883]">
+                                                                <span>
+                                                                    {new Date(
+                                                                        c.createdAt,
+                                                                    ).toLocaleDateString()}{" "}
+                                                                    {new Date(
+                                                                        c.createdAt,
+                                                                    ).toLocaleTimeString(
+                                                                        [],
+                                                                        {
+                                                                            hour: "2-digit",
+                                                                            minute: "2-digit",
+                                                                        },
+                                                                    )}
+                                                                </span>
+                                                                {c.resolved && (
+                                                                    <span className="px-1.5 py-0.5 rounded-[2px] bg-[#22863A]/10 text-[#22863A] text-[9px] font-semibold flex items-center gap-1 shadow-2xs shrink-0">
+                                                                        ✓ Resolved
+                                                                    </span>
+                                                                )}
+                                                                {!c.resolved
+                                                                    ? (c.userId ===
+                                                                          currentUser.id ||
+                                                                          task.createdById ===
+                                                                              currentUser.id ||
+                                                                          task.assignedToId ===
+                                                                              currentUser.id) && (
+                                                                          <button
+                                                                              type="button"
+                                                                              onClick={() =>
+                                                                                  handleResolveComment(
+                                                                                      c.id,
+                                                                                  )
+                                                                              }
+                                                                              className="px-2 py-0.5 border border-[#CB2431]/30 bg-[#CB2431]/5 hover:bg-[#CB2431] text-[#CB2431] hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                                                              title="Resolve comment"
+                                                                          >
+                                                                              <Check className="w-3 h-3" />
+                                                                              <span>
+                                                                                  Resolve
+                                                                              </span>
+                                                                          </button>
+                                                                      )
+                                                                    : (c.userId ===
+                                                                          currentUser.id ||
+                                                                          task.createdById ===
+                                                                              currentUser.id ||
+                                                                          task.assignedToId ===
+                                                                              currentUser.id) && (
+                                                                          <button
+                                                                              type="button"
+                                                                              onClick={() =>
+                                                                                  handleReopenComment(
+                                                                                      c.id,
+                                                                                  )
+                                                                              }
+                                                                              className="px-2 py-0.5 border border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#1A1A1A] hover:text-white text-[#1A1A1A] rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                                                              title="Reopen comment"
+                                                                          >
+                                                                              <span>
+                                                                                  Reopen
+                                                                              </span>
+                                                                          </button>
+                                                                      )}
+                                                                {c.userId ===
+                                                                    currentUser.id && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            setCommentToDeleteId(
+                                                                                c.id,
+                                                                            )
+                                                                        }
+                                                                        className="px-2 py-0.5 border border-red-200 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                                                        title="Delete comment permanently"
+                                                                    >
+                                                                        <span>
+                                                                            Delete
+                                                                        </span>
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        <div className="flex items-center gap-2 text-[#888883]">
-                                                            <span>
-                                                                {new Date(
-                                                                    c.createdAt,
-                                                                ).toLocaleDateString()}{" "}
-                                                                {new Date(
-                                                                    c.createdAt,
-                                                                ).toLocaleTimeString(
-                                                                    [],
-                                                                    {
-                                                                        hour: "2-digit",
-                                                                        minute: "2-digit",
+                                                        <p className="text-[11px] text-[#1A1A1A] leading-relaxed break-words font-sans">
+                                                            {c.content
+                                                                .split(" ")
+                                                                .map(
+                                                                    (word, idx) => {
+                                                                        if (
+                                                                            word.startsWith(
+                                                                                "@",
+                                                                            )
+                                                                        ) {
+                                                                            return (
+                                                                                <span
+                                                                                    key={
+                                                                                        idx
+                                                                                    }
+                                                                                    className="text-[#1A1A1A] font-semibold underline"
+                                                                                >
+                                                                                    {
+                                                                                        word
+                                                                                    }{" "}
+                                                                                </span>
+                                                                            );
+                                                                        }
+                                                                        return (
+                                                                            word +
+                                                                            " "
+                                                                        );
                                                                     },
                                                                 )}
-                                                            </span>
-                                                            {c.resolved && (
-                                                                <span className="px-1.5 py-0.5 rounded-[2px] bg-[#22863A]/10 text-[#22863A] text-[9px] font-semibold flex items-center gap-1 shadow-2xs shrink-0">
-                                                                    ✓ Resolved
-                                                                </span>
-                                                            )}
-                                                            {!c.resolved
-                                                                ? (c.userId ===
-                                                                      currentUser.id ||
-                                                                      task.createdById ===
-                                                                          currentUser.id ||
-                                                                      task.assignedToId ===
-                                                                          currentUser.id) && (
-                                                                      <button
-                                                                          type="button"
-                                                                          onClick={() =>
-                                                                              handleResolveComment(
-                                                                                  c.id,
-                                                                              )
-                                                                          }
-                                                                          className="px-2 py-0.5 border border-[#CB2431]/30 bg-[#CB2431]/5 hover:bg-[#CB2431] text-[#CB2431] hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
-                                                                          title="Resolve comment"
-                                                                      >
-                                                                          <Check className="w-3 h-3" />
-                                                                          <span>
-                                                                              Resolve
-                                                                          </span>
-                                                                      </button>
-                                                                  )
-                                                                : (c.userId ===
-                                                                      currentUser.id ||
-                                                                      task.createdById ===
-                                                                          currentUser.id ||
-                                                                      task.assignedToId ===
-                                                                          currentUser.id) && (
-                                                                      <button
-                                                                          type="button"
-                                                                          onClick={() =>
-                                                                              handleReopenComment(
-                                                                                  c.id,
-                                                                              )
-                                                                          }
-                                                                          className="px-2 py-0.5 border border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#1A1A1A] hover:text-white text-[#1A1A1A] rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
-                                                                          title="Reopen comment"
-                                                                      >
-                                                                          <span>
-                                                                              Reopen
-                                                                          </span>
-                                                                      </button>
-                                                                  )}
-                                                            {c.userId ===
-                                                                currentUser.id && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        handleDeleteComment(
-                                                                            c.id,
-                                                                        )
-                                                                    }
-                                                                    className="px-2 py-0.5 border border-red-200 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
-                                                                    title="Delete comment permanently"
-                                                                >
-                                                                    <span>
-                                                                        Delete
-                                                                    </span>
-                                                                </button>
-                                                            )}
-                                                        </div>
+                                                        </p>
                                                     </div>
-                                                    <p className="text-[11px] text-[#1A1A1A] leading-relaxed break-words font-sans">
-                                                        {c.content
-                                                            .split(" ")
-                                                            .map(
-                                                                (word, idx) => {
-                                                                    if (
-                                                                        word.startsWith(
-                                                                            "@",
-                                                                        )
-                                                                    ) {
-                                                                        return (
-                                                                            <span
-                                                                                key={
-                                                                                    idx
-                                                                                }
-                                                                                className="text-[#1A1A1A] font-semibold underline"
-                                                                            >
-                                                                                {
-                                                                                    word
-                                                                                }{" "}
-                                                                            </span>
-                                                                        );
-                                                                    }
-                                                                    return (
-                                                                        word +
-                                                                        " "
-                                                                    );
-                                                                },
-                                                            )}
-                                                    </p>
-                                                </div>
-                                            );
-                                        })
+                                                );
+                                            })}
+                                            <div ref={commentsEndRef} />
+                                        </div>
                                     )}
                                 </div>
 
@@ -1014,21 +1113,17 @@ export default function TaskModal({
                                         className="flex gap-1.5 shrink-0 pt-2 border-t border-[#E5E5E3]"
                                     >
                                         <input
+                                            ref={commentInputRef}
                                             type="text"
                                             placeholder="Write a comment..."
                                             value={comment}
                                             disabled={isSendingComment}
-                                            onChange={(e) =>
-                                                setComment(e.target.value)
-                                            }
+                                            onChange={(e) => setComment(e.target.value)}
                                             className={`flex-1 ${inputClass}`}
                                         />
                                         <button
                                             type="submit"
-                                            disabled={
-                                                isSendingComment ||
-                                                !comment.trim()
-                                            }
+                                            disabled={isSendingComment || !comment.trim()}
                                             className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-3.5 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {isSendingComment ? (
@@ -1036,11 +1131,7 @@ export default function TaskModal({
                                             ) : (
                                                 <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
                                             )}
-                                            <span>
-                                                {isSendingComment
-                                                    ? "Sending…"
-                                                    : "Send"}
-                                            </span>
+                                            <span>{isSendingComment ? "Sending…" : "Send"}</span>
                                         </button>
                                     </form>
                                 )}
@@ -1859,6 +1950,23 @@ export default function TaskModal({
                 isLoading={isDeleting}
                 onConfirm={handleConfirmDelete}
                 onClose={() => setIsArchiveConfirmOpen(false)}
+            />
+
+            {/* Confirm Dialog for Comment Deletion */}
+            <ConfirmDialog
+                isOpen={!!commentToDeleteId}
+                title="Delete Comment"
+                description="Are you sure you want to permanently delete this comment? This action cannot be undone."
+                confirmText="Delete Comment"
+                cancelText="Cancel"
+                isDanger={true}
+                onConfirm={async () => {
+                    if (commentToDeleteId) {
+                        await handleDeleteComment(commentToDeleteId);
+                    }
+                    setCommentToDeleteId(null);
+                }}
+                onClose={() => setCommentToDeleteId(null)}
             />
 
             {/* Fullscreen Image View Modal with Top-Right X Close Button */}

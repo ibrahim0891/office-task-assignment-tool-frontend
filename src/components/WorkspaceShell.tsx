@@ -160,6 +160,7 @@ export default function WorkspaceShell({
         handleMarkNotificationRead,
         handleClearAllNotifications,
         handleArchiveNotification,
+        handleDeleteArchivedNotifications,
         handleLoginSuccess,
         toasts,
         removeToast,
@@ -682,6 +683,7 @@ export default function WorkspaceShell({
                 onMarkRead={handleMarkNotificationRead}
                 onClearAll={handleClearAllNotifications}
                 onArchiveNotification={handleArchiveNotification}
+                onDeleteArchived={handleDeleteArchivedNotifications}
                 onSelectTask={async (id: string, initialTab?: "details" | "comments" | "attachments") => {
                     try {
                         const updatedTask = await api.getTask(id);

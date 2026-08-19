@@ -130,7 +130,7 @@ export interface Task {
   createdBy: User;
   assignedTo: User;
   checklist: ChecklistItem[];
-  comments: Comment[];
+  comments?: Comment[];
   attachments: Attachment[];
   activities: TaskActivity[];
 }
@@ -503,6 +503,15 @@ export const api = {
     return res.json();
   },
 
+  async getTaskComments(taskId: string, page = 1, limit = 15): Promise<{ comments: Comment[]; hasMore: boolean }> {
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/comments?page=${page}&limit=${limit}`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch task comments.');
+    }
+    return res.json();
+  },
+
   async addComment(taskId: string, userId: string, content: string): Promise<Comment> {
     const res = await fetch(`${API_BASE}/tasks/${taskId}/comments`, {
       method: 'POST',
@@ -633,13 +642,18 @@ export const api = {
     window.URL.revokeObjectURL(url);
   },
 
-  async getNotifications(userId: string, page?: number, limit?: number): Promise<Notification[]> {
+  async getNotifications(userId: string, teamId: string, page?: number, limit?: number): Promise<Notification[]> {
     const url = new URL(`${API_BASE}/notifications`);
+    url.searchParams.append('teamId', teamId);
     if (page) url.searchParams.append('page', page.toString());
     if (limit) url.searchParams.append('limit', limit.toString());
     const res = await fetch(url.toString(), {
       headers: { 'x-user-id': userId }
     });
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to fetch notifications");
+    }
     return res.json();
   },
 
@@ -662,6 +676,13 @@ export const api = {
       method: 'PUT'
     });
     return res.json();
+  },
+
+  async deleteArchivedNotifications(userId: string): Promise<void> {
+    await fetch(`${API_BASE}/notifications/archived`, {
+      method: 'DELETE',
+      headers: { 'x-user-id': userId }
+    });
   },
 
   // Knowledge Base

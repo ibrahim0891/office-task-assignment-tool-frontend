@@ -10,6 +10,7 @@ interface NotificationsTrayProps {
     onMarkRead: (id: string) => void;
     onClearAll: () => void;
     onArchiveNotification: (id: string) => void;
+    onDeleteArchived?: () => void;
     onSelectTask: (taskId: string, initialTab?: "details" | "comments" | "attachments") => void;
     hasMore: boolean;
     isLoadingMore: boolean;
@@ -24,6 +25,7 @@ export default function NotificationsTray({
     onMarkRead,
     onClearAll,
     onArchiveNotification,
+    onDeleteArchived,
     onSelectTask,
     hasMore,
     isLoadingMore,
@@ -98,10 +100,20 @@ export default function NotificationsTray({
                                     <button
                                         onClick={onClearAll}
                                         title="Move all notifications to Archive (kept for 30 days)"
-                                        className="text-[11px] text-[#CB2431] font-medium hover:bg-[#FFF5F5] px-2 py-1 border border-[#CB2431]/20 rounded-[3px] transition-colors flex items-center gap-1"
+                                        className="text-[10px] uppercase font-semibold tracking-wider px-3 py-1.5 rounded-[2px] border border-[#E5E5E3] hover:border-[#DADAD6] hover:bg-[#FAFAF9] text-[#888883] hover:text-[#1A1A1A] transition-colors"
+                                    >
+                                        Clear All
+                                    </button>
+                                )}
+                            {activeTab === "archived" &&
+                                archivedNotifications.length > 0 && (
+                                    <button
+                                        onClick={onDeleteArchived}
+                                        title="Permanently delete all archived notifications"
+                                        className="text-[10px] uppercase font-semibold tracking-wider px-3 py-1.5 rounded-[2px] border border-[#E5E5E3] hover:border-[#CB2431] hover:bg-[#FFF5F5] text-[#888883] hover:text-[#CB2431] transition-colors flex items-center gap-1"
                                     >
                                         <Trash2 className="w-3 h-3" />
-                                        Clear All
+                                        Clear Archive
                                     </button>
                                 )}
                             <button

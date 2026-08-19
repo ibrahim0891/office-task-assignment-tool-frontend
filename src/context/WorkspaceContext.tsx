@@ -41,6 +41,7 @@ interface WorkspaceContextType {
     setSelectedMemberFilter: (memberId: string) => void;
     searchQuery: string;
     setSearchQuery: (query: string) => void;
+    commentUpdateTrigger: number;
 
     // Modals
     isNotificationsOpen: boolean;
@@ -74,6 +75,7 @@ interface WorkspaceContextType {
     handleMarkNotificationRead: (id: string) => Promise<void>;
     handleClearAllNotifications: () => Promise<void>;
     handleArchiveNotification: (id: string) => Promise<void>;
+    handleDeleteArchivedNotifications: () => Promise<void>;
     handleLoginSuccess: (user: User, token: string) => void;
     setDraggingCardId: (cardId: string | null) => void;
     toasts: any[];
@@ -142,6 +144,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>("");
     const [searchQuery, setSearchQuery] = useState<string>("");
+    const [commentUpdateTrigger, setCommentUpdateTrigger] = useState<number>(0);
 
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -321,6 +324,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const selectedTaskIdRef = useRef<string | null>(null);
     selectedTaskIdRef.current = selectedTaskId;
 
+    const currentUserRef = useRef<User | null>(null);
+    currentUserRef.current = currentUser;
+
     // Socket.IO Realtime Kanban Synchronization — hardened against race conditions
     useEffect(() => {
         if (!currentTeam?.id) return;
@@ -337,9 +343,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         socket.on("connect", () => {
             console.log(`[Socket Client] Connected successfully with ID: ${socket.id}`);
             // Register user identity so backend can exclude our sockets from broadcasts
-            if (currentUser?.id) {
-                console.log(`[Socket Client] Emitting register_user for user ${currentUser.id}`);
-                socket.emit("register_user", currentUser.id);
+            if (currentUserRef.current?.id) {
+                console.log(`[Socket Client] Emitting register_user for user ${currentUserRef.current.id}`);
+                socket.emit("register_user", currentUserRef.current.id);
             }
             console.log(`[Socket Client] Emitting join_team for team ${currentTeam.id}`);
             socket.emit("join_team", currentTeam.id);
@@ -378,7 +384,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             
             const isSelfEcho = data.clientId 
                 ? data.clientId === clientId 
-                : (data.actingUserId && data.actingUserId === currentUser?.id);
+                : (data.actingUserId && data.actingUserId === currentUserRef.current?.id);
 
             if (isSelfEcho) {
                 console.debug(`[DragSync] Ignoring self-originated socket echo for task ${data.taskId}, action=${data.action}`);
@@ -411,6 +417,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
             // For comment actions, just reload to refresh comment list on the task
             if (action === "comment_created" || action === "comment_deleted" || action === "comment_resolved" || action === "comment_reopened") {
+                if (taskId === selectedTaskIdRef.current) {
+                    setCommentUpdateTrigger(Date.now());
+                }
                 loadTasks();
                 return;
             }
@@ -456,7 +465,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             socket.disconnect();
             socketRef.current = null;
         };
-    }, [currentTeam?.id, loadTasks, currentUser?.id]);
+    }, [currentTeam?.id]);
+
+    useEffect(() => {
+        if (socketRef.current && currentUser?.id) {
+            console.log(`[Socket Client] Registering user ${currentUser.id} dynamically on user change`);
+            socketRef.current.emit("register_user", currentUser.id);
+        }
+    }, [currentUser?.id]);
 
 
 
@@ -517,10 +533,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     addNotificationToastRef.current = addNotificationToast;
 
     const loadNotifications = async () => {
-        if (!currentUser) return;
+        if (!currentUser || !currentTeam) return;
         setIsNotificationsLoading(true);
         try {
-            const data = await api.getNotifications(currentUser.id, 1, 10);
+            const data = await api.getNotifications(currentUser.id, currentTeam.id, 1, 10);
             setNotifications(data);
             setNotificationsPage(1);
             setHasMoreNotifications(data.length === 10);
@@ -532,11 +548,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     const loadMoreNotifications = async () => {
-        if (!currentUser || isLoadingMoreNotifications || !hasMoreNotifications) return;
+        if (!currentUser || !currentTeam || isLoadingMoreNotifications || !hasMoreNotifications) return;
         setIsLoadingMoreNotifications(true);
-        const nextPage = notificationsPage + 1;
         try {
-            const data = await api.getNotifications(currentUser.id, nextPage, 10);
+            const nextPage = notificationsPage + 1;
+            const data = await api.getNotifications(currentUser.id, currentTeam.id, nextPage, 10);
             if (data.length > 0) {
                 setNotifications((prev) => {
                     const existingIds = new Set(prev.map((n) => n.id));
@@ -584,6 +600,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             loadNotifications();
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    const handleDeleteArchivedNotifications = async () => {
+        if (!currentUser) return;
+        try {
+            await api.deleteArchivedNotifications(currentUser.id);
+            toast.success("Archived notifications permanently deleted.");
+            loadNotifications();
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to delete archived notifications.");
         }
     };
 
@@ -911,6 +939,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 setSelectedMemberFilter,
                 searchQuery,
                 setSearchQuery,
+                commentUpdateTrigger,
                 isNotificationsOpen,
                 setIsNotificationsOpen,
                 isConfigModalOpen,
@@ -940,6 +969,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 handleMarkNotificationRead,
                 handleClearAllNotifications,
                 handleArchiveNotification,
+                handleDeleteArchivedNotifications,
                 handleLoginSuccess,
                 setDraggingCardId,
                 toasts,

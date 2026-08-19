@@ -174,158 +174,120 @@ export default function ProfilePage() {
                 }}
                 className="max-w-3xl mx-auto w-full flex flex-col gap-5 select-none"
             >
-                {/* Top Header Toolbar */}
-                <div className="flex justify-between items-center pb-3 border-b border-[#E5E5E3]">
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href="/task-board"
-                            className="text-[11px] text-[#888883] hover:text-[#1A1A1A] font-medium transition-colors flex items-center gap-1"
-                        >
-                            <ChevronLeft className="w-3.5 h-3.5" />
-                            <span>Workspace</span>
-                        </Link>
-                        <span className="profile-badge text-[11px] font-medium text-[#888883] border border-[#E5E5E3] px-2.5 py-1 rounded-[2px] bg-white">
-                            Profile Settings
-                        </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="md"
-                            type="button"
-                            onClick={() => window.history.back()}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={handleSave}
-                            disabled={isSaving}
-                            isLoading={isSaving}
-                            loadingText="Saving…"
-                            showDot={!isSaving}
-                            size="md"
-                        >
-                            Save Changes
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Unified Frame Container with Corner Brackets */}
-                <div className="relative border border-[#E5E5E3] bg-white corner-brackets flex flex-col rounded-[3px]">
-                    {/* Section 1: Profile Header */}
-                    <ProfileHeader
-                        user={{
-                            ...currentUser,
-                            name: formData.name,
-                            avatarUrl: formData.avatarUrl,
-                            designation: formData.designation,
-                            bloodGroup: formData.bloodGroup,
-                        }}
-                        isSaving={isSaving}
-                        onSave={handleSave}
-                        onAvatarChange={(newUrl) =>
-                            handleChange("avatarUrl", newUrl)
-                        }
-                    />
-
-                    {/* Section Divider 1 */}
-                    <div className="relative w-full border-t border-[#E5E5E3]">
-                        {/* Left T-Bracket ├ */}
-                        <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center text-[#1A1A1A]">
-                            <svg
-                                width="10"
-                                height="10"
-                                viewBox="0 0 10 10"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
+                <fieldset disabled={isSaving} className="border-0 p-0 m-0 w-full flex flex-col gap-5">
+                    {/* Top Header Toolbar */}
+                    <div className="flex justify-between items-center pb-3 border-b border-[#E5E5E3]">
+                        <div className="flex items-center gap-3">
+                            <Link
+                                href="/task-board"
+                                className="text-[11px] text-[#888883] hover:text-[#1A1A1A] font-medium transition-colors flex items-center gap-1"
                             >
-                                <path
-                                    d="M5 0V10M5 5H10"
-                                    stroke="currentColor"
-                                    strokeWidth="1.5"
-                                />
-                            </svg>
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                                <span>Workspace</span>
+                            </Link>
+                            <span className="profile-badge text-[11px] font-medium text-[#888883] border border-[#E5E5E3] px-2.5 py-1 rounded-[2px] bg-white">
+                                Profile Settings
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="ghost"
+                                size="md"
+                                type="button"
+                                onClick={() => window.history.back()}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={isSaving}
+                                isLoading={isSaving}
+                                loadingText="Saving…"
+                                showDot={!isSaving}
+                                size="md"
+                            >
+                                Save Changes
+                            </Button>
                         </div>
                     </div>
 
-                    {/* Section 2: Grouped Tabs Navigation Bar */}
-                    <div className="bg-[#FAFAF9] px-2 py-1.5 flex items-center gap-1">
-                        {tabs.map((t) => {
-                            const Icon = t.icon;
-                            const isActive = activeTab === t.id;
-                            return (
-                                <button
-                                    key={t.id}
-                                    type="button"
-                                    onClick={() => setActiveTab(t.id)}
-                                    className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
-                                        isActive
-                                            ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4"
-                                            : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#F0F0EE]"
-                                    }`}
-                                >
-                                    <Icon className="w-3 h-3 shrink-0" />
-                                    <span>{t.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                    {/* Unified Frame Container with Corner Brackets */}
+                    <div className="relative border border-[#E5E5E3] bg-white corner-brackets flex flex-col rounded-[3px]">
+                        {/* Section 1: Profile Header */}
+                        <ProfileHeader
+                            user={{
+                                ...currentUser,
+                                name: formData.name,
+                                avatarUrl: formData.avatarUrl,
+                                designation: formData.designation,
+                                bloodGroup: formData.bloodGroup,
+                            }}
+                            isSaving={isSaving}
+                            onSave={handleSave}
+                            onAvatarChange={(newUrl) =>
+                                handleChange("avatarUrl", newUrl)
+                            }
+                        />
 
-                    {/* Section Divider 2 */}
-                    <div className="relative w-full border-t border-[#E5E5E3]">
-                        {/* Left T-Bracket ├ */}
-                        <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center text-[#1A1A1A]">
-                            <svg
-                                width="10"
-                                height="10"
-                                viewBox="0 0 10 10"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path
-                                    d="M5 0V10M5 5H10"
-                                    stroke="currentColor"
-                                    strokeWidth="1.5"
+                        {/* Section 2: Tab Bar switcher */}
+                        <div className="flex items-center gap-6 px-5 border-b border-[#E5E5E3] bg-[#FAFAF9]">
+                            {tabs.map((tab) => {
+                                const Icon = tab.icon;
+                                const isActive = activeTab === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        type="button"
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`flex items-center gap-2 py-3.5 border-b-2 text-[11px] font-semibold tracking-wide uppercase transition-all cursor-pointer ${
+                                            isActive
+                                                ? "border-[#1A1A1A] text-[#1A1A1A]"
+                                                : "border-transparent text-[#888883] hover:text-[#1A1A1A]"
+                                        }`}
+                                    >
+                                        <Icon className="w-3.5 h-3.5" />
+                                        <span>{tab.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Section 3: Inner Active tab components */}
+                        <div className="p-5 select-text">
+                            {activeTab === "personal" && (
+                                <PersonalInfoSection
+                                    name={formData.name}
+                                    designation={formData.designation}
+                                    bio={formData.bio}
+                                    avatarUrl={formData.avatarUrl}
+                                    bloodGroup={formData.bloodGroup}
+                                    onChange={handleChange}
                                 />
-                            </svg>
+                            )}
+
+                            {activeTab === "contact" && (
+                                <ContactInfoSection
+                                    secondaryEmail={formData.secondaryEmail}
+                                    primaryPhone={formData.primaryPhone}
+                                    secondaryPhone={formData.secondaryPhone}
+                                    emergencyContact={formData.emergencyContact}
+                                    onChange={handleChange}
+                                />
+                            )}
+
+                            {activeTab === "social" && (
+                                <SocialLinksSection
+                                    telegram={formData.telegram}
+                                    whatsapp={formData.whatsapp}
+                                    github={formData.github}
+                                    onChange={handleChange}
+                                />
+                            )}
                         </div>
                     </div>
-
-                    {/* Section 3: Active Tab Content */}
-                    <div className="p-6 bg-white flex flex-col gap-5">
-                        {activeTab === "personal" && (
-                            <PersonalInfoSection
-                                name={formData.name}
-                                designation={formData.designation}
-                                bio={formData.bio}
-                                avatarUrl={formData.avatarUrl}
-                                bloodGroup={formData.bloodGroup}
-                                onChange={handleChange}
-                            />
-                        )}
-
-                        {activeTab === "contact" && (
-                            <ContactInfoSection
-                                secondaryEmail={formData.secondaryEmail}
-                                primaryPhone={formData.primaryPhone}
-                                secondaryPhone={formData.secondaryPhone}
-                                emergencyContact={formData.emergencyContact}
-                                onChange={handleChange}
-                            />
-                        )}
-
-                        {activeTab === "social" && (
-                            <SocialLinksSection
-                                telegram={formData.telegram}
-                                whatsapp={formData.whatsapp}
-                                github={formData.github}
-                                onChange={handleChange}
-                            />
-                        )}
-                    </div>
-                </div>
+                </fieldset>
             </form>
         </div>
     );
