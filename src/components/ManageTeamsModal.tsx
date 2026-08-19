@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Team, User } from "../api";
 import { Button } from "./ui/Button";
-import { X, Edit2, Trash2, Check, Plus, ShieldAlert, LogOut } from "lucide-react";
+import { X, Edit2, Trash2, Check, Plus, ShieldAlert, LogOut, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { EmojiPicker } from "./ui/EmojiPicker";
 
@@ -184,7 +184,7 @@ export default function ManageTeamsModal({
                             <div className="p-4 bg-[#FFF5F5] border border-[#F5C6CB] rounded-[2px] flex items-start gap-3 text-[#CB2431]">
                                 <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" />
                                 <div className="text-base flex flex-col gap-1.5">
-                                    <span className="font-semibold text-[13px] tracking-tight">
+                                    <span className="font-semibold text-[13px]   ">
                                         Permanent Cascading Workspace Deletion
                                     </span>
                                     <p className="text-[11px] leading-relaxed text-[#900C1C]">
@@ -262,16 +262,20 @@ export default function ManageTeamsModal({
                                         type="submit"
                                         disabled={
                                             confirmationInput !==
-                                                "I know what I'm doing" ||
+                                            "I know what I'm doing" ||
                                             !passwordInput ||
                                             isSubmitting
                                         }
                                         className="relative corner-brackets-4 bg-[#CB2431] hover:bg-[#A01C27] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-medium px-4 h-[36px] rounded-[2px] transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
                                     >
-                                        <Trash2 className="w-3.5 h-3.5" />
+                                        {isSubmitting ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        )}
                                         <span>
                                             {isSubmitting
-                                                ? "Deleting..."
+                                                ? "Deleting…"
                                                 : "Confirm & Delete Workspace"}
                                         </span>
                                     </button>
@@ -349,13 +353,13 @@ export default function ManageTeamsModal({
                                             <Button
                                                 type="submit"
                                                 size="sm"
-                                                showDot
+                                                showDot={!isSubmitting}
+                                                isLoading={isSubmitting}
+                                                loadingText="Creating…"
                                                 disabled={isSubmitting}
                                                 className="px-4"
                                             >
-                                                {isSubmitting
-                                                    ? "Creating..."
-                                                    : "Create Workspace"}
+                                                Create Workspace
                                             </Button>
                                         </div>
                                     </form>
@@ -377,11 +381,10 @@ export default function ManageTeamsModal({
                                         return (
                                             <div
                                                 key={t.id}
-                                                className={`relative p-3.5 sm:p-4 border rounded-[2px] flex items-center justify-between gap-4 transition-colors corner-brackets ${
-                                                    isCurrent
+                                                className={`relative p-3.5 sm:p-4 border rounded-[2px] flex items-center justify-between gap-4 transition-colors corner-brackets ${isCurrent
                                                         ? "bg-white border-[#E5E5E3] shadow-xs"
                                                         : "bg-[#FAFAF9] border-[#F0F0EE] hover:border-[#E5E5E3]"
-                                                }`}
+                                                    }`}
                                             >
                                                 {isEditing ? (
                                                     <div className="flex items-center gap-2.5 flex-1">
@@ -416,7 +419,11 @@ export default function ManageTeamsModal({
                                                             className="relative corner-brackets-4 flex items-center justify-center h-[46px] w-[46px] bg-[#1A1A1A] text-white rounded-[2px] hover:bg-[#333333] transition-colors cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                                                             title="Save"
                                                         >
-                                                            <Check className="w-4 h-4" />
+                                                            {isSubmitting ? (
+                                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                            ) : (
+                                                                <Check className="w-4 h-4" />
+                                                            )}
                                                         </button>
                                                         <button
                                                             onClick={() =>

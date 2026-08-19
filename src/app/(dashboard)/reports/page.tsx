@@ -2,9 +2,9 @@
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import ReportView from "../../components/ReportView";
-import { useWorkspace } from "../../context/WorkspaceContext";
-import { SkeletonList } from "../../components/ui/SkeletonLoader";
+import ReportView from "@/components/ReportView";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import { SkeletonList } from "@/components/ui/SkeletonLoader";
 
 export default function ReportsPage() {
     const { currentTeam, userRole } = useWorkspace();
@@ -12,7 +12,7 @@ export default function ReportsPage() {
 
     useEffect(() => {
         if (currentTeam && userRole !== "LEADER") {
-            router.replace("/");
+            router.replace("/kanban");
         }
     }, [currentTeam, userRole, router]);
 

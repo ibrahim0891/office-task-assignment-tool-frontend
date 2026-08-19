@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api } from "../../api";
-import { useWorkspace } from "../../context/WorkspaceContext";
+import { api } from "@/api";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
     const { currentUser, handleLoginSuccess } = useWorkspace();
@@ -106,14 +108,18 @@ export default function LoginPage() {
             <div className="relative corner-brackets w-full max-w-sm bg-white border border-[#E5E5E3] p-6 flex flex-col gap-5 shadow-sm">
                 
                 {/* App Title */}
-                <div className="flex flex-col items-center text-center gap-1">
+                <Link
+                    href="/"
+                    title="Go to Landing Page"
+                    className="flex flex-col items-center text-center gap-1 hover:opacity-80 transition-opacity cursor-pointer group"
+                >
                     <h1 className="font-heading text-2xl text-[#1A1A1A]">
                         SM Technology
                     </h1>
                     <p className="eyebrow text-[#888883]">
                         Daily Task Management System
                     </p>
-                </div>
+                </Link>
 
                 {/* Form Navigation Tabs for Sign In / Register */}
                 {(view === "SIGNIN" || view === "SIGNUP") && (
@@ -170,9 +176,11 @@ export default function LoginPage() {
                                         setIsLoading(false);
                                     }
                                 }}
-                                className="px-2 py-1 bg-[#CB2431] text-white text-[10px] font-semibold rounded-[2px] hover:bg-[#a81d28] transition-colors shrink-0 cursor-pointer"
+                                disabled={isLoading}
+                                className="px-2 py-1 bg-[#CB2431] text-white text-[10px] font-semibold rounded-[2px] hover:bg-[#a81d28] transition-colors shrink-0 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
                             >
-                                Verify
+                                {isLoading && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                                <span>{isLoading ? "Sending…" : "Verify"}</span>
                             </button>
                         )}
                     </div>
@@ -341,10 +349,19 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full py-2.5 mt-2 bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-40 text-white font-medium text-base rounded-[3px] transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                        className="w-full py-2.5 mt-2 bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-40 text-white font-medium text-base rounded-[3px] transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:cursor-not-allowed"
                     >
                         {isLoading ? (
-                            <span>Processing…</span>
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                                <span>
+                                    {view === "SIGNIN" && "Signing In…"}
+                                    {view === "SIGNUP" && "Creating Account…"}
+                                    {view === "VERIFY" && "Verifying Code…"}
+                                    {view === "FORGOT" && "Sending Reset Code…"}
+                                    {view === "RESET" && "Resetting Password…"}
+                                </span>
+                            </>
                         ) : (
                             <span>
                                 {view === "SIGNIN" && "Sign In"}
@@ -365,10 +382,11 @@ export default function LoginPage() {
                             <button
                                 type="button"
                                 onClick={handleResendCode}
-                                disabled={isResending}
-                                className="text-[#1A1A1A] font-semibold hover:underline cursor-pointer disabled:opacity-50"
+                                disabled={isResending || isLoading}
+                                className="text-[#1A1A1A] font-semibold hover:underline cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
                             >
-                                {isResending ? "Resending..." : "Resend Code"}
+                                {isResending && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
+                                <span>{isResending ? "Resending..." : "Resend Code"}</span>
                             </button>
                         </div>
                         <button

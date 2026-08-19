@@ -3,7 +3,6 @@ import { Inter, Instrument_Serif } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { WorkspaceProvider } from "../context/WorkspaceContext";
-import WorkspaceShell from "../components/WorkspaceShell";
 import { APP_CONFIG } from "../config/appConfig";
 
 const inter = Inter({
@@ -53,7 +52,7 @@ export default function RootLayout({
                     toastOptions={{ duration: 3000 }}
                 />
                 <WorkspaceProvider>
-                    <WorkspaceShell>{children}</WorkspaceShell>
+                    {children}
                 </WorkspaceProvider>
             </body>
         </html>

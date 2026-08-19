@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import KanbanBoard from "../../components/KanbanBoard";
-import { useWorkspace } from "../../context/WorkspaceContext";
-import { SkeletonBoard } from "../../components/ui/SkeletonLoader";
+import KanbanBoard from "@/components/KanbanBoard";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import { SkeletonBoard } from "@/components/ui/SkeletonLoader";
 
 export default function KanbanPage() {
     const {

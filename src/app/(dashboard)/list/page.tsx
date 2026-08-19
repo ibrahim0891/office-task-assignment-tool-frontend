@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import ListView from "../../components/ListView";
-import { useWorkspace } from "../../context/WorkspaceContext";
-import { SkeletonList } from "../../components/ui/SkeletonLoader";
+import ListView from "@/components/ListView";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import { SkeletonList } from "@/components/ui/SkeletonLoader";
 
 export default function ListPage() {
     const {

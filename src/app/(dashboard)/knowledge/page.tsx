@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
-import { api, KnowledgeArticle } from "../../api";
-import { TipTapEditor } from "../../components/ui/TipTapEditor";
-import { Button } from "../../components/ui/Button";
-import { useWorkspace } from "../../context/WorkspaceContext";
+import { api, KnowledgeArticle } from "@/api";
+import { TipTapEditor } from "@/components/ui/TipTapEditor";
+import { Button } from "@/components/ui/Button";
+import { useWorkspace } from "@/context/WorkspaceContext";
 import toast from "react-hot-toast";
 import { Plus, Columns2, Trash2, BookOpen, FilePen, Pencil, Printer } from "lucide-react";
-import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 function ArticleAuthorAvatar({
     avatarUrl,
@@ -150,8 +150,6 @@ export default function KnowledgePage() {
             handleNew();
         }
     };
-
-
 
     const handleSave = async () => {
         if (!currentTeam || !currentUser) return;
@@ -339,8 +337,14 @@ export default function KnowledgePage() {
                                 <Button size="md" variant="ghost" onClick={handleCancel} disabled={isSaving}>
                                     Cancel
                                 </Button>
-                                <Button size="md" showDot onClick={handleSave} disabled={isSaving}>
-                                    {isSaving ? "Saving…" : "Save"}
+                                <Button
+                                    size="md"
+                                    showDot={!isSaving}
+                                    onClick={handleSave}
+                                    isLoading={isSaving}
+                                    loadingText="Saving…"
+                                >
+                                    Save
                                 </Button>
                             </>
                         )}

@@ -524,16 +524,16 @@ export default function KanbanBoard({
                                                     task.createdById ===
                                                     currentUser.id;
 
-                                                 const isLeader =
-                                                     userRole === "LEADER";
-                                                 const isTaskAssignee =
-                                                     task.assignedToId === currentUser.id;
-                                                 const isTaskDragDisabled =
-                                                     userRole === "OBSERVER" ||
-                                                     (!isLeader &&
-                                                         !isTaskCreator &&
-                                                         !isTaskAssignee);
-                                                 return (
+                                                const isLeader =
+                                                    userRole === "LEADER";
+                                                const isTaskAssignee =
+                                                    task.assignedToId === currentUser.id;
+                                                const isTaskDragDisabled =
+                                                    userRole === "OBSERVER" ||
+                                                    (!isLeader &&
+                                                        !isTaskCreator &&
+                                                        !isTaskAssignee);
+                                                return (
                                                     <Draggable
                                                         key={task.id}
                                                         draggableId={task.id}
@@ -583,7 +583,7 @@ export default function KanbanBoard({
                                                                     </div>
 
                                                                     {/* 3-dot menu trigger visible on hover */}
-                                                                     {userRole !== "OBSERVER" && task.createdById === currentUser.id && (
+                                                                    {userRole !== "OBSERVER" && task.createdById === currentUser.id && (
                                                                         <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
                                                                             <button
                                                                                 type="button"

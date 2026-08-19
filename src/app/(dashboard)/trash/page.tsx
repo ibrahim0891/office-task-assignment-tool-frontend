@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import TrashView from "../../components/TrashView";
-import { useWorkspace } from "../../context/WorkspaceContext";
-import { SkeletonList } from "../../components/ui/SkeletonLoader";
+import TrashView from "@/components/TrashView";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import { SkeletonList } from "@/components/ui/SkeletonLoader";
 
 export default function TrashPage() {
     const {

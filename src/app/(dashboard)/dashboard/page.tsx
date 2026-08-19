@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import LeaderDashboard from "../../components/LeaderDashboard";
-import { useWorkspace } from "../../context/WorkspaceContext";
-import { SkeletonBoard } from "../../components/ui/SkeletonLoader";
+import LeaderDashboard from "@/components/LeaderDashboard";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import { SkeletonBoard } from "@/components/ui/SkeletonLoader";
 
 export default function DashboardPage() {
     const {

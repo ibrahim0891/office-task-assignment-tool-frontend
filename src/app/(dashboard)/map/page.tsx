@@ -2,10 +2,10 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { useWorkspace } from "../../context/WorkspaceContext";
-import SolarMapView from "../../components/SolarMapView";
-import { SkeletonBoard } from "../../components/ui/SkeletonLoader";
-import { Button } from "../../components/ui/Button";
+import { useWorkspace } from "@/context/WorkspaceContext";
+import SolarMapView from "@/components/SolarMapView";
+import { SkeletonBoard } from "@/components/ui/SkeletonLoader";
+import { Button } from "@/components/ui/Button";
 import { ShieldAlert } from "lucide-react";
 
 export default function SolarMapRoute() {

@@ -165,12 +165,16 @@ export default function Sidebar({
                 {/* Header & Toggle Button */}
                 <div className="pb-3 border-b border-[var(--app-border)] flex items-center justify-between">
                     {!isCollapsed && (
-                        <div>
-                            <h1 className="font-heading text-xl text-[var(--app-text)]">
+                        <Link
+                            href="/"
+                            title="Go to Landing Page"
+                            className="flex flex-col hover:opacity-80 transition-opacity cursor-pointer text-left group"
+                        >
+                            <h1 className="font-heading text-xl text-[var(--app-text)] group-hover:text-[#1A1A1A] transition-colors">
                                 SM Technology
                             </h1>
                             <p className="eyebrow mt-0.5">Assignment Core</p>
-                        </div>
+                        </Link>
                     )}
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
@@ -263,9 +267,7 @@ export default function Sidebar({
                     )}
                     {views.map((v) => {
                         const Icon = v.icon;
-                        const isActive =
-                            pathname === v.href ||
-                            (pathname === "/" && v.id === "kanban");
+                        const isActive = pathname === v.href;
                         const isLeaderOnly = v.leaderOnly;
                         const isLeaderOrObserverOnly = (v as any).leaderOrObserverOnly;
                         const isAllowed =

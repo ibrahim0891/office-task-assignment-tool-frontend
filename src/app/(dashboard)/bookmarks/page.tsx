@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
-import { api, Bookmark, getIframeProxyUrl } from "../../api";
-import { Button } from "../../components/ui/Button";
-import { useWorkspace } from "../../context/WorkspaceContext";
+import { api, Bookmark, getIframeProxyUrl } from "@/api";
+import { Button } from "@/components/ui/Button";
+import { useWorkspace } from "@/context/WorkspaceContext";
 import toast from "react-hot-toast";
 import {
     Plus, X, Edit2, Trash2, ExternalLink, Bookmark as BookmarkIcon,
@@ -65,7 +65,7 @@ function BookmarkModal({ initial, onClose, onSave }: {
             <div className="relative bg-white border border-[#E5E5E3] rounded-[3px] p-5 w-full max-w-md flex flex-col gap-4 corner-brackets">
                 <div className="flex items-center justify-between border-b border-[#E5E5E3] pb-3">
                     <div>
-                        <span className="eyebrow capitalize   text-[10px]">Bookmark</span>
+                        <span className="eyebrow capitalize text-[10px]">Bookmark</span>
                         <h3 className="text-base font-semibold text-[#1A1A1A] font-heading">{initial ? "Edit Bookmark" : "Add Bookmark"}</h3>
                     </div>
                     <button onClick={onClose} className="p-1 text-[#888883] hover:text-[#1A1A1A] rounded-[2px] transition-colors cursor-pointer">
@@ -89,8 +89,16 @@ function BookmarkModal({ initial, onClose, onSave }: {
                             className="w-full px-3.5 py-2.5 border border-[#E5E5E3] hover:border-[#DADAD6] focus:border-[#1A1A1A] focus:outline-none text-base bg-white rounded-[2px] transition-colors placeholder-[#BBBBBB] resize-none" />
                     </div>
                     <div className="flex justify-end gap-2 pt-2 border-t border-[#E5E5E3]">
-                        <Button type="button" variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-                        <Button type="submit" size="md" showDot disabled={saving}>{saving ? "Saving…" : initial ? "Update" : "Add Bookmark"}</Button>
+                        <Button type="button" variant="ghost" size="md" disabled={saving} onClick={onClose}>Cancel</Button>
+                        <Button
+                            type="submit"
+                            size="md"
+                            showDot={!saving}
+                            isLoading={saving}
+                            loadingText="Saving…"
+                        >
+                            {initial ? "Update" : "Add Bookmark"}
+                        </Button>
                     </div>
                 </form>
             </div>
@@ -165,7 +173,7 @@ export default function BookmarksPage() {
         <div className="flex-1 flex flex-col overflow-hidden bg-[#FAFAF9]">
             <div className="px-6 py-3 border-b border-[#E5E5E3] bg-white flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                    <span className="eyebrow capitalize   text-[10px]">Bookmarks</span>
+                    <span className="eyebrow capitalize text-[10px]">Bookmarks</span>
                     <span className="text-[11px] text-[#888883] font-medium">
                         {isLoading ? "Loading…" : `${bookmarks.length} saved link${bookmarks.length !== 1 ? "s" : ""}`}
                     </span>

@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { api, User } from "../../api";
-import { ProfileHeader } from "../../components/profile/ProfileHeader";
-import { PersonalInfoSection } from "../../components/profile/PersonalInfoSection";
-import { ContactInfoSection } from "../../components/profile/ContactInfoSection";
-import { SocialLinksSection } from "../../components/profile/SocialLinksSection";
-import { SkeletonProfile } from "../../components/ui/SkeletonLoader";
-import { Button } from "../../components/ui/Button";
+import { api, User } from "@/api";
+import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { PersonalInfoSection } from "@/components/profile/PersonalInfoSection";
+import { ContactInfoSection } from "@/components/profile/ContactInfoSection";
+import { SocialLinksSection } from "@/components/profile/SocialLinksSection";
+import { SkeletonProfile } from "@/components/ui/SkeletonLoader";
+import { Button } from "@/components/ui/Button";
 import { User as UserIcon, Phone, Share2, ChevronLeft } from "lucide-react";
 
 export default function ProfilePage() {
@@ -139,10 +139,10 @@ export default function ProfilePage() {
                     Please log in to view and edit your profile.
                 </p>
                 <Link
-                    href="/"
+                    href="/login"
                     className="px-4 py-2 bg-[#1A1A1A] text-white text-base rounded-[3px]"
                 >
-                    Go to Workspace
+                    Go to Sign In
                 </Link>
             </div>
         );
@@ -167,7 +167,7 @@ export default function ProfilePage() {
                 <div className="flex justify-between items-center pb-3 border-b border-[#E5E5E3]">
                     <div className="flex items-center gap-3">
                         <Link
-                            href="/"
+                            href="/kanban"
                             className="text-[11px] text-[#888883] hover:text-[#1A1A1A] font-medium transition-colors flex items-center gap-1"
                         >
                             <ChevronLeft className="w-3.5 h-3.5" />
@@ -191,10 +191,12 @@ export default function ProfilePage() {
                             type="button"
                             onClick={handleSave}
                             disabled={isSaving}
-                            showDot
+                            isLoading={isSaving}
+                            loadingText="Saving…"
+                            showDot={!isSaving}
                             size="md"
                         >
-                            {isSaving ? "Saving…" : "Save Changes"}
+                            Save Changes
                         </Button>
                     </div>
                 </div>

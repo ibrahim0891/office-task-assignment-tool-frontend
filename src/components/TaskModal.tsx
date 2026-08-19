@@ -75,6 +75,8 @@ export default function TaskModal({
     const [activeTab, setActiveTab] = useState<"details" | "comments" | "attachments">("details");
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [comment, setComment] = useState("");
+    const [isPostingComment, setIsPostingComment] = useState(false);
+    const [isSendingComment, setIsSendingComment] = useState(false);
     const [newSubtask, setNewSubtask] = useState("");
     const [attachmentName, setAttachmentName] = useState("");
     const [attachmentUrl, setAttachmentUrl] = useState("");
@@ -360,13 +362,16 @@ export default function TaskModal({
     const handleAddComment = async (e: React.FormEvent) => {
         e.preventDefault();
         if (isObserver) return;
-        if (!comment.trim()) return;
+        if (!comment.trim() || isSendingComment) return;
+        setIsSendingComment(true);
         try {
             await api.addComment(task.id, currentUser.id, comment);
             setComment("");
             onRefresh();
         } catch (err: any) {
             toast.error(err.message);
+        } finally {
+            setIsSendingComment(false);
         }
     };
 
@@ -607,7 +612,11 @@ export default function TaskModal({
                                 disabled={isSaving}
                                 className="relative corner-brackets-4 px-3 py-1 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <span className="w-1.5 h-1.5 rounded-[0.5px] inline-block bg-[#555555]" />
+                                {isSaving ? (
+                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                ) : (
+                                    <span className="w-1.5 h-1.5 rounded-[0.5px] inline-block bg-[#555555]" />
+                                )}
                                 <span>{isSaving ? "Saving…" : "Save Changes"}</span>
                             </button>
                         )}
@@ -723,14 +732,19 @@ export default function TaskModal({
                                                             </button>
                                                             <button
                                                                 type="button"
+                                                                disabled={isSaving}
                                                                 onClick={() => {
                                                                     setIsEditingDescription(false);
                                                                     handleSaveChanges(false);
                                                                 }}
-                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
+                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                                             >
-                                                                <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
-                                                                <span>Save</span>
+                                                                {isSaving ? (
+                                                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                                                ) : (
+                                                                    <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
+                                                                )}
+                                                                <span>{isSaving ? "Saving…" : "Save"}</span>
                                                             </button>
                                                         </>
                                                     ) : hasDescription ? (
@@ -801,7 +815,8 @@ export default function TaskModal({
                                             <form
                                                 onSubmit={async (e) => {
                                                     e.preventDefault();
-                                                    if (!comment.trim()) return;
+                                                    if (!comment.trim() || isPostingComment) return;
+                                                    setIsPostingComment(true);
                                                     try {
                                                         await api.addComment(task.id, currentUser.id, comment);
                                                         setComment("");
@@ -809,6 +824,8 @@ export default function TaskModal({
                                                         toast.success("Comment posted!");
                                                     } catch (err: any) {
                                                         toast.error(err.message || "Failed to post comment");
+                                                    } finally {
+                                                        setIsPostingComment(false);
                                                     }
                                                 }}
                                                 className="flex gap-1.5"
@@ -818,14 +835,20 @@ export default function TaskModal({
                                                     placeholder="Write a quick comment..."
                                                     value={comment}
                                                     onChange={(e) => setComment(e.target.value)}
+                                                    disabled={isPostingComment}
                                                     className={`flex-1 ${inputClass}`}
                                                 />
                                                 <button
                                                     type="submit"
-                                                    className="relative corner-brackets-4 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] px-3.5 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
+                                                    disabled={isPostingComment || !comment.trim()}
+                                                    className="relative corner-brackets-4 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] px-3.5 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
-                                                    <span className="w-1.5 h-1.5 bg-[var(--app-text)] rounded-[0.5px] inline-block" />
-                                                    <span>Post Comment</span>
+                                                    {isPostingComment ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                                    ) : (
+                                                        <span className="w-1.5 h-1.5 bg-[var(--app-text)] rounded-[0.5px] inline-block" />
+                                                    )}
+                                                    <span>{isPostingComment ? "Posting…" : "Post Comment"}</span>
                                                 </button>
                                             </form>
                                         </div>
@@ -976,6 +999,7 @@ export default function TaskModal({
                                             type="text"
                                             placeholder="Write comment "
                                             value={comment}
+                                            disabled={isSendingComment}
                                             onChange={(e) =>
                                                 setComment(e.target.value)
                                             }
@@ -983,10 +1007,15 @@ export default function TaskModal({
                                         />
                                         <button
                                             type="submit"
-                                            className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-3.5 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
+                                            disabled={isSendingComment || !comment.trim()}
+                                            className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-3.5 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
-                                            <span>Send</span>
+                                            {isSendingComment ? (
+                                                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                            ) : (
+                                                <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
+                                            )}
+                                            <span>{isSendingComment ? "Sending…" : "Send"}</span>
                                         </button>
                                     </form>
                                 )}
@@ -1154,26 +1183,26 @@ export default function TaskModal({
                                 disabled={!canEditDetails}
                                 options={userRole === "MEMBER"
                                     ? [
-                                          {
-                                              value: currentUser.id,
-                                              label: `${currentUser.name} (You)`,
-                                              avatarUrl: currentUser.avatarUrl || null,
-                                          },
-                                          ...(task.assignedTo && task.assignedTo.id !== currentUser.id
-                                              ? [
-                                                    {
-                                                        value: task.assignedTo.id,
-                                                        label: task.assignedTo.name,
-                                                        avatarUrl: task.assignedTo.avatarUrl || null,
-                                                    },
-                                                ]
-                                              : []),
-                                      ]
+                                        {
+                                            value: currentUser.id,
+                                            label: `${currentUser.name} (You)`,
+                                            avatarUrl: currentUser.avatarUrl || null,
+                                        },
+                                        ...(task.assignedTo && task.assignedTo.id !== currentUser.id
+                                            ? [
+                                                {
+                                                    value: task.assignedTo.id,
+                                                    label: task.assignedTo.name,
+                                                    avatarUrl: task.assignedTo.avatarUrl || null,
+                                                },
+                                            ]
+                                            : []),
+                                    ]
                                     : teamMembers.map(({ user }) => ({
-                                          value: user.id,
-                                          label: user.id === currentUser.id ? `${user.name} (You)` : user.name,
-                                          avatarUrl: user.avatarUrl || null,
-                                      }))}
+                                        value: user.id,
+                                        label: user.id === currentUser.id ? `${user.name} (You)` : user.name,
+                                        avatarUrl: user.avatarUrl || null,
+                                    }))}
                                 value={assignedToId}
                                 onChange={(val) => setAssignedToId(val)}
                                 className="w-full"
@@ -1391,10 +1420,12 @@ export default function TaskModal({
                             </button>
                             <button
                                 type="button"
+                                disabled={isSaving}
                                 onClick={() => handleSaveChanges(true)}
-                                className="px-4 py-1.5 text-[11px] font-medium text-white bg-[#1A1A1A] hover:bg-[#333] rounded-[3px] transition-colors"
+                                className="px-4 py-1.5 text-[11px] font-medium text-white bg-[#1A1A1A] hover:bg-[#333] rounded-[3px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                             >
-                                Save & Close
+                                {isSaving && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
+                                <span>{isSaving ? "Saving…" : "Save & Close"}</span>
                             </button>
                         </div>
                     </div>

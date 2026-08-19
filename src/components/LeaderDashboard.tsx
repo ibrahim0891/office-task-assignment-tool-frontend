@@ -6,6 +6,7 @@ import { useWorkspace } from "../context/WorkspaceContext";
 import { Button } from "./ui/Button";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { Loader2 } from "lucide-react";
 
 interface LeaderDashboardProps {
     currentTeam: Team;
@@ -36,10 +37,11 @@ export default function LeaderDashboard({
     const [inviteEmail, setInviteEmail] = useState("");
     const [inviteRole, setInviteRole] = useState("MEMBER");
     const [isInviting, setIsInviting] = useState(false);
+    const [isAddingMember, setIsAddingMember] = useState(false);
 
     const handleInviteByEmail = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!inviteEmail.trim()) return;
+        if (!inviteEmail.trim() || isInviting) return;
         setIsInviting(true);
         try {
             await api.inviteMemberByEmail(
@@ -59,7 +61,8 @@ export default function LeaderDashboard({
     };
 
     const handleAddMember = async () => {
-        if (!newMemberId) return;
+        if (!newMemberId || isAddingMember) return;
+        setIsAddingMember(true);
         try {
             await api.addTeamMember(currentTeam.id, newMemberId, newMemberRole);
             toast.success("Team member added successfully");
@@ -67,6 +70,8 @@ export default function LeaderDashboard({
             onRefresh();
         } catch (err: any) {
             toast.error(err.message || "Failed to add member");
+        } finally {
+            setIsAddingMember(false);
         }
     };
 
@@ -413,9 +418,10 @@ export default function LeaderDashboard({
                                 <button
                                     type="submit"
                                     disabled={isInviting || !inviteEmail.trim()}
-                                    className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-30 text-white font-medium text-base px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center cursor-pointer"
+                                    className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-[11px] px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center gap-1.5 cursor-pointer"
                                 >
-                                    {isInviting ? "Adding…" : "Add Member"}
+                                    {isInviting && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
+                                    <span>{isInviting ? "Adding…" : "Add Member"}</span>
                                 </button>
                             </div>
                         </form>
@@ -465,10 +471,11 @@ export default function LeaderDashboard({
                                         <button
                                             type="button"
                                             onClick={handleAddMember}
-                                            disabled={!newMemberId}
-                                            className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-30 text-white font-medium text-base px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center cursor-pointer"
+                                            disabled={!newMemberId || isAddingMember}
+                                            className="bg-[#1A1A1A] hover:bg-[#333] disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-[11px] px-3 py-1.5 rounded-[3px] transition-colors shrink-0 h-[30px] flex items-center justify-center gap-1.5 cursor-pointer"
                                         >
-                                            Add
+                                            {isAddingMember && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
+                                            <span>{isAddingMember ? "Adding…" : "Add"}</span>
                                         </button>
                                     </div>
                                 </>
