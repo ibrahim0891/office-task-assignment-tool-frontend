@@ -14,7 +14,7 @@ export default function LiveShowcase() {
     const [activeTab, setActiveTab] = useState<"kanban" | "map" | "dashboard" | "docs">("kanban");
 
     return (
-        <section id="showcase" className="py-20 bg-[var(--app-card)] border-b border-[var(--app-border)]">
+        <section id="showcase" className="scroll-mt-20 py-20 bg-[var(--app-card)] border-b border-[var(--app-border)]">
             <div className="max-w-7xl mx-auto px-6">
                 <div className="text-center max-w-2xl mx-auto mb-12">
                     <span className="eyebrow capitalize text-[var(--app-muted)] text-[11px] font-semibold">
@@ -154,7 +154,7 @@ export default function LiveShowcase() {
                                         <CheckCircle2 className="w-3.5 h-3.5" />
                                         <span>Task Verified</span>
                                     </div>
-                                    <h4 className="text-xs font-medium line-through text-[var(--app-muted)]">Google Docs / Sheets Live Embedding</h4>
+                                    <h4 className="text-xs font-medium line-through text-[var(--app-muted)]">Docs/ Sheets Live Embedding</h4>
                                 </div>
                                 <div className="p-3 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] opacity-80 flex flex-col gap-1.5">
                                     <div className="flex items-center gap-1.5 text-[#22863A] text-[10px] font-semibold">
