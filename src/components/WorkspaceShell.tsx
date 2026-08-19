@@ -15,16 +15,25 @@ import MemberProfileModal from "./MemberProfileModal";
 import ManageTeamsModal from "./ManageTeamsModal";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { api } from "../api";
-import { Bell, Settings, RotateCcw, Sun, Moon, Palette, Type, Loader2 } from "lucide-react";
+import {
+    Bell,
+    Settings,
+    RotateCcw,
+    Sun,
+    Moon,
+    Palette,
+    Type,
+    Loader2,
+} from "lucide-react";
 import { APP_CONFIG } from "../config/appConfig";
 
 const inputClass =
     "px-2.5 py-1.5 border border-[#E5E5E3] focus:border-[#1A1A1A] focus:outline-none text-[11px] bg-white rounded-[3px] transition-colors w-full";
 
 const fontMap: Record<string, string> = {
-    "Outfit": "'Outfit', sans-serif",
-    "Lora": "'Lora', serif",
-    "Lexend": "'Lexend', sans-serif",
+    Outfit: "'Outfit', sans-serif",
+    Lora: "'Lora', serif",
+    Lexend: "'Lexend', sans-serif",
     "Instrument Serif": "'Instrument Serif', serif",
     "Caveat (Handwriting)": "'Caveat', cursive",
     "Dancing Script (Handwriting)": "'Dancing Script', cursive",
@@ -32,15 +41,15 @@ const fontMap: Record<string, string> = {
     "Darius (Bodoni)": "'Bodoni Moda', serif",
     "Cormorant Garamond": "'Cormorant Garamond', serif",
     "Playfair Display": "'Playfair Display', serif",
-    "Newsreader": "'Newsreader', serif",
-    "Cinzel": "'Cinzel', serif",
-    "Inter": "'Inter', sans-serif",
-    "Montserrat": "'Montserrat', sans-serif",
+    Newsreader: "'Newsreader', serif",
+    Cinzel: "'Cinzel', serif",
+    Inter: "'Inter', sans-serif",
+    Montserrat: "'Montserrat', sans-serif",
     "Space Grotesk": "'Space Grotesk', sans-serif",
     "Plus Jakarta Sans": "'Plus Jakarta Sans', sans-serif",
-    "Roboto": "'Roboto', sans-serif",
+    Roboto: "'Roboto', sans-serif",
     "Fira Code (Monospace)": "'Fira Code', monospace",
-    "System Default": "system-ui, -apple-system, sans-serif"
+    "System Default": "system-ui, -apple-system, sans-serif",
 };
 
 const FONT_OPTIONS = [
@@ -59,19 +68,42 @@ const FONT_OPTIONS = [
     { value: "Newsreader", label: "Newsreader (Book Serif)" },
     { value: "Cinzel", label: "Cinzel (Classic Display)" },
     { value: "Caveat (Handwriting)", label: "Caveat (Handwriting)" },
-    { value: "Dancing Script (Handwriting)", label: "Dancing Script (Handwriting)" },
+    {
+        value: "Dancing Script (Handwriting)",
+        label: "Dancing Script (Handwriting)",
+    },
     { value: "Pacifico (Handwriting)", label: "Pacifico (Handwriting)" },
     { value: "Fira Code (Monospace)", label: "Fira Code (Monospace)" },
     { value: "System Default", label: "System Default" },
 ];
 
 const FONT_PRESETS = [
-    { name: "Editorial Elegant (Default)", primary: "Outfit", secondary: "Lora" },
-    { name: "Modern Minimalist", primary: "Inter", secondary: "Plus Jakarta Sans" },
-    { name: "Editorial Bodoni", primary: "Newsreader", secondary: "Darius (Bodoni)" },
-    { name: "Cyberpunk Monospace", primary: "Space Grotesk", secondary: "Fira Code (Monospace)" },
+    {
+        name: "Editorial Elegant (Default)",
+        primary: "Outfit",
+        secondary: "Lora",
+    },
+    {
+        name: "Modern Minimalist",
+        primary: "Inter",
+        secondary: "Plus Jakarta Sans",
+    },
+    {
+        name: "Editorial Bodoni",
+        primary: "Newsreader",
+        secondary: "Darius (Bodoni)",
+    },
+    {
+        name: "Cyberpunk Monospace",
+        primary: "Space Grotesk",
+        secondary: "Fira Code (Monospace)",
+    },
     { name: "Classic Roman", primary: "Montserrat", secondary: "Cinzel" },
-    { name: "Friendly Handwriting", primary: "Lexend", secondary: "Caveat (Handwriting)" },
+    {
+        name: "Friendly Handwriting",
+        primary: "Lexend",
+        secondary: "Caveat (Handwriting)",
+    },
 ];
 
 export default function WorkspaceShell({
@@ -179,7 +211,9 @@ export default function WorkspaceShell({
         }
     }, [isAddTaskOpen]);
     const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
-    const [settingsTab, setSettingsTab] = useState<"theme" | "typography">("theme");
+    const [settingsTab, setSettingsTab] = useState<"theme" | "typography">(
+        "theme",
+    );
     const [primaryFont, setPrimaryFont] = useState("Outfit");
     const [secondaryFont, setSecondaryFont] = useState("Lora");
     const [fontScale, setFontScale] = useState(1.25);
@@ -194,7 +228,10 @@ export default function WorkspaceShell({
     ];
 
     const closestScaleOption = scaleOptions.reduce((prev, curr) => {
-        return Math.abs(parseFloat(curr.value) - fontScale) < Math.abs(parseFloat(prev.value) - fontScale) ? curr : prev;
+        return Math.abs(parseFloat(curr.value) - fontScale) <
+            Math.abs(parseFloat(prev.value) - fontScale)
+            ? curr
+            : prev;
     }, scaleOptions[3]);
 
     // Reset settings handler
@@ -226,7 +263,9 @@ export default function WorkspaceShell({
         }
     }, []);
 
-    const [theme, setTheme] = useState<"light" | "nord-dark" | "amoled-dark" | "lws-dark">("light");
+    const [theme, setTheme] = useState<
+        "light" | "nord-dark" | "amoled-dark" | "lws-dark"
+    >("light");
 
     // Load saved theme preference on mount
     React.useEffect(() => {
@@ -243,7 +282,9 @@ export default function WorkspaceShell({
         setTheme(nextTheme);
         document.documentElement.setAttribute("data-theme", nextTheme);
         localStorage.setItem("sys_theme", nextTheme);
-        toast.success(`Switched to ${nextTheme === "lws-dark" ? "LWS Dark Mode" : "Light Mode"}`);
+        toast.success(
+            `Switched to ${nextTheme === "lws-dark" ? "LWS Dark Mode" : "Light Mode"}`,
+        );
     };
 
     // Keyboard shortcuts: Ctrl + (increase font scale) / Ctrl - (decrease font scale)
@@ -253,17 +294,21 @@ export default function WorkspaceShell({
                 if (e.key === "=" || e.key === "+") {
                     e.preventDefault();
                     setFontScale((prev) => {
-                        const next = Math.min(1.50, prev + 0.05);
+                        const next = Math.min(1.5, prev + 0.05);
                         return Math.round(next * 100) / 100;
                     });
-                    toast.success("Font scale increased", { id: "font-scale-toast" });
+                    toast.success("Font scale increased", {
+                        id: "font-scale-toast",
+                    });
                 } else if (e.key === "-") {
                     e.preventDefault();
                     setFontScale((prev) => {
                         const next = Math.max(0.85, prev - 0.05);
                         return Math.round(next * 100) / 100;
                     });
-                    toast.success("Font scale decreased", { id: "font-scale-toast" });
+                    toast.success("Font scale decreased", {
+                        id: "font-scale-toast",
+                    });
                 }
             }
         };
@@ -281,14 +326,21 @@ export default function WorkspaceShell({
         if (fontMap[primaryFont]) {
             root.style.setProperty("--font-primary", fontMap[primaryFont]);
             root.style.setProperty("--font-sans", fontMap[primaryFont]);
-            document.body.style.setProperty("font-family", fontMap[primaryFont], "important");
+            document.body.style.setProperty(
+                "font-family",
+                fontMap[primaryFont],
+                "important",
+            );
             localStorage.setItem("sys_primary_font", primaryFont);
         }
 
         if (fontMap[secondaryFont]) {
             root.style.setProperty("--font-secondary", fontMap[secondaryFont]);
             root.style.setProperty("--font-serif", fontMap[secondaryFont]);
-            root.style.setProperty("--font-instrument-serif", fontMap[secondaryFont]);
+            root.style.setProperty(
+                "--font-instrument-serif",
+                fontMap[secondaryFont],
+            );
             localStorage.setItem("sys_secondary_font", secondaryFont);
         }
 
@@ -362,8 +414,14 @@ export default function WorkspaceShell({
                                 disabled={isProvisioning}
                                 className="px-3 py-1.5 bg-[#1A1A1A] text-white text-[11px] font-medium rounded-[3px] shrink-0 hover:bg-[#333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                             >
-                                {isProvisioning && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
-                                <span>{isProvisioning ? "Provisioning…" : "Provision"}</span>
+                                {isProvisioning && (
+                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                )}
+                                <span>
+                                    {isProvisioning
+                                        ? "Provisioning…"
+                                        : "Provision"}
+                                </span>
                             </button>
                         </form>
                     </div>
@@ -387,7 +445,9 @@ export default function WorkspaceShell({
         if (!currentTeam || !newTitle.trim()) return;
 
         if (newTitle.trim().length > APP_CONFIG.MAX_TASK_TITLE_LENGTH) {
-            toast.error(`Task title must not exceed ${APP_CONFIG.MAX_TASK_TITLE_LENGTH} characters.`);
+            toast.error(
+                `Task title must not exceed ${APP_CONFIG.MAX_TASK_TITLE_LENGTH} characters.`,
+            );
             return;
         }
 
@@ -402,7 +462,10 @@ export default function WorkspaceShell({
                 createdById: currentUser.id,
                 assignedToId: newAssigneeId || undefined,
                 dueDate: newDueDate || undefined,
-                estimatedTime: newEstTime !== "" ? Math.max(0, Number(newEstTime)) : undefined,
+                estimatedTime:
+                    newEstTime !== ""
+                        ? Math.max(0, Number(newEstTime))
+                        : undefined,
                 isRecurring: newIsRecurring,
                 recurrence: newIsRecurring ? newRecurrence : undefined,
             });
@@ -461,8 +524,6 @@ export default function WorkspaceShell({
         setEditingColumns(updated);
     };
 
-
-
     const handleSaveColumns = async () => {
         if (!currentTeam) return;
         setIsSavingColumns(true);
@@ -494,8 +555,10 @@ export default function WorkspaceShell({
         if (pathname === "/list") return "List View";
         if (pathname === "/dashboard") return "Leader Dashboard";
         if (pathname === "/myday" || currentView === "myday") return "My Day";
-        if (pathname === "/map" || currentView === "map") return "Workspace Solar Map";
-        if (currentView === "kanban" || pathname === "/kanban") return "Kanban Board";
+        if (pathname === "/map" || currentView === "map")
+            return "Workspace Solar Map";
+        if (currentView === "kanban" || pathname === "/task-board")
+            return "Kanban Board";
         return currentView.charAt(0).toUpperCase() + currentView.slice(1);
     })();
 
@@ -528,15 +591,15 @@ export default function WorkspaceShell({
                         {(currentView === "kanban" ||
                             currentView === "dashboard" ||
                             currentView === "map") && (
-                                <div className="flex items-center gap-2 text-[11px]">
-                                    <span className="text-[#888883]">Date:</span>
-                                    <CustomDatePicker
-                                        value={activeDateStr}
-                                        onChange={(val) => setActiveDateStr(val)}
-                                        className="w-36"
-                                    />
-                                </div>
-                            )}
+                            <div className="flex items-center gap-2 text-[11px]">
+                                <span className="text-[#888883]">Date:</span>
+                                <CustomDatePicker
+                                    value={activeDateStr}
+                                    onChange={(val) => setActiveDateStr(val)}
+                                    className="w-36"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-2.5">
@@ -561,14 +624,14 @@ export default function WorkspaceShell({
                             {notifications.filter(
                                 (n) => !n.isRead && !n.isArchived,
                             ).length > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-[#CB2431] text-white rounded-full w-4 h-4 text-[9px] font-medium flex items-center justify-center scale-90">
-                                        {
-                                            notifications.filter(
-                                                (n) => !n.isRead && !n.isArchived,
-                                            ).length
-                                        }
-                                    </span>
-                                )}
+                                <span className="absolute -top-1 -right-1 bg-[#CB2431] text-white rounded-full w-4 h-4 text-[9px] font-medium flex items-center justify-center scale-90">
+                                    {
+                                        notifications.filter(
+                                            (n) => !n.isRead && !n.isArchived,
+                                        ).length
+                                    }
+                                </span>
+                            )}
                         </button>
 
                         <button
@@ -705,20 +768,33 @@ export default function WorkspaceShell({
                                         options={
                                             userRole === "MEMBER" && currentUser
                                                 ? [
-                                                    {
-                                                        value: currentUser.id,
-                                                        label: `${currentUser.name} (You)`,
-                                                        avatarUrl: currentUser.avatarUrl || null,
-                                                    },
-                                                ]
+                                                      {
+                                                          value: currentUser.id,
+                                                          label: `${currentUser.name} (You)`,
+                                                          avatarUrl:
+                                                              currentUser.avatarUrl ||
+                                                              null,
+                                                      },
+                                                  ]
                                                 : [
-                                                    { value: "", label: "Unassigned" },
-                                                    ...teamMembers.map(({ user }) => ({
-                                                        value: user.id,
-                                                        label: user.id === currentUser.id ? `${user.name} (You)` : user.name,
-                                                        avatarUrl: user.avatarUrl || null,
-                                                    })),
-                                                ]
+                                                      {
+                                                          value: "",
+                                                          label: "Unassigned",
+                                                      },
+                                                      ...teamMembers.map(
+                                                          ({ user }) => ({
+                                                              value: user.id,
+                                                              label:
+                                                                  user.id ===
+                                                                  currentUser.id
+                                                                      ? `${user.name} (You)`
+                                                                      : user.name,
+                                                              avatarUrl:
+                                                                  user.avatarUrl ||
+                                                                  null,
+                                                          }),
+                                                      ),
+                                                  ]
                                         }
                                         value={newAssigneeId}
                                         onChange={(val) =>
@@ -761,7 +837,9 @@ export default function WorkspaceShell({
                                 </div>
 
                                 <div className="flex flex-col gap-1">
-                                    <label className="eyebrow">Est. Hours</label>
+                                    <label className="eyebrow">
+                                        Est. Hours
+                                    </label>
                                     <input
                                         type="number"
                                         step="0.5"
@@ -770,7 +848,11 @@ export default function WorkspaceShell({
                                         value={newEstTime}
                                         onChange={(e) => {
                                             const val = e.target.value;
-                                            if (val === "" || (Number(val) >= 0 && !val.includes("-"))) {
+                                            if (
+                                                val === "" ||
+                                                (Number(val) >= 0 &&
+                                                    !val.includes("-"))
+                                            ) {
                                                 setNewEstTime(val);
                                             }
                                         }}
@@ -785,9 +867,7 @@ export default function WorkspaceShell({
                                     id="isRecurring"
                                     checked={newIsRecurring}
                                     onChange={(e) =>
-                                        setNewIsRecurring(
-                                            e.target.checked,
-                                        )
+                                        setNewIsRecurring(e.target.checked)
                                     }
                                     className="rounded-[2px] border-[#DADAD6] text-[#1A1A1A] bg-white focus:ring-0 cursor-pointer"
                                 />
@@ -842,7 +922,11 @@ export default function WorkspaceShell({
                                     ) : (
                                         <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
                                     )}
-                                    <span>{isCreatingTask ? "Creating Task…" : "Create Task"}</span>
+                                    <span>
+                                        {isCreatingTask
+                                            ? "Creating Task…"
+                                            : "Create Task"}
+                                    </span>
                                 </button>
                             </div>
                         </form>
@@ -867,30 +951,49 @@ export default function WorkspaceShell({
 
                         <div className="flex-1 overflow-y-auto flex flex-col gap-2 py-1 pr-1">
                             <div className="text-xs text-[#888883] leading-relaxed mb-1 flex flex-col gap-0.5">
-                                <p>Customize board columns and configure carry forward rules.</p>
+                                <p>
+                                    Customize board columns and configure carry
+                                    forward rules.
+                                </p>
                                 <p className="text-[10px] text-[#888883]">
-                                    <span className="font-medium text-[#1A1A1A]">▪ Carry Forward:</span> Automatically moves incomplete tasks in checked columns to the next day.
+                                    <span className="font-medium text-[#1A1A1A]">
+                                        ▪ Carry Forward:
+                                    </span>{" "}
+                                    Automatically moves incomplete tasks in
+                                    checked columns to the next day.
                                 </p>
                             </div>
 
-
                             {editingColumns.map((col, index) => {
-                                const isColConstant = ["to do", "todo", "in progress", "need attention later", "need attention", "done"].includes(col.name.toLowerCase().trim());
+                                const isColConstant = [
+                                    "to do",
+                                    "todo",
+                                    "in progress",
+                                    "need attention later",
+                                    "need attention",
+                                    "done",
+                                ].includes(col.name.toLowerCase().trim());
                                 return (
                                     <div
                                         key={col.id || index}
                                         draggable={index !== 0}
                                         onDragStart={(e) =>
-                                            index !== 0 && handleColDragStart(e, index)
+                                            index !== 0 &&
+                                            handleColDragStart(e, index)
                                         }
                                         onDragOver={(e) =>
-                                            index !== 0 && handleColDragOver(e, index)
+                                            index !== 0 &&
+                                            handleColDragOver(e, index)
                                         }
-                                        onDrop={(e) => index !== 0 && handleColDrop(e, index)}
-                                        className={`border border-[#E5E5E3] p-3 flex flex-col sm:flex-row gap-2.5 items-start sm:items-center bg-white transition-all ${draggedColIndex === index
-                                            ? "opacity-40 border-dashed border-[#1A1A1A]"
-                                            : "hover:border-[#DADAD6]"
-                                            }`}
+                                        onDrop={(e) =>
+                                            index !== 0 &&
+                                            handleColDrop(e, index)
+                                        }
+                                        className={`border border-[#E5E5E3] p-3 flex flex-col sm:flex-row gap-2.5 items-start sm:items-center bg-white transition-all ${
+                                            draggedColIndex === index
+                                                ? "opacity-40 border-dashed border-[#1A1A1A]"
+                                                : "hover:border-[#DADAD6]"
+                                        }`}
                                     >
                                         <div className="flex-1 flex gap-2 items-center w-full">
                                             <div className="flex items-center gap-1 shrink-0 text-[#888883]">
@@ -903,8 +1006,12 @@ export default function WorkspaceShell({
                                                             ⠿
                                                         </span>
                                                         <div className="flex flex-col text-[9px] leading-none opacity-20 cursor-not-allowed">
-                                                            <span className="px-0.5 select-none">▲</span>
-                                                            <span className="px-0.5 select-none">▼</span>
+                                                            <span className="px-0.5 select-none">
+                                                                ▲
+                                                            </span>
+                                                            <span className="px-0.5 select-none">
+                                                                ▼
+                                                            </span>
                                                         </div>
                                                     </>
                                                 ) : (
@@ -918,7 +1025,9 @@ export default function WorkspaceShell({
                                                         <div className="flex flex-col text-[9px] leading-none">
                                                             <button
                                                                 type="button"
-                                                                disabled={index <= 1}
+                                                                disabled={
+                                                                    index <= 1
+                                                                }
                                                                 onClick={() =>
                                                                     handleMoveColumn(
                                                                         index,
@@ -933,10 +1042,11 @@ export default function WorkspaceShell({
                                                             <button
                                                                 type="button"
                                                                 disabled={
-                                                                    index === 0 ||
                                                                     index ===
-                                                                    editingColumns.length -
-                                                                    1
+                                                                        0 ||
+                                                                    index ===
+                                                                        editingColumns.length -
+                                                                            1
                                                                 }
                                                                 onClick={() =>
                                                                     handleMoveColumn(
@@ -958,7 +1068,11 @@ export default function WorkspaceShell({
                                                 value={col.name}
                                                 disabled={isColConstant}
                                                 readOnly={isColConstant}
-                                                title={isColConstant ? "Constant column name cannot be edited." : ""}
+                                                title={
+                                                    isColConstant
+                                                        ? "Constant column name cannot be edited."
+                                                        : ""
+                                                }
                                                 onChange={(e) => {
                                                     if (isColConstant) return;
                                                     const updated = [
@@ -991,7 +1105,9 @@ export default function WorkspaceShell({
                                                             index
                                                         ].triggersCarryForward =
                                                             e.target.checked;
-                                                        setEditingColumns(updated);
+                                                        setEditingColumns(
+                                                            updated,
+                                                        );
                                                     }}
                                                     className="rounded-[2px]"
                                                 />
@@ -1006,11 +1122,13 @@ export default function WorkspaceShell({
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        setEditingColumns((prev) =>
-                                                            prev.filter(
-                                                                (_, idx) =>
-                                                                    idx !== index,
-                                                            ),
+                                                        setEditingColumns(
+                                                            (prev) =>
+                                                                prev.filter(
+                                                                    (_, idx) =>
+                                                                        idx !==
+                                                                        index,
+                                                                ),
                                                         );
                                                     }}
                                                     className="text-[11px] text-[#CB2431] hover:underline cursor-pointer"
@@ -1022,7 +1140,6 @@ export default function WorkspaceShell({
                                     </div>
                                 );
                             })}
-
 
                             <button
                                 type="button"
@@ -1038,8 +1155,6 @@ export default function WorkspaceShell({
                                         },
                                     ]);
                                 }}
-
-
                                 className="relative corner-brackets-4 py-2 border border-dashed border-[#E5E5E3] hover:border-[#1A1A1A] text-[11px] text-[#888883] hover:text-[#1A1A1A] font-medium rounded-[3px] transition-colors mt-1 cursor-pointer"
                             >
                                 + Add Column
@@ -1082,7 +1197,9 @@ export default function WorkspaceShell({
                     >
                         <div className="flex items-center justify-between pb-1">
                             <div>
-                                <span className="eyebrow capitalize text-[10px]">Preferences</span>
+                                <span className="eyebrow capitalize text-[10px]">
+                                    Preferences
+                                </span>
                                 <h2 className="font-heading text-base text-[#1A1A1A]">
                                     System Preferences
                                 </h2>
@@ -1101,10 +1218,11 @@ export default function WorkspaceShell({
                             <button
                                 type="button"
                                 onClick={() => setSettingsTab("theme")}
-                                className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${settingsTab === "theme"
+                                className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
+                                    settingsTab === "theme"
                                         ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4"
                                         : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#F0F0EE]"
-                                    }`}
+                                }`}
                             >
                                 <Palette className="w-3 h-3 shrink-0" />
                                 <span>Theme & Color</span>
@@ -1112,10 +1230,11 @@ export default function WorkspaceShell({
                             <button
                                 type="button"
                                 onClick={() => setSettingsTab("typography")}
-                                className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${settingsTab === "typography"
+                                className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
+                                    settingsTab === "typography"
                                         ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4"
                                         : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#F0F0EE]"
-                                    }`}
+                                }`}
                             >
                                 <Type className="w-3 h-3 shrink-0" />
                                 <span>Typography & Fonts</span>
@@ -1126,8 +1245,18 @@ export default function WorkspaceShell({
                         <div className="relative w-full border-t border-[#E5E5E3]">
                             {/* Left T-Bracket ├ */}
                             <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center text-[#1A1A1A]">
-                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 0V10M5 5H10" stroke="currentColor" strokeWidth="1.5" />
+                                <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 10 10"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                        d="M5 0V10M5 5H10"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                    />
                                 </svg>
                             </div>
                         </div>
@@ -1137,26 +1266,49 @@ export default function WorkspaceShell({
                                 <div className="flex flex-col gap-3.5">
                                     {/* Color Theme Selector */}
                                     <div className="flex flex-col gap-1.5">
-                                        <label className="eyebrow">Select Workspace Color Palette</label>
+                                        <label className="eyebrow">
+                                            Select Workspace Color Palette
+                                        </label>
                                         <CustomSelect
                                             options={[
-                                                { value: "light", label: "Editorial Light (Default)" },
-                                                { value: "nord-dark", label: "Nord Dark Mode" },
-                                                { value: "amoled-dark", label: "AMOLED Pitch Black" },
-                                                { value: "lws-dark", label: "Learn With Sumit (LWS) Dark" },
+                                                {
+                                                    value: "light",
+                                                    label: "Editorial Light (Default)",
+                                                },
+                                                {
+                                                    value: "nord-dark",
+                                                    label: "Nord Dark Mode",
+                                                },
+                                                {
+                                                    value: "amoled-dark",
+                                                    label: "AMOLED Pitch Black",
+                                                },
+                                                {
+                                                    value: "lws-dark",
+                                                    label: "Learn With Sumit (LWS) Dark",
+                                                },
                                             ]}
                                             value={theme}
                                             onChange={(val) => {
                                                 setTheme(val as any);
-                                                document.documentElement.setAttribute("data-theme", val);
-                                                localStorage.setItem("sys_theme", val);
+                                                document.documentElement.setAttribute(
+                                                    "data-theme",
+                                                    val,
+                                                );
+                                                localStorage.setItem(
+                                                    "sys_theme",
+                                                    val,
+                                                );
                                                 toast.success(`Theme updated`);
                                             }}
                                             className="w-full"
                                         />
                                     </div>
                                     <p className="text-[11px] text-[#888883] leading-relaxed">
-                                        Choose a visual theme for your task workspace. Changes apply instantly across the sidebars, tables, and dialogs.
+                                        Choose a visual theme for your task
+                                        workspace. Changes apply instantly
+                                        across the sidebars, tables, and
+                                        dialogs.
                                     </p>
                                 </div>
                             ) : (
@@ -1165,22 +1317,30 @@ export default function WorkspaceShell({
                                     <div className="grid grid-cols-2 gap-3">
                                         {/* Row 1, Col 1: Primary Interface Font */}
                                         <div className="flex flex-col gap-1">
-                                            <label className="eyebrow">Primary Interface Font</label>
+                                            <label className="eyebrow">
+                                                Primary Interface Font
+                                            </label>
                                             <CustomSelect
                                                 options={FONT_OPTIONS}
                                                 value={primaryFont}
-                                                onChange={(val) => setPrimaryFont(val)}
+                                                onChange={(val) =>
+                                                    setPrimaryFont(val)
+                                                }
                                                 className="w-full"
                                             />
                                         </div>
 
                                         {/* Row 1, Col 2: Secondary / Title Font */}
                                         <div className="flex flex-col gap-1">
-                                            <label className="eyebrow">Secondary / Title Font</label>
+                                            <label className="eyebrow">
+                                                Secondary / Title Font
+                                            </label>
                                             <CustomSelect
                                                 options={FONT_OPTIONS}
                                                 value={secondaryFont}
-                                                onChange={(val) => setSecondaryFont(val)}
+                                                onChange={(val) =>
+                                                    setSecondaryFont(val)
+                                                }
                                                 className="w-full"
                                             />
                                         </div>
@@ -1188,25 +1348,36 @@ export default function WorkspaceShell({
                                         {/* Row 2, Col 1: Preset Combinations Dropdown */}
                                         <div className="flex flex-col gap-1">
                                             <div className="flex items-center justify-between">
-                                                <label className="eyebrow">Preset Pairings</label>
-                                                <span className="text-[10px] text-[#888883]">1-Click Apply</span>
+                                                <label className="eyebrow">
+                                                    Preset Pairings
+                                                </label>
+                                                <span className="text-[10px] text-[#888883]">
+                                                    1-Click Apply
+                                                </span>
                                             </div>
                                             <CustomSelect
-                                                options={FONT_PRESETS.map((p) => ({
-                                                    value: `${p.primary}|${p.secondary}`,
-                                                    label: p.name,
-                                                    sublabel: `${p.primary} + ${p.secondary}`,
-                                                }))}
+                                                options={FONT_PRESETS.map(
+                                                    (p) => ({
+                                                        value: `${p.primary}|${p.secondary}`,
+                                                        label: p.name,
+                                                        sublabel: `${p.primary} + ${p.secondary}`,
+                                                    }),
+                                                )}
                                                 value={
                                                     FONT_PRESETS.some(
-                                                        (p) => p.primary === primaryFont && p.secondary === secondaryFont
+                                                        (p) =>
+                                                            p.primary ===
+                                                                primaryFont &&
+                                                            p.secondary ===
+                                                                secondaryFont,
                                                     )
                                                         ? `${primaryFont}|${secondaryFont}`
                                                         : ""
                                                 }
                                                 placeholder="Select a preset combination…"
                                                 onChange={(val) => {
-                                                    const [prim, sec] = val.split("|");
+                                                    const [prim, sec] =
+                                                        val.split("|");
                                                     if (prim && sec) {
                                                         setPrimaryFont(prim);
                                                         setSecondaryFont(sec);
@@ -1218,11 +1389,17 @@ export default function WorkspaceShell({
 
                                         {/* Row 2, Col 2: Font Scale Option Dropdown */}
                                         <div className="flex flex-col gap-1">
-                                            <label className="eyebrow">Font Scale Preset</label>
+                                            <label className="eyebrow">
+                                                Font Scale Preset
+                                            </label>
                                             <CustomSelect
                                                 options={scaleOptions}
                                                 value={closestScaleOption.value}
-                                                onChange={(val) => setFontScale(parseFloat(val))}
+                                                onChange={(val) =>
+                                                    setFontScale(
+                                                        parseFloat(val),
+                                                    )
+                                                }
                                                 className="w-full"
                                             />
                                         </div>
@@ -1231,23 +1408,35 @@ export default function WorkspaceShell({
                                     {/* System Font Scale Slider */}
                                     <div className="flex flex-col gap-1.5 border-t border-[#E5E5E3]/60 pt-3">
                                         <div className="flex justify-between items-center">
-                                            <label className="eyebrow">System Font Scale</label>
+                                            <label className="eyebrow">
+                                                System Font Scale
+                                            </label>
                                             <span className="text-[11px] text-[#1A1A1A] font-semibold">
                                                 {Math.round(fontScale * 100)}%
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <span className="text-[10px] text-[#888883] font-medium">A</span>
+                                            <span className="text-[10px] text-[#888883] font-medium">
+                                                A
+                                            </span>
                                             <input
                                                 type="range"
                                                 min="0.85"
                                                 max="1.50"
                                                 step="0.05"
                                                 value={fontScale}
-                                                onChange={(e) => setFontScale(parseFloat(e.target.value))}
+                                                onChange={(e) =>
+                                                    setFontScale(
+                                                        parseFloat(
+                                                            e.target.value,
+                                                        ),
+                                                    )
+                                                }
                                                 className="flex-1 h-1 bg-[#E5E5E3] rounded-lg appearance-none cursor-pointer"
                                             />
-                                            <span className="text-sm font-semibold text-[#1A1A1A]">A</span>
+                                            <span className="text-sm font-semibold text-[#1A1A1A]">
+                                                A
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -1255,12 +1444,28 @@ export default function WorkspaceShell({
 
                             {/* Sample Preview Box (Visible on both tabs for direct feedback) */}
                             <div className="p-3 border border-[#E5E5E3] bg-[#FAFAF9] rounded-[2px] flex flex-col gap-1 mt-0.5">
-                                <span className="eyebrow text-[9px]">Live Typography Preview</span>
-                                <h4 style={{ fontFamily: fontMap[secondaryFont] || "inherit" }} className="text-base font-semibold text-[#1A1A1A] transition-all">
+                                <span className="eyebrow text-[9px]">
+                                    Live Typography Preview
+                                </span>
+                                <h4
+                                    style={{
+                                        fontFamily:
+                                            fontMap[secondaryFont] || "inherit",
+                                    }}
+                                    className="text-base font-semibold text-[#1A1A1A] transition-all"
+                                >
                                     Workspace & Task Assignment System
                                 </h4>
-                                <p style={{ fontFamily: fontMap[primaryFont] || "inherit" }} className="text-xs text-[#888883] transition-all">
-                                    Configure your team workspace appearance. Settings automatically scale typography and UI components in real time.
+                                <p
+                                    style={{
+                                        fontFamily:
+                                            fontMap[primaryFont] || "inherit",
+                                    }}
+                                    className="text-xs text-[#888883] transition-all"
+                                >
+                                    Configure your team workspace appearance.
+                                    Settings automatically scale typography and
+                                    UI components in real time.
                                 </p>
                             </div>
                         </div>

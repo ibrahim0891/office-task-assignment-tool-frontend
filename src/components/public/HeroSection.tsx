@@ -24,23 +24,32 @@ export default function HeroSection({ currentUser }: HeroSectionProps) {
 
                 {/* Main Headline */}
                 <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--app-text)] max-w-4xl leading-[1.12]">
-                    Effortless task delegation.<br />
-                    <span className="font-serif italic font-normal opacity-70">Uncompromised team clarity.</span>
+                    Effortless task delegation.
+                    <br />
+                    <span className="font-serif italic font-normal opacity-70">
+                        Uncompromised team clarity.
+                    </span>
                 </h1>
 
                 {/* Subtitle */}
                 <p className="mt-6 text-base sm:text-lg text-[var(--app-muted)] max-w-2xl leading-relaxed">
-                    A bespoke workspace engineered for modern teams. Role-based execution, dynamic Kanban, interactive Solar maps, and unified document management in one high-velocity system.
+                    A bespoke workspace engineered for modern teams. Role-based
+                    execution, dynamic Kanban, interactive Solar maps, and
+                    unified document management in one high-velocity system.
                 </p>
 
                 {/* CTA Actions */}
                 <div className="mt-8 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                     <Link
-                        href={currentUser ? "/kanban" : "/login"}
+                        href={currentUser ? "/task-board" : "/login"}
                         className="target-bracket-btn group w-full sm:w-auto px-8 py-3.5 bg-[var(--app-text)] hover:opacity-95 text-[var(--app-bg)] text-[14.5px] font-semibold rounded-[3px] shadow-sm transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
                     >
                         <span className="btn-shimmer-beam" />
-                        <span>{currentUser ? "Open Workspace" : "Launch Workspace Free"}</span>
+                        <span>
+                            {currentUser
+                                ? "Open Workspace"
+                                : "Launch Workspace Free"}
+                        </span>
                         <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 relative z-10" />
                     </Link>
                     <a
@@ -52,37 +61,63 @@ export default function HeroSection({ currentUser }: HeroSectionProps) {
                                 lenis.scrollTo("#showcase", { offset: -70 });
                                 window.history.pushState(null, "", "#showcase");
                             } else {
-                                const elem = document.getElementById("showcase");
+                                const elem =
+                                    document.getElementById("showcase");
                                 if (elem) {
-                                    elem.scrollIntoView({ behavior: "smooth", block: "start" });
-                                    window.history.pushState(null, "", "#showcase");
+                                    elem.scrollIntoView({
+                                        behavior: "smooth",
+                                        block: "start",
+                                    });
+                                    window.history.pushState(
+                                        null,
+                                        "",
+                                        "#showcase",
+                                    );
                                 }
                             }
                         }}
                         className="target-bracket-btn-secondary group w-full sm:w-auto px-7 py-3.5 border border-[var(--app-border)]/35 hover:border-[var(--app-border)]/60 bg-[var(--app-card)] text-[var(--app-text)] text-[14.5px] font-medium rounded-[3px] transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95 cursor-pointer"
                     >
                         <span className="btn-shimmer-beam" />
-                        <span className="relative z-10">Explore Interactive Demo</span>
+                        <span className="relative z-10">
+                            Explore Interactive Demo
+                        </span>
                     </a>
                 </div>
 
                 {/* Metrics Bar */}
                 <div className="mt-14 pt-8 border-t border-[var(--app-border)] grid grid-cols-2 md:grid-cols-4 gap-6 w-full max-w-4xl text-left">
                     <div className="flex flex-col gap-1 border-l-2 border-[var(--app-text)] pl-3">
-                        <span className="font-heading text-2xl font-bold text-[var(--app-text)]">3-Tier</span>
-                        <span className="text-[11px] text-[var(--app-muted)] capitalize">Role Governance</span>
+                        <span className="font-heading text-2xl font-bold text-[var(--app-text)]">
+                            3-Tier
+                        </span>
+                        <span className="text-[11px] text-[var(--app-muted)] capitalize">
+                            Role Governance
+                        </span>
                     </div>
                     <div className="flex flex-col gap-1 border-l-2 border-[var(--app-text)] pl-3">
-                        <span className="font-heading text-2xl font-bold text-[var(--app-text)]">0.1s</span>
-                        <span className="text-[11px] text-[var(--app-muted)] capitalize">Realtime Sync</span>
+                        <span className="font-heading text-2xl font-bold text-[var(--app-text)]">
+                            0.1s
+                        </span>
+                        <span className="text-[11px] text-[var(--app-muted)] capitalize">
+                            Realtime Sync
+                        </span>
                     </div>
                     <div className="flex flex-col gap-1 border-l-2 border-[var(--app-text)] pl-3">
-                        <span className="font-heading text-2xl font-bold text-[var(--app-text)]">Solar</span>
-                        <span className="text-[11px] text-[var(--app-muted)] capitalize">Orbital Workload Map</span>
+                        <span className="font-heading text-2xl font-bold text-[var(--app-text)]">
+                            Solar
+                        </span>
+                        <span className="text-[11px] text-[var(--app-muted)] capitalize">
+                            Orbital Workload Map
+                        </span>
                     </div>
                     <div className="flex flex-col gap-1 border-l-2 border-[var(--app-text)] pl-3">
-                        <span className="font-heading text-2xl font-bold text-[var(--app-text)]">Integrated</span>
-                        <span className="text-[11px] text-[var(--app-muted)] capitalize">Docs & Bookmarks</span>
+                        <span className="font-heading text-2xl font-bold text-[var(--app-text)]">
+                            Integrated
+                        </span>
+                        <span className="text-[11px] text-[var(--app-muted)] capitalize">
+                            Docs & Bookmarks
+                        </span>
                     </div>
                 </div>
             </div>

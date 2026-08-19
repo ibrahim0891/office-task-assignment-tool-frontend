@@ -19,17 +19,13 @@ import { CheckCircle2, Clock, AlertCircle, Sparkles } from "lucide-react";
 // ─── Custom Node 1: Leader Node ───
 function LeaderNode({ data }: { data: { name: string; role: string; team: string } }) {
     return (
-        <div className="px-4 py-2.5 rounded-[4px] border-2 border-[var(--color-error)] bg-[var(--app-card)] shadow-md text-center min-w-[170px] relative corner-brackets font-sans">
+        <div className="px-5 py-4 rounded-[4px] border border-[var(--app-border-strong)] bg-gradient-to-b from-[var(--app-card)] to-[var(--app-select-bg)] shadow-md text-center min-w-[170px] relative corner-brackets font-sans flex flex-col items-center gap-2">
             <Handle type="source" position={Position.Bottom} className="opacity-0" />
-            <div className="text-[9px] font-bold text-[var(--color-error)] uppercase tracking-wider mb-0.5 flex items-center justify-center gap-1">
-                <Sparkles className="w-2.5 h-2.5" />
-                <span>{data.team}</span>
+            <div className="w-9 h-9 rounded-full bg-[var(--app-card)] border border-[var(--app-border)] flex items-center justify-center text-sm shadow-xs shrink-0">
+                <Sparkles className="w-4 h-4 text-[var(--color-accent)]" />
             </div>
             <div className="text-xs font-bold text-[var(--app-text)] leading-tight">
-                {data.name}
-            </div>
-            <div className="text-[9px] text-[var(--app-muted)] font-medium mt-0.5">
-                {data.role}
+                {data.team}
             </div>
         </div>
     );
@@ -205,7 +201,7 @@ const initialEdges: Edge[] = [
         target: "member-hasib",
         animated: true,
         type: "smoothstep",
-        style: { stroke: "var(--color-error)", strokeWidth: 1.5 },
+        style: { stroke: "var(--color-accent)", strokeWidth: 1.5 },
     },
     {
         id: "e-leader-sarah",
@@ -213,7 +209,7 @@ const initialEdges: Edge[] = [
         target: "member-sarah",
         animated: true,
         type: "smoothstep",
-        style: { stroke: "var(--color-error)", strokeWidth: 1.5 },
+        style: { stroke: "var(--color-accent)", strokeWidth: 1.5 },
     },
     {
         id: "e-leader-david",
@@ -221,7 +217,7 @@ const initialEdges: Edge[] = [
         target: "member-david",
         animated: true,
         type: "smoothstep",
-        style: { stroke: "var(--color-error)", strokeWidth: 1.5 },
+        style: { stroke: "var(--color-accent)", strokeWidth: 1.5 },
     },
 
     // Members -> Tasks
