@@ -14,6 +14,8 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
+    const [isExporting, setIsExporting] = useState(false);
+
     const fetchReport = async () => {
         setIsLoading(true);
         try {
@@ -45,6 +47,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
     };
 
     const handleExportCSV = async () => {
+        setIsExporting(true);
         try {
             const params: any = { teamId: currentTeam.id };
             if (rangePreset !== "custom") {
@@ -56,6 +59,8 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
             await api.exportCsv(params);
         } catch (err: any) {
             alert("Error exporting CSV: " + err.message);
+        } finally {
+            setIsExporting(false);
         }
     };
 
@@ -77,7 +82,12 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button onClick={handleExportCSV} variant="secondary">
+                    <Button
+                        onClick={handleExportCSV}
+                        variant="secondary"
+                        isLoading={isExporting}
+                        loadingText="Exporting…"
+                    >
                         Export CSV
                     </Button>
                     <Button onClick={handlePrintPDF} variant="default">

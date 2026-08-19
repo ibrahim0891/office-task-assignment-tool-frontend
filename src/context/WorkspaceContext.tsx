@@ -170,7 +170,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             } catch (e) {}
         } else {
             setCurrentUser(null);
-            if (pathname !== "/login") {
+            if (pathname !== "/login" && pathname !== "/") {
                 router.push("/login");
             }
         }

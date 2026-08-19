@@ -16,7 +16,7 @@ import MemberProfileModal from "./MemberProfileModal";
 import ManageTeamsModal from "./ManageTeamsModal";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { api } from "../api";
-import { Bell, Settings, RotateCcw, Sun, Moon, Palette, Type } from "lucide-react";
+import { Bell, Settings, RotateCcw, Sun, Moon, Palette, Type, Loader2 } from "lucide-react";
 import { APP_CONFIG } from "../config/appConfig";
 
 const inputClass =
@@ -157,6 +157,11 @@ export default function WorkspaceShell({
     const [newEstTime, setNewEstTime] = useState("");
     const [newIsRecurring, setNewIsRecurring] = useState(false);
     const [newRecurrence, setNewRecurrence] = useState("DAILY");
+
+    // Loading states for async operations
+    const [isProvisioning, setIsProvisioning] = useState(false);
+    const [isCreatingTask, setIsCreatingTask] = useState(false);
+    const [isSavingColumns, setIsSavingColumns] = useState(false);
 
     // Pre-populate and synchronize newDueDate with activeDateStr when modal is opened/closed
 
@@ -335,14 +340,19 @@ export default function WorkspaceShell({
                             Leader.
                         </p>
                         <form
-                            onSubmit={(e) => {
+                            onSubmit={async (e) => {
                                 e.preventDefault();
                                 const formData = new FormData(e.currentTarget);
                                 const tName = formData.get(
                                     "teamName",
                                 ) as string;
                                 if (tName && tName.trim()) {
-                                    handleCreateTeam(tName.trim());
+                                    setIsProvisioning(true);
+                                    try {
+                                        await handleCreateTeam(tName.trim());
+                                    } finally {
+                                        setIsProvisioning(false);
+                                    }
                                 }
                             }}
                             className="flex gap-2 mt-1"
@@ -353,12 +363,15 @@ export default function WorkspaceShell({
                                 placeholder="Workspace Name (e.g. Core Engineering)"
                                 className={inputClass}
                                 required
+                                disabled={isProvisioning}
                             />
                             <button
                                 type="submit"
-                                className="px-3 py-1.5 bg-[#1A1A1A] text-white text-[11px] font-medium rounded-[3px] shrink-0 hover:bg-[#333] transition-colors"
+                                disabled={isProvisioning}
+                                className="px-3 py-1.5 bg-[#1A1A1A] text-white text-[11px] font-medium rounded-[3px] shrink-0 hover:bg-[#333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                             >
-                                Provision
+                                {isProvisioning && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
+                                <span>{isProvisioning ? "Provisioning…" : "Provision"}</span>
                             </button>
                         </form>
                     </div>
@@ -379,7 +392,6 @@ export default function WorkspaceShell({
     const handleCreateTask = async (e: React.FormEvent) => {
         e.preventDefault();
 
-
         if (!currentTeam || !newTitle.trim()) return;
 
         if (newTitle.trim().length > APP_CONFIG.MAX_TASK_TITLE_LENGTH) {
@@ -387,6 +399,7 @@ export default function WorkspaceShell({
             return;
         }
 
+        setIsCreatingTask(true);
         try {
             await api.createTask({
                 title: newTitle.trim(),
@@ -413,6 +426,8 @@ export default function WorkspaceShell({
             loadTasks();
         } catch (err: any) {
             toast.error(err.message || "Failed to create task");
+        } finally {
+            setIsCreatingTask(false);
         }
     };
 
@@ -458,6 +473,7 @@ export default function WorkspaceShell({
 
     const handleSaveColumns = async () => {
         if (!currentTeam) return;
+        setIsSavingColumns(true);
         try {
             const reorderedCols = editingColumns.map((col, idx) => ({
                 ...col,
@@ -472,6 +488,8 @@ export default function WorkspaceShell({
             loadTasks();
         } catch (err: any) {
             toast.error(err.message || "Failed to update columns");
+        } finally {
+            setIsSavingColumns(false);
         }
     };
 
@@ -485,7 +503,7 @@ export default function WorkspaceShell({
         if (pathname === "/dashboard") return "Leader Dashboard";
         if (pathname === "/myday" || currentView === "myday") return "My Day";
         if (pathname === "/map" || currentView === "map") return "Workspace Solar Map";
-        if (currentView === "kanban" || pathname === "/" || pathname === "/kanban") return "Kanban Board";
+        if (currentView === "kanban" || pathname === "/kanban") return "Kanban Board";
         return currentView.charAt(0).toUpperCase() + currentView.slice(1);
     })();
 
@@ -840,16 +858,22 @@ export default function WorkspaceShell({
                                 <button
                                     type="button"
                                     onClick={() => setIsAddTaskOpen(false)}
-                                    className="relative corner-brackets-4 px-3.5 py-1.5 border border-[#E5E5E3] bg-white hover:bg-[#FAFAF9] text-[11px] font-medium text-[#888883] rounded-[2px] transition-colors cursor-pointer"
+                                    disabled={isCreatingTask}
+                                    className="relative corner-brackets-4 px-3.5 py-1.5 border border-[#E5E5E3] bg-white hover:bg-[#FAFAF9] text-[11px] font-medium text-[#888883] rounded-[2px] transition-colors cursor-pointer disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="relative corner-brackets-4 px-4 py-1.5 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] font-medium text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
+                                    disabled={isCreatingTask}
+                                    className="relative corner-brackets-4 px-4 py-1.5 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] font-medium text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
-                                    <span>Create Task</span>
+                                    {isCreatingTask ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                                    ) : (
+                                        <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
+                                    )}
+                                    <span>{isCreatingTask ? "Creating Task…" : "Create Task"}</span>
                                 </button>
                             </div>
                         </form>
@@ -887,147 +911,147 @@ export default function WorkspaceShell({
                                     <div
                                         key={col.id || index}
                                         draggable={index !== 0}
-                                    onDragStart={(e) =>
-                                        index !== 0 && handleColDragStart(e, index)
-                                    }
-                                    onDragOver={(e) =>
-                                        index !== 0 && handleColDragOver(e, index)
-                                    }
-                                    onDrop={(e) => index !== 0 && handleColDrop(e, index)}
-                                    className={`border border-[#E5E5E3] p-3 flex flex-col sm:flex-row gap-2.5 items-start sm:items-center bg-white transition-all ${draggedColIndex === index
-                                        ? "opacity-40 border-dashed border-[#1A1A1A]"
-                                        : "hover:border-[#DADAD6]"
-                                        }`}
-                                >
-                                    <div className="flex-1 flex gap-2 items-center w-full">
-                                        <div className="flex items-center gap-1 shrink-0 text-[#888883]">
-                                            {index === 0 ? (
-                                                <>
-                                                    <span
-                                                        title="Primary starting column"
-                                                        className="opacity-20 select-none text-[12px] px-1 font-bold text-[#888883] cursor-not-allowed"
-                                                    >
-                                                        ⠿
-                                                    </span>
-                                                    <div className="flex flex-col text-[9px] leading-none opacity-20 cursor-not-allowed">
-                                                        <span className="px-0.5 select-none">▲</span>
-                                                        <span className="px-0.5 select-none">▼</span>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span
-                                                        title="Drag to reorder"
-                                                        className="cursor-grab active:cursor-grabbing text-[12px] px-1 hover:text-[#1A1A1A] select-none font-bold"
-                                                    >
-                                                        ⠿
-                                                    </span>
-                                                    <div className="flex flex-col text-[9px] leading-none">
-                                                        <button
-                                                            type="button"
-                                                            disabled={index <= 1}
-                                                            onClick={() =>
-                                                                handleMoveColumn(
-                                                                    index,
-                                                                    "up",
-                                                                )
-                                                            }
-                                                            className="hover:text-[#1A1A1A] disabled:opacity-20 px-0.5"
-                                                            title="Move up"
+                                        onDragStart={(e) =>
+                                            index !== 0 && handleColDragStart(e, index)
+                                        }
+                                        onDragOver={(e) =>
+                                            index !== 0 && handleColDragOver(e, index)
+                                        }
+                                        onDrop={(e) => index !== 0 && handleColDrop(e, index)}
+                                        className={`border border-[#E5E5E3] p-3 flex flex-col sm:flex-row gap-2.5 items-start sm:items-center bg-white transition-all ${draggedColIndex === index
+                                            ? "opacity-40 border-dashed border-[#1A1A1A]"
+                                            : "hover:border-[#DADAD6]"
+                                            }`}
+                                    >
+                                        <div className="flex-1 flex gap-2 items-center w-full">
+                                            <div className="flex items-center gap-1 shrink-0 text-[#888883]">
+                                                {index === 0 ? (
+                                                    <>
+                                                        <span
+                                                            title="Primary starting column"
+                                                            className="opacity-20 select-none text-[12px] px-1 font-bold text-[#888883] cursor-not-allowed"
                                                         >
-                                                            ▲
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            disabled={
-                                                                index === 0 ||
-                                                                index ===
-                                                                editingColumns.length -
-                                                                1
-                                                            }
-                                                            onClick={() =>
-                                                                handleMoveColumn(
-                                                                    index,
-                                                                    "down",
-                                                                )
-                                                            }
-                                                            className="hover:text-[#1A1A1A] disabled:opacity-20 px-0.5"
-                                                            title="Move down"
+                                                            ⠿
+                                                        </span>
+                                                        <div className="flex flex-col text-[9px] leading-none opacity-20 cursor-not-allowed">
+                                                            <span className="px-0.5 select-none">▲</span>
+                                                            <span className="px-0.5 select-none">▼</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span
+                                                            title="Drag to reorder"
+                                                            className="cursor-grab active:cursor-grabbing text-[12px] px-1 hover:text-[#1A1A1A] select-none font-bold"
                                                         >
-                                                            ▼
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                        <input
-                                            type="text"
-                                            value={col.name}
-                                            disabled={isColConstant}
-                                            readOnly={isColConstant}
-                                            title={isColConstant ? "Constant column name cannot be edited." : ""}
-                                            onChange={(e) => {
-                                                if (isColConstant) return;
-                                                const updated = [
-                                                    ...editingColumns,
-                                                ];
-                                                updated[index].name =
-                                                    e.target.value;
-                                                setEditingColumns(updated);
-                                            }}
-                                            className={inputClass}
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-3 items-center shrink-0 w-full sm:w-auto justify-between sm:justify-start">
-                                        <label
-                                            className="flex items-center gap-1.5 text-[11px] text-[#888883] cursor-pointer"
-                                            title="Automatically carry forward incomplete tasks to the next day"
-                                        >
+                                                            ⠿
+                                                        </span>
+                                                        <div className="flex flex-col text-[9px] leading-none">
+                                                            <button
+                                                                type="button"
+                                                                disabled={index <= 1}
+                                                                onClick={() =>
+                                                                    handleMoveColumn(
+                                                                        index,
+                                                                        "up",
+                                                                    )
+                                                                }
+                                                                className="hover:text-[#1A1A1A] disabled:opacity-20 px-0.5"
+                                                                title="Move up"
+                                                            >
+                                                                ▲
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                disabled={
+                                                                    index === 0 ||
+                                                                    index ===
+                                                                    editingColumns.length -
+                                                                    1
+                                                                }
+                                                                onClick={() =>
+                                                                    handleMoveColumn(
+                                                                        index,
+                                                                        "down",
+                                                                    )
+                                                                }
+                                                                className="hover:text-[#1A1A1A] disabled:opacity-20 px-0.5"
+                                                                title="Move down"
+                                                            >
+                                                                ▼
+                                                            </button>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
                                             <input
-                                                type="checkbox"
-                                                checked={
-                                                    col.triggersCarryForward !==
-                                                    false
-                                                }
+                                                type="text"
+                                                value={col.name}
+                                                disabled={isColConstant}
+                                                readOnly={isColConstant}
+                                                title={isColConstant ? "Constant column name cannot be edited." : ""}
                                                 onChange={(e) => {
+                                                    if (isColConstant) return;
                                                     const updated = [
                                                         ...editingColumns,
                                                     ];
-                                                    updated[
-                                                        index
-                                                    ].triggersCarryForward =
-                                                        e.target.checked;
+                                                    updated[index].name =
+                                                        e.target.value;
                                                     setEditingColumns(updated);
                                                 }}
-                                                className="rounded-[2px]"
+                                                className={inputClass}
                                             />
-                                            Carry Forward
-                                        </label>
+                                        </div>
 
-                                        {isColConstant ? (
-                                            <span className="text-[11px] text-transparent select-none">
-                                                Delete
-                                            </span>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setEditingColumns((prev) =>
-                                                        prev.filter(
-                                                            (_, idx) =>
-                                                                idx !== index,
-                                                        ),
-                                                    );
-                                                }}
-                                                className="text-[11px] text-[#CB2431] hover:underline cursor-pointer"
+                                        <div className="flex flex-wrap gap-3 items-center shrink-0 w-full sm:w-auto justify-between sm:justify-start">
+                                            <label
+                                                className="flex items-center gap-1.5 text-[11px] text-[#888883] cursor-pointer"
+                                                title="Automatically carry forward incomplete tasks to the next day"
                                             >
-                                                Delete
-                                            </button>
-                                        )}
+                                                <input
+                                                    type="checkbox"
+                                                    checked={
+                                                        col.triggersCarryForward !==
+                                                        false
+                                                    }
+                                                    onChange={(e) => {
+                                                        const updated = [
+                                                            ...editingColumns,
+                                                        ];
+                                                        updated[
+                                                            index
+                                                        ].triggersCarryForward =
+                                                            e.target.checked;
+                                                        setEditingColumns(updated);
+                                                    }}
+                                                    className="rounded-[2px]"
+                                                />
+                                                Carry Forward
+                                            </label>
+
+                                            {isColConstant ? (
+                                                <span className="text-[11px] text-transparent select-none">
+                                                    Delete
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditingColumns((prev) =>
+                                                            prev.filter(
+                                                                (_, idx) =>
+                                                                    idx !== index,
+                                                            ),
+                                                        );
+                                                    }}
+                                                    className="text-[11px] text-[#CB2431] hover:underline cursor-pointer"
+                                                >
+                                                    Delete
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            );
+                                );
                             })}
 
 
@@ -1057,6 +1081,7 @@ export default function WorkspaceShell({
                             <Button
                                 type="button"
                                 variant="ghost"
+                                disabled={isSavingColumns}
                                 onClick={() => setIsConfigModalOpen(false)}
                             >
                                 Cancel
@@ -1064,6 +1089,8 @@ export default function WorkspaceShell({
                             <Button
                                 type="button"
                                 onClick={handleSaveColumns}
+                                isLoading={isSavingColumns}
+                                loadingText="Saving Changes…"
                                 showDot
                             >
                                 Save Changes
@@ -1105,11 +1132,10 @@ export default function WorkspaceShell({
                             <button
                                 type="button"
                                 onClick={() => setSettingsTab("theme")}
-                                className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
-                                    settingsTab === "theme"
+                                className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${settingsTab === "theme"
                                         ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4"
                                         : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#F0F0EE]"
-                                }`}
+                                    }`}
                             >
                                 <Palette className="w-3 h-3 shrink-0" />
                                 <span>Theme & Color</span>
@@ -1117,11 +1143,10 @@ export default function WorkspaceShell({
                             <button
                                 type="button"
                                 onClick={() => setSettingsTab("typography")}
-                                className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
-                                    settingsTab === "typography"
+                                className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${settingsTab === "typography"
                                         ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4"
                                         : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#F0F0EE]"
-                                }`}
+                                    }`}
                             >
                                 <Type className="w-3 h-3 shrink-0" />
                                 <span>Typography & Fonts</span>

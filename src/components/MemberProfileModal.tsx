@@ -102,13 +102,13 @@ export default function MemberProfileModal({
             />
 
             {/* Custom Styled Profile Card with corner brackets */}
-            <div 
+            <div
                 className="relative bg-white border border-[#E5E5E3] w-full max-w-md flex flex-col animate-fade-in corner-brackets shadow-2xl z-10 text-left max-h-[90vh]"
                 style={{ boxShadow: "var(--shadow-float)" }}
             >
                 {/* Unsplash Cover Photo Header (No overlap with avatar) */}
                 <div className="h-28 w-full relative shrink-0 overflow-hidden border-b border-[#E5E5E3] bg-[#FAFAF9]">
-                    <img 
+                    <img
                         src={coverPhotoUrl}
                         alt="Profile cover"
                         className="w-full h-full object-cover filter grayscale contrast-110 opacity-90 mix-blend-multiply"
@@ -139,15 +139,15 @@ export default function MemberProfileModal({
                                 {initials}
                             </div>
                         )}
-                        
+
                         <div className="flex flex-col gap-1 min-w-0 pr-8">
-                            <h2 className="font-heading text-xl md:text-2xl text-[#1A1A1A] tracking-tight truncate">
+                            <h2 className="font-heading text-xl md:text-2xl text-[#1A1A1A]    truncate">
                                 {user.name}
                             </h2>
                             <span className="text-[11px] text-[#888883] truncate">{user.email}</span>
-                            
+
                             <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                <span className={`px-2 py-0.5 rounded-[2px] border text-[9px] font-semibold font-mono tracking-wider uppercase ${getRoleBadge(userRole)}`}>
+                                <span className={`px-2 py-0.5 rounded-[2px] border text-[9px] font-semibold font-mono   capitalize ${getRoleBadge(userRole)}`}>
                                     {userRole}
                                 </span>
                                 {user.designation && (
@@ -169,13 +169,13 @@ export default function MemberProfileModal({
 
                 {/* Content Body */}
                 <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 bg-[#FAFAF9] scrollbar-none rounded-b-[2px]">
-                    
+
                     {/* Merged Single Container Card */}
                     <div className="bg-white border border-[#E5E5E3] corner-brackets flex flex-col">
-                        
+
                         {/* Section 1: Performance Stats */}
                         <div className="p-4 flex flex-col gap-3">
-                            <span className="eyebrow block border-b border-[#F5F5F4] pb-1.5 uppercase tracking-wider">
+                            <span className="eyebrow block border-b border-[#F5F5F4] pb-1.5 capitalize  ">
                                 Task Statistics
                             </span>
                             <div className="grid grid-cols-3 divide-x divide-[#E5E5E3] text-center">
@@ -183,7 +183,7 @@ export default function MemberProfileModal({
                                     <span className="text-xl font-heading text-[#1A1A1A] tabular-nums font-semibold">
                                         {userTasks.length}
                                     </span>
-                                    <span className="text-[9px] text-[#888883] font-semibold uppercase tracking-wider">
+                                    <span className="text-[9px] text-[#888883] font-semibold capitalize  ">
                                         Total
                                     </span>
                                 </div>
@@ -191,7 +191,7 @@ export default function MemberProfileModal({
                                     <span className="text-xl font-heading text-[#22863A] tabular-nums font-semibold">
                                         {completedTasks.length}
                                     </span>
-                                    <span className="text-[9px] text-[#888883] font-semibold uppercase tracking-wider">
+                                    <span className="text-[9px] text-[#888883] font-semibold capitalize  ">
                                         Completed
                                     </span>
                                 </div>
@@ -199,7 +199,7 @@ export default function MemberProfileModal({
                                     <span className="text-xl font-heading text-[#B08800] tabular-nums font-semibold">
                                         {pendingTasks.length}
                                     </span>
-                                    <span className="text-[9px] text-[#888883] font-semibold uppercase tracking-wider">
+                                    <span className="text-[9px] text-[#888883] font-semibold capitalize  ">
                                         Pending
                                     </span>
                                 </div>
@@ -217,7 +217,7 @@ export default function MemberProfileModal({
 
                         {/* Section 2: Contact & Professional Details */}
                         <div className="p-4 flex flex-col gap-3">
-                            <span className="eyebrow block border-b border-[#F5F5F4] pb-1.5 uppercase tracking-wider">
+                            <span className="eyebrow block border-b border-[#F5F5F4] pb-1.5 capitalize  ">
                                 Profile Details
                             </span>
                             <div className="flex flex-col gap-2 text-[11px]">
@@ -297,7 +297,7 @@ export default function MemberProfileModal({
                                 </div>
 
                                 <div className="p-4 flex flex-col gap-3">
-                                    <span className="eyebrow block border-b border-[#F5F5F4] pb-1.5 uppercase tracking-wider">
+                                    <span className="eyebrow block border-b border-[#F5F5F4] pb-1.5 capitalize  ">
                                         Active Tasks ({userTasks.length})
                                     </span>
                                     <div className="flex flex-col divide-y divide-[#E5E5E3]/60 max-h-44 overflow-y-auto pr-1">
@@ -316,7 +316,7 @@ export default function MemberProfileModal({
                                                     <span className="text-[12px] font-medium text-[#1A1A1A] group-hover:underline block truncate">
                                                         {task.title}
                                                     </span>
-                                                    <span className="text-[9px] text-[#888883] font-mono block uppercase mt-0.5">
+                                                    <span className="text-[9px] text-[#888883] font-mono block capitalize mt-0.5">
                                                         {task.column?.name}
                                                     </span>
                                                 </div>

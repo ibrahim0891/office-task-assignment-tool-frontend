@@ -3,7 +3,6 @@ import { Inter, Instrument_Serif } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { WorkspaceProvider } from "../context/WorkspaceContext";
-import WorkspaceShell from "../components/WorkspaceShell";
 import { APP_CONFIG } from "../config/appConfig";
 
 const inter = Inter({
@@ -37,9 +36,24 @@ export default function RootLayout({
     return (
         <html
             lang="en"
+            suppressHydrationWarning
             className={`${inter.variable} ${instrumentSerif.variable} h-full`}
         >
             <head>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            (function() {
+                                try {
+                                    var theme = localStorage.getItem('sys_theme');
+                                    if (theme) {
+                                        document.documentElement.setAttribute('data-theme', theme);
+                                    }
+                                } catch (e) {}
+                            })();
+                        `,
+                    }}
+                />
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <link
@@ -53,7 +67,7 @@ export default function RootLayout({
                     toastOptions={{ duration: 3000 }}
                 />
                 <WorkspaceProvider>
-                    <WorkspaceShell>{children}</WorkspaceShell>
+                    {children}
                 </WorkspaceProvider>
             </body>
         </html>

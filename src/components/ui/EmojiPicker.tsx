@@ -75,7 +75,7 @@ export function EmojiPicker({ value = "🧑‍💻", onChange, disabled = false 
             const rect = buttonRef.current.getBoundingClientRect();
             const popoverHeight = 310; // Approx total height of popover
             const spaceBelow = window.innerHeight - rect.bottom;
-            
+
             let topPosition = rect.bottom + window.scrollY;
             if (spaceBelow < popoverHeight && rect.top > popoverHeight) {
                 // Not enough space below, open upward instead
@@ -104,7 +104,7 @@ export function EmojiPicker({ value = "🧑‍💻", onChange, disabled = false 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (
-                containerRef.current && 
+                containerRef.current &&
                 !containerRef.current.contains(event.target as Node) &&
                 !(event.target as Element).closest(".emoji-picker-popover")
             ) {
@@ -179,7 +179,7 @@ export function EmojiPicker({ value = "🧑‍💻", onChange, disabled = false 
     }, [isOpen, fetchedCategories]);
 
     // Active category emojis
-    const displayedEmojis = fetchedCategories[activeTab] || 
+    const displayedEmojis = fetchedCategories[activeTab] ||
         EMOJI_CATEGORIES.find((c) => c.name === activeTab)?.emojis || [];
 
     // Filtered search results
@@ -202,7 +202,7 @@ export function EmojiPicker({ value = "🧑‍💻", onChange, disabled = false 
             {isOpen && mounted && typeof document !== "undefined" && createPortal(
                 <div
                     className="absolute bg-[var(--app-card)] border border-[var(--app-border)] shadow-xl rounded-[3px] p-3 z-[9999] animate-fade-in corner-brackets flex flex-col gap-2.5 emoji-picker-popover overflow-hidden"
-                    style={{ 
+                    style={{
                         boxShadow: "var(--shadow-float)",
                         top: `${coords.top + 6}px`,
                         left: `${coords.left}px`,
@@ -236,11 +236,10 @@ export function EmojiPicker({ value = "🧑‍💻", onChange, disabled = false 
                                         type="button"
                                         onClick={() => setActiveTab(catName)}
                                         title={formatCategoryName(catName)}
-                                        className={`w-8 h-8 flex items-center justify-center rounded-[2px] transition-colors cursor-pointer shrink-0 text-sm ${
-                                            isActive
-                                                ? "bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)]"
-                                                : "text-[var(--app-muted)] hover:bg-[var(--app-hover-bg)]/50"
-                                        }`}
+                                        className={`w-8 h-8 flex items-center justify-center rounded-[2px] transition-colors cursor-pointer shrink-0 text-sm ${isActive
+                                            ? "bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)]"
+                                            : "text-[var(--app-muted)] hover:bg-[var(--app-hover-bg)]/50"
+                                            }`}
                                     >
                                         {icon}
                                     </button>
@@ -251,7 +250,7 @@ export function EmojiPicker({ value = "🧑‍💻", onChange, disabled = false 
 
                     {/* Category Title */}
                     <div className="text-left shrink-0">
-                        <span className="text-[8px] font-bold uppercase tracking-wider text-[var(--app-muted)]">
+                        <span className="text-[8px] font-bold capitalize   text-[var(--app-muted)]">
                             {searchQuery ? "Search Results" : formatCategoryName(activeTab)}
                         </span>
                     </div>

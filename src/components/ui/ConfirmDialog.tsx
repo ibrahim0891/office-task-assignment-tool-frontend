@@ -1,4 +1,5 @@
 import React from "react";
+import { Loader2 } from "lucide-react";
 
 interface ConfirmDialogProps {
     isOpen: boolean;
@@ -59,13 +60,14 @@ export default function ConfirmDialog({
                         type="button"
                         onClick={onConfirm}
                         disabled={isLoading}
-                        className={`px-4 py-1.5 text-white font-medium text-[11px] rounded-[3px] transition-colors cursor-pointer disabled:opacity-50 ${
+                        className={`px-4 py-1.5 text-white font-medium text-[11px] rounded-[3px] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5 ${
                             isDanger
                                 ? "bg-[#CB2431] hover:bg-[#A01B26]"
                                 : "bg-[#1A1A1A] hover:bg-[#333]"
                         }`}
                     >
-                        {isLoading ? "Processing…" : confirmText}
+                        {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
+                        <span>{isLoading ? "Processing…" : confirmText}</span>
                     </button>
                 </div>
             </div>

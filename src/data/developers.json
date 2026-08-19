@@ -1,0 +1,22 @@
+[
+  {
+    "id": "ibrahim",
+    "name": "Mohammad Ibrahim",
+    "role": "Full-Stack Developer",
+    "department": "AI Department",
+    "company": "SM Technology",
+    "bio": "Frontend & Full-Stack Developer at SM Technology in the AI Department. Specializing in intelligent workflow orchestration, scalable frontend architecture, and responsive UX.",
+    "githubUsername": "ibrahim0891",
+    "tags": ["Frontend Dev", "Full-Stack", "AI Dept", "React", "Next.js", "TypeScript"]
+  },
+  {
+    "id": "hasibul",
+    "name": "Md Hasibul Islam",
+    "role": "Full-Stack Developer",
+    "department": "AI Department",
+    "company": "SM Technology",
+    "bio": "Frontend & Full-Stack Developer at SM Technology in the AI Department. Focusing on high-performance interfaces, interactive state modeling, and real-time collaboration platforms.",
+    "githubUsername": "web-hasib",
+    "tags": ["Frontend Dev", "Full-Stack", "AI Dept", "Next.js 15", "React 19", "Node.js"]
+  }
+]

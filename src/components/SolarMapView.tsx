@@ -22,13 +22,13 @@ function LeaderNode({ data }: { data: { label: string; name: string; teamName?: 
         <div className="px-5 py-3 rounded-[3px] border-2 border-[var(--color-error)] bg-[var(--app-card)] shadow-lg text-center min-w-[150px] relative corner-brackets font-sans">
             <Handle type="source" position={Position.Bottom} className="opacity-0" />
             <Handle type="target" position={Position.Top} className="opacity-0" />
-            <div className="text-[9px] uppercase font-bold tracking-wider text-[var(--color-error)] mb-0.5 emoji-font">
+            <div className="text-[9px] capitalize font-bold   text-[var(--color-error)] mb-0.5 emoji-font">
                 {data.teamName || "Leader"}
             </div>
             <div className="text-sm font-semibold text-[var(--app-text)] leading-tight">
                 {data.name}
             </div>
-            <div className="text-[9px] text-[var(--app-muted)] font-medium mt-0.5 uppercase">
+            <div className="text-[9px] text-[var(--app-muted)] font-medium mt-0.5 capitalize">
                 Leader
             </div>
         </div>
@@ -48,7 +48,7 @@ function MemberNode({ data }: { data: { name: string; initials: string; role: st
                 <span className="text-xs font-medium text-[var(--app-text)] truncate leading-tight">
                     {data.name}
                 </span>
-                <span className="text-[9px] text-[var(--app-muted)] font-semibold uppercase mt-0.5">
+                <span className="text-[9px] text-[var(--app-muted)] font-semibold capitalize mt-0.5">
                     {data.role}
                 </span>
             </div>
@@ -100,7 +100,7 @@ function UnassignedHeaderNode() {
         <div className="px-4 py-2.5 rounded-[2px] border border-dashed border-[var(--app-border-strong)] bg-[var(--app-bg)] text-center min-w-[160px] relative corner-brackets font-sans">
             <Handle type="target" position={Position.Top} className="opacity-0" />
             <Handle type="source" position={Position.Bottom} className="opacity-0" />
-            <div className="text-[9px] uppercase font-bold tracking-wider text-[var(--app-muted)] mb-0.5">
+            <div className="text-[9px] capitalize font-bold   text-[var(--app-muted)] mb-0.5">
                 Unassigned
             </div>
             <div className="text-xs font-semibold text-[var(--app-muted)] leading-tight">

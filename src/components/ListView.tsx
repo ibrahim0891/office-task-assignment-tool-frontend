@@ -42,6 +42,7 @@ export default function ListView({
     const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] =
         useState(false);
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+    const [isBulkReassigning, setIsBulkReassigning] = useState(false);
 
     const activeMembership = teamMembers.find(
         (tm) => tm.user.id === currentUser.id,
@@ -160,16 +161,17 @@ export default function ListView({
 
     const handleBulkReassign = async () => {
         if (isObserver) {
-            alert(
+            toast.error(
                 "Observers have read-only access and cannot perform bulk updates.",
             );
             return;
         }
         if (!isLeader && bulkAssignee !== currentUser.id) {
-            alert("Members can only reassign tasks to themselves.");
+            toast.error("Members can only reassign tasks to themselves.");
             return;
         }
         if (validSelectedTasks.length === 0 || !bulkAssignee) return;
+        setIsBulkReassigning(true);
         try {
             await Promise.all(
                 validSelectedTasks.map((taskId) =>
@@ -183,9 +185,11 @@ export default function ListView({
             setSelectedTasks([]);
             setBulkAssignee("");
             onRefresh();
-            alert("Bulk reassign successful.");
+            toast.success("Bulk reassign successful.");
         } catch (err: any) {
-            alert("Error: " + err.message);
+            toast.error("Error: " + err.message);
+        } finally {
+            setIsBulkReassigning(false);
         }
     };
 
@@ -358,8 +362,10 @@ export default function ListView({
                                     />
                                     <Button
                                         onClick={handleBulkReassign}
-                                        disabled={!bulkAssignee || !canBulkReassign}
-                                        showDot
+                                        disabled={!bulkAssignee || !canBulkReassign || isBulkReassigning}
+                                        isLoading={isBulkReassigning}
+                                        loadingText="Reassigning…"
+                                        showDot={!isBulkReassigning}
                                     >
                                         Reassign
                                     </Button>

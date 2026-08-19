@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Loader2 } from "lucide-react";
 
 export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -8,6 +9,8 @@ export interface ButtonProps
     size?: "sm" | "md" | "lg";
     icon?: React.ReactNode;
     showDot?: boolean;
+    isLoading?: boolean;
+    loadingText?: React.ReactNode;
     children?: React.ReactNode;
 }
 
@@ -18,6 +21,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             size = "md",
             icon,
             showDot = false,
+            isLoading = false,
+            loadingText,
             children,
             className = "",
             disabled,
@@ -61,15 +66,24 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         return (
             <button
                 ref={ref}
-                disabled={disabled}
+                disabled={disabled || isLoading}
                 className={`relative corner-brackets-4 font-medium rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed ${variantClasses} ${sizeClasses} ${className}`}
                 {...props}
             >
-                {showDot && (
-                    <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block shrink-0" />
+                {isLoading ? (
+                    <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                        <span>{loadingText || children || "Loading..."}</span>
+                    </>
+                ) : (
+                    <>
+                        {showDot && (
+                            <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block shrink-0" />
+                        )}
+                        {icon}
+                        {children && <span>{children}</span>}
+                    </>
                 )}
-                {icon}
-                {children && <span>{children}</span>}
             </button>
         );
     },

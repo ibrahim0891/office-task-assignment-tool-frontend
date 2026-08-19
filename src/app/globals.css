@@ -5,6 +5,11 @@
   font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif !important;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
 :root {
   /* Editorial light palette — paper / ink / stone */
   --app-bg: #FAFAF9;
@@ -1100,3 +1105,281 @@ input[type="range"]::-moz-range-thumb {
 .card-blocked .card-dot { background-color: #B87070; }
 .card-blocked .card-label { color: #7A4040; }
 .card-blocked .card-value { color: #7A4040; }
+
+/* ─── Monochrome Gradient Border & Idle Corner Brackets ─── */
+@keyframes monoGradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.mono-gradient-border {
+  position: relative;
+  background-color: var(--app-card);
+  border: 1px solid var(--app-border);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Architectural corner brackets in resting (non-hover) state */
+.mono-gradient-border::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: 
+    linear-gradient(var(--app-text), var(--app-text)) top left / 9px 2px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) top left / 2px 9px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) bottom right / 9px 2px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) bottom right / 2px 9px no-repeat;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+/* Full perimeter animated gradient border on hover */
+.mono-gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    90deg,
+    var(--app-text) 0%,
+    var(--app-muted) 25%,
+    var(--app-border) 50%,
+    var(--app-muted) 75%,
+    var(--app-text) 100%
+  );
+  background-size: 250% 250%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 20;
+}
+
+/* Hover transitions */
+.mono-gradient-border:hover::after {
+  opacity: 0;
+}
+
+.mono-gradient-border:hover::before {
+  opacity: 1;
+  animation: monoGradientFlow 3s ease infinite;
+}
+
+.mono-gradient-border:hover {
+  border-color: transparent;
+}
+
+/* ─── Glass Shimmer Button Effect ─── */
+@keyframes glassShimmer {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+
+.btn-glass-shimmer {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-glass-shimmer::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: 0;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-150%) skewX(-20deg);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.btn-glass-shimmer:hover::after {
+  opacity: 1;
+  animation: glassShimmer 1.1s ease infinite;
+}
+
+/* ─── Minimal Subtle Section Animation for Landing Page ─── */
+@keyframes subtleFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-subtle-fade {
+  animation: subtleFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Lenis smooth scrolling isolation */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* ─── Hero Target Arrow/Corner Brackets (4px outside, snaps to border on hover) ─── */
+.target-bracket-btn {
+  position: relative;
+  overflow: visible;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 4-Corner Snap Brackets */
+.target-bracket-btn::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  pointer-events: none;
+  z-index: 20;
+  background: 
+    linear-gradient(var(--app-text), var(--app-text)) top left / 6px 1px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) top left / 1px 6px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) top right / 6px 1px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) top right / 1px 6px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) bottom left / 6px 1px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) bottom left / 1px 6px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) bottom right / 6px 1px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) bottom right / 1px 6px no-repeat;
+  opacity: 0.35;
+  transition: inset 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+
+/* Hover: Contracts/Snaps smoothly inward to 0px with subtle refined opacity */
+.target-bracket-btn:hover::before {
+  inset: 0px;
+  opacity: 0.7;
+}
+
+/* Secondary / White Button Specific Bracket Styling (Black angles) */
+.target-bracket-btn-secondary {
+  position: relative;
+  overflow: visible;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.target-bracket-btn-secondary::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  pointer-events: none;
+  z-index: 20;
+  background: 
+    linear-gradient(#000000, #000000) top left / 6px 1px no-repeat,
+    linear-gradient(#000000, #000000) top left / 1px 6px no-repeat,
+    linear-gradient(#000000, #000000) top right / 6px 1px no-repeat,
+    linear-gradient(#000000, #000000) top right / 1px 6px no-repeat,
+    linear-gradient(#000000, #000000) bottom left / 6px 1px no-repeat,
+    linear-gradient(#000000, #000000) bottom left / 1px 6px no-repeat,
+    linear-gradient(#000000, #000000) bottom right / 6px 1px no-repeat,
+    linear-gradient(#000000, #000000) bottom right / 1px 6px no-repeat;
+  opacity: 0.75;
+  transition: inset 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+
+.target-bracket-btn-secondary:hover::before {
+  inset: 0px;
+  opacity: 1;
+}
+
+html[data-theme="nord-dark"] .target-bracket-btn-secondary::before,
+html[data-theme="amoled-dark"] .target-bracket-btn-secondary::before,
+html[data-theme="lws-dark"] .target-bracket-btn-secondary::before,
+html[data-theme="dark"] .target-bracket-btn-secondary::before {
+  background: 
+    linear-gradient(var(--app-text), var(--app-text)) top left / 6px 1px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) top left / 1px 6px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) top right / 6px 1px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) top right / 1px 6px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) bottom left / 6px 1px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) bottom left / 1px 6px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) bottom right / 6px 1px no-repeat,
+    linear-gradient(var(--app-text), var(--app-text)) bottom right / 1px 6px no-repeat;
+  opacity: 0.7;
+}
+
+html[data-theme="nord-dark"] .target-bracket-btn-secondary:hover::before,
+html[data-theme="amoled-dark"] .target-bracket-btn-secondary:hover::before,
+html[data-theme="lws-dark"] .target-bracket-btn-secondary:hover::before,
+html[data-theme="dark"] .target-bracket-btn-secondary:hover::before {
+  opacity: 1;
+}
+
+/* Internal Shimmer Layer for Target Bracket Buttons */
+.btn-shimmer-beam {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.btn-shimmer-beam::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: 0;
+  width: 60%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-150%) skewX(-20deg);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.target-bracket-btn:hover .btn-shimmer-beam::after {
+  opacity: 1;
+  animation: glassShimmer 1.1s ease infinite;
+}
+
+* {
+  user-select: none;
+}
