@@ -108,6 +108,8 @@ export default function TaskModal({
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [showLoadMore, setShowLoadMore] = useState(false);
     const [commentToDeleteId, setCommentToDeleteId] = useState<string | null>(null);
+    const [resolvingCommentId, setResolvingCommentId] = useState<string | null>(null);
+    const [isDeletingComment, setIsDeletingComment] = useState(false);
     const commentsEndRef = React.useRef<HTMLDivElement>(null);
     const commentsContainerRef = React.useRef<HTMLDivElement>(null);
     const prevScrollHeightRef = React.useRef<number>(0);
@@ -652,6 +654,7 @@ export default function TaskModal({
             lastScrollTopRef.current = commentsContainerRef.current.scrollTop;
         }
         shouldScrollToBottomRef.current = false;
+        setResolvingCommentId(commentId);
         try {
             await api.resolveComment(task.id, commentId, currentUser.id);
             toast.success("Comment marked as resolved.");
@@ -659,6 +662,8 @@ export default function TaskModal({
             onRefresh();
         } catch (err: any) {
             toast.error(err.message || "Failed to resolve comment.");
+        } finally {
+            setResolvingCommentId(null);
         }
     };
 
@@ -667,6 +672,7 @@ export default function TaskModal({
             lastScrollTopRef.current = commentsContainerRef.current.scrollTop;
         }
         shouldScrollToBottomRef.current = false;
+        setResolvingCommentId(commentId);
         try {
             await api.reopenComment(task.id, commentId, currentUser.id);
             toast.success("Comment reopened.");
@@ -674,6 +680,8 @@ export default function TaskModal({
             onRefresh();
         } catch (err: any) {
             toast.error(err.message || "Failed to reopen comment.");
+        } finally {
+            setResolvingCommentId(null);
         }
     };
 
@@ -685,6 +693,7 @@ export default function TaskModal({
         shouldScrollToBottomRef.current = false;
         setHiddenCommentIds((prev) => [...prev, commentId]);
 
+        setIsDeletingComment(true);
         try {
             await api.deleteComment(task.id, commentId, currentUser.id);
             toast.success("Comment deleted.");
@@ -696,6 +705,8 @@ export default function TaskModal({
             setHiddenCommentIds((prev) =>
                 prev.filter((id) => id !== commentId),
             );
+        } finally {
+            setIsDeletingComment(false);
         }
     };
 
@@ -1014,17 +1025,22 @@ export default function TaskModal({
                                                                               currentUser.id) && (
                                                                           <button
                                                                               type="button"
+                                                                              disabled={resolvingCommentId !== null}
                                                                               onClick={() =>
                                                                                   handleResolveComment(
                                                                                       c.id,
                                                                                   )
                                                                               }
-                                                                              className="px-2 py-0.5 border border-[#CB2431]/30 bg-[#CB2431]/5 hover:bg-[#CB2431] text-[#CB2431] hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                                                              className="px-2 py-0.5 border border-[#CB2431]/30 bg-[#CB2431]/5 hover:bg-[#CB2431] text-[#CB2431] hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                               title="Resolve comment"
                                                                           >
-                                                                              <Check className="w-3 h-3" />
+                                                                              {resolvingCommentId === c.id ? (
+                                                                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                                                              ) : (
+                                                                                  <Check className="w-3 h-3" />
+                                                                              )}
                                                                               <span>
-                                                                                  Resolve
+                                                                                  {resolvingCommentId === c.id ? "Resolving..." : "Resolve"}
                                                                               </span>
                                                                           </button>
                                                                       )
@@ -1036,16 +1052,20 @@ export default function TaskModal({
                                                                               currentUser.id) && (
                                                                           <button
                                                                               type="button"
+                                                                              disabled={resolvingCommentId !== null}
                                                                               onClick={() =>
                                                                                   handleReopenComment(
                                                                                       c.id,
                                                                                   )
                                                                               }
-                                                                              className="px-2 py-0.5 border border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#1A1A1A] hover:text-white text-[#1A1A1A] rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                                                              className="px-2 py-0.5 border border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#1A1A1A] hover:text-white text-[#1A1A1A] rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                               title="Reopen comment"
                                                                           >
+                                                                              {resolvingCommentId === c.id && (
+                                                                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                                                              )}
                                                                               <span>
-                                                                                  Reopen
+                                                                                  {resolvingCommentId === c.id ? "Reopening..." : "Reopen"}
                                                                               </span>
                                                                           </button>
                                                                       )}
@@ -1053,12 +1073,13 @@ export default function TaskModal({
                                                                     currentUser.id && (
                                                                     <button
                                                                         type="button"
+                                                                        disabled={isDeletingComment}
                                                                         onClick={() =>
                                                                             setCommentToDeleteId(
                                                                                 c.id,
                                                                             )
                                                                         }
-                                                                        className="px-2 py-0.5 border border-red-200 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                                                        className="px-2 py-0.5 border border-red-200 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                         title="Delete comment permanently"
                                                                     >
                                                                         <span>
@@ -1960,6 +1981,7 @@ export default function TaskModal({
                 confirmText="Delete Comment"
                 cancelText="Cancel"
                 isDanger={true}
+                isLoading={isDeletingComment}
                 onConfirm={async () => {
                     if (commentToDeleteId) {
                         await handleDeleteComment(commentToDeleteId);
