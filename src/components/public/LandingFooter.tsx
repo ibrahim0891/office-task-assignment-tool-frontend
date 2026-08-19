@@ -13,8 +13,34 @@ export default function LandingFooter() {
                 </div>
                 <div className="flex items-center gap-6">
                     <Link href="/login" className="hover:text-[var(--app-text)] transition-colors">Sign In</Link>
-                    <a href="#features" className="hover:text-[var(--app-text)] transition-colors">Features</a>
-                    <a href="#roles" className="hover:text-[var(--app-text)] transition-colors">Security</a>
+                    <a
+                        href="#features"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            const elem = document.getElementById("features");
+                            if (elem) {
+                                elem.scrollIntoView({ behavior: "smooth", block: "start" });
+                                window.history.pushState(null, "", "#features");
+                            }
+                        }}
+                        className="hover:text-[var(--app-text)] transition-colors cursor-pointer"
+                    >
+                        Features
+                    </a>
+                    <a
+                        href="#roles"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            const elem = document.getElementById("roles");
+                            if (elem) {
+                                elem.scrollIntoView({ behavior: "smooth", block: "start" });
+                                window.history.pushState(null, "", "#roles");
+                            }
+                        }}
+                        className="hover:text-[var(--app-text)] transition-colors cursor-pointer"
+                    >
+                        Security
+                    </a>
                     <span className="flex items-center gap-1 text-[#22863A]">
                         <span className="w-2 h-2 rounded-full bg-[#22863A] animate-pulse" />
                         Systems Operational

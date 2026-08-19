@@ -12,6 +12,21 @@ interface LandingHeaderProps {
 }
 
 export default function LandingHeader({ currentUser, isDarkMode, onToggleTheme }: LandingHeaderProps) {
+    const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+        e.preventDefault();
+        const lenis = (window as any).__lenis;
+        if (lenis) {
+            lenis.scrollTo(`#${targetId}`, { offset: -70 });
+            window.history.pushState(null, "", `#${targetId}`);
+        } else {
+            const elem = document.getElementById(targetId);
+            if (elem) {
+                elem.scrollIntoView({ behavior: "smooth", block: "start" });
+                window.history.pushState(null, "", `#${targetId}`);
+            }
+        }
+    };
+
     return (
         <header className="sticky top-0 z-40 bg-[var(--app-card)]/90 backdrop-blur-md border-b border-[var(--app-border)] px-6 lg:px-12 py-3.5 transition-colors">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -31,11 +46,35 @@ export default function LandingHeader({ currentUser, isDarkMode, onToggleTheme }
                 </Link>
 
                 {/* Nav Links */}
-                <nav className="hidden md:flex items-center gap-8 text-[13px] font-medium text-[var(--app-muted)]">
-                    <a href="#features" className="hover:text-[var(--app-text)] transition-colors">Features</a>
-                    <a href="#showcase" className="hover:text-[var(--app-text)] transition-colors">Live Preview</a>
-                    <a href="#roles" className="hover:text-[var(--app-text)] transition-colors">Roles & Security</a>
-                    <a href="#faq" className="hover:text-[var(--app-text)] transition-colors">FAQ</a>
+                <nav className="hidden md:flex items-center gap-1.5 text-[13px] font-medium text-[var(--app-muted)]">
+                    <a
+                        href="#features"
+                        onClick={(e) => handleNavClick(e, "features")}
+                        className="px-3 py-1.5 rounded-[3px] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-all duration-200"
+                    >
+                        Features
+                    </a>
+                    <a
+                        href="#showcase"
+                        onClick={(e) => handleNavClick(e, "showcase")}
+                        className="px-3 py-1.5 rounded-[3px] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-all duration-200"
+                    >
+                        Live Preview
+                    </a>
+                    <a
+                        href="#roles"
+                        onClick={(e) => handleNavClick(e, "roles")}
+                        className="px-3 py-1.5 rounded-[3px] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-all duration-200"
+                    >
+                        Roles & Security
+                    </a>
+                    <a
+                        href="#faq"
+                        onClick={(e) => handleNavClick(e, "faq")}
+                        className="px-3 py-1.5 rounded-[3px] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-all duration-200"
+                    >
+                        FAQ
+                    </a>
                 </nav>
 
                 {/* Header Action Buttons */}

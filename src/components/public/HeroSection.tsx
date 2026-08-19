@@ -12,12 +12,13 @@ interface HeroSectionProps {
 export default function HeroSection({ currentUser }: HeroSectionProps) {
     return (
         <section className="relative overflow-hidden pt-16 pb-20 lg:pt-24 lg:pb-28 border-b border-[var(--app-border)]">
-            {/* Background Grid Pattern */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--app-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--app-border)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30 pointer-events-none" />
+            {/* Crisp Architectural Background Grid Pattern */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--app-border-strong)_1px,transparent_1px),linear-gradient(to_bottom,var(--app-border-strong)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_85%_70%_at_50%_25%,#000_75%,transparent_100%)] opacity-70 pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(var(--app-border-strong)_1px,transparent_1px)] bg-[size:1.75rem_1.75rem] [mask-image:radial-gradient(ellipse_65%_55%_at_50%_30%,#000_65%,transparent_100%)] opacity-45 pointer-events-none" />
 
             <div className="relative max-w-5xl mx-auto px-6 text-center flex flex-col items-center">
                 {/* Pill Badge */}
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] text-[11px] font-medium text-[var(--app-muted)] mb-6 shadow-xs animate-fade-in">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm border border-[var(--app-border)] bg-[var(--app-card)]/20 backdrop-blur-md text-[11px] font-medium text-[var(--app-muted)] mb-6 shadow-xs animate-fade-in">
                     <span>Precision Workflow & Team Assignment Platform</span>
                 </div>
 
@@ -33,19 +34,35 @@ export default function HeroSection({ currentUser }: HeroSectionProps) {
                 </p>
 
                 {/* CTA Actions */}
-                <div className="mt-8 flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto">
+                <div className="mt-8 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                     <Link
                         href={currentUser ? "/kanban" : "/login"}
-                        className="btn-glass-shimmer w-full sm:w-auto px-8 py-3.5 bg-[var(--app-text)] hover:opacity-95 text-[var(--app-bg)] text-[14.5px] font-semibold rounded-[3px] shadow-sm transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
+                        className="target-bracket-btn group w-full sm:w-auto px-8 py-3.5 bg-[var(--app-text)] hover:opacity-95 text-[var(--app-bg)] text-[14.5px] font-semibold rounded-[3px] shadow-sm transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
                     >
+                        <span className="btn-shimmer-beam" />
                         <span>{currentUser ? "Open Workspace" : "Launch Workspace Free"}</span>
-                        <ArrowRight className="w-4 h-4" />
+                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 relative z-10" />
                     </Link>
                     <a
                         href="#showcase"
-                        className="btn-glass-shimmer w-full sm:w-auto px-7 py-3.5 border border-[var(--app-border)] hover:border-[var(--app-text)] bg-[var(--app-card)] text-[var(--app-text)] text-[14.5px] font-medium rounded-[3px] transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            const lenis = (window as any).__lenis;
+                            if (lenis) {
+                                lenis.scrollTo("#showcase", { offset: -70 });
+                                window.history.pushState(null, "", "#showcase");
+                            } else {
+                                const elem = document.getElementById("showcase");
+                                if (elem) {
+                                    elem.scrollIntoView({ behavior: "smooth", block: "start" });
+                                    window.history.pushState(null, "", "#showcase");
+                                }
+                            }
+                        }}
+                        className="target-bracket-btn-secondary group w-full sm:w-auto px-7 py-3.5 border border-[var(--app-border)]/35 hover:border-[var(--app-border)]/60 bg-[var(--app-card)] text-[var(--app-text)] text-[14.5px] font-medium rounded-[3px] transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95 cursor-pointer"
                     >
-                        <span>Explore Interactive Demo</span>
+                        <span className="btn-shimmer-beam" />
+                        <span className="relative z-10">Explore Interactive Demo</span>
                     </a>
                 </div>
 
