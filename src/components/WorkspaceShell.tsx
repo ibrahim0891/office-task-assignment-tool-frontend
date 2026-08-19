@@ -218,6 +218,7 @@ export default function WorkspaceShell({
         }
     }, [isAddTaskOpen]);
     const [taskModalTab, setTaskModalTab] = useState<"details" | "comments" | "attachments">("details");
+    const [directTask, setDirectTask] = useState<any>(null);
     const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
     const [settingsTab, setSettingsTab] = useState<"theme" | "typography">(
         "theme",
@@ -446,6 +447,7 @@ export default function WorkspaceShell({
     }
 
     const activeTask = tasks.find((t) => t.id === selectedTaskId);
+    const modalTask = directTask?.id === selectedTaskId ? directTask : activeTask;
 
     const handleCreateTask = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -683,15 +685,8 @@ export default function WorkspaceShell({
                 onSelectTask={async (id: string, initialTab?: "details" | "comments" | "attachments") => {
                     try {
                         const updatedTask = await api.getTask(id);
+                        setDirectTask(updatedTask);
                         setTaskModalTab(initialTab || "details");
-                        setTasks((prev) => {
-                            const exists = prev.some((t) => t.id === id);
-                            if (exists) {
-                                return prev.map((t) => (t.id === id ? updatedTask : t));
-                            } else {
-                                return [updatedTask, ...prev];
-                            }
-                        });
                         setSelectedTaskId(id);
                         setIsNotificationsOpen(false);
                     } catch (e) {
@@ -706,20 +701,44 @@ export default function WorkspaceShell({
                 onLoadMore={loadMoreNotifications}
             />
 
-            <NotificationToasts toasts={toasts} onDismiss={removeToast} />
+            <NotificationToasts
+                toasts={toasts}
+                onDismiss={removeToast}
+                onSelectTask={async (id, tab) => {
+                    try {
+                        const updatedTask = await api.getTask(id);
+                        setDirectTask(updatedTask);
+                        setTaskModalTab((tab as any) || "comments");
+                        setSelectedTaskId(id);
+                    } catch {
+                        setTaskModalTab((tab as any) || "comments");
+                        setSelectedTaskId(id);
+                    }
+                }}
+            />
 
-            {selectedTaskId && activeTask && (
+            {selectedTaskId && modalTask && (
                 <TaskModal
-                    task={activeTask}
+                    task={modalTask}
                     isOpen={!!selectedTaskId}
-                    onClose={() => setSelectedTaskId(null)}
+                    onClose={() => {
+                        setSelectedTaskId(null);
+                        setDirectTask(null);
+                    }}
                     columns={columns}
                     teamMembers={teamMembers}
                     currentUser={currentUser}
                     userRole={userRole}
-                    onRefresh={() => {
+                    onRefresh={async () => {
                         loadTasks();
                         loadTeamMetadata();
+                        // Also refresh directTask if it's the one being viewed
+                        if (directTask?.id === selectedTaskId) {
+                            try {
+                                const refreshed = await api.getTask(selectedTaskId);
+                                setDirectTask(refreshed);
+                            } catch {}
+                        }
                     }}
                     initialTab={taskModalTab}
                 />

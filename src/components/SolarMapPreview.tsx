@@ -17,10 +17,18 @@ import "@xyflow/react/dist/style.css";
 import { CheckCircle2, Clock, AlertCircle, Sparkles } from "lucide-react";
 
 // ─── Custom Node 1: Leader Node ───
-function LeaderNode({ data }: { data: { name: string; role: string; team: string } }) {
+function LeaderNode({
+    data,
+}: {
+    data: { name: string; role: string; team: string };
+}) {
     return (
         <div className="px-5 py-4 rounded-[4px] border border-[var(--app-border-strong)] bg-gradient-to-b from-[var(--app-card)] to-[var(--app-select-bg)] shadow-md text-center min-w-[170px] relative corner-brackets font-sans flex flex-col items-center gap-2">
-            <Handle type="source" position={Position.Bottom} className="opacity-0" />
+            <Handle
+                type="source"
+                position={Position.Bottom}
+                className="opacity-0"
+            />
             <div className="w-9 h-9 rounded-full bg-[var(--app-card)] border border-[var(--app-border)] flex items-center justify-center text-sm shadow-xs shrink-0">
                 <Sparkles className="w-4 h-4 text-[var(--color-accent)]" />
             </div>
@@ -32,11 +40,23 @@ function LeaderNode({ data }: { data: { name: string; role: string; team: string
 }
 
 // ─── Custom Node 2: Member Node ───
-function MemberNode({ data }: { data: { name: string; initials: string; role: string; taskCount: number } }) {
+function MemberNode({
+    data,
+}: {
+    data: { name: string; initials: string; role: string; taskCount: number };
+}) {
     return (
         <div className="px-3.5 py-2 rounded-[3px] border border-[var(--app-border-strong)] bg-[var(--app-card)] hover:border-[var(--app-text)] shadow-xs flex items-center gap-2.5 min-w-[170px] transition-all relative corner-brackets font-sans">
-            <Handle type="target" position={Position.Top} className="opacity-0" />
-            <Handle type="source" position={Position.Bottom} className="opacity-0" />
+            <Handle
+                type="target"
+                position={Position.Top}
+                className="opacity-0"
+            />
+            <Handle
+                type="source"
+                position={Position.Bottom}
+                className="opacity-0"
+            />
             <div className="w-7 h-7 rounded-full bg-[var(--app-select-bg)] flex items-center justify-center text-[10px] font-bold text-[var(--app-text)] border border-[var(--app-border)] shrink-0">
                 {data.initials}
             </div>
@@ -53,7 +73,16 @@ function MemberNode({ data }: { data: { name: string; initials: string; role: st
 }
 
 // ─── Custom Node 3: Task Node ───
-function TaskNode({ data }: { data: { title: string; priority: string; status: string; statusType: "done" | "progress" | "urgent" } }) {
+function TaskNode({
+    data,
+}: {
+    data: {
+        title: string;
+        priority: string;
+        status: string;
+        statusType: "done" | "progress" | "urgent";
+    };
+}) {
     const statusBadges = {
         done: {
             bg: "bg-[#22863A]/10 text-[#22863A] border-[#22863A]/20",
@@ -73,13 +102,19 @@ function TaskNode({ data }: { data: { title: string; priority: string; status: s
 
     return (
         <div className="px-3 py-2 rounded-[3px] border border-[var(--app-border)] bg-[var(--app-card)] hover:border-[var(--app-text)] shadow-xs min-w-[165px] max-w-[180px] transition-all relative corner-brackets font-sans">
-            <Handle type="target" position={Position.Top} className="opacity-0" />
+            <Handle
+                type="target"
+                position={Position.Top}
+                className="opacity-0"
+            />
             <div className="flex flex-col gap-1 text-left">
                 <div className="text-[11px] font-semibold text-[var(--app-text)] leading-snug line-clamp-2">
                     {data.title}
                 </div>
                 <div className="flex items-center justify-between gap-1 pt-1 border-t border-[var(--app-border)]">
-                    <span className={`inline-flex items-center gap-1 text-[8px] font-bold px-1.5 py-0.5 rounded-[2px] border ${currentBadge.bg}`}>
+                    <span
+                        className={`inline-flex items-center gap-1 text-[8px] font-bold px-1.5 py-0.5 rounded-[2px] border ${currentBadge.bg}`}
+                    >
                         {currentBadge.icon}
                         <span>{data.status}</span>
                     </span>
@@ -260,7 +295,7 @@ export default function SolarMapPreview() {
             {/* Top Toolbar overlay */}
             <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
                 <div className="bg-[var(--app-card)]/90 backdrop-blur-xs border border-[var(--app-border)] px-2.5 py-1 rounded-[3px] text-[10px] font-semibold text-[var(--app-text)] shadow-xs flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[var(--color-error)] animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-[var(--color-error)]  " />
                     <span>Solar Relational Map Node Topology</span>
                 </div>
                 <div className="hidden sm:inline-flex bg-[var(--app-card)]/90 backdrop-blur-xs border border-[var(--app-border)] px-2 py-1 rounded-[3px] text-[10px] text-[var(--app-muted)] shadow-xs">
@@ -271,11 +306,17 @@ export default function SolarMapPreview() {
             {/* Bottom Status overlay */}
             <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2">
                 <div className="bg-[var(--app-card)]/90 backdrop-blur-xs border border-[var(--app-border)] px-2.5 py-1 rounded-[3px] text-[10px] text-[var(--app-muted)] shadow-xs flex items-center gap-2">
-                    <span className="text-[var(--app-text)] font-semibold">1 Leader</span>
+                    <span className="text-[var(--app-text)] font-semibold">
+                        1 Leader
+                    </span>
                     <span>•</span>
-                    <span className="text-[var(--app-text)] font-semibold">3 Members</span>
+                    <span className="text-[var(--app-text)] font-semibold">
+                        3 Members
+                    </span>
                     <span>•</span>
-                    <span className="text-[var(--app-text)] font-semibold">4 Active Tasks</span>
+                    <span className="text-[var(--app-text)] font-semibold">
+                        4 Active Tasks
+                    </span>
                 </div>
             </div>
 

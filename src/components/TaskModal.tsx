@@ -29,7 +29,7 @@ interface TaskModalProps {
     currentUser: User;
     userRole: string;
     onRefresh: () => void;
-    initialTab?: "details" | "comments" | "attachments";
+    initialTab?: "details" | "comments" | "description" | "attachments";
 }
 
 export default function TaskModal({
@@ -65,20 +65,27 @@ export default function TaskModal({
 
     const [isSaving, setIsSaving] = useState(false);
 
-
     const [isDeleting, setIsDeleting] = useState(false);
     const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
-    const [isDeleteDescConfirmOpen, setIsDeleteDescConfirmOpen] = useState(false);
-    const [isDeleteAttachmentConfirmOpen, setIsDeleteAttachmentConfirmOpen] = useState(false);
-    const [attachmentToDelete, setAttachmentToDelete] = useState<{ id: string; name: string } | null>(null);
+    const [isDeleteDescConfirmOpen, setIsDeleteDescConfirmOpen] =
+        useState(false);
+    const [isDeleteAttachmentConfirmOpen, setIsDeleteAttachmentConfirmOpen] =
+        useState(false);
+    const [attachmentToDelete, setAttachmentToDelete] = useState<{
+        id: string;
+        name: string;
+    } | null>(null);
     const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
 
     // Modal sub-components state
-    const [activeTab, setActiveTab] = useState<"details" | "comments" | "attachments">("details");
+    const [activeTab, setActiveTab] = useState<
+        "details" | "comments" | "description" | "attachments"
+    >("comments");
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [comment, setComment] = useState("");
     const [isPostingComment, setIsPostingComment] = useState(false);
     const [isSendingComment, setIsSendingComment] = useState(false);
+    const [hiddenCommentIds, setHiddenCommentIds] = useState<string[]>([]);
     const [newSubtask, setNewSubtask] = useState("");
     const [attachmentName, setAttachmentName] = useState("");
     const [attachmentUrl, setAttachmentUrl] = useState("");
@@ -90,20 +97,87 @@ export default function TaskModal({
     );
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+    const prevTaskIdRef = React.useRef<string | null>(null);
+    const prevIsOpenRef = React.useRef<boolean>(false);
+    const prevTaskRef = React.useRef<Task | null>(null);
+    const visibleComments = (task.comments || []).filter(
+        (c) => !hiddenCommentIds.includes(c.id),
+    );
+
     // Synchronize local form state with incoming task props
     useEffect(() => {
-        if (!isOpen) return;
-        setTitle(task.title || "");
-        setDescription(task.description || "");
-        setColumnId(task.columnId || "");
-        setPriority(task.priority || "MEDIUM");
-        setAssignedToId(task.assignedToId || "");
-        setDateStr(task.date ? task.date.split("T")[0] : "");
-        setDueDateStr(task.dueDate ? task.dueDate.split("T")[0] : "");
-        setEstimatedTime(task.estimatedTime ?? "");
-        setActualTime(task.actualTime ?? "");
-        setShowUnsavedWarning(false);
-        setActiveTab(initialTab);
+        if (!isOpen) {
+            prevTaskIdRef.current = null;
+            prevIsOpenRef.current = false;
+            prevTaskRef.current = null;
+            return;
+        }
+
+        const isNewTask = prevTaskIdRef.current !== task.id;
+        const wasClosed = !prevIsOpenRef.current;
+        const prevTask = prevTaskRef.current;
+
+        if (isNewTask || wasClosed || !prevTask) {
+            setTitle(task.title || "");
+            setDescription(task.description || "");
+            setColumnId(task.columnId || "");
+            setPriority(task.priority || "MEDIUM");
+            setAssignedToId(task.assignedToId || "");
+            setDateStr(task.date ? task.date.split("T")[0] : "");
+            setDueDateStr(task.dueDate ? task.dueDate.split("T")[0] : "");
+            setEstimatedTime(task.estimatedTime ?? "");
+            setActualTime(task.actualTime ?? "");
+            setShowUnsavedWarning(false);
+
+            let mappedTab:
+                | "details"
+                | "comments"
+                | "description"
+                | "attachments" = "comments";
+            if (initialTab === "attachments") mappedTab = "attachments";
+            else if (initialTab === "comments") mappedTab = "comments";
+            else if (initialTab === "description") mappedTab = "description";
+            else if (initialTab === "details") mappedTab = "comments";
+            setActiveTab(mappedTab);
+            setHiddenCommentIds([]);
+        } else {
+            // Same task updating. Only update inputs that have not been modified locally!
+            if (title === prevTask.title) {
+                setTitle(task.title || "");
+            }
+            if (description === (prevTask.description || "")) {
+                setDescription(task.description || "");
+            }
+            if (columnId === prevTask.columnId) {
+                setColumnId(task.columnId || "");
+            }
+            if (priority === prevTask.priority) {
+                setPriority(task.priority || "MEDIUM");
+            }
+            if (assignedToId === prevTask.assignedToId) {
+                setAssignedToId(task.assignedToId || "");
+            }
+            const prevDate = prevTask.date ? prevTask.date.split("T")[0] : "";
+            if (dateStr === prevDate) {
+                setDateStr(task.date ? task.date.split("T")[0] : "");
+            }
+            const prevDueDate = prevTask.dueDate
+                ? prevTask.dueDate.split("T")[0]
+                : "";
+            if (dueDateStr === prevDueDate) {
+                setDueDateStr(task.dueDate ? task.dueDate.split("T")[0] : "");
+            }
+            if (estimatedTime === (prevTask.estimatedTime ?? "")) {
+                setEstimatedTime(task.estimatedTime ?? "");
+            }
+            if (actualTime === (prevTask.actualTime ?? "")) {
+                setActualTime(task.actualTime ?? "");
+            }
+        }
+
+        prevTaskIdRef.current = task.id;
+        prevIsOpenRef.current = isOpen;
+        prevTaskRef.current = task;
     }, [task, isOpen, initialTab]);
 
     // Calculate dirty status (un-saved changes exist)
@@ -148,7 +222,6 @@ export default function TaskModal({
 
     if (!isOpen) return null;
 
-
     const isLeader = userRole === "LEADER";
     const isObserver = userRole === "OBSERVER";
     const isCreator = task.createdById === currentUser.id;
@@ -177,7 +250,9 @@ export default function TaskModal({
             return;
         }
         if (title.trim().length > APP_CONFIG.MAX_TASK_TITLE_LENGTH) {
-            toast.error(`Task title must not exceed ${APP_CONFIG.MAX_TASK_TITLE_LENGTH} characters.`);
+            toast.error(
+                `Task title must not exceed ${APP_CONFIG.MAX_TASK_TITLE_LENGTH} characters.`,
+            );
             return;
         }
 
@@ -223,7 +298,7 @@ export default function TaskModal({
             await api.updateTask(
                 task.id,
                 { description: null as any },
-                { userId: currentUser.id, teamId: task.teamId }
+                { userId: currentUser.id, teamId: task.teamId },
             );
             toast.success("Description deleted");
             onRefresh();
@@ -240,7 +315,7 @@ export default function TaskModal({
             } else {
                 detailsObj = act.details || {};
             }
-        } catch (e) { }
+        } catch (e) {}
 
         let statusFrom = "";
         let statusTo = "";
@@ -492,13 +567,44 @@ export default function TaskModal({
     };
 
     const handleDeleteComment = async (commentId: string) => {
-        try {
-            await api.deleteComment(task.id, commentId, currentUser.id);
-            toast.success("Comment deleted.");
-            onRefresh();
-        } catch (err: any) {
-            toast.error(err.message || "Failed to delete comment.");
-        }
+        // Optimistically hide the comment
+        setHiddenCommentIds((prev) => [...prev, commentId]);
+
+        const timer = setTimeout(async () => {
+            try {
+                await api.deleteComment(task.id, commentId, currentUser.id);
+                onRefresh();
+            } catch (err: any) {
+                toast.error(err.message || "Failed to delete comment.");
+                // Revert optimistic deletion if the API call fails
+                setHiddenCommentIds((prev) =>
+                    prev.filter((id) => id !== commentId),
+                );
+            }
+        }, 5000);
+
+        toast(
+            (t) => (
+                <div className="flex items-center justify-between gap-3 w-full text-xs py-0.5">
+                    <span className="font-sans font-medium text-[var(--app-text)]">
+                        Comment deleted.
+                    </span>
+                    <button
+                        onClick={() => {
+                            clearTimeout(timer);
+                            setHiddenCommentIds((prev) =>
+                                prev.filter((id) => id !== commentId),
+                            );
+                            toast.dismiss(t.id);
+                        }}
+                        className="px-2.5 py-1 rounded-[2px] bg-[var(--app-text)] text-[var(--app-bg)] text-[10px] font-bold hover:opacity-90 transition-opacity cursor-pointer shadow-xs shrink-0"
+                    >
+                        Undo
+                    </button>
+                </div>
+            ),
+            { duration: 5000 },
+        );
     };
 
     const handleDeleteAttachment = async (
@@ -527,7 +633,7 @@ export default function TaskModal({
                     url: attachmentUrl,
                     type:
                         attachmentUrl.includes(".png") ||
-                            attachmentUrl.includes(".jpg")
+                        attachmentUrl.includes(".jpg")
                             ? "image/png"
                             : "document",
                 },
@@ -543,7 +649,9 @@ export default function TaskModal({
 
     const handleDeleteTask = () => {
         if (!canDeleteTask) {
-            toast.error("Only the workspace leader or task creator can delete this task.");
+            toast.error(
+                "Only the workspace leader or task creator can delete this task.",
+            );
             return;
         }
         setIsArchiveConfirmOpen(true);
@@ -591,7 +699,7 @@ export default function TaskModal({
                             on {new Date(task.createdAt).toLocaleDateString()}
                         </p>
                         {isDirty && (
-                            <span className="text-base text-[#B08800] bg-[#B08800]/10 px-2 py-0.5 rounded font-medium animate-pulse">
+                            <span className="text-base text-[#B08800] bg-[#B08800]/10 px-2 py-0.5 rounded font-medium  ">
                                 Unsaved Changes
                             </span>
                         )}
@@ -620,7 +728,9 @@ export default function TaskModal({
                                 ) : (
                                     <span className="w-1.5 h-1.5 rounded-[0.5px] inline-block bg-[#555555]" />
                                 )}
-                                <span>{isSaving ? "Saving…" : "Save Changes"}</span>
+                                <span>
+                                    {isSaving ? "Saving…" : "Save Changes"}
+                                </span>
                             </button>
                         )}
 
@@ -638,247 +748,89 @@ export default function TaskModal({
                 <div className="flex-1 overflow-hidden p-3.5 grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0">
                     {/* Left Column (Scrollable without scrollbars) */}
                     <div className="md:col-span-2 flex flex-col gap-3.5 overflow-y-auto scrollbar-none pr-1 max-h-full text-left">
+                        {/* Title Section (Always visible) */}
+                        <div className="flex flex-col gap-1 shrink-0 px-1 mb-2">
+                            <label className="eyebrow">Title *</label>
+
+                            {!canEditDetails || !isCreator ? (
+                                <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight font-serif pt-1 select-text">
+                                    {title}
+                                </h2>
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="Task title…"
+                                    maxLength={APP_CONFIG.MAX_TASK_TITLE_LENGTH}
+                                    className={`${inputClass} font-sans font-normal text-base`}
+                                />
+                            )}
+                        </div>
+
                         {/* Tab Navigation Bar - Zero Shift Underline Tabs */}
-                        <div className="flex items-center gap-5 border-b border-[#E5E5E3] pb-0 shrink-0 mb-1 text-left">
+                        <div className="flex items-center gap-5 border-b border-[#E5E5E3] pb-0 shrink-0 mb-3.5 text-left px-1">
                             <button
                                 type="button"
-                                onClick={() => setActiveTab("details")}
-                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${activeTab === "details"
-                                    ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
-                                    : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
-                                    }`}
+                                onClick={() => setActiveTab("comments")}
+                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
+                                    activeTab === "comments"
+                                        ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
+                                        : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
+                                }`}
                             >
-                                <FileText className="w-3.5 h-3.5" />
-                                <span>Details</span>
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                <span>Comments ({visibleComments.length})</span>
                             </button>
 
                             <button
                                 type="button"
-                                onClick={() => setActiveTab("comments")}
-                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${activeTab === "comments"
-                                    ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
-                                    : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
-                                    }`}
+                                onClick={() => setActiveTab("description")}
+                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
+                                    activeTab === "description"
+                                        ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
+                                        : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
+                                }`}
                             >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                                <span>Comments</span>
-                                <span
-                                    className={`text-[9px] px-1.5 py-0.2 rounded-[2px] font-mono ${activeTab === "comments"
-                                        ? "bg-[#1A1A1A] text-white"
-                                        : "bg-[#FAFAF9] dark:bg-[#2E3440] text-[#1A1A1A] dark:text-[#ECEFF4] border border-[#E5E5E3] dark:border-[#4C566A]"
-                                        }`}
-                                >
-                                    {task.comments?.length || 0}
-                                </span>
+                                <FileText className="w-3.5 h-3.5" />
+                                <span>Description</span>
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setActiveTab("attachments")}
-                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${activeTab === "attachments"
-                                    ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
-                                    : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
-                                    }`}
+                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
+                                    activeTab === "attachments"
+                                        ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
+                                        : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
+                                }`}
                             >
                                 <Paperclip className="w-3.5 h-3.5" />
-                                <span>Attachments</span>
-                                <span
-                                    className={`text-[9px] px-1.5 py-0.2 rounded-[2px] font-mono ${activeTab === "attachments"
-                                        ? "bg-[#1A1A1A] text-white"
-                                        : "bg-[#FAFAF9] dark:bg-[#2E3440] text-[#1A1A1A] dark:text-[#ECEFF4] border border-[#E5E5E3] dark:border-[#4C566A]"
-                                        }`}
-                                >
-                                    {task.attachments?.length || 0}
+                                <span>
+                                    Attachments ({task.attachments?.length || 0}
+                                    )
                                 </span>
                             </button>
                         </div>
 
-                        {/* TAB 1: DETAILS */}
-                        {activeTab === "details" && (() => {
-                            const cleanText = description ? description.replace(/<[^>]*>/g, "").trim() : "";
-                            const hasDescription = Boolean(cleanText.length > 0);
-
-                            return (
-                                <div className="flex flex-col flex-1 min-h-0 h-full gap-3.5 animate-fade-in">
-                                    {/* Title Section */}
-                                    <div className="flex flex-col gap-1 shrink-0">
-                                        <label className="eyebrow">Title *</label>
-
-                                        {(!canEditDetails || !isCreator) ? (
-                                            <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight font-serif pt-1 select-text">
-                                                {title}
-                                            </h2>
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                value={title}
-                                                onChange={(e) => setTitle(e.target.value)}
-                                                placeholder="Task title…"
-                                                maxLength={APP_CONFIG.MAX_TASK_TITLE_LENGTH}
-                                                className={`${inputClass} font-sans font-normal text-base`}
-                                            />
-                                        )}
-                                    </div>
-
-                                    {/* Description Section (Filling remaining vertical space) */}
-                                    <div className="flex flex-col flex-1 min-h-0 gap-1 text-left">
-                                        <div className="flex items-center justify-between shrink-0">
-                                            <label className="eyebrow">Description</label>
-                                            {canEditDetails && (
-                                                <div className="flex items-center gap-2">
-                                                    {isEditingDescription ? (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setDescription(task.description || "");
-                                                                    setIsEditingDescription(false);
-                                                                }}
-                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#888883] hover:text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
-                                                            >
-                                                                <span>Cancel</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                disabled={isSaving}
-                                                                onClick={() => {
-                                                                    setIsEditingDescription(false);
-                                                                    handleSaveChanges(false);
-                                                                }}
-                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            >
-                                                                {isSaving ? (
-                                                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                                                ) : (
-                                                                    <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
-                                                                )}
-                                                                <span>{isSaving ? "Saving…" : "Save"}</span>
-                                                            </button>
-                                                        </>
-                                                    ) : hasDescription ? (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setIsDeleteDescConfirmOpen(true)}
-                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FFF5F5] border border-[#E5E5E3] hover:border-[#CB2431] text-[#CB2431] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
-                                                                title="Delete description"
-                                                            >
-                                                                <Trash2 className="w-3 h-3 text-[#CB2431]" />
-                                                                <span>Delete</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setIsEditingDescription(true)}
-                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
-                                                            >
-                                                                <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
-                                                                <span>Edit</span>
-                                                            </button>
-                                                        </>
-                                                    ) : (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setIsEditingDescription(true)}
-                                                            className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
-                                                        >
-                                                            <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
-                                                            <span>+ Add</span>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {isEditingDescription ? (
-                                            <div className="flex-1 min-h-0 flex flex-col">
-                                                <TipTapEditor
-                                                    value={description}
-                                                    onChange={(html) => setDescription(html)}
-                                                    disabled={!canEditDetails}
-                                                />
-                                            </div>
-                                        ) : hasDescription ? (
-                                            <div
-                                                className="relative flex-1 min-h-0 overflow-y-auto scrollbar-none border border-[#E5E5E3] bg-white p-3 text-[11px] text-[#1A1A1A] leading-relaxed rounded-[2px] corner-brackets prose-content"
-                                                dangerouslySetInnerHTML={{
-                                                    __html: description,
-                                                }}
-                                            />
-                                        ) : (
-                                            <div
-                                                onClick={() => canEditDetails && setIsEditingDescription(true)}
-                                                className="relative flex-1 min-h-0 border border-dashed border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#F5F5F3] p-8 text-center rounded-[2px] corner-brackets flex flex-col items-center justify-center gap-1 text-[#888883] cursor-pointer transition-colors my-auto"
-                                            >
-                                                <FileText className="w-5 h-5 text-[#DADAD6]" />
-                                                <span className="text-[11px] font-medium text-[#1A1A1A] mt-1">No description added</span>
-                                                <span className="text-[10px]">Click "+ Add" or click here to write notes for this task.</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Quick Comment Section */}
-                                    {!isEditingDescription && canPostComment && (
-                                        <div className="mt-2 pt-3 border-t border-[var(--app-border)] flex flex-col gap-2 shrink-0">
-                                            <label className="eyebrow">Quick Comment</label>
-                                            <form
-                                                onSubmit={async (e) => {
-                                                    e.preventDefault();
-                                                    if (!comment.trim() || isPostingComment) return;
-                                                    setIsPostingComment(true);
-                                                    try {
-                                                        await api.addComment(task.id, currentUser.id, comment);
-                                                        setComment("");
-                                                        onRefresh();
-                                                        toast.success("Comment posted!");
-                                                        setActiveTab("comments");
-                                                    } catch (err: any) {
-                                                        toast.error(err.message || "Failed to post comment");
-                                                    } finally {
-                                                        setIsPostingComment(false);
-                                                    }
-                                                }}
-                                                className="flex gap-1.5"
-                                            >
-                                                <input
-                                                    type="text"
-                                                    placeholder="Write a quick comment..."
-                                                    value={comment}
-                                                    onChange={(e) => setComment(e.target.value)}
-                                                    disabled={isPostingComment}
-                                                    className={`flex-1 ${inputClass}`}
-                                                />
-                                                <button
-                                                    type="submit"
-                                                    disabled={isPostingComment || !comment.trim()}
-                                                    className="relative corner-brackets-4 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] px-3.5 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                                    {isPostingComment ? (
-                                                        <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                                    ) : (
-                                                        <span className="w-1.5 h-1.5 bg-[var(--app-text)] rounded-[0.5px] inline-block" />
-                                                    )}
-                                                    <span>{isPostingComment ? "Posting…" : "Post Comment"}</span>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })()}
-
-                        {/* TAB 2: COMMENTS */}
+                        {/* TAB 1: COMMENTS */}
                         {activeTab === "comments" && (
                             <div className="relative flex flex-col flex-1 min-h-0 h-full gap-3 animate-fade-in border border-[#E5E5E3] bg-[#FAFAF9] p-3 rounded-[3px] corner-brackets">
                                 {/* Comment Thread List filling available height */}
                                 <div className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-0 pr-1">
-                                    {task.comments?.length === 0 ? (
+                                    {visibleComments.length === 0 ? (
                                         <div className="p-8 text-center flex flex-col items-center justify-center gap-1 text-[#888883] my-auto">
                                             <MessageSquare className="w-4 h-4 text-[#DADAD6]" />
-                                            <span className="text-[11px] font-medium text-[#1A1A1A] mt-0.5">No comments yet</span>
-                                            <span className="text-[10px]">Be the first to share notes or feedback on this task.</span>
+                                            <span className="text-[11px] font-medium text-[#1A1A1A] mt-0.5">
+                                                No comments yet
+                                            </span>
+                                            <span className="text-[10px]">
+                                                Be the first to share notes or
+                                                feedback on this task.
+                                            </span>
                                         </div>
                                     ) : (
-                                        task.comments?.map((c) => {
+                                        visibleComments.map((c) => {
                                             return (
                                                 <div
                                                     key={c.id}
@@ -886,24 +838,49 @@ export default function TaskModal({
                                                 >
                                                     <div className="flex justify-between items-center text-[10px]">
                                                         <div
-                                                            onClick={() => c.user && openMemberProfile(c.user)}
+                                                            onClick={() =>
+                                                                c.user &&
+                                                                openMemberProfile(
+                                                                    c.user,
+                                                                )
+                                                            }
                                                             className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
                                                         >
-                                                            {c.user?.avatarUrl ? (
+                                                            {c.user
+                                                                ?.avatarUrl ? (
                                                                 <img
-                                                                    src={c.user.avatarUrl}
-                                                                    alt={c.user.name}
+                                                                    src={
+                                                                        c.user
+                                                                            .avatarUrl
+                                                                    }
+                                                                    alt={
+                                                                        c.user
+                                                                            .name
+                                                                    }
                                                                     className="w-4 h-4 rounded-full object-cover border border-[#E5E5E3] shrink-0"
                                                                 />
                                                             ) : (
                                                                 <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] text-[#1A1A1A] font-semibold shrink-0">
-                                                                    {c.user?.name
+                                                                    {c.user
+                                                                        ?.name
                                                                         ? c.user.name
-                                                                            .split(" ")
-                                                                            .map((n) => n[0])
-                                                                            .join("")
-                                                                            .toUpperCase()
-                                                                            .slice(0, 2)
+                                                                              .split(
+                                                                                  " ",
+                                                                              )
+                                                                              .map(
+                                                                                  (
+                                                                                      n,
+                                                                                  ) =>
+                                                                                      n[0],
+                                                                              )
+                                                                              .join(
+                                                                                  "",
+                                                                              )
+                                                                              .toUpperCase()
+                                                                              .slice(
+                                                                                  0,
+                                                                                  2,
+                                                                              )
                                                                         : "U"}
                                                                 </div>
                                                             )}
@@ -914,16 +891,16 @@ export default function TaskModal({
                                                         <div className="flex items-center gap-2 text-[#888883]">
                                                             <span>
                                                                 {new Date(
-                                                                    c.createdAt
+                                                                    c.createdAt,
                                                                 ).toLocaleDateString()}{" "}
                                                                 {new Date(
-                                                                    c.createdAt
+                                                                    c.createdAt,
                                                                 ).toLocaleTimeString(
                                                                     [],
                                                                     {
                                                                         hour: "2-digit",
                                                                         minute: "2-digit",
-                                                                    }
+                                                                    },
                                                                 )}
                                                             </span>
                                                             {c.resolved && (
@@ -931,66 +908,98 @@ export default function TaskModal({
                                                                     ✓ Resolved
                                                                 </span>
                                                             )}
-                                                            {!c.resolved ? (
-                                                                (c.userId === currentUser.id || task.createdById === currentUser.id || task.assignedToId === currentUser.id) && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleResolveComment(c.id)}
-                                                                        className="px-2 py-0.5 border border-[#CB2431]/30 bg-[#CB2431]/5 hover:bg-[#CB2431] text-[#CB2431] hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
-                                                                        title="Resolve comment"
-                                                                    >
-                                                                        <Check className="w-3 h-3" />
-                                                                        <span>Resolve</span>
-                                                                    </button>
-                                                                )
-                                                            ) : (
-                                                                (c.userId === currentUser.id || task.createdById === currentUser.id || task.assignedToId === currentUser.id) && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleReopenComment(c.id)}
-                                                                        className="px-2 py-0.5 border border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#1A1A1A] hover:text-white text-[#1A1A1A] rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
-                                                                        title="Reopen comment"
-                                                                    >
-                                                                        <span>Reopen</span>
-                                                                    </button>
-                                                                )
-                                                            )}
-                                                            {c.userId === currentUser.id && (
+                                                            {!c.resolved
+                                                                ? (c.userId ===
+                                                                      currentUser.id ||
+                                                                      task.createdById ===
+                                                                          currentUser.id ||
+                                                                      task.assignedToId ===
+                                                                          currentUser.id) && (
+                                                                      <button
+                                                                          type="button"
+                                                                          onClick={() =>
+                                                                              handleResolveComment(
+                                                                                  c.id,
+                                                                              )
+                                                                          }
+                                                                          className="px-2 py-0.5 border border-[#CB2431]/30 bg-[#CB2431]/5 hover:bg-[#CB2431] text-[#CB2431] hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                                                          title="Resolve comment"
+                                                                      >
+                                                                          <Check className="w-3 h-3" />
+                                                                          <span>
+                                                                              Resolve
+                                                                          </span>
+                                                                      </button>
+                                                                  )
+                                                                : (c.userId ===
+                                                                      currentUser.id ||
+                                                                      task.createdById ===
+                                                                          currentUser.id ||
+                                                                      task.assignedToId ===
+                                                                          currentUser.id) && (
+                                                                      <button
+                                                                          type="button"
+                                                                          onClick={() =>
+                                                                              handleReopenComment(
+                                                                                  c.id,
+                                                                              )
+                                                                          }
+                                                                          className="px-2 py-0.5 border border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#1A1A1A] hover:text-white text-[#1A1A1A] rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+                                                                          title="Reopen comment"
+                                                                      >
+                                                                          <span>
+                                                                              Reopen
+                                                                          </span>
+                                                                      </button>
+                                                                  )}
+                                                            {c.userId ===
+                                                                currentUser.id && (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => handleDeleteComment(c.id)}
+                                                                    onClick={() =>
+                                                                        handleDeleteComment(
+                                                                            c.id,
+                                                                        )
+                                                                    }
                                                                     className="px-2 py-0.5 border border-red-200 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
                                                                     title="Delete comment permanently"
                                                                 >
-                                                                    <span>Delete</span>
+                                                                    <span>
+                                                                        Delete
+                                                                    </span>
                                                                 </button>
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <p className="text-[11px] text-[#1A1A1A] leading-relaxed break-words">
+                                                    <p className="text-[11px] text-[#1A1A1A] leading-relaxed break-words font-sans">
                                                         {c.content
                                                             .split(" ")
-                                                            .map((word, idx) => {
-                                                                if (
-                                                                    word.startsWith(
-                                                                        "@"
-                                                                    )
-                                                                ) {
+                                                            .map(
+                                                                (word, idx) => {
+                                                                    if (
+                                                                        word.startsWith(
+                                                                            "@",
+                                                                        )
+                                                                    ) {
+                                                                        return (
+                                                                            <span
+                                                                                key={
+                                                                                    idx
+                                                                                }
+                                                                                className="text-[#1A1A1A] font-semibold underline"
+                                                                            >
+                                                                                {
+                                                                                    word
+                                                                                }{" "}
+                                                                            </span>
+                                                                        );
+                                                                    }
                                                                     return (
-                                                                        <span
-                                                                            key={
-                                                                                idx
-                                                                            }
-                                                                            className="text-[#1A1A1A] font-semibold underline"
-                                                                        >
-                                                                            {
-                                                                                word
-                                                                            }{" "}
-                                                                        </span>
+                                                                        word +
+                                                                        " "
                                                                     );
-                                                                }
-                                                                return word + " ";
-                                                            })}
+                                                                },
+                                                            )}
                                                     </p>
                                                 </div>
                                             );
@@ -1006,7 +1015,7 @@ export default function TaskModal({
                                     >
                                         <input
                                             type="text"
-                                            placeholder="Write comment "
+                                            placeholder="Write a comment..."
                                             value={comment}
                                             disabled={isSendingComment}
                                             onChange={(e) =>
@@ -1016,7 +1025,10 @@ export default function TaskModal({
                                         />
                                         <button
                                             type="submit"
-                                            disabled={isSendingComment || !comment.trim()}
+                                            disabled={
+                                                isSendingComment ||
+                                                !comment.trim()
+                                            }
                                             className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-3.5 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {isSendingComment ? (
@@ -1024,32 +1036,220 @@ export default function TaskModal({
                                             ) : (
                                                 <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
                                             )}
-                                            <span>{isSendingComment ? "Sending…" : "Send"}</span>
+                                            <span>
+                                                {isSendingComment
+                                                    ? "Sending…"
+                                                    : "Send"}
+                                            </span>
                                         </button>
                                     </form>
                                 )}
                             </div>
                         )}
 
+                        {/* TAB 2: DESCRIPTION */}
+                        {activeTab === "description" &&
+                            (() => {
+                                const cleanText = description
+                                    ? description.replace(/<[^>]*>/g, "").trim()
+                                    : "";
+                                const hasDescription = Boolean(
+                                    cleanText.length > 0,
+                                );
+
+                                return (
+                                    <div className="flex flex-col flex-1 min-h-0 h-full gap-3.5 animate-fade-in text-left">
+                                        <div className="flex items-center justify-between shrink-0">
+                                            <label className="eyebrow">
+                                                Description
+                                            </label>
+                                            {canEditDetails && (
+                                                <div className="flex items-center gap-2">
+                                                    {isEditingDescription ? (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setDescription(
+                                                                        task.description ||
+                                                                            "",
+                                                                    );
+                                                                    setIsEditingDescription(
+                                                                        false,
+                                                                    );
+                                                                }}
+                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#888883] hover:text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
+                                                            >
+                                                                <span>
+                                                                    Cancel
+                                                                </span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                disabled={
+                                                                    isSaving
+                                                                }
+                                                                onClick={() => {
+                                                                    setIsEditingDescription(
+                                                                        false,
+                                                                    );
+                                                                    handleSaveChanges(
+                                                                        false,
+                                                                    );
+                                                                }}
+                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                {isSaving ? (
+                                                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                                                ) : (
+                                                                    <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
+                                                                )}
+                                                                <span>
+                                                                    {isSaving
+                                                                        ? "Saving…"
+                                                                        : "Save"}
+                                                                </span>
+                                                            </button>
+                                                        </>
+                                                    ) : hasDescription ? (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setIsDeleteDescConfirmOpen(
+                                                                        true,
+                                                                    )
+                                                                }
+                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FFF5F5] border border-[#E5E5E3] hover:border-[#CB2431] text-[#CB2431] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
+                                                                title="Delete description"
+                                                            >
+                                                                <Trash2 className="w-3 h-3 text-[#CB2431]" />
+                                                                <span>
+                                                                    Delete
+                                                                </span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setIsEditingDescription(
+                                                                        true,
+                                                                    )
+                                                                }
+                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
+                                                            >
+                                                                <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
+                                                                <span>
+                                                                    Edit
+                                                                </span>
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setIsEditingDescription(
+                                                                    true,
+                                                                )
+                                                            }
+                                                            className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
+                                                        >
+                                                            <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
+                                                            <span>+ Add</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {isEditingDescription ? (
+                                            <div className="flex-1 min-h-[250px] flex flex-col">
+                                                <TipTapEditor
+                                                    value={description}
+                                                    onChange={(html) =>
+                                                        setDescription(html)
+                                                    }
+                                                    disabled={!canEditDetails}
+                                                />
+                                            </div>
+                                        ) : hasDescription ? (
+                                            <div
+                                                className="relative flex-1 min-h-[250px] overflow-y-auto scrollbar-none border border-[#E5E5E3] bg-white p-3.5 text-[11px] text-[#1A1A1A] leading-relaxed rounded-[2.5px] corner-brackets prose-content"
+                                                dangerouslySetInnerHTML={{
+                                                    __html: description,
+                                                }}
+                                            />
+                                        ) : (
+                                            <div
+                                                onClick={() =>
+                                                    canEditDetails &&
+                                                    setIsEditingDescription(
+                                                        true,
+                                                    )
+                                                }
+                                                className="relative flex-1 min-h-[250px] border border-dashed border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#F5F5F3] p-8 text-center rounded-[2px] corner-brackets flex flex-col items-center justify-center gap-1 text-[#888883] cursor-pointer transition-colors my-auto"
+                                            >
+                                                <FileText className="w-5 h-5 text-[#DADAD6]" />
+                                                <span className="text-[11px] font-medium text-[#1A1A1A] mt-1">
+                                                    No description added
+                                                </span>
+                                                <span className="text-[10px]">
+                                                    Click "+ Add" or click here
+                                                    to write notes for this
+                                                    task.
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
                         {/* TAB 3: ATTACHMENTS */}
                         {activeTab === "attachments" && (
                             <div className="relative flex flex-col flex-1 min-h-0 h-full gap-3 animate-fade-in border border-[#E5E5E3] bg-[#FAFAF9] p-3 rounded-[3px] corner-brackets">
                                 {/* Masonry Attachments Gallery filling available height */}
                                 <div className="flex-1 overflow-y-auto min-h-0 pr-1">
-                                    {(!task.attachments || task.attachments.length === 0) ? (
-                                        <div className="border border-dashed border-[#E5E5E3] bg-white p-8 text-center rounded-[3px] flex flex-col items-center justify-center gap-1 text-[#888883] my-auto">
-                                            <Paperclip className="w-5 h-5 text-[#DADAD6]" />
-                                            <span className="text-[11px] font-medium text-[#1A1A1A] mt-1">No attachments uploaded</span>
-                                            <span className="text-[10px]">Click "Upload Image" below to attach photos to this task.</span>
+                                    {!task.attachments ||
+                                    task.attachments.length === 0 ? (
+                                        <div
+                                            onClick={() =>
+                                                !isObserver &&
+                                                !isUploadingImage &&
+                                                fileInputRef.current?.click()
+                                            }
+                                            className={`border border-dashed border-[#E5E5E3] bg-white p-8 text-center rounded-[3px] flex flex-col items-center justify-center gap-1 text-[#888883] my-auto ${!isObserver && !isUploadingImage ? "cursor-pointer hover:bg-[#FAFAF9] hover:border-[#888883] transition-all" : ""}`}
+                                        >
+                                            {isUploadingImage ? (
+                                                <Loader2 className="w-5 h-5 text-[#DADAD6] animate-spin" />
+                                            ) : (
+                                                <Paperclip className="w-5 h-5 text-[#DADAD6]" />
+                                            )}
+                                            <span className="text-[11px] font-medium text-[#1A1A1A] mt-1">
+                                                {isUploadingImage
+                                                    ? "Uploading image..."
+                                                    : "No attachments uploaded"}
+                                            </span>
+                                            {!isObserver && (
+                                                <span className="text-[10px]">
+                                                    {isUploadingImage
+                                                        ? "Please wait while your image is uploading..."
+                                                        : "Click in the center of this section to upload an image"}
+                                                </span>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="columns-2 gap-2 space-y-2 text-left">
                                             {task.attachments.map((att) => {
                                                 const isImg =
                                                     att.type === "IMAGE" ||
-                                                    att.url.includes("cloudinary.com") ||
-                                                    att.url.startsWith("data:image/") ||
-                                                    att.url.match(/\.(jpeg|jpg|gif|png|webp|svg)/i);
+                                                    att.url.includes(
+                                                        "cloudinary.com",
+                                                    ) ||
+                                                    att.url.startsWith(
+                                                        "data:image/",
+                                                    ) ||
+                                                    att.url.match(
+                                                        /\.(jpeg|jpg|gif|png|webp|svg)/i,
+                                                    );
 
                                                 return (
                                                     <div
@@ -1059,12 +1259,20 @@ export default function TaskModal({
                                                         {/* Tight Full Image Display */}
                                                         {isImg ? (
                                                             <div
-                                                                onClick={() => setFullscreenImage(att.url)}
+                                                                onClick={() =>
+                                                                    setFullscreenImage(
+                                                                        att.url,
+                                                                    )
+                                                                }
                                                                 className="w-full relative cursor-pointer block overflow-hidden bg-[#FAFAF9]"
                                                             >
                                                                 <img
-                                                                    src={att.url}
-                                                                    alt={att.name}
+                                                                    src={
+                                                                        att.url
+                                                                    }
+                                                                    alt={
+                                                                        att.name
+                                                                    }
                                                                     className="w-full h-auto object-cover block"
                                                                 />
                                                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 flex items-center justify-center transition-colors">
@@ -1080,7 +1288,8 @@ export default function TaskModal({
                                                             >
                                                                 <ExternalLink className="w-4 h-4 text-[#888883]" />
                                                                 <span className="text-[9px] text-[#888883] truncate w-full font-medium">
-                                                                    {att.name || "Attachment"}
+                                                                    {att.name ||
+                                                                        "Attachment"}
                                                                 </span>
                                                             </a>
                                                         )}
@@ -1089,11 +1298,19 @@ export default function TaskModal({
                                                         {!isObserver && (
                                                             <button
                                                                 type="button"
-
-                                                                onClick={(e) => {
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
                                                                     e.stopPropagation();
-                                                                    setAttachmentToDelete({ id: att.id, name: att.name });
-                                                                    setIsDeleteAttachmentConfirmOpen(true);
+                                                                    setAttachmentToDelete(
+                                                                        {
+                                                                            id: att.id,
+                                                                            name: att.name,
+                                                                        },
+                                                                    );
+                                                                    setIsDeleteAttachmentConfirmOpen(
+                                                                        true,
+                                                                    );
                                                                 }}
                                                                 className="absolute top-1.5 right-1.5 bg-white/90 hover:bg-[#CB2431] text-[#888883] hover:text-white border border-[#E5E5E3] hover:border-[#CB2431] p-1 rounded-[2px] shadow-sm transition-colors cursor-pointer z-10 opacity-0 group-hover:opacity-100"
                                                                 title="Delete attachment"
@@ -1108,36 +1325,44 @@ export default function TaskModal({
                                     )}
                                 </div>
 
-                                {/* Upload Action Button Pinned at Bottom (Unfilled with Corner Brackets) */}
-                                {!isObserver && (
-                                    <div className="shrink-0 pt-2 border-t border-[#E5E5E3]">
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleImageFileUpload}
-                                            className="hidden"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => fileInputRef.current?.click()}
-                                            disabled={isUploadingImage}
-                                            className="relative w-full bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] text-[11px] font-medium py-2 rounded-[2px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 corner-brackets"
-                                        >
-                                            {isUploadingImage ? (
-                                                <>
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    <span>Uploading…</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Upload className="w-3.5 h-3.5 text-[#1A1A1A]" />
-                                                    <span>Upload Image</span>
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                )}
+                                {/* Hidden File Input always rendered in DOM */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageFileUpload}
+                                    className="hidden"
+                                />
+
+                                {/* Upload Action Button Pinned at Bottom (Only visible after a content is uploaded) */}
+                                {!isObserver &&
+                                    task.attachments &&
+                                    task.attachments.length > 0 && (
+                                        <div className="shrink-0 pt-2 border-t border-[#E5E5E3]">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    fileInputRef.current?.click()
+                                                }
+                                                disabled={isUploadingImage}
+                                                className="relative w-full bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] text-[11px] font-medium py-2 rounded-[2px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 corner-brackets"
+                                            >
+                                                {isUploadingImage ? (
+                                                    <>
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                        <span>Uploading…</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="w-3.5 h-3.5 text-[#1A1A1A]" />
+                                                        <span>
+                                                            Upload Image
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
                             </div>
                         )}
                     </div>
@@ -1183,35 +1408,48 @@ export default function TaskModal({
                             />
                         </div>
 
-
-
                         {/* Assignee */}
                         <div className="flex flex-col gap-1">
                             <label className="eyebrow">Assignee</label>
                             <CustomSelect
                                 disabled={!canEditDetails}
-                                options={userRole === "MEMBER"
-                                    ? [
-                                        {
-                                            value: currentUser.id,
-                                            label: `${currentUser.name} (You)`,
-                                            avatarUrl: currentUser.avatarUrl || null,
-                                        },
-                                        ...(task.assignedTo && task.assignedTo.id !== currentUser.id
-                                            ? [
-                                                {
-                                                    value: task.assignedTo.id,
-                                                    label: task.assignedTo.name,
-                                                    avatarUrl: task.assignedTo.avatarUrl || null,
-                                                },
-                                            ]
-                                            : []),
-                                    ]
-                                    : teamMembers.map(({ user }) => ({
-                                        value: user.id,
-                                        label: user.id === currentUser.id ? `${user.name} (You)` : user.name,
-                                        avatarUrl: user.avatarUrl || null,
-                                    }))}
+                                options={
+                                    userRole === "MEMBER"
+                                        ? [
+                                              {
+                                                  value: currentUser.id,
+                                                  label: `${currentUser.name} (You)`,
+                                                  avatarUrl:
+                                                      currentUser.avatarUrl ||
+                                                      null,
+                                              },
+                                              ...(task.assignedTo &&
+                                              task.assignedTo.id !==
+                                                  currentUser.id
+                                                  ? [
+                                                        {
+                                                            value: task
+                                                                .assignedTo.id,
+                                                            label: task
+                                                                .assignedTo
+                                                                .name,
+                                                            avatarUrl:
+                                                                task.assignedTo
+                                                                    .avatarUrl ||
+                                                                null,
+                                                        },
+                                                    ]
+                                                  : []),
+                                          ]
+                                        : teamMembers.map(({ user }) => ({
+                                              value: user.id,
+                                              label:
+                                                  user.id === currentUser.id
+                                                      ? `${user.name} (You)`
+                                                      : user.name,
+                                              avatarUrl: user.avatarUrl || null,
+                                          }))
+                                }
                                 value={assignedToId}
                                 onChange={(val) => setAssignedToId(val)}
                                 className="w-full"
@@ -1252,7 +1490,11 @@ export default function TaskModal({
                                     value={estimatedTime}
                                     onChange={(e) => {
                                         const val = e.target.value;
-                                        if (val === "" || (Number(val) >= 0 && !val.includes("-"))) {
+                                        if (
+                                            val === "" ||
+                                            (Number(val) >= 0 &&
+                                                !val.includes("-"))
+                                        ) {
                                             setEstimatedTime(val);
                                         }
                                     }}
@@ -1269,7 +1511,11 @@ export default function TaskModal({
                                     value={actualTime}
                                     onChange={(e) => {
                                         const val = e.target.value;
-                                        if (val === "" || (Number(val) >= 0 && !val.includes("-"))) {
+                                        if (
+                                            val === "" ||
+                                            (Number(val) >= 0 &&
+                                                !val.includes("-"))
+                                        ) {
                                             setActualTime(val);
                                         }
                                     }}
@@ -1303,7 +1549,7 @@ export default function TaskModal({
                                             parseActivityInfo(act);
                                         return !(
                                             summaryText ===
-                                            "Updated task details." &&
+                                                "Updated task details." &&
                                             diffs.length === 0
                                         );
                                     })
@@ -1433,8 +1679,12 @@ export default function TaskModal({
                                 onClick={() => handleSaveChanges(true)}
                                 className="px-4 py-1.5 text-[11px] font-medium text-white bg-[#1A1A1A] hover:bg-[#333] rounded-[3px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                             >
-                                {isSaving && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
-                                <span>{isSaving ? "Saving…" : "Save & Close"}</span>
+                                {isSaving && (
+                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                )}
+                                <span>
+                                    {isSaving ? "Saving…" : "Save & Close"}
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -1477,7 +1727,7 @@ export default function TaskModal({
                                         parseActivityInfo(act);
                                     return !(
                                         summaryText ===
-                                        "Updated task details." &&
+                                            "Updated task details." &&
                                         diffs.length === 0
                                     );
                                 })
@@ -1495,10 +1745,11 @@ export default function TaskModal({
                                                     isExpanded ? null : act.id,
                                                 )
                                             }
-                                            className={`p-3 border transition-colors cursor-pointer text-left ${isExpanded
-                                                ? "border-[#1A1A1A] bg-white"
-                                                : "border-[#E5E5E3] bg-[#FAFAF9] hover:border-[#DADAD6]"
-                                                }`}
+                                            className={`p-3 border transition-colors cursor-pointer text-left ${
+                                                isExpanded
+                                                    ? "border-[#1A1A1A] bg-white"
+                                                    : "border-[#E5E5E3] bg-[#FAFAF9] hover:border-[#DADAD6]"
+                                            }`}
                                         >
                                             <div className="flex justify-between items-center text-base text-[#888883]">
                                                 <span className="font-semibold text-[#1A1A1A]">
@@ -1573,7 +1824,6 @@ export default function TaskModal({
                 onClose={() => setIsDeleteDescConfirmOpen(false)}
             />
 
-
             {/* Confirm Dialog for Attachment Deletion */}
             <ConfirmDialog
                 isOpen={isDeleteAttachmentConfirmOpen}
@@ -1584,7 +1834,10 @@ export default function TaskModal({
                 isDanger={true}
                 onConfirm={async () => {
                     if (attachmentToDelete) {
-                        await handleDeleteAttachment(attachmentToDelete.id, attachmentToDelete.name);
+                        await handleDeleteAttachment(
+                            attachmentToDelete.id,
+                            attachmentToDelete.name,
+                        );
                     }
                     setIsDeleteAttachmentConfirmOpen(false);
                     setAttachmentToDelete(null);

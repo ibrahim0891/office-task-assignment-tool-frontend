@@ -318,6 +318,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         loadTasks();
     }, [loadTasks]);
 
+    const selectedTaskIdRef = useRef<string | null>(null);
+    selectedTaskIdRef.current = selectedTaskId;
+
     // Socket.IO Realtime Kanban Synchronization — hardened against race conditions
     useEffect(() => {
         if (!currentTeam?.id) return;
@@ -344,7 +347,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
         socket.on("new_notification", (notification: any) => {
             console.log("[Socket Client] Received new_notification:", notification);
-            addNotificationToastRef.current?.(notification);
+            
+            // Avoid showing toast banners/chimes if the details modal for this specific task is already open
+            const isTaskModalOpenForThisTask = selectedTaskIdRef.current && notification.taskId === selectedTaskIdRef.current;
+            if (!isTaskModalOpenForThisTask) {
+                addNotificationToastRef.current?.(notification);
+            }
+
             setNotifications((prev) => {
                 if (prev.some((n) => n.id === notification.id)) return prev;
                 return [notification, ...prev];
@@ -400,19 +409,34 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 }
             }
 
-            // Granular update: for column moves, just update the columnId locally
+            // For comment actions, just reload to refresh comment list on the task
+            if (action === "comment_created" || action === "comment_deleted" || action === "comment_resolved" || action === "comment_reopened") {
+                loadTasks();
+                return;
+            }
+
+            // Granular update: for column moves caused by drag-drop where we have a
+            // pending local version, just update columnId locally to avoid flicker.
+            // For all other updates (title, description, priority, assignee, etc.)
+            // from another user, do a full reload so every field stays in sync.
             if (action === "update" && taskId && columnId) {
-                setTasks((prev) => {
-                    const taskExists = prev.some((t) => t.id === taskId);
-                    if (taskExists) {
-                        return prev.map((t) =>
-                            t.id === taskId ? { ...t, columnId } : t
-                        );
-                    }
-                    // Task not in local state — might be new or from a different date. Full reload.
-                    loadTasks();
-                    return prev;
-                });
+                const hasPendingLocalMove = !!pendingColumnUpdatesRef.current[taskId];
+                if (hasPendingLocalMove) {
+                    // Our local drag is still in flight — apply the column update locally
+                    setTasks((prev) => {
+                        const taskExists = prev.some((t) => t.id === taskId);
+                        if (taskExists) {
+                            return prev.map((t) =>
+                                t.id === taskId ? { ...t, columnId } : t
+                            );
+                        }
+                        loadTasks();
+                        return prev;
+                    });
+                    return;
+                }
+                // No pending local move — full reload to pick up title and any other changes
+                loadTasks();
                 return;
             }
 

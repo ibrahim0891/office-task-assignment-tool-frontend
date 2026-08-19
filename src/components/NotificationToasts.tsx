@@ -16,9 +16,10 @@ export interface NotificationToast {
 interface NotificationToastsProps {
     toasts: NotificationToast[];
     onDismiss: (id: string) => void;
+    onSelectTask?: (taskId: string, tab?: "comments" | "details" | "attachments") => void;
 }
 
-export default function NotificationToasts({ toasts, onDismiss }: NotificationToastsProps) {
+export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: NotificationToastsProps) {
     const getNotificationType = (n: any) => {
         let type = n.type;
         if (type === "REASSIGN") {
@@ -45,8 +46,16 @@ export default function NotificationToasts({ toasts, onDismiss }: NotificationTo
             {toasts.map((toast) => (
                 <div
                     key={toast.id}
-                    onClick={() => onDismiss(toast.id)}
-                    className="pointer-events-auto w-full bg-white border border-[#E5E5E3] text-[#1A1A1A] px-4 py-3.5 shadow-md flex items-start gap-3 cursor-pointer relative select-none corner-brackets animate-slide-in hover:border-[#DADAD6] transition-colors"
+                    onClick={() => {
+                        if (toast.notification.taskId && onSelectTask) {
+                            onSelectTask(
+                                toast.notification.taskId,
+                                toast.notification.type === "COMMENT_MENTION" ? "comments" : "details"
+                            );
+                        }
+                        onDismiss(toast.id);
+                    }}
+                    className={`pointer-events-auto w-full bg-white border border-[#E5E5E3] text-[#1A1A1A] px-4 py-3.5 shadow-md flex items-start gap-3 relative select-none corner-brackets animate-slide-in hover:border-[#DADAD6] transition-colors ${toast.notification.taskId && onSelectTask ? "cursor-pointer" : "cursor-default"}`}
                     style={{ 
                         boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
                         borderRadius: "2px"
