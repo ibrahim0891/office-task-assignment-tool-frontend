@@ -10,7 +10,10 @@ interface NotificationsTrayProps {
     onMarkRead: (id: string) => void;
     onClearAll: () => void;
     onArchiveNotification: (id: string) => void;
-    onSelectTask: (taskId: string) => void;
+    onSelectTask: (taskId: string, initialTab?: "details" | "comments" | "attachments") => void;
+    hasMore: boolean;
+    isLoadingMore: boolean;
+    onLoadMore: () => void;
 }
 
 export default function NotificationsTray({
@@ -22,6 +25,9 @@ export default function NotificationsTray({
     onClearAll,
     onArchiveNotification,
     onSelectTask,
+    hasMore,
+    isLoadingMore,
+    onLoadMore,
 }: NotificationsTrayProps) {
     const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
 
@@ -29,6 +35,27 @@ export default function NotificationsTray({
 
     const activeNotifications = notifications.filter((n) => !n.isArchived);
     const archivedNotifications = notifications.filter((n) => n.isArchived);
+
+    const getNotificationType = (n: any) => {
+        let type = n.type;
+        if (type === "REASSIGN") {
+            const content = n.content.toLowerCase();
+            if (content.includes("added to team workspace") || content.includes("added to workspace")) {
+                type = "MEMBER_ADDED";
+            } else if (content.includes("invited")) {
+                type = "MEMBER_INVITED";
+            } else if (content.includes("role")) {
+                type = "ROLE_UPDATED";
+            } else if (content.includes("created task")) {
+                type = "TASK_CREATED";
+            } else if (content.includes("assigned a new task")) {
+                type = "TASK_ASSIGNED";
+            } else if (content.includes("reassigned")) {
+                type = "TASK_REASSIGNED";
+            }
+        }
+        return type;
+    };
 
     const getTypeBadge = (type: string) => {
         switch (type) {
@@ -128,7 +155,17 @@ export default function NotificationsTray({
                 )}
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
+                <div 
+                    className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5"
+                    onScroll={(e) => {
+                        const target = e.currentTarget;
+                        if (target.scrollHeight - target.scrollTop - target.clientHeight < 20) {
+                            if (hasMore && !isLoadingMore) {
+                                onLoadMore();
+                            }
+                        }
+                    }}
+                >
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center h-64 text-[#888883] gap-2">
                             <InfinityIcon className="w-8 h-8 text-[#1A1A1A] animate-spin" />
@@ -147,7 +184,9 @@ export default function NotificationsTray({
                             <div
                                 key={n.id}
                                 onClick={() => {
-                                    if (n.taskId) onSelectTask(n.taskId);
+                                    if (n.taskId) {
+                                        onSelectTask(n.taskId, n.type === "COMMENT_MENTION" ? "comments" : "details");
+                                    }
                                     if (!n.isRead) onMarkRead(n.id);
                                 }}
                                 className={`p-3 border transition-colors text-left cursor-pointer relative group ${n.isRead || activeTab === "archived"
@@ -157,9 +196,9 @@ export default function NotificationsTray({
                             >
                                 <div className="flex items-start justify-between gap-2 mb-1">
                                     <span
-                                        className={`px-1.5 py-0.5 rounded-[2px] text-[9px] font-medium border ${getTypeBadge(n.type)}`}
+                                         className={`px-1.5 py-0.5 rounded-[2px] text-[9px] font-medium border ${getTypeBadge(getNotificationType(n))}`}
                                     >
-                                        {n.type.replace("_", " ")}
+                                        {getNotificationType(n).replace("_", " ")}
                                     </span>
 
                                     <div className="flex items-center gap-1.5">
@@ -219,6 +258,12 @@ export default function NotificationsTray({
                                 </div>
                             </div>
                         ))
+                    )}
+                    {isLoadingMore && (
+                        <div className="py-2 flex justify-center items-center gap-1.5 text-[#888883] border-t border-[#E5E5E3]/30 mt-1">
+                            <Loader2 className="w-3 h-3 animate-spin text-[#1A1A1A]" />
+                            <span className="text-[10px] font-medium">Loading more...</span>
+                        </div>
                     )}
                 </div>
             </div>

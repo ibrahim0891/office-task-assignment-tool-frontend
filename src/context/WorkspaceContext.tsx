@@ -59,6 +59,7 @@ interface WorkspaceContextType {
 
     // Handlers
     loadTasks: () => Promise<void>;
+    setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     loadTeamMetadata: () => Promise<void>;
     loadNotifications: () => Promise<void>;
     handleUpdateTaskColumn: (taskId: string, targetColumnId: string) => Promise<void>;
@@ -75,6 +76,11 @@ interface WorkspaceContextType {
     handleArchiveNotification: (id: string) => Promise<void>;
     handleLoginSuccess: (user: User, token: string) => void;
     setDraggingCardId: (cardId: string | null) => void;
+    toasts: any[];
+    removeToast: (id: string) => void;
+    hasMoreNotifications: boolean;
+    isLoadingMoreNotifications: boolean;
+    loadMoreNotifications: () => Promise<void>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
@@ -336,6 +342,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             socket.emit("join_team", currentTeam.id);
         });
 
+        socket.on("new_notification", (notification: any) => {
+            console.log("[Socket Client] Received new_notification:", notification);
+            addNotificationToastRef.current?.(notification);
+            setNotifications((prev) => {
+                if (prev.some((n) => n.id === notification.id)) return prev;
+                return [notification, ...prev];
+            });
+        });
+
         socket.on("connect_error", (err) => {
             console.error("[Socket Client] Connection error:", err);
         });
@@ -422,17 +437,95 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
 
     const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
+    const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
+    const [notificationsPage, setNotificationsPage] = useState(1);
+    const [isLoadingMoreNotifications, setIsLoadingMoreNotifications] = useState(false);
+    const [toasts, setToasts] = useState<any[]>([]);
+
+    const playNotificationChime = () => {
+        try {
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            
+            // First chime note (D5)
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = "sine";
+            osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
+            gain1.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.start();
+            osc1.stop(ctx.currentTime + 0.15);
+
+            // Second chime note (A5 - perfect fifth higher, slightly delayed)
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = "sine";
+            osc2.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1);
+            gain2.gain.setValueAtTime(0.15, ctx.currentTime + 0.1);
+            gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.start(ctx.currentTime + 0.1);
+            osc2.stop(ctx.currentTime + 0.25);
+        } catch (e) {
+            console.error("Failed to play notification chime:", e);
+        }
+    };
+
+    const addNotificationToast = (notification: any) => {
+        const id = Math.random().toString();
+        setToasts((prev) => [...prev, { id, notification }]);
+        playNotificationChime();
+        setTimeout(() => {
+            removeToast(id);
+        }, 5000);
+    };
+
+    const removeToast = (id: string) => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+    };
+
+    const addNotificationToastRef = useRef<((n: any) => void) | undefined>(undefined);
+    addNotificationToastRef.current = addNotificationToast;
 
     const loadNotifications = async () => {
         if (!currentUser) return;
         setIsNotificationsLoading(true);
         try {
-            const data = await api.getNotifications(currentUser.id);
+            const data = await api.getNotifications(currentUser.id, 1, 10);
             setNotifications(data);
+            setNotificationsPage(1);
+            setHasMoreNotifications(data.length === 10);
         } catch (err) {
             console.error("Error loading notifications:", err);
         } finally {
             setIsNotificationsLoading(false);
+        }
+    };
+
+    const loadMoreNotifications = async () => {
+        if (!currentUser || isLoadingMoreNotifications || !hasMoreNotifications) return;
+        setIsLoadingMoreNotifications(true);
+        const nextPage = notificationsPage + 1;
+        try {
+            const data = await api.getNotifications(currentUser.id, nextPage, 10);
+            if (data.length > 0) {
+                setNotifications((prev) => {
+                    const existingIds = new Set(prev.map((n) => n.id));
+                    const newItems = data.filter((n) => !existingIds.has(n.id));
+                    return [...prev, ...newItems];
+                });
+                setNotificationsPage(nextPage);
+            }
+            setHasMoreNotifications(data.length === 10);
+        } catch (err) {
+            console.error("Error loading more notifications:", err);
+        } finally {
+            setIsLoadingMoreNotifications(false);
         }
     };
 
@@ -808,6 +901,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 setProfileModalUser,
                 openMemberProfile,
                 loadTasks,
+                setTasks,
                 loadTeamMetadata,
                 loadNotifications,
                 handleUpdateTaskColumn,
@@ -824,6 +918,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 handleArchiveNotification,
                 handleLoginSuccess,
                 setDraggingCardId,
+                toasts,
+                removeToast,
+                hasMoreNotifications,
+                isLoadingMoreNotifications,
+                loadMoreNotifications,
             }}
         >
             {children}

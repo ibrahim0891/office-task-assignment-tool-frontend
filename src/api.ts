@@ -411,6 +411,11 @@ export const api = {
     return res.json();
   },
 
+  async getTask(taskId: string): Promise<Task> {
+    const res = await fetch(`${API_BASE}/tasks/${taskId}`);
+    return res.json();
+  },
+
   async createTask(taskData: any): Promise<Task> {
     const res = await fetch(`${API_BASE}/tasks`, {
       method: 'POST',
@@ -628,8 +633,11 @@ export const api = {
     window.URL.revokeObjectURL(url);
   },
 
-  async getNotifications(userId: string): Promise<Notification[]> {
-    const res = await fetch(`${API_BASE}/notifications`, {
+  async getNotifications(userId: string, page?: number, limit?: number): Promise<Notification[]> {
+    const url = new URL(`${API_BASE}/notifications`);
+    if (page) url.searchParams.append('page', page.toString());
+    if (limit) url.searchParams.append('limit', limit.toString());
+    const res = await fetch(url.toString(), {
       headers: { 'x-user-id': userId }
     });
     return res.json();

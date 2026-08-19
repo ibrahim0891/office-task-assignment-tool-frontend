@@ -29,6 +29,7 @@ interface TaskModalProps {
     currentUser: User;
     userRole: string;
     onRefresh: () => void;
+    initialTab?: "details" | "comments" | "attachments";
 }
 
 export default function TaskModal({
@@ -40,6 +41,7 @@ export default function TaskModal({
     currentUser,
     userRole,
     onRefresh,
+    initialTab = "details",
 }: TaskModalProps) {
     const { openMemberProfile } = useWorkspace();
     // Form Local State (prevents auto-saving on every keystroke)
@@ -99,7 +101,8 @@ export default function TaskModal({
         setEstimatedTime(task.estimatedTime ?? "");
         setActualTime(task.actualTime ?? "");
         setShowUnsavedWarning(false);
-    }, [task, isOpen]);
+        setActiveTab(initialTab);
+    }, [task, isOpen, initialTab]);
 
     // Calculate dirty status (un-saved changes exist)
     const isTitleDirty = title !== task.title;
@@ -692,15 +695,20 @@ export default function TaskModal({
                                     <div className="flex flex-col gap-1 shrink-0">
                                         <label className="eyebrow">Title *</label>
 
-                                        <input
-                                            type="text"
-                                            disabled={!canEditDetails || !isCreator}
-                                            value={title}
-                                            onChange={(e) => setTitle(e.target.value)}
-                                            placeholder="Task title…"
-                                            maxLength={APP_CONFIG.MAX_TASK_TITLE_LENGTH}
-                                            className={`${inputClass} font-sans font-normal text-base`}
-                                        />
+                                        {(!canEditDetails || !isCreator) ? (
+                                            <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight font-serif pt-1 select-text">
+                                                {title}
+                                            </h2>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                value={title}
+                                                onChange={(e) => setTitle(e.target.value)}
+                                                placeholder="Task title…"
+                                                maxLength={APP_CONFIG.MAX_TASK_TITLE_LENGTH}
+                                                className={`${inputClass} font-sans font-normal text-base`}
+                                            />
+                                        )}
                                     </div>
 
                                     {/* Description Section (Filling remaining vertical space) */}
@@ -807,6 +815,7 @@ export default function TaskModal({
                                                         setComment("");
                                                         onRefresh();
                                                         toast.success("Comment posted!");
+                                                        setActiveTab("comments");
                                                     } catch (err: any) {
                                                         toast.error(err.message || "Failed to post comment");
                                                     }

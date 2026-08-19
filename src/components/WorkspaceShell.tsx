@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import NotificationsTray from "./NotificationsTray";
+import NotificationToasts from "./NotificationToasts";
 import TaskModal from "./TaskModal";
 import toast from "react-hot-toast";
 import { CustomSelect } from "./ui/CustomSelect";
@@ -128,6 +129,12 @@ export default function WorkspaceShell({
         handleClearAllNotifications,
         handleArchiveNotification,
         handleLoginSuccess,
+        toasts,
+        removeToast,
+        hasMoreNotifications,
+        isLoadingMoreNotifications,
+        loadMoreNotifications,
+        setTasks,
     } = useWorkspace();
 
     const pathname = usePathname();
@@ -173,6 +180,7 @@ export default function WorkspaceShell({
             setNewRecurrence("DAILY");
         }
     }, [isAddTaskOpen]);
+    const [taskModalTab, setTaskModalTab] = useState<"details" | "comments" | "attachments">("details");
     const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
     const [settingsTab, setSettingsTab] = useState<"theme" | "typography">("theme");
     const [primaryFont, setPrimaryFont] = useState("Outfit");
@@ -591,11 +599,33 @@ export default function WorkspaceShell({
                 onMarkRead={handleMarkNotificationRead}
                 onClearAll={handleClearAllNotifications}
                 onArchiveNotification={handleArchiveNotification}
-                onSelectTask={(id: string) => {
-                    setSelectedTaskId(id);
-                    setIsNotificationsOpen(false);
+                onSelectTask={async (id: string, initialTab?: "details" | "comments" | "attachments") => {
+                    try {
+                        const updatedTask = await api.getTask(id);
+                        setTaskModalTab(initialTab || "details");
+                        setTasks((prev) => {
+                            const exists = prev.some((t) => t.id === id);
+                            if (exists) {
+                                return prev.map((t) => (t.id === id ? updatedTask : t));
+                            } else {
+                                return [updatedTask, ...prev];
+                            }
+                        });
+                        setSelectedTaskId(id);
+                        setIsNotificationsOpen(false);
+                    } catch (e) {
+                        console.error("Failed to fetch task details:", e);
+                        setTaskModalTab(initialTab || "details");
+                        setSelectedTaskId(id);
+                        setIsNotificationsOpen(false);
+                    }
                 }}
+                hasMore={hasMoreNotifications}
+                isLoadingMore={isLoadingMoreNotifications}
+                onLoadMore={loadMoreNotifications}
             />
+
+            <NotificationToasts toasts={toasts} onDismiss={removeToast} />
 
             {selectedTaskId && activeTask && (
                 <TaskModal
@@ -610,6 +640,7 @@ export default function WorkspaceShell({
                         loadTasks();
                         loadTeamMetadata();
                     }}
+                    initialTab={taskModalTab}
                 />
             )}
 
