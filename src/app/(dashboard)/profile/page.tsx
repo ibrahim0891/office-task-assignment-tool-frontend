@@ -17,7 +17,9 @@ export default function ProfilePage() {
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState<"personal" | "contact" | "social">("personal");
+    const [activeTab, setActiveTab] = useState<
+        "personal" | "contact" | "social"
+    >("personal");
 
     // Profile form state
     const [formData, setFormData] = useState({
@@ -45,7 +47,7 @@ export default function ProfilePage() {
             if (savedUserStr) {
                 try {
                     user = JSON.parse(savedUserStr);
-                } catch (e) { }
+                } catch (e) {}
             }
 
             if (!user) {
@@ -53,9 +55,12 @@ export default function ProfilePage() {
                     const allUsers = await api.getUsers();
                     if (allUsers.length > 0) {
                         user = allUsers[0];
-                        localStorage.setItem("sessionUser", JSON.stringify(user));
+                        localStorage.setItem(
+                            "sessionUser",
+                            JSON.stringify(user),
+                        );
                     }
-                } catch (e) { }
+                } catch (e) {}
             }
 
             if (user) {
@@ -109,14 +114,20 @@ export default function ProfilePage() {
 
         setIsSaving(true);
         try {
-            const updated = await api.updateUserProfile(currentUser.id, formData);
+            const updated = await api.updateUserProfile(
+                currentUser.id,
+                formData,
+            );
 
             const updatedLocalUser = {
                 ...currentUser,
                 name: updated.name,
                 avatarUrl: updated.avatarUrl,
             };
-            localStorage.setItem("sessionUser", JSON.stringify(updatedLocalUser));
+            localStorage.setItem(
+                "sessionUser",
+                JSON.stringify(updatedLocalUser),
+            );
             localStorage.setItem("task_user", JSON.stringify(updatedLocalUser));
             setCurrentUser(updatedLocalUser);
 
@@ -167,7 +178,7 @@ export default function ProfilePage() {
                 <div className="flex justify-between items-center pb-3 border-b border-[#E5E5E3]">
                     <div className="flex items-center gap-3">
                         <Link
-                            href="/kanban"
+                            href="/task-board"
                             className="text-[11px] text-[#888883] hover:text-[#1A1A1A] font-medium transition-colors flex items-center gap-1"
                         >
                             <ChevronLeft className="w-3.5 h-3.5" />
@@ -214,15 +225,27 @@ export default function ProfilePage() {
                         }}
                         isSaving={isSaving}
                         onSave={handleSave}
-                        onAvatarChange={(newUrl) => handleChange("avatarUrl", newUrl)}
+                        onAvatarChange={(newUrl) =>
+                            handleChange("avatarUrl", newUrl)
+                        }
                     />
 
                     {/* Section Divider 1 */}
                     <div className="relative w-full border-t border-[#E5E5E3]">
                         {/* Left T-Bracket ├ */}
                         <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center text-[#1A1A1A]">
-                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M5 0V10M5 5H10" stroke="currentColor" strokeWidth="1.5" />
+                            <svg
+                                width="10"
+                                height="10"
+                                viewBox="0 0 10 10"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    d="M5 0V10M5 5H10"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                />
                             </svg>
                         </div>
                     </div>
@@ -237,10 +260,11 @@ export default function ProfilePage() {
                                     key={t.id}
                                     type="button"
                                     onClick={() => setActiveTab(t.id)}
-                                    className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${isActive
+                                    className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
+                                        isActive
                                             ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4"
                                             : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#F0F0EE]"
-                                        }`}
+                                    }`}
                                 >
                                     <Icon className="w-3 h-3 shrink-0" />
                                     <span>{t.label}</span>
@@ -253,8 +277,18 @@ export default function ProfilePage() {
                     <div className="relative w-full border-t border-[#E5E5E3]">
                         {/* Left T-Bracket ├ */}
                         <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center text-[#1A1A1A]">
-                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M5 0V10M5 5H10" stroke="currentColor" strokeWidth="1.5" />
+                            <svg
+                                width="10"
+                                height="10"
+                                viewBox="0 0 10 10"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    d="M5 0V10M5 5H10"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                />
                             </svg>
                         </div>
                     </div>
