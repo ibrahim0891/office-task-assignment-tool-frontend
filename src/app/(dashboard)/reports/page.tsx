@@ -12,7 +12,7 @@ export default function ReportsPage() {
 
     useEffect(() => {
         if (currentTeam && userRole !== "LEADER") {
-            router.replace("/kanban");
+            router.replace("/task-board");
         }
     }, [currentTeam, userRole, router]);
 

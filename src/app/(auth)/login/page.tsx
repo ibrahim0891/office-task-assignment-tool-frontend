@@ -11,22 +11,24 @@ export default function LoginPage() {
     const { currentUser, handleLoginSuccess } = useWorkspace();
     const router = useRouter();
 
-    const [view, setView] = useState<"SIGNIN" | "SIGNUP" | "VERIFY" | "FORGOT" | "RESET">("SIGNIN");
+    const [view, setView] = useState<
+        "SIGNIN" | "SIGNUP" | "VERIFY" | "FORGOT" | "RESET"
+    >("SIGNIN");
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [code, setCode] = useState("");
     const [newPassword, setNewPassword] = useState("");
-    
+
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    
+
     const [isResending, setIsResending] = useState(false);
 
     useEffect(() => {
         if (currentUser) {
-            router.replace("/kanban");
+            router.replace("/task-board");
         }
     }, [currentUser, router]);
 
@@ -45,7 +47,9 @@ export default function LoginPage() {
                 }
                 const resObj = await api.register(name, email, password);
                 if (resObj.requiresVerification) {
-                    setSuccess("Account created successfully! Verification code sent to your email.");
+                    setSuccess(
+                        "Account created successfully! Verification code sent to your email.",
+                    );
                     setView("VERIFY");
                 } else {
                     handleLoginSuccess(resObj.user, resObj.token!);
@@ -106,7 +110,6 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-[#FAFAF9] text-[#1A1A1A] p-4 font-sans">
             <div className="relative corner-brackets w-full max-w-sm bg-white border border-[#E5E5E3] p-6 flex flex-col gap-5 shadow-sm">
-                
                 {/* App Title */}
                 <Link
                     href="/"
@@ -131,10 +134,11 @@ export default function LoginPage() {
                                 setError("");
                                 setSuccess("");
                             }}
-                            className={`flex-1 pb-2.5 text-center transition-colors cursor-pointer ${view === "SIGNIN"
+                            className={`flex-1 pb-2.5 text-center transition-colors cursor-pointer ${
+                                view === "SIGNIN"
                                     ? "text-[#1A1A1A] border-b-2 border-[#1A1A1A] font-semibold"
                                     : "text-[#888883] hover:text-[#1A1A1A]"
-                                }`}
+                            }`}
                         >
                             Sign In
                         </button>
@@ -145,10 +149,11 @@ export default function LoginPage() {
                                 setError("");
                                 setSuccess("");
                             }}
-                            className={`flex-1 pb-2.5 text-center transition-colors cursor-pointer ${view === "SIGNUP"
+                            className={`flex-1 pb-2.5 text-center transition-colors cursor-pointer ${
+                                view === "SIGNUP"
                                     ? "text-[#1A1A1A] border-b-2 border-[#1A1A1A] font-semibold"
                                     : "text-[#888883] hover:text-[#1A1A1A]"
-                                }`}
+                            }`}
                         >
                             Register
                         </button>
@@ -168,10 +173,15 @@ export default function LoginPage() {
                                     setIsLoading(true);
                                     try {
                                         await api.resendVerification(email);
-                                        setSuccess("Verification code sent to your email!");
+                                        setSuccess(
+                                            "Verification code sent to your email!",
+                                        );
                                         setView("VERIFY");
                                     } catch (err: any) {
-                                        setError(err.message || "Failed to send code.");
+                                        setError(
+                                            err.message ||
+                                                "Failed to send code.",
+                                        );
                                     } finally {
                                         setIsLoading(false);
                                     }
@@ -179,7 +189,9 @@ export default function LoginPage() {
                                 disabled={isLoading}
                                 className="px-2 py-1 bg-[#CB2431] text-white text-[10px] font-semibold rounded-[2px] hover:bg-[#a81d28] transition-colors shrink-0 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
                             >
-                                {isLoading && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                                {isLoading && (
+                                    <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                )}
                                 <span>{isLoading ? "Sending…" : "Verify"}</span>
                             </button>
                         )}
@@ -194,7 +206,6 @@ export default function LoginPage() {
 
                 {/* Form Body */}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-                    
                     {/* View: Verification Screen */}
                     {view === "VERIFY" && (
                         <div className="flex flex-col gap-3.5 animate-fade-in">
@@ -202,16 +213,26 @@ export default function LoginPage() {
                                 Verify Your Email
                             </h2>
                             <p className="text-[12px] text-[#888883] text-center">
-                                We've sent a 6-digit verification code to <span className="font-semibold text-[#1A1A1A]">{email}</span>.
+                                We've sent a 6-digit verification code to{" "}
+                                <span className="font-semibold text-[#1A1A1A]">
+                                    {email}
+                                </span>
+                                .
                             </p>
                             <div className="flex flex-col gap-1">
-                                <label className="eyebrow">Verification Code</label>
+                                <label className="eyebrow">
+                                    Verification Code
+                                </label>
                                 <input
                                     type="text"
                                     maxLength={6}
                                     placeholder="000000"
                                     value={code}
-                                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                                    onChange={(e) =>
+                                        setCode(
+                                            e.target.value.replace(/\D/g, ""),
+                                        )
+                                    }
                                     className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-center text-lg tracking-[8px] font-mono text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
                                     required
                                 />
@@ -226,7 +247,8 @@ export default function LoginPage() {
                                 Forgot Password
                             </h2>
                             <p className="text-[12px] text-[#888883] text-center">
-                                Enter your email address to receive a 6-digit password reset code.
+                                Enter your email address to receive a 6-digit
+                                password reset code.
                             </p>
                             <div className="flex flex-col gap-1">
                                 <label className="eyebrow">Email Address</label>
@@ -249,7 +271,8 @@ export default function LoginPage() {
                                 Reset Password
                             </h2>
                             <p className="text-[12px] text-[#888883] text-center">
-                                Enter the code sent to your email and select your new password.
+                                Enter the code sent to your email and select
+                                your new password.
                             </p>
                             <div className="flex flex-col gap-1">
                                 <label className="eyebrow">Email Address</label>
@@ -268,7 +291,11 @@ export default function LoginPage() {
                                     maxLength={6}
                                     placeholder="000000"
                                     value={code}
-                                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                                    onChange={(e) =>
+                                        setCode(
+                                            e.target.value.replace(/\D/g, ""),
+                                        )
+                                    }
                                     className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-center text-lg tracking-[8px] font-mono text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
                                     required
                                 />
@@ -279,7 +306,9 @@ export default function LoginPage() {
                                     type="password"
                                     placeholder="••••••••"
                                     value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    onChange={(e) =>
+                                        setNewPassword(e.target.value)
+                                    }
                                     className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
                                     required
                                 />
@@ -297,7 +326,9 @@ export default function LoginPage() {
                                         type="text"
                                         placeholder="Enter your fullname"
                                         value={name}
-                                        onChange={(e) => setName(e.target.value)}
+                                        onChange={(e) =>
+                                            setName(e.target.value)
+                                        }
                                         className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
                                         required={view === "SIGNUP"}
                                     />
@@ -337,7 +368,9 @@ export default function LoginPage() {
                                     type="password"
                                     placeholder="••••••••"
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={(e) =>
+                                        setPassword(e.target.value)
+                                    }
                                     className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
                                     required
                                 />
@@ -385,8 +418,14 @@ export default function LoginPage() {
                                 disabled={isResending || isLoading}
                                 className="text-[#1A1A1A] font-semibold hover:underline cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
                             >
-                                {isResending && <Loader2 className="w-3 h-3 animate-spin shrink-0" />}
-                                <span>{isResending ? "Resending..." : "Resend Code"}</span>
+                                {isResending && (
+                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                )}
+                                <span>
+                                    {isResending
+                                        ? "Resending..."
+                                        : "Resend Code"}
+                                </span>
                             </button>
                         </div>
                         <button

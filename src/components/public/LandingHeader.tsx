@@ -11,8 +11,15 @@ interface LandingHeaderProps {
     onToggleTheme: () => void;
 }
 
-export default function LandingHeader({ currentUser, isDarkMode, onToggleTheme }: LandingHeaderProps) {
-    const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+export default function LandingHeader({
+    currentUser,
+    isDarkMode,
+    onToggleTheme,
+}: LandingHeaderProps) {
+    const handleNavClick = (
+        e: React.MouseEvent<HTMLAnchorElement>,
+        targetId: string,
+    ) => {
         e.preventDefault();
         const lenis = (window as any).__lenis;
         if (lenis) {
@@ -84,12 +91,16 @@ export default function LandingHeader({ currentUser, isDarkMode, onToggleTheme }
                         className="btn-glass-shimmer p-2.5 border border-[var(--app-border)] rounded-[3px] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] transition-all cursor-pointer hover:-translate-y-0.5 active:scale-95"
                         title="Toggle Theme"
                     >
-                        {isDarkMode ? <Sun className="w-4 h-4 text-[#EBCB8B]" /> : <Moon className="w-4 h-4" />}
+                        {isDarkMode ? (
+                            <Sun className="w-4 h-4 text-[#EBCB8B]" />
+                        ) : (
+                            <Moon className="w-4 h-4" />
+                        )}
                     </button>
 
                     {currentUser ? (
                         <Link
-                            href="/kanban"
+                            href="/task-board"
                             className="btn-glass-shimmer px-4.5 py-2.5 bg-[var(--app-text)] hover:opacity-95 text-[var(--app-bg)] text-[12.5px] font-semibold rounded-[3px] shadow-sm transition-all flex items-center gap-1.5 hover:-translate-y-0.5 active:scale-95"
                         >
                             <span>Go to Dashboard</span>
