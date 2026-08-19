@@ -1,4 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import { APP_CONFIG } from './config/appConfig';
+
+const API_BASE = APP_CONFIG.API_URL;
 
 const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const headers = new Headers(init?.headers);
@@ -209,7 +211,7 @@ export const api = {
     return res.json();
   },
 
-  async register(name: string, email: string, password: string): Promise<{ user: User; token: string }> {
+  async register(name: string, email: string, password: string): Promise<{ user: User; token?: string; requiresVerification?: boolean }> {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -717,5 +719,57 @@ export const api = {
   },
   async deleteBookmark(id: string): Promise<void> {
     await fetch(`${API_BASE}/bookmarks/${id}`, { method: 'DELETE' });
+  },
+
+  async verifyEmail(email: string, code: string): Promise<{ user: User; token: string }> {
+    const res = await fetch(`${API_BASE}/auth/verify-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Email verification failed.');
+    }
+    return res.json();
+  },
+
+  async resendVerification(email: string): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE}/auth/resend-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to resend verification code.');
+    }
+    return res.json();
+  },
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to send password reset code.');
+    }
+    return res.json();
+  },
+
+  async resetPassword(email: string, code: string, newPasswordString: string): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, newPassword: newPasswordString })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to reset password.');
+    }
+    return res.json();
   },
 };

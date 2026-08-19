@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { WorkspaceProvider } from "../context/WorkspaceContext";
 import WorkspaceShell from "../components/WorkspaceShell";
+import { APP_CONFIG } from "../config/appConfig";
 
 const inter = Inter({
     variable: "--font-inter",
@@ -30,6 +31,9 @@ export default function RootLayout({
 }: {
     children: React.ReactNode;
 }) {
+    if (typeof window !== "undefined") {
+        console.log("Frontend Configuration Loaded: Max Task Title Length =", APP_CONFIG.MAX_TASK_TITLE_LENGTH);
+    }
     return (
         <html
             lang="en"

@@ -48,13 +48,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         let sizeClasses = "";
         switch (size) {
             case "sm":
-                sizeClasses = "px-2 py-0.5 text-[10px]";
+                sizeClasses = "h-[30px] px-3.5 text-[10px]";
                 break;
             case "lg":
-                sizeClasses = "px-3.5 py-1.5 text-base";
+                sizeClasses = "h-[46px] px-5 text-base";
                 break;
             default:
-                sizeClasses = "px-2.5 py-1 text-[11px]";
+                sizeClasses = "h-[36px] px-4 text-[11px]";
                 break;
         }
 

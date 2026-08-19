@@ -18,7 +18,7 @@ interface FetchedEmoji {
 const EMOJI_CATEGORIES = [
     {
         name: "Smileys & People",
-        emojis: ["👤", "😊", "😎", "🚀", "💡", "💻", "🧠", "👥", "🤝", "👑", "🔥", "🎉", "🌟", "👀", "🙌", "✨"],
+        emojis: ["👤", "🧑‍💻", "👨‍💻", "👩‍💻", "😊", "😎", "🚀", "💡", "💻", "🧠", "👥", "🤝", "👑", "🔥", "🎉", "🌟", "👀", "🙌", "✨"],
     },
     {
         name: "Office & Collaboration",
@@ -53,7 +53,7 @@ const formatCategoryName = (name: string) => {
         .join(" ");
 };
 
-export function EmojiPicker({ value = "👤", onChange, disabled = false }: EmojiPickerProps) {
+export function EmojiPicker({ value = "🧑‍💻", onChange, disabled = false }: EmojiPickerProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [fetchedCategories, setFetchedCategories] = useState<Record<string, string[]>>({});
@@ -194,7 +194,7 @@ export function EmojiPicker({ value = "👤", onChange, disabled = false }: Emoj
                 type="button"
                 disabled={disabled}
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-10 h-10 rounded-[3px] border border-[var(--app-border)] bg-[var(--app-card)] hover:border-[var(--color-accent)] hover:bg-[var(--app-hover-bg)] flex items-center justify-center text-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed relative corner-brackets-4 emoji-font"
+                className="w-[46px] h-[46px] rounded-[2px] border border-[var(--app-border)] bg-[var(--app-card)] hover:border-[var(--color-accent)] hover:bg-[var(--app-hover-bg)] flex items-center justify-center text-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed relative corner-brackets-4 emoji-font"
             >
                 {value}
             </button>

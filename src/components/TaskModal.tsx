@@ -6,6 +6,7 @@ import ConfirmDialog from "./ui/ConfirmDialog";
 import { TipTapEditor } from "./ui/TipTapEditor";
 import { Task, TaskColumn, User, api } from "../api";
 import { useWorkspace } from "../context/WorkspaceContext";
+import { APP_CONFIG } from "../config/appConfig";
 import {
     Upload,
     Trash2,
@@ -168,6 +169,10 @@ export default function TaskModal({
         if (isObserver) return;
         if (!title.trim()) {
             toast.error("Task title cannot be empty.");
+            return;
+        }
+        if (title.trim().length > APP_CONFIG.MAX_TASK_TITLE_LENGTH) {
+            toast.error(`Task title must not exceed ${APP_CONFIG.MAX_TASK_TITLE_LENGTH} characters.`);
             return;
         }
 
@@ -693,6 +698,7 @@ export default function TaskModal({
                                             value={title}
                                             onChange={(e) => setTitle(e.target.value)}
                                             placeholder="Task title…"
+                                            maxLength={APP_CONFIG.MAX_TASK_TITLE_LENGTH}
                                             className={`${inputClass} font-sans font-normal text-base`}
                                         />
                                     </div>

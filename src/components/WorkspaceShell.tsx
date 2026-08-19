@@ -16,6 +16,7 @@ import ManageTeamsModal from "./ManageTeamsModal";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { api } from "../api";
 import { Bell, Settings, RotateCcw, Sun, Moon, Palette, Type } from "lucide-react";
+import { APP_CONFIG } from "../config/appConfig";
 
 const inputClass =
     "px-2.5 py-1.5 border border-[#E5E5E3] focus:border-[#1A1A1A] focus:outline-none text-[11px] bg-white rounded-[3px] transition-colors w-full";
@@ -373,6 +374,11 @@ export default function WorkspaceShell({
 
         if (!currentTeam || !newTitle.trim()) return;
 
+        if (newTitle.trim().length > APP_CONFIG.MAX_TASK_TITLE_LENGTH) {
+            toast.error(`Task title must not exceed ${APP_CONFIG.MAX_TASK_TITLE_LENGTH} characters.`);
+            return;
+        }
+
         try {
             await api.createTask({
                 title: newTitle.trim(),
@@ -660,6 +666,7 @@ export default function WorkspaceShell({
                                     onChange={(e) =>
                                         setNewTitle(e.target.value)
                                     }
+                                    maxLength={APP_CONFIG.MAX_TASK_TITLE_LENGTH}
                                     className={inputClass}
                                     required
                                 />

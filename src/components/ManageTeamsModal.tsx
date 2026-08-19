@@ -41,12 +41,12 @@ export default function ManageTeamsModal({
     // States for inline editing
     const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState("");
-    const [editingEmoji, setEditingEmoji] = useState("👤");
+    const [editingEmoji, setEditingEmoji] = useState("🧑‍💻");
 
     // States for create workspace
     const [isCreating, setIsCreating] = useState(false);
     const [newTeamName, setNewTeamName] = useState("");
-    const [newTeamEmoji, setNewTeamEmoji] = useState("👤");
+    const [newTeamEmoji, setNewTeamEmoji] = useState("🧑‍💻");
 
     // States for deletion flow
     const [deletingTeam, setDeletingTeam] = useState<Team | null>(null);
@@ -57,12 +57,12 @@ export default function ManageTeamsModal({
     if (!isOpen) return null;
 
     const inputClass =
-        "w-full bg-white border border-[#E5E5E3] px-3.5 py-2.5 rounded-[2px] text-base text-[#1A1A1A] placeholder-[#888883] focus:outline-none focus:border-[#1A1A1A] transition-colors leading-normal";
+        "w-full h-[46px] bg-white border border-[#E5E5E3] px-3.5 rounded-[2px] text-base text-[#1A1A1A] placeholder-[#888883] focus:outline-none focus:border-[#1A1A1A] transition-colors leading-normal";
 
     const handleStartEdit = (team: Team) => {
         setEditingTeamId(team.id);
         setEditingName(team.name);
-        setEditingEmoji(team.emoji || "👤");
+        setEditingEmoji(team.emoji || "🧑‍💻");
     };
 
     const handleSaveEdit = async (teamId: string) => {
@@ -91,7 +91,7 @@ export default function ManageTeamsModal({
             setIsSubmitting(true);
             await onCreateTeam(newTeamName.trim(), newTeamEmoji);
             setNewTeamName("");
-            setNewTeamEmoji("👤");
+            setNewTeamEmoji("🧑‍💻");
             setIsCreating(false);
         } catch (err) {
             // error handled in context
@@ -254,7 +254,7 @@ export default function ManageTeamsModal({
                                             setPasswordInput("");
                                         }}
                                         disabled={isSubmitting}
-                                        className="px-4 py-2"
+                                        className="px-4"
                                     >
                                         Cancel
                                     </Button>
@@ -266,7 +266,7 @@ export default function ManageTeamsModal({
                                             !passwordInput ||
                                             isSubmitting
                                         }
-                                        className="relative corner-brackets-4 bg-[#CB2431] hover:bg-[#A01C27] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-medium px-4 py-2 rounded-[2px] transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
+                                        className="relative corner-brackets-4 bg-[#CB2431] hover:bg-[#A01C27] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-medium px-4 h-[36px] rounded-[2px] transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
                                         <span>
@@ -334,15 +334,15 @@ export default function ManageTeamsModal({
                                         <div className="flex justify-end gap-2.5 pt-1">
                                             <Button
                                                 type="button"
-                                                variant="ghost"
+                                                variant="secondary"
                                                 size="sm"
                                                 onClick={() => {
                                                     setIsCreating(false);
                                                     setNewTeamName("");
-                                                    setNewTeamEmoji("👤");
+                                                    setNewTeamEmoji("🧑‍💻");
                                                 }}
                                                 disabled={isSubmitting}
-                                                className="px-3 py-1.5"
+                                                className="px-3"
                                             >
                                                 Cancel
                                             </Button>
@@ -351,7 +351,7 @@ export default function ManageTeamsModal({
                                                 size="sm"
                                                 showDot
                                                 disabled={isSubmitting}
-                                                className="px-4 py-1.5"
+                                                className="px-4"
                                             >
                                                 {isSubmitting
                                                     ? "Creating..."
@@ -362,7 +362,7 @@ export default function ManageTeamsModal({
                                 )}
 
                                 {/* Workspaces List items */}
-                                <div className="flex flex-col gap-2.5 max-h-72 overflow-y-auto pr-0.5">
+                                <div className={`flex flex-col gap-2.5 pr-0.5 ${teams.length > 3 ? "max-h-72 overflow-y-auto" : "overflow-visible"}`}>
                                     {teams.map((t) => {
                                         const isCurrent =
                                             currentTeam?.id === t.id;
@@ -377,10 +377,10 @@ export default function ManageTeamsModal({
                                         return (
                                             <div
                                                 key={t.id}
-                                                className={`p-3.5 sm:p-4 border rounded-[2px] flex items-center justify-between gap-4 transition-colors corner-brackets ${
+                                                className={`relative p-3.5 sm:p-4 border rounded-[2px] flex items-center justify-between gap-4 transition-colors corner-brackets ${
                                                     isCurrent
-                                                        ? "bg-white border-[#1A1A1A] shadow-xs"
-                                                        : "bg-[#FAFAF9] border-[#E5E5E3] hover:border-[#CCCCCC]"
+                                                        ? "bg-white border-[#E5E5E3] shadow-xs"
+                                                        : "bg-[#FAFAF9] border-[#F0F0EE] hover:border-[#E5E5E3]"
                                                 }`}
                                             >
                                                 {isEditing ? (
@@ -437,7 +437,7 @@ export default function ManageTeamsModal({
                                                     <>
                                                         <div className="flex flex-col gap-1 min-w-0">
                                                             <div className="flex items-center gap-2.5">
-                                                                <span className="text-lg emoji-font shrink-0 leading-none">{t.emoji || "👤"}</span>
+                                                                <span className="text-lg emoji-font shrink-0 leading-none">{t.emoji || "🧑‍💻"}</span>
                                                                 <span className="font-medium text-[13px] text-[#1A1A1A] truncate">
                                                                     {t.name}
                                                                 </span>

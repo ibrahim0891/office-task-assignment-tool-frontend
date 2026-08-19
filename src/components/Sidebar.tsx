@@ -207,7 +207,7 @@ export default function Sidebar({
                     <div className="flex flex-col gap-2">
                         {currentTeam && (
                             <div className="text-[12px] font-semibold text-[var(--app-text)] truncate border-b border-dashed border-[var(--app-border)] pb-1.5 mb-1 flex items-center gap-1.5">
-                                <span className="text-sm shrink-0 emoji-font">{currentTeam.emoji || "👤"}</span>
+                                <span className="text-sm shrink-0 emoji-font">{currentTeam.emoji || "🧑‍💻"}</span>
                                 <span className="truncate">{currentTeam.name}</span>
                             </div>
                         )}
@@ -226,7 +226,7 @@ export default function Sidebar({
                                     ? [{ value: "", label: "No Workspaces" }]
                                     : teams.map((t) => ({
                                         value: t.id,
-                                        label: `${t.emoji || "👤"} ${t.name}`,
+                                        label: `${t.emoji || "🧑‍💻"} ${t.name}`,
                                     }))
                             }
                             value={currentTeam?.id || ""}

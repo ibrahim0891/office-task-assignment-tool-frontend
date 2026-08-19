@@ -12,6 +12,7 @@ import {
     TaskColumn,
     Notification,
 } from "../api";
+import { APP_CONFIG } from "../config/appConfig";
 
 const clientId = typeof window !== "undefined"
     ? Math.random().toString(36).substring(2) + Date.now().toString(36)
@@ -315,9 +316,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     useEffect(() => {
         if (!currentTeam?.id) return;
 
-        const socketUrl = process.env.NEXT_PUBLIC_API_URL
-            ? process.env.NEXT_PUBLIC_API_URL.replace("/api", "")
-            : "http://localhost:5000";
+        const socketUrl = APP_CONFIG.API_URL.replace("/api", "");
 
         console.log(`[Socket Client] Initializing connection to ${socketUrl}`);
 
@@ -597,6 +596,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const handleAddQuickTask = async (title: string, columnId: string, assignedToId?: string) => {
         if (!currentTeam || !currentUser) return;
+
+        if (title.trim().length > APP_CONFIG.MAX_TASK_TITLE_LENGTH) {
+            toast.error(`Task title must not exceed ${APP_CONFIG.MAX_TASK_TITLE_LENGTH} characters.`);
+            return;
+        }
+
         const tempId = `temp-${Date.now()}`;
         const targetAssigneeId = assignedToId || currentUser.id;
         const optimisticTask = {

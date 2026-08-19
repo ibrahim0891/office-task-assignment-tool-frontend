@@ -11,6 +11,7 @@ import { Button } from "./ui/Button";
 import { ChevronLeft, ChevronRight, MoreVertical, Edit2, Archive } from "lucide-react";
 import { Task, TaskColumn, User } from "../api";
 import ConfirmDialog from "./ui/ConfirmDialog";
+import { APP_CONFIG } from "../config/appConfig";
 
 interface KanbanBoardProps {
     tasks: Task[];
@@ -248,6 +249,11 @@ export default function KanbanBoard({
         e.preventDefault();
         if (!quickTitle.trim() || columns.length === 0) return;
 
+        if (quickTitle.trim().length > APP_CONFIG.MAX_TASK_TITLE_LENGTH) {
+            toast.error(`Task title must not exceed ${APP_CONFIG.MAX_TASK_TITLE_LENGTH} characters.`);
+            return;
+        }
+
 
         onAddQuickTask(quickTitle.trim(), columns[0].id, quickAssigneeId || currentUser.id);
         setQuickTitle("");
@@ -334,6 +340,7 @@ export default function KanbanBoard({
                                 value={quickTitle}
                                 onChange={(e) => setQuickTitle(e.target.value)}
                                 placeholder={columns[0] ? `Quick add to ${columns[0].name}…` : "Quick add task…"}
+                                maxLength={APP_CONFIG.MAX_TASK_TITLE_LENGTH}
                                 className="flex-1 bg-white border border-[#E5E5E3] rounded-[3px] px-3 h-[32px] text-[11px] text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
                                 autoFocus
                             />

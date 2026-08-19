@@ -194,7 +194,7 @@ export default function SolarMapView({
             id: `top-leader-${leaderId}`,
             type: "leader",
             position: { x: leaderX, y: leaderY },
-            data: { label: "Leader", name: leaderName, teamName: `${currentTeam.emoji || "👤"} ${currentTeam.name}` },
+            data: { label: "Leader", name: leaderName, teamName: `${currentTeam.emoji || "🧑‍💻"} ${currentTeam.name}` },
         });
 
         // 2. Member Columns (Level 2 Headers & Level 3 Tasks)
