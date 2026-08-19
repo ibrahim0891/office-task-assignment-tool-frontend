@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Lenis from "lenis";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import AnnouncementBar from "@/components/public/AnnouncementBar";
 import LandingHeader from "@/components/public/LandingHeader";
@@ -17,6 +18,36 @@ export default function PublicLandingPage() {
     const { currentUser } = useWorkspace();
     const [isDarkMode, setIsDarkMode] = useState(false);
 
+    // 1. Lenis smooth scrolling (isolated strictly to the public landing page)
+    useEffect(() => {
+        const lenis = new Lenis({
+            duration: 1.1,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            orientation: "vertical",
+            gestureOrientation: "vertical",
+            smoothWheel: true,
+            wheelMultiplier: 1,
+            touchMultiplier: 2,
+        });
+
+        (window as any).__lenis = lenis;
+
+        let rafId: number;
+        function raf(time: number) {
+            lenis.raf(time);
+            rafId = requestAnimationFrame(raf);
+        }
+
+        rafId = requestAnimationFrame(raf);
+
+        return () => {
+            cancelAnimationFrame(rafId);
+            delete (window as any).__lenis;
+            lenis.destroy();
+        };
+    }, []);
+
+    // 2. Theme detection & synchronization
     useEffect(() => {
         const savedTheme = localStorage.getItem("sys_theme");
         if (
@@ -56,25 +87,39 @@ export default function PublicLandingPage() {
             />
 
             {/* Hero Section */}
-            <HeroSection currentUser={currentUser} />
+            <div className="animate-subtle-fade">
+                <HeroSection currentUser={currentUser} />
+            </div>
 
-            {/* Interactive Showcase Preview (with React Flow Solar Map, Kanban, Dashboard, Docs) */}
-            <LiveShowcase />
+            {/* Interactive Showcase Preview */}
+            <div className="animate-subtle-fade">
+                <LiveShowcase />
+            </div>
 
             {/* Core Features Grid */}
-            <CoreFeatures />
+            <div className="animate-subtle-fade">
+                <CoreFeatures />
+            </div>
 
             {/* Role Governance Matrix */}
-            <RoleGovernance />
+            <div className="animate-subtle-fade">
+                <RoleGovernance />
+            </div>
 
             {/* FAQ Accordion */}
-            <FaqSection />
+            <div className="animate-subtle-fade">
+                <FaqSection />
+            </div>
 
             {/* Bottom Call to Action */}
-            <CtaSection currentUser={currentUser} />
+            <div className="animate-subtle-fade">
+                <CtaSection currentUser={currentUser} />
+            </div>
 
             {/* Developer Credits Section */}
-            <DeveloperCredits />
+            <div className="animate-subtle-fade">
+                <DeveloperCredits />
+            </div>
 
             {/* Public Footer */}
             <LandingFooter />

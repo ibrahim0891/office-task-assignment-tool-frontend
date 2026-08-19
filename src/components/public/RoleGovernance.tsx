@@ -15,7 +15,7 @@ const rolePermissions = [
 
 export default function RoleGovernance() {
     return (
-        <section id="roles" className="py-20 bg-[var(--app-hover-bg)] border-y border-[var(--app-border)]">
+        <section id="roles" className="scroll-mt-20 py-20 bg-[var(--app-hover-bg)] border-y border-[var(--app-border)]">
             <div className="max-w-5xl mx-auto px-6">
                 <div className="text-center max-w-2xl mx-auto mb-12">
                     <span className="eyebrow capitalize text-[var(--app-muted)] text-[11px] font-semibold">

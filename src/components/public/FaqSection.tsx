@@ -9,8 +9,8 @@ const faqItems = [
         a: "Each workspace operates as an independent container with its own Kanban boards, team memberships, bookmarks, and knowledge base. Leaders can provision multiple workspaces without data bleeding."
     },
     {
-        q: "Can I preview Google Sheets and Google Docs directly?",
-        a: "Yes! In the Bookmarks manager, clicking any Google Docs or Sheets link opens a live split-screen preview pane, allowing you to edit and review documents without context switching."
+        q: "Can I preview Google Sheets and Docsdirectly?",
+        a: "Yes! In the Bookmarks manager, clicking any Docsor Sheets link opens a live split-screen preview pane, allowing you to edit and review documents without context switching."
     },
     {
         q: "What makes the Solar Map unique?",
@@ -26,7 +26,7 @@ export default function FaqSection() {
     const [faqOpen, setFaqOpen] = useState<number | null>(0);
 
     return (
-        <section id="faq" className="py-20 max-w-4xl mx-auto px-6 w-full">
+        <section id="faq" className="scroll-mt-20 py-20 max-w-4xl mx-auto px-6 w-full">
             <div className="text-center mb-12">
                 <span className="eyebrow capitalize text-[var(--app-muted)] text-[11px] font-semibold">
                     Frequently Asked Questions
