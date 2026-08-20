@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Lenis from "lenis";
+import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import AnnouncementBar from "@/components/public/AnnouncementBar";
 import LandingHeader from "@/components/public/LandingHeader";
@@ -15,8 +16,15 @@ import DeveloperCredits from "@/components/public/DeveloperCredits";
 import LandingFooter from "@/components/public/LandingFooter";
 
 export default function PublicLandingPage() {
-    const { currentUser } = useWorkspace();
+    const { currentUser, isInitialized } = useWorkspace();
+    const router = useRouter();
     const [isDarkMode, setIsDarkMode] = useState(false);
+
+    useEffect(() => {
+        if (isInitialized && currentUser) {
+            router.replace("/task-board");
+        }
+    }, [isInitialized, currentUser, router]);
 
     // 1. Lenis smooth scrolling (isolated strictly to the public landing page)
     useEffect(() => {
@@ -73,6 +81,10 @@ export default function PublicLandingPage() {
         document.documentElement.setAttribute("data-theme", themeVal);
         localStorage.setItem("sys_theme", themeVal);
     };
+
+    if (isInitialized && currentUser) {
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)] font-sans flex flex-col selection:bg-[var(--app-text)] selection:text-[var(--app-bg)] transition-colors">

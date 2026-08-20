@@ -341,7 +341,7 @@ export default function KanbanBoard({
                                 onChange={(e) => setQuickTitle(e.target.value)}
                                 placeholder={columns[0] ? `Quick add to ${columns[0].name}…` : "Quick add task…"}
                                 maxLength={APP_CONFIG.MAX_TASK_TITLE_LENGTH}
-                                className="flex-1 bg-white border border-[#E5E5E3] rounded-[3px] px-3 h-[32px] text-[11px] text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
+                                className="flex-1 bg-white border border-[#E5E5E3] rounded-[3px] px-3 h-[36px] text-[11px] text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
                                 autoFocus
                             />
 
@@ -372,7 +372,7 @@ export default function KanbanBoard({
                                         ]}
                                     value={quickAssigneeId || currentUser.id}
                                     onChange={(val) => setQuickAssigneeId(val)}
-                                    className="w-44 h-[32px]"
+                                    className="w-44 h-[36px]"
                                 />
                             )}
 
@@ -380,7 +380,6 @@ export default function KanbanBoard({
                                 type="submit"
                                 disabled={!quickTitle.trim()}
                                 showDot
-                                className="h-[32px]"
                             >
                                 Add
                             </Button>
