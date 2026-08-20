@@ -7,6 +7,7 @@ export interface SelectOption {
     label: string;
     sublabel?: string;
     avatarUrl?: string | null;
+    style?: React.CSSProperties;
 }
 
 interface CustomSelectProps {
@@ -135,7 +136,7 @@ export function CustomSelect({
                         {renderSelected ? (
                             renderSelected(selectedOpt)
                         ) : (
-                            <span className="font-medium truncate">
+                            <span className="font-medium truncate" style={selectedOpt.style}>
                                 {selectedOpt.label}
                             </span>
                         )}
@@ -225,7 +226,7 @@ export function CustomSelect({
                                                         </div>
                                                     ))}
                                                 <div className="min-w-0">
-                                                    <span className="block truncate">
+                                                    <span className="block truncate" style={opt.style}>
                                                         {opt.label}
                                                     </span>
                                                     {opt.sublabel && (

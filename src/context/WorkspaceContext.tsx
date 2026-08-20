@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { io, Socket } from "socket.io-client";
 import {
     api,
     User,
@@ -13,6 +12,8 @@ import {
     Notification,
 } from "../api";
 import { APP_CONFIG } from "../config/appConfig";
+import { useWorkspaceNotifications } from "../hooks/useWorkspaceNotifications";
+import { useWorkspaceSockets } from "../hooks/useWorkspaceSockets";
 
 const clientId = typeof window !== "undefined"
     ? Math.random().toString(36).substring(2) + Date.now().toString(36)
@@ -25,6 +26,7 @@ interface WorkspaceContextType {
     isInitialized: boolean;
     teams: Team[];
     currentTeam: Team | null;
+    isSwitchingTeam: boolean;
     setCurrentTeam: (team: Team) => void;
     teamMembers: { user: User; role: string }[];
     userRole: string;
@@ -37,6 +39,10 @@ interface WorkspaceContextType {
     currentView: string;
     selectedTaskId: string | null;
     setSelectedTaskId: (id: string | null) => void;
+    directTask: any | null;
+    setDirectTask: React.Dispatch<React.SetStateAction<any>>;
+    taskModalTab: "details" | "comments" | "attachments";
+    setTaskModalTab: React.Dispatch<React.SetStateAction<"details" | "comments" | "attachments">>;
     selectedMemberFilter: string;
     setSelectedMemberFilter: (memberId: string) => void;
     searchQuery: string;
@@ -122,9 +128,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const [teams, setTeams] = useState<Team[]>([]);
     const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
+    const [isSwitchingTeam, setIsSwitchingTeam] = useState(false);
     const [teamMembers, setTeamMembers] = useState<{ user: User; role: string }[]>([]);
 
     const handleSetCurrentTeam = (team: Team) => {
+        if (currentTeam?.id === team.id) return;
+        setIsSwitchingTeam(true);
         setCurrentTeam(team);
     };
 
@@ -136,12 +145,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const [tasks, setTasks] = useState<Task[]>([]);
     const [columns, setColumns] = useState<TaskColumn[]>([]);
-    const [notifications, setNotifications] = useState<Notification[]>([]);
+
 
     const [activeDateStr, setActiveDateStr] = useState<string>(
         new Date().toISOString().split("T")[0]
     );
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+    const [directTask, setDirectTask] = useState<any>(null);
+    const [taskModalTab, setTaskModalTab] = useState<"details" | "comments" | "attachments">("details");
     const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>("");
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [commentUpdateTrigger, setCommentUpdateTrigger] = useState<number>(0);
@@ -233,7 +244,25 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     useEffect(() => {
-        loadTeamMetadata();
+        if (!currentTeam?.id) return;
+
+        const loadSwitchData = async () => {
+            try {
+                await Promise.all([
+                    loadTeamMetadata(),
+                    loadTasks()
+                ]);
+            } catch (err) {
+                console.error("Error loading team data:", err);
+            } finally {
+                // A small delay for a smooth transition
+                setTimeout(() => {
+                    setIsSwitchingTeam(false);
+                }, 400);
+            }
+        };
+
+        loadSwitchData();
     }, [currentTeam?.id]);
 
     const latestTasksRequestIdRef = React.useRef(0);
@@ -275,36 +304,37 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const pendingColumnUpdatesRef = React.useRef<Record<string, { timeoutId: NodeJS.Timeout; previousTasks: any[]; targetColumnId: string }>>({});
     const moveVersionRef = useRef<Record<string, number>>({});
-    const draggingCardIdRef = useRef<string | null>(null);
-    const deferredSocketEventsRef = useRef<Array<{ action: string; taskId: string; columnId?: string; actingUserId?: string; timestamp?: number }>>([]);
-    const socketRef = useRef<any | null>(null);
+    const {
+        notifications,
+        setNotifications,
+        isNotificationsLoading,
+        hasMoreNotifications,
+        isLoadingMoreNotifications,
+        toasts,
+        removeToast,
+        addNotificationToast,
+        loadNotifications,
+        loadMoreNotifications,
+        handleMarkNotificationRead,
+        handleClearAllNotifications,
+        handleArchiveNotification,
+        handleDeleteArchivedNotifications,
+    } = useWorkspaceNotifications(currentUser, currentTeam);
 
-    const setDraggingCardId = React.useCallback((cardId: string | null) => {
-        const previousCardId = draggingCardIdRef.current;
-        draggingCardIdRef.current = cardId;
-
-        if (cardId === null && previousCardId !== null) {
-            const deferred = [...deferredSocketEventsRef.current];
-            deferredSocketEventsRef.current = [];
-
-            if (deferred.length > 0) {
-                for (const event of deferred) {
-                    if (event.taskId !== previousCardId) {
-                        if (event.action === "update" && event.columnId) {
-                            setTasks((prev) =>
-                                prev.map((t) =>
-                                    t.id === event.taskId ? { ...t, columnId: event.columnId! } : t
-                                )
-                            );
-                        } else {
-                            loadTasks();
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }, [loadTasks]);
+    const {
+        setDraggingCardId,
+        socketRef,
+    } = useWorkspaceSockets(
+        currentTeam,
+        currentUser,
+        setTasks,
+        loadTasks,
+        selectedTaskId,
+        addNotificationToast,
+        setNotifications,
+        pendingColumnUpdatesRef,
+        moveVersionRef,
+    );
 
     useEffect(() => {
         return () => {
@@ -317,303 +347,38 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
 
 
+    const isSwitchingTeamRef = useRef(false);
+    isSwitchingTeamRef.current = isSwitchingTeam;
+
     useEffect(() => {
+        if (isSwitchingTeamRef.current) return;
         loadTasks();
     }, [loadTasks]);
 
     const selectedTaskIdRef = useRef<string | null>(null);
     selectedTaskIdRef.current = selectedTaskId;
 
-    const currentUserRef = useRef<User | null>(null);
-    currentUserRef.current = currentUser;
-
-    // Socket.IO Realtime Kanban Synchronization — hardened against race conditions
+    // Fetch full task details (comments, attachments, etc.) when a task is opened
     useEffect(() => {
-        if (!currentTeam?.id) return;
+        if (selectedTaskId) {
+            // Avoid duplicate fetch if directTask is already loaded for this task
+            if (directTask?.id === selectedTaskId) return;
 
-        const socketUrl = APP_CONFIG.API_URL.replace("/api", "");
-
-        console.log(`[Socket Client] Initializing connection to ${socketUrl}`);
-
-        const socket = io(socketUrl, {
-            transports: ["websocket", "polling"],
-        });
-        socketRef.current = socket;
-
-        socket.on("connect", () => {
-            console.log(`[Socket Client] Connected successfully with ID: ${socket.id}`);
-            // Register user identity so backend can exclude our sockets from broadcasts
-            if (currentUserRef.current?.id) {
-                console.log(`[Socket Client] Emitting register_user for user ${currentUserRef.current.id}`);
-                socket.emit("register_user", currentUserRef.current.id);
-            }
-            console.log(`[Socket Client] Emitting join_team for team ${currentTeam.id}`);
-            socket.emit("join_team", currentTeam.id);
-        });
-
-        socket.on("new_notification", (notification: any) => {
-            console.log("[Socket Client] Received new_notification:", notification);
-            
-            // Avoid showing toast banners/chimes if the details modal for this specific task is already open
-            const isTaskModalOpenForThisTask = selectedTaskIdRef.current && notification.taskId === selectedTaskIdRef.current;
-            if (!isTaskModalOpenForThisTask) {
-                addNotificationToastRef.current?.(notification);
-            }
-
-            setNotifications((prev) => {
-                if (prev.some((n) => n.id === notification.id)) return prev;
-                return [notification, ...prev];
-            });
-        });
-
-        socket.on("connect_error", (err) => {
-            console.error("[Socket Client] Connection error:", err);
-        });
-
-        socket.on("task_updated", (data?: {
-            action?: string;
-            taskId?: string;
-            columnId?: string;
-            actingUserId?: string;
-            clientId?: string;
-            timestamp?: number;
-        }) => {
-            console.log("[Socket Client] Received task_updated event:", data);
-            // Safety: skip if no data or if this event was initiated by this specific client tab
-            if (!data) return;
-            
-            const isSelfEcho = data.clientId 
-                ? data.clientId === clientId 
-                : (data.actingUserId && data.actingUserId === currentUserRef.current?.id);
-
-            if (isSelfEcho) {
-                console.debug(`[DragSync] Ignoring self-originated socket echo for task ${data.taskId}, action=${data.action}`);
-                return;
-            }
-
-            const { action, taskId, columnId } = data;
-
-            // If the card being updated is currently being dragged by us, defer the event
-            if (taskId && draggingCardIdRef.current === taskId) {
-                console.debug(`[DragSync] Deferring socket event for actively-dragged card ${taskId}, action=${action}`);
-                deferredSocketEventsRef.current.push({
-                    action: action || "update",
-                    taskId,
-                    columnId,
-                    actingUserId: data.actingUserId,
-                    timestamp: data.timestamp,
-                });
-                return;
-            }
-
-            // Version guard: if we have a pending local move for this card, our version is newer
-            if (taskId && moveVersionRef.current[taskId] !== undefined) {
-                const hasPendingMove = !!pendingColumnUpdatesRef.current[taskId];
-                if (hasPendingMove) {
-                    console.debug(`[DragSync] Discarding socket event for task ${taskId} — local move version is newer (pending debounce)`);
-                    return;
+            const fetchTaskDetails = async () => {
+                try {
+                    const fullTask = await api.getTask(selectedTaskId, currentTeam?.id);
+                    setDirectTask(fullTask);
+                } catch (err) {
+                    console.error("Failed to fetch full task details:", err);
                 }
-            }
-
-            // For comment actions, just reload to refresh comment list on the task
-            if (action === "comment_created" || action === "comment_deleted" || action === "comment_resolved" || action === "comment_reopened") {
-                if (taskId === selectedTaskIdRef.current) {
-                    setCommentUpdateTrigger(Date.now());
-                }
-                loadTasks();
-                return;
-            }
-
-            // Granular update: for column moves caused by drag-drop where we have a
-            // pending local version, just update columnId locally to avoid flicker.
-            // For all other updates (title, description, priority, assignee, etc.)
-            // from another user, do a full reload so every field stays in sync.
-            if (action === "update" && taskId && columnId) {
-                const hasPendingLocalMove = !!pendingColumnUpdatesRef.current[taskId];
-                if (hasPendingLocalMove) {
-                    // Our local drag is still in flight — apply the column update locally
-                    setTasks((prev) => {
-                        const taskExists = prev.some((t) => t.id === taskId);
-                        if (taskExists) {
-                            return prev.map((t) =>
-                                t.id === taskId ? { ...t, columnId } : t
-                            );
-                        }
-                        loadTasks();
-                        return prev;
-                    });
-                    return;
-                }
-                // No pending local move — full reload to pick up title and any other changes
-                loadTasks();
-                return;
-            }
-
-            // For create/delete actions, we need the full task data — reload
-            if (action === "create" || action === "delete") {
-                loadTasks();
-                return;
-            }
-
-            // Fallback: unknown action shape, reload to be safe
-            loadTasks();
-        });
-
-        return () => {
-            console.log(`[Socket Client] Disconnecting socket for team ${currentTeam.id}`);
-            socket.emit("leave_team", currentTeam.id);
-            socket.disconnect();
-            socketRef.current = null;
-        };
-    }, [currentTeam?.id]);
-
-    useEffect(() => {
-        if (socketRef.current && currentUser?.id) {
-            console.log(`[Socket Client] Registering user ${currentUser.id} dynamically on user change`);
-            socketRef.current.emit("register_user", currentUser.id);
+            };
+            fetchTaskDetails();
+        } else {
+            setDirectTask(null);
         }
-    }, [currentUser?.id]);
+    }, [selectedTaskId, currentTeam?.id, directTask?.id]);
 
-
-
-    const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
-    const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
-    const [notificationsPage, setNotificationsPage] = useState(1);
-    const [isLoadingMoreNotifications, setIsLoadingMoreNotifications] = useState(false);
-    const [toasts, setToasts] = useState<any[]>([]);
-
-    const playNotificationChime = () => {
-        try {
-            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-            
-            // First chime note (D5)
-            const osc1 = ctx.createOscillator();
-            const gain1 = ctx.createGain();
-            osc1.type = "sine";
-            osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
-            gain1.gain.setValueAtTime(0.15, ctx.currentTime);
-            gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-            osc1.connect(gain1);
-            gain1.connect(ctx.destination);
-            osc1.start();
-            osc1.stop(ctx.currentTime + 0.15);
-
-            // Second chime note (A5 - perfect fifth higher, slightly delayed)
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
-            osc2.type = "sine";
-            osc2.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1);
-            gain2.gain.setValueAtTime(0.15, ctx.currentTime + 0.1);
-            gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-            osc2.connect(gain2);
-            gain2.connect(ctx.destination);
-            osc2.start(ctx.currentTime + 0.1);
-            osc2.stop(ctx.currentTime + 0.25);
-        } catch (e) {
-            console.error("Failed to play notification chime:", e);
-        }
-    };
-
-    const addNotificationToast = (notification: any) => {
-        const id = Math.random().toString();
-        setToasts((prev) => [...prev, { id, notification }]);
-        playNotificationChime();
-        setTimeout(() => {
-            removeToast(id);
-        }, 5000);
-    };
-
-    const removeToast = (id: string) => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-    };
-
-    const addNotificationToastRef = useRef<((n: any) => void) | undefined>(undefined);
-    addNotificationToastRef.current = addNotificationToast;
-
-    const loadNotifications = async () => {
-        if (!currentUser || !currentTeam) return;
-        setIsNotificationsLoading(true);
-        try {
-            const data = await api.getNotifications(currentUser.id, currentTeam.id, 1, 10);
-            setNotifications(data);
-            setNotificationsPage(1);
-            setHasMoreNotifications(data.length === 10);
-        } catch (err) {
-            console.error("Error loading notifications:", err);
-        } finally {
-            setIsNotificationsLoading(false);
-        }
-    };
-
-    const loadMoreNotifications = async () => {
-        if (!currentUser || !currentTeam || isLoadingMoreNotifications || !hasMoreNotifications) return;
-        setIsLoadingMoreNotifications(true);
-        try {
-            const nextPage = notificationsPage + 1;
-            const data = await api.getNotifications(currentUser.id, currentTeam.id, nextPage, 10);
-            if (data.length > 0) {
-                setNotifications((prev) => {
-                    const existingIds = new Set(prev.map((n) => n.id));
-                    const newItems = data.filter((n) => !existingIds.has(n.id));
-                    return [...prev, ...newItems];
-                });
-                setNotificationsPage(nextPage);
-            }
-            setHasMoreNotifications(data.length === 10);
-        } catch (err) {
-            console.error("Error loading more notifications:", err);
-        } finally {
-            setIsLoadingMoreNotifications(false);
-        }
-    };
-
-    useEffect(() => {
-        loadNotifications();
-    }, [currentUser?.id]);
-
-    const handleMarkNotificationRead = async (id: string) => {
-        try {
-            await api.markNotificationRead(id);
-            loadNotifications();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleClearAllNotifications = async () => {
-        if (!currentUser) return;
-        try {
-            await api.clearAllNotifications(currentUser.id);
-            toast.success("All notifications moved to 30-day Archive.");
-            loadNotifications();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleArchiveNotification = async (id: string) => {
-        try {
-            await api.archiveNotification(id);
-            toast.success("Notification archived.");
-            loadNotifications();
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleDeleteArchivedNotifications = async () => {
-        if (!currentUser) return;
-        try {
-            await api.deleteArchivedNotifications(currentUser.id);
-            toast.success("Archived notifications permanently deleted.");
-            loadNotifications();
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to delete archived notifications.");
-        }
-    };
+    // Sockets and Notifications logic extracted to hooks
 
     const handleUpdateTaskColumn = async (taskId: string, targetColumnId: string) => {
         if (!currentTeam || !currentUser) return;
@@ -923,6 +688,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 isInitialized,
                 teams,
                 currentTeam,
+                isSwitchingTeam,
                 setCurrentTeam: handleSetCurrentTeam,
                 teamMembers,
                 userRole,
@@ -935,6 +701,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 currentView,
                 selectedTaskId,
                 setSelectedTaskId,
+                directTask,
+                setDirectTask,
+                taskModalTab,
+                setTaskModalTab,
                 selectedMemberFilter,
                 setSelectedMemberFilter,
                 searchQuery,
