@@ -1,4 +1,5 @@
 import { APP_CONFIG } from './config/appConfig';
+import { getLocalDateString } from './utils/date';
 
 const API_BASE = APP_CONFIG.API_URL;
 
@@ -9,6 +10,7 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }
+    headers.set("x-client-today", getLocalDateString());
   }
   const res = await window.fetch(input, {
     ...init,

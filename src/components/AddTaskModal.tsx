@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 import { useWorkspace } from "../context/WorkspaceContext";
+import { getLocalDateString } from "../utils/date";
 import { api } from "../api";
 import { APP_CONFIG } from "../config/appConfig";
 import { CustomSelect } from "./ui/CustomSelect";
@@ -26,6 +27,7 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
         teamMembers,
         columns,
         addTaskColId,
+        activeDateStr,
         loadTasks,
     } = useWorkspace();
 
@@ -63,6 +65,7 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
                 teamId: currentTeam.id,
                 createdById: currentUser.id,
                 assignedToId: newAssigneeId || undefined,
+                date: activeDateStr || getLocalDateString(),
                 dueDate: newDueDate || undefined,
                 estimatedTime:
                     newEstTime !== ""

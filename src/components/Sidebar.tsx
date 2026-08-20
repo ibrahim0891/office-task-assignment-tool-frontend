@@ -81,7 +81,8 @@ export default function Sidebar({
             href: "/dashboard",
             name: "Leader Dashboard",
             icon: LayoutDashboard,
-            leaderOnly: true,
+            leaderOnly: false,
+            leaderOrObserverOnly: true,
         },
 
         {

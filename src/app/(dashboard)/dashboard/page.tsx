@@ -4,11 +4,13 @@ import React from "react";
 import LeaderDashboard from "@/components/LeaderDashboard";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { SkeletonBoard } from "@/components/ui/SkeletonLoader";
+import AccessRestrictedModal from "@/components/ui/AccessRestrictedModal";
 
 export default function DashboardPage() {
     const {
         currentTeam,
         currentUser,
+        userRole,
         tasks,
         columns,
         teamMembers,
@@ -18,8 +20,23 @@ export default function DashboardPage() {
         setSelectedTaskId,
     } = useWorkspace();
 
-    if (!currentTeam || !currentUser) {
+    if (!currentTeam || !currentUser || teamMembers.length === 0) {
         return <SkeletonBoard />;
+    }
+
+    // Restrict access to leaders and observers only
+    const isAllowed = userRole === "LEADER" || userRole === "OBSERVER";
+
+    if (!isAllowed) {
+        return (
+            <AccessRestrictedModal
+                title="Access Restricted"
+                description="The Dashboard is exclusive to Workspace Leaders and Observers. Standard members do not have permission to view workspace analytics and leader controls."
+                currentRole={userRole}
+                returnPath="/task-board"
+                returnLabel="Return to Task Board"
+            />
+        );
     }
 
     return (

@@ -6,6 +6,7 @@ import {
     ChevronDown,
 } from "lucide-react";
 import { CustomSelect } from "./CustomSelect";
+import { getLocalDateString, parseLocalDate } from "../../utils/date";
 
 interface CustomDatePickerProps {
     value: string; // YYYY-MM-DD
@@ -40,18 +41,14 @@ export function CustomDatePicker({
     };
 
     const todayDate = new Date();
-    const todayStr = new Date(
-        todayDate.getTime() - todayDate.getTimezoneOffset() * 60000,
-    )
-        .toISOString()
-        .split("T")[0];
+    const todayStr = getLocalDateString(todayDate);
 
-    const initialDate = value ? new Date(value) : todayDate;
+    const initialDate = value ? parseLocalDate(value) : todayDate;
     const [viewDate, setViewDate] = useState(initialDate);
 
     useEffect(() => {
         if (value) {
-            setViewDate(new Date(value));
+            setViewDate(parseLocalDate(value));
         }
     }, [value]);
 
@@ -109,25 +106,21 @@ export function CustomDatePicker({
 
     // Prev month padding
     for (let i = firstDayIndex - 1; i >= 0; i--) {
+        const d = new Date(year, month - 1, prevMonthDays - i);
         calendarCells.push({
             dayNum: prevMonthDays - i,
             isCurrentMonth: false,
-            dateStr: new Date(year, month - 1, prevMonthDays - i)
-                .toISOString()
-                .split("T")[0],
+            dateStr: getLocalDateString(d),
         });
     }
 
     // Current month days
     for (let i = 1; i <= daysCount; i++) {
         const d = new Date(year, month, i);
-        const offsetDate = new Date(
-            d.getTime() - d.getTimezoneOffset() * 60000,
-        );
         calendarCells.push({
             dayNum: i,
             isCurrentMonth: true,
-            dateStr: offsetDate.toISOString().split("T")[0],
+            dateStr: getLocalDateString(d),
         });
     }
 
@@ -135,18 +128,15 @@ export function CustomDatePicker({
     const nextMonthPadding = 42 - calendarCells.length;
     for (let i = 1; i <= nextMonthPadding; i++) {
         const d = new Date(year, month + 1, i);
-        const offsetDate = new Date(
-            d.getTime() - d.getTimezoneOffset() * 60000,
-        );
         calendarCells.push({
             dayNum: i,
             isCurrentMonth: false,
-            dateStr: offsetDate.toISOString().split("T")[0],
+            dateStr: getLocalDateString(d),
         });
     }
 
     const formattedValue = value
-        ? new Date(value).toLocaleDateString("en-US", {
+        ? parseLocalDate(value).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
               year: "numeric",

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Task, TaskColumn, User } from "../api";
+import { getLocalDateString } from "../utils/date";
 import { Button } from "./ui/Button";
 
 interface MyDayViewProps {
@@ -22,7 +23,7 @@ export default function MyDayView({
     onToggleComplete,
 }: MyDayViewProps) {
     const [viewTab, setViewTab] = useState<"my" | "team">("my");
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = getLocalDateString();
 
     // Filter today's tasks for current user
     const myTasks = tasks.filter(

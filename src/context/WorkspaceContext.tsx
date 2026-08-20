@@ -12,6 +12,7 @@ import {
     Notification,
 } from "../api";
 import { APP_CONFIG } from "../config/appConfig";
+import { getLocalDateString } from "../utils/date";
 import { useWorkspaceNotifications } from "../hooks/useWorkspaceNotifications";
 import { useWorkspaceSockets } from "../hooks/useWorkspaceSockets";
 
@@ -154,7 +155,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
 
     const [activeDateStr, setActiveDateStr] = useState<string>(
-        new Date().toISOString().split("T")[0]
+        getLocalDateString()
     );
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const [directTask, setDirectTask] = useState<any>(null);
@@ -540,6 +541,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const tempId = `temp-${Date.now()}`;
         const targetAssigneeId = assignedToId || currentUser.id;
+        const targetDate = activeDateStr || getLocalDateString();
         const optimisticTask = {
             id: tempId,
             title,
@@ -553,7 +555,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             isArchived: false,
             isSoftDeleted: false,
             carryCount: 0,
-            dueDate: activeDateStr || new Date().toISOString().split("T")[0],
+            date: targetDate,
+            originalDate: targetDate,
+            dueDate: targetDate,
             createdBy: currentUser,
             assignedTo: users.find((u) => u.id === targetAssigneeId) || currentUser,
             createdAt: new Date().toISOString(),
@@ -570,7 +574,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 teamId: currentTeam.id,
                 createdById: currentUser.id,
                 assignedToId: targetAssigneeId,
-                dueDate: optimisticTask.dueDate,
+                date: targetDate,
+                dueDate: targetDate,
                 clientId,
             });
             setTasks((prev) =>
