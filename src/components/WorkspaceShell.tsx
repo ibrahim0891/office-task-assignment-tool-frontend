@@ -220,6 +220,27 @@ export default function WorkspaceShell({
     }, [isAddTaskOpen]);
     const [taskModalTab, setTaskModalTab] = useState<"details" | "comments" | "attachments">("details");
     const [directTask, setDirectTask] = useState<any>(null);
+
+    // Fetch full task details (comments, attachments, etc.) when a task is opened
+    React.useEffect(() => {
+        if (selectedTaskId) {
+            // Avoid duplicate fetch if directTask is already loaded for this task
+            if (directTask?.id === selectedTaskId) return;
+
+            const fetchTaskDetails = async () => {
+                try {
+                    const fullTask = await api.getTask(selectedTaskId, currentTeam?.id);
+                    setDirectTask(fullTask);
+                } catch (err) {
+                    console.error("Failed to fetch full task details:", err);
+                }
+            };
+            fetchTaskDetails();
+        } else {
+            setDirectTask(null);
+        }
+    }, [selectedTaskId, directTask?.id]);
+
     const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
     const [settingsTab, setSettingsTab] = useState<"theme" | "typography">(
         "theme",
@@ -686,7 +707,7 @@ export default function WorkspaceShell({
                 onDeleteArchived={handleDeleteArchivedNotifications}
                 onSelectTask={async (id: string, initialTab?: "details" | "comments" | "attachments") => {
                     try {
-                        const updatedTask = await api.getTask(id);
+                        const updatedTask = await api.getTask(id, currentTeam?.id);
                         setDirectTask(updatedTask);
                         setTaskModalTab(initialTab || "details");
                         setSelectedTaskId(id);
@@ -708,7 +729,7 @@ export default function WorkspaceShell({
                 onDismiss={removeToast}
                 onSelectTask={async (id, tab) => {
                     try {
-                        const updatedTask = await api.getTask(id);
+                        const updatedTask = await api.getTask(id, currentTeam?.id);
                         setDirectTask(updatedTask);
                         setTaskModalTab((tab as any) || "comments");
                         setSelectedTaskId(id);
@@ -737,7 +758,7 @@ export default function WorkspaceShell({
                         // Also refresh directTask if it's the one being viewed
                         if (directTask?.id === selectedTaskId) {
                             try {
-                                const refreshed = await api.getTask(selectedTaskId);
+                                const refreshed = await api.getTask(selectedTaskId, currentTeam?.id);
                                 setDirectTask(refreshed);
                             } catch {}
                         }

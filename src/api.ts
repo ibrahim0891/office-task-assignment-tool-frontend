@@ -411,8 +411,14 @@ export const api = {
     return res.json();
   },
 
-  async getTask(taskId: string): Promise<Task> {
-    const res = await fetch(`${API_BASE}/tasks/${taskId}`);
+  async getTask(taskId: string, teamId?: string): Promise<Task> {
+    const headers: any = {};
+    if (teamId) {
+      headers['x-team-id'] = teamId;
+    }
+    const res = await fetch(`${API_BASE}/tasks/${taskId}`, {
+      headers
+    });
     return res.json();
   },
 

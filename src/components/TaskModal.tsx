@@ -20,6 +20,33 @@ import {
     Paperclip,
 } from "lucide-react";
 
+// 30% Image Compression helper (70% quality)
+const compressImage30Percent = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return resolve(e.target?.result as string);
+                ctx.drawImage(img, 0, 0);
+                const compressedBase64 = canvas.toDataURL(
+                    "image/jpeg",
+                    0.7,
+                ); // 30% compression (70% quality)
+                resolve(compressedBase64);
+            };
+            img.onerror = () => reject("Failed to load image");
+            img.src = e.target?.result as string;
+        };
+        reader.onerror = () => reject("Failed to read file");
+        reader.readAsDataURL(file);
+    });
+};
+
 interface TaskModalProps {
     task: Task;
     isOpen: boolean;
@@ -66,6 +93,8 @@ export default function TaskModal({
     const [isSaving, setIsSaving] = useState(false);
 
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isDeletingDescription, setIsDeletingDescription] = useState(false);
+    const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
     const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
     const [isDeleteDescConfirmOpen, setIsDeleteDescConfirmOpen] =
         useState(false);
@@ -318,6 +347,56 @@ export default function TaskModal({
             window.removeEventListener("beforeunload", handleBeforeUnload);
     }, [isOpen, isDirty]);
 
+    // Handle pasting images from clipboard to upload as task attachments
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handlePaste = async (e: ClipboardEvent) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            let imageFile: File | null = null;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    imageFile = items[i].getAsFile();
+                    break;
+                }
+            }
+
+            if (imageFile) {
+                e.preventDefault();
+                if (userRole === "OBSERVER") {
+                    toast.error("Observers have read-only access and cannot upload attachments.");
+                    return;
+                }
+
+                setIsUploadingImage(true);
+                try {
+                    const compressedBase64 = await compressImage30Percent(imageFile);
+                    const filename = imageFile.name || `Clipboard_Image_${Date.now()}.png`;
+                    await api.uploadTaskImage(
+                        task.id,
+                        compressedBase64,
+                        filename,
+                        currentUser.id,
+                    );
+                    toast.success(`Uploaded clipboard image "${filename}"`);
+                    onRefresh();
+                    setActiveTab("attachments");
+                } catch (err: any) {
+                    toast.error(err.message || "Failed to upload clipboard image.");
+                } finally {
+                    setIsUploadingImage(false);
+                }
+            }
+        };
+
+        window.addEventListener("paste", handlePaste);
+        return () => {
+            window.removeEventListener("paste", handlePaste);
+        };
+    }, [isOpen, task.id, currentUser.id, userRole, onRefresh]);
+
     if (!isOpen) return null;
 
     const isLeader = userRole === "LEADER";
@@ -390,6 +469,7 @@ export default function TaskModal({
     };
 
     const handleDeleteDescription = async () => {
+        setIsDeletingDescription(true);
         try {
             setDescription("");
             setIsEditingDescription(false);
@@ -402,6 +482,8 @@ export default function TaskModal({
             onRefresh();
         } catch (err: any) {
             toast.error(err.message || "Failed to delete description");
+        } finally {
+            setIsDeletingDescription(false);
         }
     };
 
@@ -594,32 +676,7 @@ export default function TaskModal({
         }
     };
 
-    // 30% Image Compression helper (70% quality)
-    const compressImage30Percent = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext("2d");
-                    if (!ctx) return resolve(e.target?.result as string);
-                    ctx.drawImage(img, 0, 0);
-                    const compressedBase64 = canvas.toDataURL(
-                        "image/jpeg",
-                        0.7,
-                    ); // 30% compression (70% quality)
-                    resolve(compressedBase64);
-                };
-                img.onerror = () => reject("Failed to load image");
-                img.src = e.target?.result as string;
-            };
-            reader.onerror = () => reject("Failed to read file");
-            reader.readAsDataURL(file);
-        });
-    };
+    // Handled clipboard image uploads and standard uploads using the module-level helper
 
     const handleImageFileUpload = async (
         e: React.ChangeEvent<HTMLInputElement>,
@@ -715,12 +772,15 @@ export default function TaskModal({
         name: string,
     ) => {
         if (isObserver) return;
+        setIsDeletingAttachment(true);
         try {
             await api.deleteAttachment(task.id, attachmentId, currentUser.id);
             toast.success(`Deleted attachment: "${name}"`);
             onRefresh();
         } catch (err: any) {
             toast.error(err.message || "Failed to delete attachment.");
+        } finally {
+            setIsDeletingAttachment(false);
         }
     };
 
@@ -1319,7 +1379,7 @@ export default function TaskModal({
                         {activeTab === "attachments" && (
                             <div className="relative flex flex-col flex-1 min-h-0 h-full gap-3 animate-fade-in border border-[#E5E5E3] bg-[#FAFAF9] p-3 rounded-[3px] corner-brackets">
                                 {/* Masonry Attachments Gallery filling available height */}
-                                <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+                                <div className="flex-1 overflow-y-auto min-h-0 pr-1 flex flex-col">
                                     {!task.attachments ||
                                     task.attachments.length === 0 ? (
                                         <div
@@ -1328,7 +1388,7 @@ export default function TaskModal({
                                                 !isUploadingImage &&
                                                 fileInputRef.current?.click()
                                             }
-                                            className={`border border-dashed border-[#E5E5E3] bg-white p-8 text-center rounded-[3px] flex flex-col items-center justify-center gap-1 text-[#888883] my-auto ${!isObserver && !isUploadingImage ? "cursor-pointer hover:bg-[#FAFAF9] hover:border-[#888883] transition-all" : ""}`}
+                                            className={`border border-dashed border-[#E5E5E3] bg-white p-8 text-center rounded-[3px] flex flex-col items-center justify-center gap-1 text-[#888883] flex-1 min-h-[250px] ${!isObserver && !isUploadingImage ? "cursor-pointer hover:bg-[#FAFAF9] hover:border-[#888883] transition-all" : ""}`}
                                         >
                                             {isUploadingImage ? (
                                                 <Loader2 className="w-5 h-5 text-[#DADAD6] animate-spin" />
@@ -1344,7 +1404,7 @@ export default function TaskModal({
                                                 <span className="text-[10px]">
                                                     {isUploadingImage
                                                         ? "Please wait while your image is uploading..."
-                                                        : "Click in the center of this section to upload an image"}
+                                                        : "Click here or paste an image to upload"}
                                                 </span>
                                             )}
                                         </div>
@@ -1929,6 +1989,7 @@ export default function TaskModal({
                 confirmText="Delete Description"
                 cancelText="Cancel"
                 isDanger={true}
+                isLoading={isDeletingDescription}
                 onConfirm={async () => {
                     await handleDeleteDescription();
                     setIsDeleteDescConfirmOpen(false);
@@ -1944,6 +2005,7 @@ export default function TaskModal({
                 confirmText="Delete Attachment"
                 cancelText="Cancel"
                 isDanger={true}
+                isLoading={isDeletingAttachment}
                 onConfirm={async () => {
                     if (attachmentToDelete) {
                         await handleDeleteAttachment(
