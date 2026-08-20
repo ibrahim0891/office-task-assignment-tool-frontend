@@ -167,7 +167,7 @@ export default function CalendarView({
             {/* Calendar Header */}
             <div className="flex justify-between items-center bg-white border border-[#E5E5E3] p-4 corner-brackets">
                 <div>
-                    <h1 className="font-heading text-xl">
+                    <h1 className="font-heading text-[16px]">
                         {monthNames[month]} {year}
                     </h1>
                     <p className="text-[11px] text-[#888883] mt-0.5">
@@ -207,7 +207,7 @@ export default function CalendarView({
                     {weekDays.map((d) => (
                         <div
                             key={d}
-                            className="text-base font-medium text-[#888883] capitalize  "
+                            className="text-[11px] font-medium text-[#888883] capitalize  "
                         >
                             {d}
                         </div>
@@ -247,7 +247,7 @@ export default function CalendarView({
                                 <div className="flex justify-between items-center">
                                     <span
                                         className={`text-[11px] font-medium ${isToday
-                                            ? "bg-[#1A1A1A] text-white w-5 h-5 rounded-full flex items-center justify-center text-base"
+                                            ? "bg-[#1A1A1A] text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]"
                                             : isActive
                                                 ? "text-[#1A1A1A] font-semibold"
                                                 : "text-[#888883]"
@@ -319,12 +319,12 @@ export default function CalendarView({
                     className="bg-white border border-[#E5E5E3] shadow-xl w-64 p-3 flex flex-col gap-2 animate-fade-in corner-brackets-thick max-h-[80vh] overflow-hidden"
                 >
                     <div className="flex items-center justify-between border-b border-[#E5E5E3] pb-1.5 shrink-0">
-                        <span className="text-base font-semibold text-[#1A1A1A] capitalize  ">
+                        <span className="text-[13px] font-semibold text-[#1A1A1A] capitalize  ">
                             {popover.dateStr} ({popoverTasks.length} tasks)
                         </span>
                         <button
                             onClick={() => setPopover(null)}
-                            className="text-[#888883] hover:text-[#1A1A1A] text-base leading-none cursor-pointer"
+                            className="text-[#888883] hover:text-[#1A1A1A] text-[13px] leading-none cursor-pointer"
                         >
                             ✕
                         </button>
@@ -338,7 +338,7 @@ export default function CalendarView({
                                     setPopover(null);
                                     onSelectTask(task.id);
                                 }}
-                                className={`px-2 py-1.5 text-base font-medium border border-[#E5E5E3] rounded-[2px] cursor-pointer transition-colors hover:bg-[#FAFAF9] truncate shrink-0 ${getPriorityColor(task.priority)}`}
+                                className={`px-2 py-1.5 text-[11px] font-medium border border-[#E5E5E3] rounded-[2px] cursor-pointer transition-colors hover:bg-[#FAFAF9] truncate shrink-0 ${getPriorityColor(task.priority)}`}
                                 title={task.title}
                             >
                                 {task.title}

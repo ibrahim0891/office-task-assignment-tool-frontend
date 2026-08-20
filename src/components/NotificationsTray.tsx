@@ -32,8 +32,24 @@ export default function NotificationsTray({
     onLoadMore,
 }: NotificationsTrayProps) {
     const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
+    const [shouldRender, setShouldRender] = useState(isOpen);
+    const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 
-    if (!isOpen) return null;
+    React.useEffect(() => {
+        if (isOpen) {
+            setShouldRender(true);
+            setIsAnimatingOut(false);
+        } else if (shouldRender) {
+            setIsAnimatingOut(true);
+            const timer = setTimeout(() => {
+                setShouldRender(false);
+                setIsAnimatingOut(false);
+            }, 200);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen, shouldRender]);
+
+    if (!shouldRender) return null;
 
     const activeNotifications = notifications.filter((n) => !n.isArchived);
     const archivedNotifications = notifications.filter((n) => n.isArchived);
@@ -77,13 +93,17 @@ export default function NotificationsTray({
         <div className="fixed inset-0 z-50 overflow-hidden flex justify-end select-none">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/30 transition-opacity"
+                className={`absolute inset-0 bg-black/30 transition-opacity ${
+                    isAnimatingOut ? "animate-fade-out" : "animate-fade-in"
+                }`}
                 onClick={onClose}
             />
 
             {/* Tray panel */}
             <div
-                className="relative w-84 max-w-full bg-white border-l border-[#E5E5E3] text-[#1A1A1A] flex flex-col h-full animate-slide-in"
+                className={`relative w-84 max-w-full bg-white border-l border-[#E5E5E3] text-[#1A1A1A] flex flex-col h-full ${
+                    isAnimatingOut ? "animate-slide-out" : "animate-slide-in"
+                }`}
                 style={{ boxShadow: "var(--shadow-float)" }}
             >
                 {/* Header */}

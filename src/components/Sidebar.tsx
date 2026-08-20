@@ -360,7 +360,9 @@ export default function Sidebar({
                 )}
 
                 {/* Divider Line */}
-                <div className="border-t border-[var(--app-border)] my-1" />
+                {userRole === "LEADER" && (
+                    <div className="border-t border-[var(--app-border)] my-1" />
+                )}
 
                 {/* User Session Profile Container */}
                 <div

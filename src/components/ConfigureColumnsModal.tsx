@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { api } from "../api";
 import { Button } from "./ui/Button";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 const inputClass =
     "px-2.5 py-1.5 border border-[#E5E5E3] focus:border-[#1A1A1A] focus:outline-none text-[11px] bg-white rounded-[3px] transition-colors w-full";
@@ -22,6 +23,7 @@ export default function ConfigureColumnsModal({
 
     const [editingColumns, setEditingColumns] = useState<any[]>(columns);
     const [draggedColIndex, setDraggedColIndex] = useState<number | null>(null);
+    const [dragOverColIndex, setDragOverColIndex] = useState<number | null>(null);
     const [isSavingColumns, setIsSavingColumns] = useState(false);
 
     // Sync editingColumns when columns change
@@ -39,6 +41,13 @@ export default function ConfigureColumnsModal({
     const handleColDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
+        if (draggedColIndex !== null && draggedColIndex !== index) {
+            setDragOverColIndex(index);
+        }
+    };
+
+    const handleColDragLeave = (e: React.DragEvent, index: number) => {
+        setDragOverColIndex((prev) => (prev === index ? null : prev));
     };
 
     const handleColDrop = (e: React.DragEvent, dropIndex: number) => {
@@ -55,6 +64,12 @@ export default function ConfigureColumnsModal({
 
         setEditingColumns(updated);
         setDraggedColIndex(null);
+        setDragOverColIndex(null);
+    };
+
+    const handleColDragEnd = () => {
+        setDraggedColIndex(null);
+        setDragOverColIndex(null);
     };
 
     const handleMoveColumn = (index: number, direction: "up" | "down") => {
@@ -141,16 +156,28 @@ export default function ConfigureColumnsModal({
                                     index !== 0 &&
                                     handleColDragOver(e, index)
                                 }
+                                onDragLeave={(e) =>
+                                    index !== 0 &&
+                                    handleColDragLeave(e, index)
+                                }
                                 onDrop={(e) =>
                                     index !== 0 &&
                                     handleColDrop(e, index)
                                 }
-                                className={`border border-[#E5E5E3] p-3 flex flex-col sm:flex-row gap-2.5 items-start sm:items-center bg-white transition-all ${
+                                onDragEnd={handleColDragEnd}
+                                className={`border border-[#E5E5E3] p-3 flex flex-col sm:flex-row gap-2.5 items-start sm:items-center bg-white transition-all relative ${
                                     draggedColIndex === index
-                                        ? "opacity-40 border-dashed border-[#1A1A1A]"
+                                        ? "opacity-40 border-dashed border-[#1A1A1A] scale-[0.97]"
                                         : "hover:border-[#DADAD6]"
                                 }`}
                             >
+                                {dragOverColIndex === index && draggedColIndex !== null && draggedColIndex !== index && (
+                                    <div
+                                        className={`absolute left-0 right-0 h-[3px] bg-[#1A1A1A] z-10 ${
+                                            draggedColIndex > index ? "top-0" : "bottom-0"
+                                        }`}
+                                    />
+                                )}
                                 <div className="flex-1 flex gap-2 items-center w-full">
                                     <div className="flex items-center gap-1 shrink-0 text-[#888883]">
                                         {index === 0 ? (
@@ -161,13 +188,9 @@ export default function ConfigureColumnsModal({
                                                 >
                                                     ⠿
                                                 </span>
-                                                <div className="flex flex-col text-[9px] leading-none opacity-20 cursor-not-allowed">
-                                                    <span className="px-0.5 select-none">
-                                                        ▲
-                                                    </span>
-                                                    <span className="px-0.5 select-none">
-                                                        ▼
-                                                    </span>
+                                                <div className="flex flex-col opacity-20 cursor-not-allowed">
+                                                    <ChevronUp className="w-3.5 h-3.5 select-none" />
+                                                    <ChevronDown className="w-3.5 h-3.5 select-none" />
                                                 </div>
                                             </>
                                         ) : (
@@ -178,7 +201,7 @@ export default function ConfigureColumnsModal({
                                                 >
                                                     ⠿
                                                 </span>
-                                                <div className="flex flex-col text-[9px] leading-none">
+                                                <div className="flex flex-col">
                                                     <button
                                                         type="button"
                                                         disabled={
@@ -190,10 +213,10 @@ export default function ConfigureColumnsModal({
                                                                 "up",
                                                             )
                                                         }
-                                                        className="hover:text-[#1A1A1A] disabled:opacity-20 px-0.5"
+                                                        className="hover:text-[#1A1A1A] disabled:opacity-20 text-[#888883] transition-colors"
                                                         title="Move up"
                                                     >
-                                                        ▲
+                                                        <ChevronUp className="w-3.5 h-3.5" />
                                                     </button>
                                                     <button
                                                         type="button"
@@ -210,10 +233,10 @@ export default function ConfigureColumnsModal({
                                                                 "down",
                                                             )
                                                         }
-                                                        className="hover:text-[#1A1A1A] disabled:opacity-20 px-0.5"
+                                                        className="hover:text-[#1A1A1A] disabled:opacity-20 text-[#888883] transition-colors"
                                                         title="Move down"
                                                     >
-                                                        ▼
+                                                        <ChevronDown className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
                                             </>

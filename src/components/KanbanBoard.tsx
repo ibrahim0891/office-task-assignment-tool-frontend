@@ -332,7 +332,9 @@ export default function KanbanBoard({
                         {/* Quick Add Form with Member Assignee Picker */}
                         <form
                             onSubmit={handleQuickSubmit}
-                            className="flex items-center gap-2 flex-1 min-w-[300px] max-w-xl"
+                            className={`flex items-center gap-2 flex-1 min-w-[300px] ${
+                                userRole === "MEMBER" ? "max-w-[480px]" : "max-w-xl"
+                            }`}
                         >
                             <input
                                 ref={inputRef}
@@ -348,28 +350,21 @@ export default function KanbanBoard({
 
 
                             {/* Member Assignee Selector */}
-                            {teamMembers && teamMembers.length > 0 && (
+                            {userRole !== "MEMBER" && teamMembers && teamMembers.length > 0 && (
                                 <CustomSelect
-                                    options={userRole === "MEMBER"
-                                        ? [
-                                            {
-                                                value: currentUser.id,
-                                                label: `Assign: Me (${currentUser.name.split(" ")[0]})`,
-                                            }
-                                        ]
-                                        : [
-                                            {
-                                                value: currentUser.id,
-                                                label: `Assign: Me (${currentUser.name.split(" ")[0]})`,
-                                            },
-                                            ...teamMembers
-                                                .filter(({ user }) => user.id !== currentUser.id)
-                                                .map(({ user }) => ({
-                                                    value: user.id,
-                                                    label: `Assign: ${user.name}`,
-                                                    avatarUrl: user.avatarUrl || null,
-                                                })),
-                                        ]}
+                                    options={[
+                                        {
+                                            value: currentUser.id,
+                                            label: `Assign: Me (${currentUser.name.split(" ")[0]})`,
+                                        },
+                                        ...teamMembers
+                                            .filter(({ user }) => user.id !== currentUser.id)
+                                            .map(({ user }) => ({
+                                                value: user.id,
+                                                label: `Assign: ${user.name}`,
+                                                avatarUrl: user.avatarUrl || null,
+                                            })),
+                                    ]}
                                     value={quickAssigneeId || currentUser.id}
                                     onChange={(val) => setQuickAssigneeId(val)}
                                     className="w-44 h-[36px]"
