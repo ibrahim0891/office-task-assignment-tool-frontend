@@ -355,6 +355,23 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         loadTasks();
     }, [loadTasks]);
 
+    // Parse URL search parameters on load/redirect to automatically open task modal (e.g., from desktop notifications)
+    useEffect(() => {
+        if (typeof window !== "undefined" && tasks.length > 0) {
+            const searchParams = new URLSearchParams(window.location.search);
+            const taskIdFromUrl = searchParams.get("task");
+            if (taskIdFromUrl && taskIdFromUrl !== selectedTaskId) {
+                setSelectedTaskId(taskIdFromUrl);
+                // Clean up the URL search parameter without reloading the page
+                const cleanSearch = window.location.search
+                    .replace(/[\?&]task=[^&]+/, "")
+                    .replace(/^&/, "?");
+                const newUrl = window.location.pathname + cleanSearch;
+                window.history.replaceState({}, "", newUrl);
+            }
+        }
+    }, [selectedTaskId, tasks]);
+
     const selectedTaskIdRef = useRef<string | null>(null);
     selectedTaskIdRef.current = selectedTaskId;
 
