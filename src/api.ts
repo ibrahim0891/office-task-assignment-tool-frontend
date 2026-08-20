@@ -807,4 +807,31 @@ export const api = {
     }
     return res.json();
   },
+
+  async savePushSubscription(subscription: any, userId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/push-subscriptions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': userId
+      },
+      body: JSON.stringify({ subscription }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to save push subscription.');
+    }
+  },
+
+  async deletePushSubscription(endpoint: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/push-subscriptions/unsubscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete push subscription.');
+    }
+  },
 };

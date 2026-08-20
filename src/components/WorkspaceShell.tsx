@@ -10,6 +10,7 @@ import WorkspaceHeader from "./WorkspaceHeader";
 import GlobalModals from "./GlobalModals";
 import SystemPreferenceModal from "./SystemPreferenceModal";
 import { fontMap } from "../config/fontConfig";
+import { usePushNotifications } from "../hooks/usePushNotifications";
 
 export default function WorkspaceShell({
     children,
@@ -30,6 +31,8 @@ export default function WorkspaceShell({
         setIsCreateTeamModalOpen,
         setIsConfigModalOpen,
     } = useWorkspace();
+
+    usePushNotifications(currentUser);
 
     const pathname = usePathname();
 
