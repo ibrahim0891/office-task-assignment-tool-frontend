@@ -27,6 +27,7 @@ interface WorkspaceContextType {
     teams: Team[];
     currentTeam: Team | null;
     isSwitchingTeam: boolean;
+    switchingToTeam: Team | null;
     setCurrentTeam: (team: Team) => void;
     teamMembers: { user: User; role: string }[];
     userRole: string;
@@ -129,12 +130,17 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const [teams, setTeams] = useState<Team[]>([]);
     const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
     const [isSwitchingTeam, setIsSwitchingTeam] = useState(false);
+    const [switchingToTeam, setSwitchingToTeam] = useState<Team | null>(null);
     const [teamMembers, setTeamMembers] = useState<{ user: User; role: string }[]>([]);
 
     const handleSetCurrentTeam = (team: Team) => {
         if (currentTeam?.id === team.id) return;
         setIsSwitchingTeam(true);
-        setCurrentTeam(team);
+        setSwitchingToTeam(team);
+        // Delay updating currentTeam for 800ms to allow the 3D cube to rotate to the loader face first
+        setTimeout(() => {
+            setCurrentTeam(team);
+        }, 800);
     };
 
     useEffect(() => {
@@ -191,7 +197,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
         async function init() {
             if (!userObj || !cachedToken) {
-                setIsInitialized(true);
+                setTimeout(() => {
+                    setIsInitialized(true);
+                }, 1500); // 1.5s artificial delay for unauthenticated users to enjoy the circular reveal
                 return;
             }
 
@@ -258,6 +266,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 // A small delay for a smooth transition
                 setTimeout(() => {
                     setIsSwitchingTeam(false);
+                    setSwitchingToTeam(null);
                 }, 400);
             }
         };
@@ -668,32 +677,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         setCurrentUser(null);
         setTeams([]);
         setCurrentTeam(null);
-        setIsInitialized(true);
-        router.push("/login");
+        // Hard redirect to landing page to clear state and show reveal animation on landing page
+        window.location.href = "/";
     };
 
     const handleLoginSuccess = async (user: User, token: string) => {
         localStorage.setItem("sessionToken", token);
         localStorage.setItem("sessionUser", JSON.stringify(user));
         localStorage.setItem("task_user", JSON.stringify(user));
-        setCurrentUser(user);
-        setIsInitialized(false);
-        try {
-            const t = await api.getTeams(user.id);
-            setTeams(t);
-            const savedTeamId = localStorage.getItem("selected_team_id");
-            const matched = t.find((team) => team.id === savedTeamId);
-            if (matched) {
-                setCurrentTeam(matched);
-            } else if (t.length > 0) {
-                setCurrentTeam(t[0]);
-                localStorage.setItem("selected_team_id", t[0].id);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setIsInitialized(true);
-        }
+        // Hard redirect to /task-board to trigger the initial loading overlay reveal animation
+        window.location.href = "/task-board";
     };
 
     return (
@@ -706,6 +699,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 teams,
                 currentTeam,
                 isSwitchingTeam,
+                switchingToTeam,
                 setCurrentTeam: handleSetCurrentTeam,
                 teamMembers,
                 userRole,

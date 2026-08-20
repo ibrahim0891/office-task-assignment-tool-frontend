@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import { WorkspaceProvider } from "../context/WorkspaceContext";
 import { APP_CONFIG } from "../config/appConfig";
+import InitialLoadingOverlay from "../components/InitialLoadingOverlay";
 
 const inter = Inter({
     variable: "--font-inter",
@@ -45,9 +46,58 @@ export default function RootLayout({
                         __html: `
                             (function() {
                                 try {
+                                    // Apply Theme
                                     var theme = localStorage.getItem('sys_theme');
                                     if (theme) {
                                         document.documentElement.setAttribute('data-theme', theme);
+                                    }
+
+                                    // Apply Fonts & Scale
+                                    var primary = localStorage.getItem('sys_primary_font') || 'Outfit';
+                                    var secondary = localStorage.getItem('sys_secondary_font') || 'Lora';
+                                    var scale = localStorage.getItem('sys_font_scale') || '1.25';
+
+                                    var fontMap = {
+                                        Outfit: "'Outfit', sans-serif",
+                                        Lora: "'Lora', serif",
+                                        Lexend: "'Lexend', sans-serif",
+                                        "Instrument Serif": "'Instrument Serif', serif",
+                                        "Caveat (Handwriting)": "'Caveat', cursive",
+                                        "Dancing Script (Handwriting)": "'Dancing Script', cursive",
+                                        "Pacifico (Handwriting)": "'Pacifico', cursive",
+                                        "Darius (Bodoni)": "'Bodoni Moda', serif",
+                                        "Cormorant Garamond": "'Cormorant Garamond', serif",
+                                        "Playfair Display": "'Playfair Display', serif",
+                                        Newsreader: "'Newsreader', serif",
+                                        Cinzel: "'Cinzel', serif",
+                                        Inter: "'Inter', sans-serif",
+                                        Montserrat: "'Montserrat', sans-serif",
+                                        "Space Grotesk": "'Space Grotesk', sans-serif",
+                                        "Plus Jakarta Sans": "'Plus Jakarta Sans', sans-serif",
+                                        Roboto: "'Roboto', sans-serif",
+                                        "Fira Code (Monospace)": "'Fira Code', monospace",
+                                        Orbitron: "'Orbitron', sans-serif",
+                                        VT323: "'VT323', monospace",
+                                        "Google Sans Flex": "'Google Sans Flex Variable', 'Google Sans Flex', 'Google Sans', sans-serif",
+                                        "System Default": "system-ui, -apple-system, sans-serif"
+                                    };
+
+                                    var root = document.documentElement;
+                                    if (fontMap[primary]) {
+                                        root.style.setProperty('--font-primary', fontMap[primary]);
+                                        root.style.setProperty('--font-sans', fontMap[primary]);
+                                        
+                                        var styleEl = document.createElement('style');
+                                        styleEl.innerHTML = 'body { font-family: ' + fontMap[primary] + ' !important; }';
+                                        document.head.appendChild(styleEl);
+                                    }
+                                    if (fontMap[secondary]) {
+                                        root.style.setProperty('--font-secondary', fontMap[secondary]);
+                                        root.style.setProperty('--font-serif', fontMap[secondary]);
+                                        root.style.setProperty('--font-instrument-serif', fontMap[secondary]);
+                                    }
+                                    if (scale) {
+                                        root.style.setProperty('--font-scale', scale);
                                     }
                                 } catch (e) {}
                             })();
@@ -72,6 +122,7 @@ export default function RootLayout({
                 />
                 <WorkspaceProvider>
                     {children}
+                    <InitialLoadingOverlay />
                 </WorkspaceProvider>
             </body>
         </html>

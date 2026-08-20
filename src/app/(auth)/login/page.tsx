@@ -124,40 +124,11 @@ export default function LoginPage() {
                     </p>
                 </Link>
 
-                {/* Form Navigation Tabs for Sign In / Register */}
+                {/* View Title */}
                 {(view === "SIGNIN" || view === "SIGNUP") && (
-                    <div className="flex border-b border-[#E5E5E3] text-base font-medium">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setView("SIGNIN");
-                                setError("");
-                                setSuccess("");
-                            }}
-                            className={`flex-1 pb-2.5 text-center transition-colors cursor-pointer ${
-                                view === "SIGNIN"
-                                    ? "text-[#1A1A1A] border-b-2 border-[#1A1A1A] font-semibold"
-                                    : "text-[#888883] hover:text-[#1A1A1A]"
-                            }`}
-                        >
-                            Sign In
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setView("SIGNUP");
-                                setError("");
-                                setSuccess("");
-                            }}
-                            className={`flex-1 pb-2.5 text-center transition-colors cursor-pointer ${
-                                view === "SIGNUP"
-                                    ? "text-[#1A1A1A] border-b-2 border-[#1A1A1A] font-semibold"
-                                    : "text-[#888883] hover:text-[#1A1A1A]"
-                            }`}
-                        >
-                            Register
-                        </button>
-                    </div>
+                    <h2 className="text-lg font-semibold text-center text-[#1A1A1A] -mt-1 border-b border-[#F5F5F3] pb-2">
+                        {view === "SIGNIN" ? "Sign In" : "Register"}
+                    </h2>
                 )}
 
                 {/* Status/Error Messages */}
@@ -406,6 +377,41 @@ export default function LoginPage() {
                         )}
                     </button>
                 </form>
+
+                {/* View Switch Link */}
+                {view === "SIGNIN" && (
+                    <div className="text-center text-[12px] text-[#888883] -mt-1 animate-fade-in flex items-center justify-center gap-1.5">
+                        <span>Don't have an account?</span>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setView("SIGNUP");
+                                setError("");
+                                setSuccess("");
+                            }}
+                            className="text-[#1A1A1A] font-semibold hover:underline cursor-pointer"
+                        >
+                            Sign Up
+                        </button>
+                    </div>
+                )}
+
+                {view === "SIGNUP" && (
+                    <div className="text-center text-[12px] text-[#888883] -mt-1 animate-fade-in flex items-center justify-center gap-1.5">
+                        <span>Already have an account?</span>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setView("SIGNIN");
+                                setError("");
+                                setSuccess("");
+                            }}
+                            className="text-[#1A1A1A] font-semibold hover:underline cursor-pointer"
+                        >
+                            Login
+                        </button>
+                    </div>
+                )}
 
                 {/* Footer Utilities */}
                 {view === "VERIFY" && (

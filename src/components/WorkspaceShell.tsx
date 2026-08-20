@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import toast from "react-hot-toast";
@@ -24,6 +24,7 @@ export default function WorkspaceShell({
         teams,
         currentTeam,
         isSwitchingTeam,
+        switchingToTeam,
         setCurrentTeam,
         userRole,
         handleCreateTeam,
@@ -33,6 +34,27 @@ export default function WorkspaceShell({
     } = useWorkspace();
 
     usePushNotifications(currentUser);
+
+    const [cubeState, setCubeState] = useState<"IDLE" | "ROTATING" | "REVERSING">("IDLE");
+    const [switchingMessage, setSwitchingMessage] = useState("");
+
+    useEffect(() => {
+        if (isSwitchingTeam) {
+            setCubeState("ROTATING");
+            if (currentTeam && switchingToTeam) {
+                setSwitchingMessage(`Switching ${currentTeam.name} to ${switchingToTeam.name}`);
+            } else {
+                setSwitchingMessage("Switching Workspace...");
+            }
+        } else if (cubeState === "ROTATING") {
+            setCubeState("REVERSING");
+            const timer = setTimeout(() => {
+                setCubeState("IDLE");
+                setSwitchingMessage("");
+            }, 800); // 800ms transition duration
+            return () => clearTimeout(timer);
+        }
+    }, [isSwitchingTeam]);
 
     const pathname = usePathname();
 
@@ -283,7 +305,7 @@ export default function WorkspaceShell({
         return "Workspace";
     })();
 
-    return (
+    const renderAppContent = () => (
         <div className="flex h-screen bg-[#FAFAF9] font-sans text-[#1A1A1A] overflow-hidden">
             {/* Sidebar navigation — Persistent at Layout level */}
             <Sidebar
@@ -315,6 +337,62 @@ export default function WorkspaceShell({
                     {children}
                 </div>
             </main>
+        </div>
+    );
+
+    const is3DActive = cubeState !== "IDLE";
+
+    return (
+        <div className="relative w-screen h-screen overflow-hidden bg-[#FAFAF9]" style={{ perspective: "1500px" }}>
+            <div
+                className="w-full h-full relative"
+                style={{
+                    transformStyle: "preserve-3d",
+                    transform: cubeState === "ROTATING"
+                        ? "translateZ(-50vw) rotateY(-90deg)"
+                        : cubeState === "REVERSING"
+                        ? "translateZ(-50vw) rotateY(-180deg)"
+                        : "translateZ(-50vw) rotateY(0deg)",
+                    transition: cubeState === "IDLE"
+                        ? "none"
+                        : "transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1)",
+                }}
+            >
+                {/* Front Face (Persistent App Content) */}
+                <div
+                    className="w-full h-full absolute top-0 left-0"
+                    style={{
+                        transform: cubeState === "REVERSING"
+                            ? "rotateY(180deg) translateZ(50vw)"
+                            : "rotateY(0deg) translateZ(50vw)",
+                        backfaceVisibility: "hidden",
+                    }}
+                >
+                    {renderAppContent()}
+                </div>
+
+                {/* Right Face (Switcher Loader) */}
+                {(cubeState === "ROTATING" || cubeState === "REVERSING") && (
+                    <div
+                        className="w-full h-full absolute top-0 left-0 bg-[var(--app-bg,#FAFAF9)] flex flex-col items-center justify-center gap-4 select-none"
+                        style={{
+                            transform: "rotateY(90deg) translateZ(50vw)",
+                            backfaceVisibility: "hidden",
+                        }}
+                    >
+                        <div className="flex flex-col items-center gap-1.5 text-center px-6 max-w-xs">
+                            <span className="text-3xl">🧑‍💻</span>
+                            <h1 className="font-heading text-lg text-[var(--app-text,#1A1A1A)] tracking-tight">
+                                {switchingMessage || "Switching Workspace..."}
+                            </h1>
+                        </div>
+                        {/* Custom sliding line loader */}
+                        <div className="w-12 h-0.5 bg-[var(--app-border,#E5E5E3)] overflow-hidden relative">
+                            <div className="absolute top-0 bottom-0 left-0 bg-[var(--color-accent,#00D26A)] w-1/3 animate-loading-bar" />
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Global Modal Overlays */}
             <GlobalModals />
@@ -333,15 +411,6 @@ export default function WorkspaceShell({
                 setFontScale={setFontScale}
                 onReset={handleResetSettings}
             />
-
-            {isSwitchingTeam && (
-                <div className="fixed inset-0 z-[99999] bg-white/70 backdrop-blur-sm flex flex-col items-center justify-center gap-2.5 animate-fade-in select-none">
-                    <Loader2 className="w-6 h-6 text-[#1A1A1A] animate-spin" />
-                    <span className="text-[11px] font-medium text-[#1A1A1A] tracking-wider eyebrow">
-                        Switching...
-                    </span>
-                </div>
-            )}
         </div>
     );
 }
