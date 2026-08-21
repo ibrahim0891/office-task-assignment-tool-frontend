@@ -1,8 +1,6 @@
-"use client";
-
 import React from "react";
 import { usePathname } from "next/navigation";
-import { Sun, Moon, Bell, Settings } from "lucide-react";
+import { Sun, Moon, Bell, Settings, Search } from "lucide-react";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { CustomDatePicker } from "./ui/CustomDatePicker";
 
@@ -11,6 +9,7 @@ interface WorkspaceHeaderProps {
     theme: string;
     onToggleTheme: (e?: React.MouseEvent) => void;
     onOpenSystemSettings: () => void;
+    onOpenSpotlight?: () => void;
 }
 
 export default function WorkspaceHeader({
@@ -18,6 +17,7 @@ export default function WorkspaceHeader({
     theme,
     onToggleTheme,
     onOpenSystemSettings,
+    onOpenSpotlight,
 }: WorkspaceHeaderProps) {
     const pathname = usePathname();
     const {
@@ -59,6 +59,20 @@ export default function WorkspaceHeader({
             </div>
 
             <div className="flex items-center gap-2.5">
+                {onOpenSpotlight && (
+                    <button
+                        onClick={onOpenSpotlight}
+                        className="relative corner-brackets-4 px-2.5 py-1.5 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#888883] hover:text-[#1A1A1A] transition-colors flex items-center gap-2 cursor-pointer text-[11px]"
+                        title="Search workspace (⌘K)"
+                    >
+                        <Search className="w-3.5 h-3.5 text-[#888883]" />
+                        <span className="hidden sm:inline text-[#888883]">Search…</span>
+                        <kbd className="hidden sm:inline-flex items-center text-[9px] font-mono border border-[#E5E5E3] bg-[#FAFAF9] px-1 rounded-[2px] text-[#888883]">
+                            ⌘K
+                        </kbd>
+                    </button>
+                )}
+
                 <button
                     onClick={(e) => onToggleTheme(e)}
                     className="relative corner-brackets-4 p-2 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#1A1A1A] transition-colors flex items-center justify-center cursor-pointer"

@@ -52,6 +52,15 @@ export default function RootLayout({
                                         document.documentElement.setAttribute('data-theme', theme);
                                     }
 
+                                    // Apply Accent Color
+                                    var isDark = theme && theme !== 'light';
+                                    var accent = isDark
+                                        ? (localStorage.getItem('sys_accent_dark') || '#00D26A')
+                                        : (localStorage.getItem('sys_accent_light') || '#1A1A1A');
+                                    if (accent) {
+                                        document.documentElement.style.setProperty('--color-accent', accent);
+                                    }
+
                                     // Apply Fonts & Scale
                                     var primary = localStorage.getItem('sys_primary_font') || 'Outfit';
                                     var secondary = localStorage.getItem('sys_secondary_font') || 'Lora';

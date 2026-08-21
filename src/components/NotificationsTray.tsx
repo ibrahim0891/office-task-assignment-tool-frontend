@@ -120,7 +120,7 @@ export default function NotificationsTray({
                                     <button
                                         onClick={onClearAll}
                                         title="Move all notifications to Archive (kept for 30 days)"
-                                        className="text-[10px] uppercase font-semibold tracking-wider px-3 py-1.5 rounded-[2px] border border-[#E5E5E3] hover:border-[#DADAD6] hover:bg-[#FAFAF9] text-[#888883] hover:text-[#1A1A1A] transition-colors"
+                                        className="text-[10px] font-semibold tracking-wider px-3 py-1.5 rounded-[2px] border border-[#E5E5E3] hover:border-[#DADAD6] hover:bg-[#FAFAF9] text-[#888883] hover:text-[#1A1A1A] transition-colors"
                                     >
                                         Clear All
                                     </button>
@@ -130,7 +130,7 @@ export default function NotificationsTray({
                                     <button
                                         onClick={onDeleteArchived}
                                         title="Permanently delete all archived notifications"
-                                        className="text-[10px] uppercase font-semibold tracking-wider px-3 py-1.5 rounded-[2px] border border-[#E5E5E3] hover:border-[#CB2431] hover:bg-[#FFF5F5] text-[#888883] hover:text-[#CB2431] transition-colors flex items-center gap-1"
+                                        className="text-[10px] font-semibold tracking-wider px-3 py-1.5 rounded-[2px] border border-[#E5E5E3] hover:border-[#CB2431] hover:bg-[#FFF5F5] text-[#888883] hover:text-[#CB2431] transition-colors flex items-center gap-1"
                                     >
                                         <Trash2 className="w-3 h-3" />
                                         Clear Archive

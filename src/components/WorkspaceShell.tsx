@@ -9,11 +9,13 @@ import { RotateCcw, Loader2 } from "lucide-react";
 import WorkspaceHeader from "./WorkspaceHeader";
 import GlobalModals from "./GlobalModals";
 import SystemPreferenceModal from "./SystemPreferenceModal";
+import SpotlightSearch from "./SpotlightSearch";
 import TopLoadingBar from "./ui/TopLoadingBar";
 import { fontMap } from "../config/fontConfig";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 
 import { toggleThemeWithCircularReveal } from "../utils/themeTransition";
+import { applyAccentColor } from "../config/accentConfig";
 
 export default function WorkspaceShell({
     children,
@@ -65,6 +67,7 @@ export default function WorkspaceShell({
     const [isProvisioning, setIsProvisioning] = useState(false);
 
     // Appearance Preferences Local States
+    const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
     const [isSystemSettingsOpen, setIsSystemSettingsOpen] = useState(false);
     const [settingsTab, setSettingsTab] = useState<"theme" | "typography">(
         "theme",
@@ -129,6 +132,9 @@ export default function WorkspaceShell({
         if (savedTheme) {
             setTheme(savedTheme);
             document.documentElement.setAttribute("data-theme", savedTheme);
+            applyAccentColor(savedTheme);
+        } else {
+            applyAccentColor("light");
         }
     }, []);
 
@@ -138,17 +144,21 @@ export default function WorkspaceShell({
             setTheme(nextTheme);
             document.documentElement.setAttribute("data-theme", nextTheme);
             localStorage.setItem("sys_theme", nextTheme);
+            applyAccentColor(nextTheme);
         });
         toast.success(
             `Switched to ${nextTheme === "lws-dark" ? "LWS Dark Mode" : "Light Mode"}`,
         );
     };
 
-    // Keyboard shortcuts: Ctrl + (increase font scale) / Ctrl - (decrease font scale)
+    // Keyboard shortcuts: Cmd+K (Spotlight), Ctrl +/- (font scale)
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.ctrlKey || e.metaKey) {
-                if (e.key === "=" || e.key === "+") {
+                if (e.key.toLowerCase() === "k") {
+                    e.preventDefault();
+                    setIsSpotlightOpen((prev) => !prev);
+                } else if (e.key === "=" || e.key === "+") {
                     e.preventDefault();
                     setFontScale((prev) => {
                         const next = Math.min(1.5, prev + 0.05);
@@ -303,7 +313,7 @@ export default function WorkspaceShell({
         if (pathname === "/myday") return "My Day Focus";
         if (pathname === "/trash") return "Trash Archive";
         if (pathname === "/dashboard") return "Analytics Dashboard";
-        if (pathname === "/map") return "Task Geolocation Map";
+        if (pathname === "/map") return "Team Flow";
         if (pathname === "/list") return "Task List View";
         if (pathname === "/task-board")
             return "Task Board";
@@ -335,6 +345,7 @@ export default function WorkspaceShell({
                     theme={theme}
                     onToggleTheme={handleToggleTheme}
                     onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
+                    onOpenSpotlight={() => setIsSpotlightOpen(true)}
                 />
 
                 {/* Page Content Slot */}
@@ -416,6 +427,14 @@ export default function WorkspaceShell({
                 fontScale={fontScale}
                 setFontScale={setFontScale}
                 onReset={handleResetSettings}
+            />
+
+            {/* Spotlight Search / Command Palette */}
+            <SpotlightSearch
+                isOpen={isSpotlightOpen}
+                onClose={() => setIsSpotlightOpen(false)}
+                onToggleTheme={handleToggleTheme}
+                onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
             />
         </div>
     );

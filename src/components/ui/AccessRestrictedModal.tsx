@@ -34,7 +34,7 @@ export default function AccessRestrictedModal({
 
                 {/* Title & Description */}
                 <div className="flex flex-col gap-2">
-                    <div className="inline-flex items-center justify-center gap-1.5 self-center px-2.5 py-0.5 rounded-[2px] bg-[#CB2431]/10 text-[#CB2431] border border-[#CB2431]/20 text-[10px] font-semibold uppercase tracking-wider">
+                    <div className="inline-flex items-center justify-center gap-1.5 self-center px-2.5 py-0.5 rounded-[2px] bg-[#CB2431]/10 text-[#CB2431] border border-[#CB2431]/20 text-[10px] font-semibold  ">
                         Permission Denied
                     </div>
                     <h3 className="font-heading text-xl font-bold text-[var(--app-text)] leading-snug">
@@ -54,14 +54,13 @@ export default function AccessRestrictedModal({
                 </div>
 
                 {/* Action button */}
-                <div className="flex flex-col sm:flex-row gap-2 w-full pt-1">
+                <div className="w-full pt-1">
                     <Button
                         type="button"
                         onClick={() => router.replace(returnPath)}
-                        showDot
-                        className="w-full py-2 text-xs"
+                        icon={<ArrowLeft className="w-3.5 h-3.5" />}
+                        className="w-full h-9 text-xs"
                     >
-                        <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                         {returnLabel}
                     </Button>
                 </div>

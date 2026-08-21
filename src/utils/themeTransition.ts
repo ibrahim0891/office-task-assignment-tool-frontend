@@ -1,3 +1,5 @@
+import { playFeedback } from "./feedback";
+
 /**
  * Smooth circular reveal theme transition using the View Transitions API.
  * The circular mask expands smoothly from the clicked button coordinates outward until it fills the entire screen.
@@ -6,6 +8,8 @@ export function toggleThemeWithCircularReveal(
     event: React.MouseEvent | MouseEvent | undefined,
     applyTheme: () => void,
 ) {
+    playFeedback("toggle");
+
     if (
         typeof document === "undefined" ||
         !("startViewTransition" in document) ||
@@ -43,7 +47,7 @@ export function toggleThemeWithCircularReveal(
                 clipPath: clipPath,
             },
             {
-                duration: 3000,
+                duration: 750,
                 easing: "cubic-bezier(0.4, 0, 0.2, 1)",
                 pseudoElement: "::view-transition-new(root)",
             },

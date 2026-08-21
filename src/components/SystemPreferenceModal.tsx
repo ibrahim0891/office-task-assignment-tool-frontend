@@ -1,11 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import toast from "react-hot-toast";
-import { Palette, Type, RotateCcw } from "lucide-react";
+import { Palette, Type, RotateCcw, Sparkles, Check, Pipette } from "lucide-react";
 import { Button } from "./ui/Button";
 import { CustomSelect } from "./ui/CustomSelect";
+import { Checkbox } from "./ui/Checkbox";
+import { ToggleSwitch } from "./ui/ToggleSwitch";
 import { fontMap, FONT_OPTIONS, FONT_PRESETS } from "../config/fontConfig";
+import {
+    LIGHT_ACCENT_OPTIONS,
+    DARK_ACCENT_OPTIONS,
+    applyAccentColor,
+} from "../config/accentConfig";
+
+import { playFeedback } from "../utils/feedback";
 
 interface SystemPreferenceModalProps {
     isOpen: boolean;
@@ -35,8 +44,95 @@ export default function SystemPreferenceModal({
     onReset,
 }: SystemPreferenceModalProps) {
     const [settingsTab, setSettingsTab] = useState<"theme" | "typography">("theme");
+    const [enableConfetti, setEnableConfetti] = useState<boolean>(() => {
+        if (typeof window === "undefined") return true;
+        return localStorage.getItem("sys_enable_confetti") !== "false";
+    });
+    const [enableSound, setEnableSound] = useState<boolean>(() => {
+        if (typeof window === "undefined") return true;
+        return localStorage.getItem("sys_enable_sound") !== "false";
+    });
+
+    const [lightAccent, setLightAccent] = useState<string>(() => {
+        if (typeof window === "undefined") return LIGHT_ACCENT_OPTIONS[0].value;
+        return (
+            localStorage.getItem("sys_accent_light") ||
+            LIGHT_ACCENT_OPTIONS[0].value
+        );
+    });
+
+    const [darkAccent, setDarkAccent] = useState<string>(() => {
+        if (typeof window === "undefined") return DARK_ACCENT_OPTIONS[0].value;
+        return (
+            localStorage.getItem("sys_accent_dark") ||
+            DARK_ACCENT_OPTIONS[0].value
+        );
+    });
+
+    const colorInputRef = useRef<HTMLInputElement>(null);
+
+    const isDarkMode = theme !== "light";
+    const currentAccentList = isDarkMode
+        ? DARK_ACCENT_OPTIONS
+        : LIGHT_ACCENT_OPTIONS;
+    const currentSelectedAccent = isDarkMode ? darkAccent : lightAccent;
+    const matchedOption = currentAccentList.find(
+        (c) =>
+            c.value.toLowerCase() === currentSelectedAccent.toLowerCase(),
+    );
+    const isCustomActive = !matchedOption;
+
+    const handleSelectAccent = (colorValue: string) => {
+        if (isDarkMode) {
+            setDarkAccent(colorValue);
+            localStorage.setItem("sys_accent_dark", colorValue);
+            applyAccentColor(theme, undefined, colorValue);
+        } else {
+            setLightAccent(colorValue);
+            localStorage.setItem("sys_accent_light", colorValue);
+            applyAccentColor(theme, colorValue, undefined);
+        }
+    };
 
     if (!isOpen) return null;
+
+    const handleToggleConfetti = (enabled: boolean) => {
+        setEnableConfetti(enabled);
+        localStorage.setItem("sys_enable_confetti", String(enabled));
+        if (enabled) {
+            toast.success("Completion confetti enabled");
+        } else {
+            toast.success("Completion confetti disabled");
+        }
+    };
+
+    const handleToggleSound = (enabled: boolean) => {
+        setEnableSound(enabled);
+        localStorage.setItem("sys_enable_sound", String(enabled));
+        if (enabled) {
+            playFeedback("click");
+            toast.success("Mechanical sounds & haptics enabled");
+        } else {
+            toast.success("Sounds & haptics muted");
+        }
+    };
+
+    const handleResetAll = () => {
+        localStorage.setItem("sys_enable_confetti", "true");
+        localStorage.setItem("sys_enable_sound", "true");
+        localStorage.removeItem("sys_accent_light");
+        localStorage.removeItem("sys_accent_dark");
+        setLightAccent(LIGHT_ACCENT_OPTIONS[0].value);
+        setDarkAccent(DARK_ACCENT_OPTIONS[0].value);
+        setEnableConfetti(true);
+        setEnableSound(true);
+        applyAccentColor(
+            theme,
+            LIGHT_ACCENT_OPTIONS[0].value,
+            DARK_ACCENT_OPTIONS[0].value,
+        );
+        onReset();
+    };
 
     const scaleOptions = [
         { value: "0.85", label: "85% (Very Small)" },
@@ -66,36 +162,31 @@ export default function SystemPreferenceModal({
                 onClick={onClose}
             />
             <div
-                className="relative bg-white border border-[#E5E5E3] p-5 w-full max-w-md flex flex-col gap-4 animate-fade-in text-left rounded-[3px] corner-brackets shadow-xl"
+                className="relative bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] p-5 w-full max-w-md flex flex-col gap-4 animate-fade-in text-left rounded-[3px] corner-brackets shadow-xl"
                 style={{ boxShadow: "var(--shadow-float)" }}
             >
                 <div className="flex items-center justify-between pb-1">
-                    <div>
-                        <span className="eyebrow capitalize text-[10px]">
-                            Preferences
-                        </span>
-                        <h2 className="font-heading text-base text-[#1A1A1A]">
-                            System Preferences
-                        </h2>
-                    </div>
+                    <h2 className="font-heading text-base text-[var(--app-text,#1A1A1A)]">
+                        System Preferences
+                    </h2>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="text-[#888883] hover:text-[#1A1A1A] text-[15px] font-bold px-1 transition-colors cursor-pointer"
+                        className="text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] text-[15px] font-bold px-1 transition-colors cursor-pointer"
                     >
                         ✕
                     </button>
                 </div>
 
                 {/* Settings Tabs */}
-                <div className="bg-[#FAFAF9] px-2 py-1.5 flex items-center gap-1">
+                <div className="bg-[var(--app-hover-bg,#FAFAF9)] px-2 py-1.5 flex items-center gap-1 rounded-[2px]">
                     <button
                         type="button"
                         onClick={() => setSettingsTab("theme")}
                         className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
                             settingsTab === "theme"
-                                ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4"
-                                : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#F0F0EE]"
+                                ? "bg-[var(--app-card,#FFFFFF)] text-[var(--app-text,#1A1A1A)] border border-[var(--app-border,#E5E5E3)] corner-brackets-4 shadow-sm"
+                                : "text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-hover-bg,#F0F0EE)]"
                         }`}
                     >
                         <Palette className="w-3 h-3 shrink-0" />
@@ -106,8 +197,8 @@ export default function SystemPreferenceModal({
                         onClick={() => setSettingsTab("typography")}
                         className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
                             settingsTab === "typography"
-                                ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4"
-                                : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#F0F0EE]"
+                                ? "bg-[var(--app-card,#FFFFFF)] text-[var(--app-text,#1A1A1A)] border border-[var(--app-border,#E5E5E3)] corner-brackets-4 shadow-sm"
+                                : "text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-hover-bg,#F0F0EE)]"
                         }`}
                     >
                         <Type className="w-3 h-3 shrink-0" />
@@ -116,9 +207,9 @@ export default function SystemPreferenceModal({
                 </div>
 
                 {/* Section Divider 1 */}
-                <div className="relative w-full border-t border-[#E5E5E3]">
+                <div className="relative w-full border-t border-[var(--app-border,#E5E5E3)]">
                     {/* Left T-Bracket ├ */}
-                    <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center text-[#1A1A1A]">
+                    <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center text-[var(--app-text,#1A1A1A)]">
                         <svg
                             width="10"
                             height="10"
@@ -173,16 +264,133 @@ export default function SystemPreferenceModal({
                                             "sys_theme",
                                             val,
                                         );
+                                        applyAccentColor(val);
                                         toast.success(`Theme updated`);
                                     }}
                                     className="w-full"
                                 />
                             </div>
-                            <p className="text-[11px] text-[#888883] leading-relaxed">
-                                Choose a visual theme for your task
-                                workspace. Changes apply instantly
-                                across the sidebars, tables, and
-                                dialogs.
+
+                            {/* Accent Color 1-Row Square Grid with Custom Dropper */}
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center justify-between">
+                                    <label className="eyebrow flex items-center gap-1.5">
+                                        <span
+                                            className="w-1.5 h-1.5 rounded-[0.5px] inline-block transition-colors shadow-xs"
+                                            style={{
+                                                backgroundColor:
+                                                    "var(--color-accent)",
+                                            }}
+                                        />
+                                        Accent Color
+                                    </label>
+                                    <span className="font-mono text-[10px] text-[var(--app-muted,#888883)] ">
+                                        {matchedOption
+                                            ? matchedOption.name
+                                            : `Custom (${currentSelectedAccent.toUpperCase()})`}
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-8 gap-1.5 p-1 bg-[var(--app-hover-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] rounded-[2px] corner-brackets-4">
+                                    {currentAccentList.map((color) => {
+                                        const isSelected =
+                                            currentSelectedAccent.toLowerCase() ===
+                                            color.value.toLowerCase();
+                                        return (
+                                            <button
+                                                key={color.value}
+                                                type="button"
+                                                onClick={() =>
+                                                    handleSelectAccent(
+                                                        color.value,
+                                                    )
+                                                }
+                                                title={`${color.name} — ${color.description}`}
+                                                className={`h-6 w-full rounded-[2px] border border-black/10 dark:border-white/10 transition-all duration-150 flex items-center justify-center cursor-pointer relative ${
+                                                    isSelected
+                                                        ? "ring-2 ring-[var(--app-text,#1A1A1A)] ring-offset-1 ring-offset-[var(--app-card)] scale-105 shadow-xs"
+                                                        : "hover:scale-105 hover:shadow-xs opacity-90 hover:opacity-100"
+                                                }`}
+                                                style={{
+                                                    backgroundColor:
+                                                        color.value,
+                                                }}
+                                            >
+                                                {isSelected && (
+                                                    <Check className="w-3 h-3 text-white stroke-[3] drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]" />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+
+                                    {/* 8th Slot: Custom Color Dropper */}
+                                    <div className="relative h-6 w-full">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                colorInputRef.current?.click()
+                                            }
+                                            title={
+                                                isCustomActive
+                                                    ? `Custom Color: ${currentSelectedAccent}`
+                                                    : "Pick a Custom Color…"
+                                            }
+                                            className={`h-6 w-full rounded-[2px] transition-all duration-150 flex items-center justify-center cursor-pointer relative group ${
+                                                isCustomActive
+                                                    ? "ring-2 ring-[var(--app-text,#1A1A1A)] ring-offset-1 ring-offset-[var(--app-card)] scale-105 shadow-xs border border-transparent"
+                                                    : "bg-transparent border border-dashed border-[var(--app-border-strong,#888883)]/60 hover:border-[var(--app-text,#1A1A1A)] hover:scale-105"
+                                            }`}
+                                            style={
+                                                isCustomActive
+                                                    ? {
+                                                          backgroundColor:
+                                                              currentSelectedAccent,
+                                                      }
+                                                    : undefined
+                                            }
+                                        >
+                                            <Pipette
+                                                className={`w-3 h-3 transition-colors ${
+                                                    isCustomActive
+                                                        ? "text-white stroke-[2.5] drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                                                        : "text-[var(--app-muted,#888883)] group-hover:text-[var(--app-text,#1A1A1A)]"
+                                                }`}
+                                            />
+                                        </button>
+                                        <input
+                                            ref={colorInputRef}
+                                            type="color"
+                                            value={currentSelectedAccent}
+                                            onChange={(e) =>
+                                                handleSelectAccent(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="sr-only"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Reusable Confetti Switch */}
+                            <ToggleSwitch
+                                checked={enableConfetti}
+                                onChange={handleToggleConfetti}
+                                label="Task Completion Confetti"
+                                title="Toggle task completion confetti"
+                            />
+
+                            {/* Reusable Mechanical Audio & Haptics Switch */}
+                            <ToggleSwitch
+                                checked={enableSound}
+                                onChange={handleToggleSound}
+                                label="Mechanical Sounds & Haptics"
+                                title="Toggle mechanical audio and haptic feedback"
+                            />
+
+                            <p className="text-[11px] text-[var(--app-muted,#888883)] leading-relaxed">
+                                Choose a visual theme and feedback options for your task
+                                workspace. Changes apply instantly across all views.
                             </p>
                         </div>
                     ) : (
@@ -281,17 +489,17 @@ export default function SystemPreferenceModal({
                             </div>
 
                             {/* System Font Scale Slider */}
-                            <div className="flex flex-col gap-1.5 border-t border-[#E5E5E3]/60 pt-3">
+                            <div className="flex flex-col gap-1.5 border-t border-[var(--app-border,#E5E5E3)]/60 pt-3">
                                 <div className="flex justify-between items-center">
                                     <label className="eyebrow">
                                         System Font Scale
                                     </label>
-                                    <span className="text-[11px] text-[#1A1A1A] font-semibold">
+                                    <span className="text-[11px] text-[var(--app-text,#1A1A1A)] font-semibold">
                                         {Math.round(fontScale * 100)}%
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-[10px] text-[#888883] font-medium">
+                                    <span className="text-[10px] text-[var(--app-muted,#888883)] font-medium">
                                         A
                                     </span>
                                     <input
@@ -307,9 +515,9 @@ export default function SystemPreferenceModal({
                                                 ),
                                             )
                                         }
-                                        className="flex-1 h-1 bg-[#E5E5E3] rounded-lg appearance-none cursor-pointer"
+                                        className="flex-1 h-1 bg-[var(--app-border,#E5E5E3)] rounded-lg appearance-none cursor-pointer accent-[var(--color-accent,#1A1A1A)]"
                                     />
-                                    <span className="text-sm font-semibold text-[#1A1A1A]">
+                                    <span className="text-sm font-semibold text-[var(--app-text,#1A1A1A)]">
                                         A
                                     </span>
                                 </div>
@@ -318,7 +526,7 @@ export default function SystemPreferenceModal({
                     )}
 
                     {/* Sample Preview Box (Visible on both tabs for direct feedback) */}
-                    <div className="p-3 border border-[#E5E5E3] bg-[#FAFAF9] rounded-[2px] flex flex-col gap-1 mt-0.5">
+                    <div className="p-3 border border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FAFAF9)] rounded-[2px] flex flex-col gap-1 mt-0.5">
                         <span className="eyebrow text-[9px]">
                             Live Typography Preview
                         </span>
@@ -327,7 +535,7 @@ export default function SystemPreferenceModal({
                                 fontFamily:
                                     fontMap[secondaryFont] || "inherit",
                             }}
-                            className="text-base font-semibold text-[#1A1A1A] transition-all"
+                            className="text-base font-semibold text-[var(--app-text,#1A1A1A)] transition-all"
                         >
                             Workspace & Task Assignment System
                         </h4>
@@ -336,7 +544,7 @@ export default function SystemPreferenceModal({
                                 fontFamily:
                                     fontMap[primaryFont] || "inherit",
                             }}
-                            className="text-xs text-[#888883] transition-all"
+                            className="text-xs text-[var(--app-muted,#888883)] transition-all"
                         >
                             Configure your team workspace appearance.
                             Settings automatically scale typography and
@@ -345,11 +553,11 @@ export default function SystemPreferenceModal({
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2.5 border-t border-[#E5E5E3]">
+                <div className="flex items-center justify-between pt-2.5 border-t border-[var(--app-border,#E5E5E3)]">
                     <Button
                         type="button"
                         variant="ghost"
-                        onClick={onReset}
+                        onClick={handleResetAll}
                         icon={<RotateCcw className="w-3.5 h-3.5" />}
                     >
                         Reset Settings

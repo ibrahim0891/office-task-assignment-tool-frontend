@@ -6,7 +6,7 @@ import SolarMapView from "@/components/SolarMapView";
 import { SkeletonBoard } from "@/components/ui/SkeletonLoader";
 import AccessRestrictedModal from "@/components/ui/AccessRestrictedModal";
 
-export default function SolarMapRoute() {
+export default function TeamMapRoute() {
     const {
         currentTeam,
         currentUser,
@@ -28,7 +28,7 @@ export default function SolarMapRoute() {
         return (
             <AccessRestrictedModal
                 title="Access Restricted"
-                description="The Solar Map is exclusive to Workspace Leaders and Observers. Standard members do not have permission to view this relational workspace visualization."
+                description="The Team Flow map is exclusive to Workspace Leaders and Observers. Standard members do not have permission to view this hierarchical workspace visualization."
                 currentRole={userRole}
                 returnPath="/task-board"
                 returnLabel="Return to Task Board"

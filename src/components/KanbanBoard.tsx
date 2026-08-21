@@ -2,16 +2,21 @@ import React, { useEffect, useState, useRef } from "react";
 import {
     DragDropContext,
     Droppable,
-    Draggable,
     DropResult,
+    DragStart,
+    DragUpdate,
 } from "@hello-pangea/dnd";
 import toast from "react-hot-toast";
 import { CustomSelect } from "./ui/CustomSelect";
 import { Button } from "./ui/Button";
-import { ChevronLeft, ChevronRight, MoreVertical, Edit2, Archive } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Task, TaskColumn, User } from "../api";
+import { triggerMicroCelebration } from "../utils/confetti";
+import { playFeedback } from "../utils/feedback";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import { APP_CONFIG } from "../config/appConfig";
+import { useKanbanDragPhysics } from "../hooks/useKanbanDragPhysics";
+import { KanbanCard } from "./kanban/KanbanCard";
 
 interface KanbanBoardProps {
     tasks: Task[];
@@ -79,72 +84,11 @@ export default function KanbanBoard({
         }
     };
 
-    const dragInfoRef = useRef({ isDragging: false, clientX: 0 });
-    const autoScrollTimerRef = useRef<number | null>(null);
-
-    const startAutoScrollLoop = () => {
-        if (autoScrollTimerRef.current) return;
-
-        const checkScroll = () => {
-            if (!dragInfoRef.current.isDragging || !scrollContainerRef.current) {
-                stopAutoScrollLoop();
-                return;
-            }
-
-            const container = scrollContainerRef.current;
-            const rect = container.getBoundingClientRect();
-            const { clientX } = dragInfoRef.current;
-
-            const threshold = 180; // distance from edges to trigger scroll
-            const maxSpeed = 75;  // maximum speed of scroll
-
-            const leftDist = clientX - rect.left;
-            const rightDist = rect.right - clientX;
-
-            if (rightDist < threshold && rightDist > -50) {
-                const ratio = Math.max(0, 1 - rightDist / threshold);
-                container.scrollLeft += ratio * maxSpeed;
-            } else if (leftDist < threshold && leftDist > -50) {
-                const ratio = Math.max(0, 1 - leftDist / threshold);
-                container.scrollLeft -= ratio * maxSpeed;
-            }
-
-            autoScrollTimerRef.current = requestAnimationFrame(checkScroll);
-        };
-
-        autoScrollTimerRef.current = requestAnimationFrame(checkScroll);
-    };
-
-    const stopAutoScrollLoop = () => {
-        if (autoScrollTimerRef.current) {
-            cancelAnimationFrame(autoScrollTimerRef.current);
-            autoScrollTimerRef.current = null;
-        }
-    };
-
-    useEffect(() => {
-        const handlePointerMove = (e: MouseEvent | TouchEvent) => {
-            if (!dragInfoRef.current.isDragging) return;
-            const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-            dragInfoRef.current.clientX = clientX;
-        };
-
-        window.addEventListener("mousemove", handlePointerMove);
-        window.addEventListener("touchmove", handlePointerMove);
-        return () => {
-            window.removeEventListener("mousemove", handlePointerMove);
-            window.removeEventListener("touchmove", handlePointerMove);
-            stopAutoScrollLoop();
-        };
-    }, []);
-
-    const handleDragStart = (start: any) => {
-        dragInfoRef.current.isDragging = true;
-        startAutoScrollLoop();
-        if (onDragStartNotify && start.draggableId) {
-            onDragStartNotify(start.draggableId);
-        }
-    };
+    const { dragTilt, handleDragStart, handleDragEndCleanup } = useKanbanDragPhysics({
+        containerRef: scrollContainerRef,
+        onDragStartNotify,
+        onDragEndNotify,
+    });
     const [customOrderMap, setCustomOrderMap] = useState<
         Record<string, string[]>
     >({});
@@ -189,14 +133,29 @@ export default function KanbanBoard({
     const activeTasks = filteredTasks.filter(
         (t) => !t.isSoftDeleted && !t.isArchived,
     );
-    const isReadOnly = userRole === "LEADER" || userRole === "OBSERVER";
+    const lastHoveredTargetRef = useRef<string | null>(null);
+
+    const onCustomDragStart = (start: DragStart) => {
+        lastHoveredTargetRef.current = `${start.source?.droppableId}:${start.source?.index}`;
+        handleDragStart(start);
+    };
+
+    const handleDragUpdate = (update: DragUpdate) => {
+        const dest = update.destination;
+        if (dest) {
+            const targetKey = `${dest.droppableId}:${dest.index}`;
+            if (targetKey !== lastHoveredTargetRef.current) {
+                lastHoveredTargetRef.current = targetKey;
+                playFeedback("dial");
+            }
+        }
+    };
+
+    const isReadOnly = userRole === "OBSERVER";
 
     const handleDragEnd = (result: DropResult) => {
-        dragInfoRef.current.isDragging = false;
-        stopAutoScrollLoop();
-        if (onDragEndNotify) {
-            onDragEndNotify();
-        }
+        lastHoveredTargetRef.current = null;
+        handleDragEndCleanup();
 
         const { destination, source, draggableId } = result;
         if (!destination) return;
@@ -239,6 +198,23 @@ export default function KanbanBoard({
         // 2. Switch sort dropdown mode to Custom Order on manual drag & drop
         if (sortBy !== "custom") {
             handleSortChange("custom");
+        }
+
+        // 3. Trigger micro-celebration directly on the card once it lands in Done column
+        const targetCol = columns.find((c) => c.id === targetColId);
+        const sourceCol = columns.find((c) => c.id === source.droppableId);
+        const isTargetDone =
+            targetCol?.isComplete ||
+            targetCol?.name.toLowerCase().includes("done") ||
+            targetCol?.name.toLowerCase().includes("complete");
+        const isSourceDone =
+            sourceCol?.isComplete ||
+            sourceCol?.name.toLowerCase().includes("done") ||
+            sourceCol?.name.toLowerCase().includes("complete");
+
+        if (isTargetDone && !isSourceDone) {
+            triggerMicroCelebration({ intensity: "medium" });
+            playFeedback("complete");
         }
 
         onUpdateTaskColumn(draggableId, destination.droppableId);
@@ -324,7 +300,11 @@ export default function KanbanBoard({
     }
 
     return (
-        <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DragDropContext
+            onDragStart={onCustomDragStart}
+            onDragUpdate={handleDragUpdate}
+            onDragEnd={handleDragEnd}
+        >
             <div className="flex-1 flex flex-col overflow-hidden bg-[#FAFAF9] select-none relative">
                 {/* Quick Task Bar */}
                 {userRole !== "OBSERVER" && columns.length > 0 && (
@@ -514,12 +494,9 @@ export default function KanbanBoard({
                                                 }`}
                                         >
                                             {columnTasks.map((task, index) => {
+                                                const isLeader = userRole === "LEADER";
                                                 const isTaskCreator =
-                                                    task.createdById ===
-                                                    currentUser.id;
-
-                                                const isLeader =
-                                                    userRole === "LEADER";
+                                                    task.createdById === currentUser.id;
                                                 const isTaskAssignee =
                                                     task.assignedToId === currentUser.id;
                                                 const isTaskDragDisabled =
@@ -527,178 +504,23 @@ export default function KanbanBoard({
                                                     (!isLeader &&
                                                         !isTaskCreator &&
                                                         !isTaskAssignee);
+
                                                 return (
-                                                    <Draggable
+                                                    <KanbanCard
                                                         key={task.id}
-                                                        draggableId={task.id}
+                                                        task={task}
                                                         index={index}
-                                                        isDragDisabled={
-                                                            isTaskDragDisabled
-                                                        }
-                                                    >
-                                                        {(
-                                                            dragProvided,
-                                                            dragSnapshot,
-                                                        ) => (
-                                                            <div
-                                                                ref={
-                                                                    dragProvided.innerRef
-                                                                }
-                                                                {...dragProvided.draggableProps}
-                                                                {...dragProvided.dragHandleProps}
-                                                                onClick={() =>
-                                                                    onSelectTask(
-                                                                        task.id,
-                                                                    )
-                                                                }
-                                                                style={{
-                                                                    ...dragProvided
-                                                                        .draggableProps
-                                                                        .style,
-                                                                }}
-                                                                className={`kanban-task-card group relative p-2.5 bg-white border border-[#E5E5E3] hover:border-[#DADAD6] flex flex-col gap-2 transition-colors text-left ${getPriorityStyle(task.priority)} ${dragSnapshot.isDragging
-                                                                    ? "border-[#1A1A1A] bg-[#FAFAF9]"
-                                                                    : ""
-                                                                    } ${!isTaskDragDisabled
-                                                                        ? "cursor-grab active:cursor-grabbing"
-                                                                        : "cursor-pointer"
-                                                                    }`}
-                                                            >
-                                                                <div className="flex justify-between items-center gap-2">
-                                                                    <div className="flex items-center gap-1.5 min-w-0">
-                                                                        {getPriorityBadge(
-                                                                            task.priority,
-                                                                        )}
-                                                                        {task.carryCount > 0 && (
-                                                                            <span className="text-[9px] font-medium text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] shrink-0">
-                                                                                Carried {task.carryCount}d
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-
-                                                                    {/* 3-dot menu trigger visible on hover */}
-                                                                    {userRole !== "OBSERVER" && task.createdById === currentUser.id && (
-                                                                        <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => setCardMenuId(cardMenuId === task.id ? null : task.id)}
-                                                                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#FAFAF9] rounded-[2px] border border-transparent hover:border-[#E5E5E3] text-[#888883] hover:text-[#1A1A1A] transition-all cursor-pointer"
-                                                                                title="Task options"
-                                                                            >
-                                                                                <MoreVertical className="w-3.5 h-3.5" />
-                                                                            </button>
-
-                                                                            {cardMenuId === task.id && (
-                                                                                <>
-                                                                                    <div
-                                                                                        className="fixed inset-0 z-30"
-                                                                                        onClick={() => setCardMenuId(null)}
-                                                                                    />
-                                                                                    <div className="absolute right-0 top-6 z-40 w-28 bg-white border border-[#E5E5E3] rounded-[2px] shadow-lg py-1 flex flex-col text-[11px] select-none">
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => {
-                                                                                                setCardMenuId(null);
-                                                                                                onSelectTask(task.id);
-                                                                                            }}
-                                                                                            className="w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] text-[#1A1A1A] flex items-center gap-2 transition-colors cursor-pointer"
-                                                                                        >
-                                                                                            <Edit2 className="w-3 h-3 text-[#888883]" />
-                                                                                            Edit
-                                                                                        </button>
-                                                                                        {(userRole === "LEADER" || task.createdById === currentUser.id) && (
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => {
-                                                                                                    setCardMenuId(null);
-                                                                                                    setTaskToArchive(task);
-                                                                                                }}
-                                                                                                className="w-full text-left px-3 py-1.5 hover:bg-[#FAFAF9] text-[#CB2431] flex items-center gap-2 transition-colors cursor-pointer"
-                                                                                            >
-                                                                                                <Archive className="w-3 h-3 text-[#CB2431]" />
-                                                                                                Archive
-                                                                                            </button>
-                                                                                        )}
-                                                                                    </div>
-                                                                                </>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-
-                                                                <div>
-                                                                    <h4 className="text-[13px] font-semibold text-[#1A1A1A] leading-snug line-clamp-2">
-                                                                        {
-                                                                            task.title
-                                                                        }
-                                                                    </h4>
-                                                                    {task.description && (
-                                                                        <p className="text-[11px] text-[#888883] mt-0.5 line-clamp-2 leading-relaxed">
-                                                                            {task.description.replace(/<[^>]*>/g, "").trim()}
-                                                                        </p>
-                                                                    )}
-                                                                </div>
-
-                                                                {/* Checklist Summary */}
-                                                                {task.checklist &&
-                                                                    task
-                                                                        .checklist
-                                                                        .length >
-                                                                    0 && (
-                                                                        <div className="flex items-center gap-1.5 text-[10px] text-[#888883]">
-                                                                            <span>
-                                                                                {
-                                                                                    task.checklist.filter(
-                                                                                        (
-                                                                                            item,
-                                                                                        ) =>
-                                                                                            item.isCompleted,
-                                                                                    )
-                                                                                        .length
-                                                                                }{" "}
-                                                                                /{" "}
-                                                                                {
-                                                                                    task
-                                                                                        .checklist
-                                                                                        .length
-                                                                                }{" "}
-                                                                                subtasks
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
-
-                                                                {/* Footer */}
-                                                                <div className="pt-2 border-t border-[#E5E5E3] flex justify-between items-center text-[10px] text-[#888883]">
-                                                                    <div className="flex items-center gap-1.5 min-w-0">
-                                                                        {task.assignedTo?.avatarUrl ? (
-                                                                            <img
-                                                                                src={task.assignedTo.avatarUrl}
-                                                                                alt={task.assignedTo.name}
-                                                                                className="w-4 h-4 rounded-[2px] object-cover border border-[#E5E5E3] shrink-0"
-                                                                            />
-                                                                        ) : (
-                                                                            <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] font-bold text-[#1A1A1A] shrink-0">
-                                                                                {task.assignedTo?.name
-                                                                                    ? task.assignedTo.name
-                                                                                        .split(" ")
-                                                                                        .map((n) => n[0])
-                                                                                        .join("")
-                                                                                        .toUpperCase()
-                                                                                        .slice(0, 2)
-                                                                                    : "U"}
-                                                                            </div>
-                                                                        )}
-                                                                        <span className="truncate font-medium text-[#1A1A1A]">
-                                                                            {task.assignedTo?.name || "Unassigned"}
-                                                                        </span>
-                                                                    </div>
-                                                                    <span className="text-[9px] text-[#888883] shrink-0">
-                                                                        by {task.createdBy?.name || "Unknown"}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </Draggable>
+                                                        currentUser={currentUser}
+                                                        userRole={userRole}
+                                                        isTaskDragDisabled={isTaskDragDisabled}
+                                                        dragTilt={dragTilt}
+                                                        cardMenuId={cardMenuId}
+                                                        setCardMenuId={setCardMenuId}
+                                                        onSelectTask={onSelectTask}
+                                                        onArchiveTaskClick={(t) => setTaskToArchive(t)}
+                                                        getPriorityStyle={getPriorityStyle}
+                                                        getPriorityBadge={getPriorityBadge}
+                                                    />
                                                 );
                                             })}
                                             {provided.placeholder}

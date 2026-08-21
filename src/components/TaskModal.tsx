@@ -5,6 +5,8 @@ import { CustomDatePicker } from "./ui/CustomDatePicker";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import { TipTapEditor } from "./ui/TipTapEditor";
 import { Task, TaskColumn, User, Comment, TaskActivity, api } from "../api";
+import { triggerMicroCelebration } from "../utils/confetti";
+import { playFeedback } from "../utils/feedback";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { APP_CONFIG } from "../config/appConfig";
 import {
@@ -145,6 +147,8 @@ export default function TaskModal({
     const [hasMoreActivities, setHasMoreActivities] = useState(false);
     const [isLoadingActivities, setIsLoadingActivities] = useState(false);
     const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
+    const [isClearActivitiesConfirmOpen, setIsClearActivitiesConfirmOpen] = useState(false);
+    const [isClearingActivities, setIsClearingActivities] = useState(false);
 
     const loadTaskActivities = async (page = 1, append = false) => {
         if (!task?.id) return;
@@ -443,6 +447,7 @@ export default function TaskModal({
     const canPostComment = !isObserver;
     const canAddChecklist = !isObserver;
     const canDeleteTask = isLeader || isCreator;
+    const canClearActivityLog = isLeader || isCreator;
 
     // Handle Closing modal with unsaved check
     const handleAttemptClose = () => {
@@ -490,6 +495,25 @@ export default function TaskModal({
             );
 
             toast.success("Task changes saved!");
+
+            // Trigger micro celebration if status changed to Done/Complete
+            const newCol = columns.find((c) => c.id === columnId);
+            const isNewDone =
+                newCol?.isComplete ||
+                newCol?.name.toLowerCase().includes("done") ||
+                newCol?.name.toLowerCase().includes("complete");
+            const isOldDone =
+                task.column?.isComplete ||
+                task.column?.name.toLowerCase().includes("done") ||
+                task.column?.name.toLowerCase().includes("complete");
+
+            if (isNewDone && !isOldDone) {
+                triggerMicroCelebration({ intensity: "medium" });
+                playFeedback("complete");
+            } else {
+                playFeedback("click");
+            }
+
             onRefresh();
             setShowUnsavedWarning(false);
             if (andClose) {
@@ -694,6 +718,19 @@ export default function TaskModal({
         }
         try {
             await api.updateChecklistItem(task.id, itemId, checked);
+            if (checked) {
+                const willAllBeCompleted =
+                    task.checklist &&
+                    task.checklist.filter((c) =>
+                        c.id === itemId ? true : c.isCompleted,
+                    ).length === task.checklist.length;
+                triggerMicroCelebration({
+                    intensity: willAllBeCompleted ? "epic" : "subtle",
+                });
+                playFeedback(willAllBeCompleted ? "complete" : "click");
+            } else {
+                playFeedback("click");
+            }
             onRefresh();
         } catch (err: any) {
             toast.error(err.message);
@@ -703,6 +740,7 @@ export default function TaskModal({
     const handleDeleteSubtask = async (itemId: string) => {
         if (isObserver) return;
         try {
+            playFeedback("delete");
             await api.deleteChecklistItem(task.id, itemId);
             onRefresh();
         } catch (err: any) {
@@ -815,6 +853,24 @@ export default function TaskModal({
             toast.error(err.message || "Failed to delete attachment.");
         } finally {
             setIsDeletingAttachment(false);
+        }
+    };
+
+    const handleClearActivities = async () => {
+        if (!task?.id || !canClearActivityLog) return;
+        setIsClearingActivities(true);
+        try {
+            await api.clearTaskActivities(task.id, currentUser.id);
+            setActivitiesList([]);
+            setHasMoreActivities(false);
+            toast.success("Activity logs cleared successfully.");
+            playFeedback("delete");
+        } catch (err: any) {
+            console.error("Failed to clear activity logs:", err);
+            toast.error(err.message || "Failed to clear activity logs.");
+        } finally {
+            setIsClearingActivities(false);
+            setIsClearActivitiesConfirmOpen(false);
         }
     };
 
@@ -1786,7 +1842,7 @@ export default function TaskModal({
                     >
                         <div className="flex justify-between items-center pb-2 border-b border-[#E5E5E3]">
                             <div>
-                                <h3 className="font-heading text-base">
+                                <h3 className="font-heading text-base font-semibold text-[#1A1A1A]">
                                     Task Audit Log
                                 </h3>
                                 <p className="text-base text-[#888883]">
@@ -1815,7 +1871,7 @@ export default function TaskModal({
                                 <>
                                     {activitiesList
                                         .filter((act) => {
-                                            const { summaryText, diffs } =
+                                             const { summaryText, diffs } =
                                                 parseActivityInfo(act);
                                             return !(
                                                 summaryText ===
@@ -1928,6 +1984,25 @@ export default function TaskModal({
                                 </>
                             )}
                         </div>
+
+                        {/* Modal Footer with Clear Action */}
+                        {canClearActivityLog && activitiesList.length > 0 && (
+                            <div className="pt-2.5 mt-auto border-t border-[#E5E5E3] flex justify-between items-center">
+                                <span className="text-[11px] text-[#888883]">
+                                    Task Creator Action
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsClearActivitiesConfirmOpen(true)}
+                                    disabled={isClearingActivities}
+                                    className="px-3 py-1.5 text-[11px] font-medium text-[#CB2431] border border-[#CB2431]/20 hover:bg-[#CB2431]/10 rounded-[3px] transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                    title="Clear all activity logs for this task"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Clear Activity Logs</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -2001,6 +2076,19 @@ export default function TaskModal({
                     setCommentToDeleteId(null);
                 }}
                 onClose={() => setCommentToDeleteId(null)}
+            />
+
+            {/* Confirm Dialog for Activity Logs Deletion */}
+            <ConfirmDialog
+                isOpen={isClearActivitiesConfirmOpen}
+                title="Clear Activity Logs"
+                description={`Are you sure you want to clear all activity logs for "${task.title}"? This action cannot be undone.`}
+                confirmText="Clear Logs"
+                cancelText="Cancel"
+                isDanger={true}
+                isLoading={isClearingActivities}
+                onConfirm={handleClearActivities}
+                onClose={() => setIsClearActivitiesConfirmOpen(false)}
             />
 
             {/* Fullscreen Image View Modal with Top-Right X Close Button */}

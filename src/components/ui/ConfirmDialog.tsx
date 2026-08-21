@@ -27,7 +27,7 @@ export default function ConfirmDialog({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-hidden flex justify-center items-center p-4 select-none">
+        <div className="fixed inset-0 z-[100] overflow-hidden flex justify-center items-center p-4 select-none">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/40 transition-opacity animate-fade-in"

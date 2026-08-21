@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { Task, TaskColumn, User, api } from "../api";
+import { triggerMicroCelebration } from "../utils/confetti";
 import { CustomSelect } from "./ui/CustomSelect";
 import { Checkbox } from "./ui/Checkbox";
 import ConfirmDialog from "./ui/ConfirmDialog";
@@ -325,6 +326,16 @@ export default function ListView({
                 { userId: currentUser.id, teamId: currentTeam.id },
             );
             toast.success("Status updated!");
+
+            const newCol = columns.find((c) => c.id === newColumnId);
+            if (
+                newCol?.isComplete ||
+                newCol?.name.toLowerCase().includes("done") ||
+                newCol?.name.toLowerCase().includes("complete")
+            ) {
+                triggerMicroCelebration({ intensity: "medium" });
+            }
+
             onRefresh();
         } catch (err: any) {
             toast.error(err.message || "Failed to update status");
@@ -569,7 +580,7 @@ export default function ListView({
 
             {/* Quick Filter Presets */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                <span className="text-[10px] uppercase font-bold text-[var(--app-muted,#888883)] flex items-center gap-1 mr-1 shrink-0">
+                <span className="text-[10px]   font-bold text-[var(--app-muted,#888883)] flex items-center gap-1 mr-1 shrink-0">
                     <Filter className="w-3 h-3" />
                     Presets:
                 </span>

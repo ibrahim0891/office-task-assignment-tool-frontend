@@ -542,6 +542,18 @@ export const api = {
     return res.json();
   },
 
+  async clearTaskActivities(taskId: string, userId: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/activities`, {
+      method: 'DELETE',
+      headers: { 'x-user-id': userId }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to clear activity logs.");
+    }
+    return res.json();
+  },
+
   async getTaskComments(taskId: string, page = 1, limit = 15): Promise<{ comments: Comment[]; hasMore: boolean }> {
     const res = await fetch(`${API_BASE}/tasks/${taskId}/comments?page=${page}&limit=${limit}`);
     if (!res.ok) {

@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { Task, TaskColumn, User } from "../api";
+import { triggerMicroCelebration } from "../utils/confetti";
+import { playFeedback } from "../utils/feedback";
 import { getLocalDateString } from "../utils/date";
 import { Button } from "./ui/Button";
 
@@ -171,6 +173,14 @@ export default function MyDayView({
                                                         type="button"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
+                                                            if (!column.isComplete) {
+                                                                triggerMicroCelebration({
+                                                                    intensity: "medium",
+                                                                });
+                                                                playFeedback("complete");
+                                                            } else {
+                                                                playFeedback("click");
+                                                            }
                                                             onToggleComplete(task.id, !column.isComplete);
                                                         }}
                                                         className={`w-4.5 h-4.5 rounded-[2px] border flex items-center justify-center shrink-0 transition-colors cursor-pointer text-base font-bold ${column.isComplete
