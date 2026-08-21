@@ -1,7 +1,7 @@
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import { Task, User } from "../../api";
-import { MoreVertical, Edit2, Archive } from "lucide-react";
+import { MoreVertical, Edit2, Archive, MessageSquare, CheckSquare, Paperclip } from "lucide-react";
 
 interface KanbanCardProps {
     task: Task;
@@ -32,6 +32,12 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     getPriorityStyle,
     getPriorityBadge,
 }) => {
+    const isSameAssigneeAndCreator = Boolean(
+        (task.createdById && task.assignedToId && task.createdById === task.assignedToId) ||
+        (task.createdBy?.id && task.assignedTo?.id && task.createdBy.id === task.assignedTo.id) ||
+        (task.createdBy?.name && task.assignedTo?.name && task.createdBy.name === task.assignedTo.name),
+    );
+
     return (
         <Draggable
             key={task.id}
@@ -71,21 +77,17 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                             : "cursor-pointer"
                     }`}
                 >
-                    <div className="flex justify-between items-center gap-2">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                            {getPriorityBadge(task.priority)}
-                            {task.carryCount > 0 && (
-                                <span className="text-[9px] font-medium text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] shrink-0">
-                                    Carried {task.carryCount}d
-                                </span>
-                            )}
-                        </div>
+                    {/* Section 1: Title & 3-dot Menu */}
+                    <div className="flex items-start justify-between gap-2">
+                        <h4 className="text-[14px] font-semibold text-[#1A1A1A] leading-snug line-clamp-2 min-w-0 flex-1 capitalize">
+                            {task.title}
+                        </h4>
 
                         {/* 3-dot menu trigger visible on hover */}
                         {userRole !== "OBSERVER" &&
                             task.createdById === currentUser.id && (
                                 <div
-                                    className="relative shrink-0"
+                                    className="relative shrink-0 -mt-0.5 -mr-1"
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <button
@@ -147,34 +149,35 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                             )}
                     </div>
 
-                    <div>
-                        <h4 className="text-[13px] font-semibold text-[#1A1A1A] leading-snug line-clamp-2">
-                            {task.title}
-                        </h4>
-                        {task.description && (
-                            <p className="text-[11px] text-[#888883] mt-0.5 line-clamp-2 leading-relaxed">
-                                {task.description.replace(/<[^>]*>/g, "").trim()}
-                            </p>
+                    {task.description && (
+                        <p
+                            className="text-[11px] text-[#888883] -mt-1 line-clamp-1 leading-relaxed"
+                            title={task.description.replace(/<[^>]*>/g, "").trim()}
+                        >
+                            {task.description.replace(/<[^>]*>/g, "").trim()}
+                        </p>
+                    )}
+
+                    {/* Section 2: Priority & Created By */}
+                    <div className="flex items-center justify-between gap-2 text-[10px]">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            {getPriorityBadge(task.priority)}
+                        </div>
+
+                        {!isSameAssigneeAndCreator && (
+                            <span
+                                className="text-[9px] text-[#888883] truncate max-w-[50%] text-right shrink-0"
+                                title={`Created by ${task.createdBy?.name || "Unknown"}`}
+                            >
+                                by <span className="capitalize">{task.createdBy?.name || "Unknown"}</span>
+                            </span>
                         )}
                     </div>
 
-                    {/* Checklist Summary */}
-                    {task.checklist && task.checklist.length > 0 && (
-                        <div className="flex items-center gap-1.5 text-[10px] text-[#888883]">
-                            <span>
-                                {
-                                    task.checklist.filter(
-                                        (item: any) => item.isCompleted,
-                                    ).length
-                                }{" "}
-                                / {task.checklist.length} subtasks
-                            </span>
-                        </div>
-                    )}
-
-                    {/* Footer */}
-                    <div className="pt-2 border-t border-[#E5E5E3] flex justify-between items-center text-[10px] text-[#888883]">
-                        <div className="flex items-center gap-1.5 min-w-0">
+                    {/* Section 3: Footer (Assignee on Left, Carry / Checklist / Comment / Attachment counts on Right) */}
+                    <div className="pt-2 border-t border-[#E5E5E3] flex justify-between items-center gap-2 text-[10px] text-[#888883]">
+                        {/* Assignee */}
+                        <div className="flex items-center gap-1.5 min-w-0 max-w-[50%]">
                             {task.assignedTo?.avatarUrl ? (
                                 <img
                                     src={task.assignedTo.avatarUrl}
@@ -193,13 +196,61 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                                         : "U"}
                                 </div>
                             )}
-                            <span className="truncate font-medium text-[#1A1A1A]">
+                            <span
+                                className="truncate font-medium text-[#1A1A1A]"
+                                title={task.assignedTo?.name || "Unassigned"}
+                            >
                                 {task.assignedTo?.name || "Unassigned"}
                             </span>
                         </div>
-                        <span className="text-[9px] text-[#888883] shrink-0">
-                            by {task.createdBy?.name || "Unknown"}
-                        </span>
+
+                        {/* Opposite side: Checklist, Comment Count, Attachment Count, Carry Count */}
+                        <div className="flex items-center gap-2 text-[10px] text-[#888883] shrink-0">
+                            {task.checklist && task.checklist.length > 0 && (
+                                <div
+                                    className="inline-flex items-center gap-1 leading-none"
+                                    title={`Checklist: ${task.checklist.filter((item: any) => item.isCompleted).length}/${task.checklist.length} completed`}
+                                >
+                                    <CheckSquare className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="text-[10px] font-medium leading-none tabular-nums">
+                                        {task.checklist.filter((item: any) => item.isCompleted).length}/{task.checklist.length}
+                                    </span>
+                                </div>
+                            )}
+
+                            {Boolean(task._count?.comments && task._count.comments > 0) && (
+                                <div
+                                    className="inline-flex items-center gap-1 leading-none"
+                                    title={`${task._count?.comments} comment${task._count?.comments === 1 ? "" : "s"}`}
+                                >
+                                    <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="text-[10px] font-medium leading-none tabular-nums">
+                                        {task._count?.comments}
+                                    </span>
+                                </div>
+                            )}
+
+                            {Boolean(task._count?.attachments && task._count.attachments > 0) && (
+                                <div
+                                    className="inline-flex items-center gap-1 leading-none"
+                                    title={`${task._count?.attachments} attachment${task._count?.attachments === 1 ? "" : "s"}`}
+                                >
+                                    <Paperclip className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="text-[10px] font-medium leading-none tabular-nums">
+                                        {task._count?.attachments}
+                                    </span>
+                                </div>
+                            )}
+
+                            {task.carryCount > 0 && (
+                                <span
+                                    className="text-[9px] font-medium text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] leading-none shrink-0"
+                                    title={`Carried forward ${task.carryCount} day${task.carryCount > 1 ? "s" : ""}`}
+                                >
+                                    Carried {task.carryCount}d
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

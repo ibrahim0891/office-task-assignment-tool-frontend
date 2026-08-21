@@ -3,7 +3,9 @@
 import React from "react";
 
 interface PersonalInfoSectionProps {
-    name: string;
+    firstName: string;
+    lastName: string;
+    name?: string;
     designation: string;
     bio: string;
     avatarUrl: string;
@@ -24,7 +26,8 @@ const BLOOD_GROUPS = [
 ];
 
 export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
-    name,
+    firstName,
+    lastName,
     designation,
     bio,
     bloodGroup,
@@ -36,23 +39,34 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
             <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
                 <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Identity</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <ProfileField label="Full Name" required>
+                    <ProfileField label="First Name" required>
                         <ProfileInput
                             type="text"
-                            value={name}
-                            onChange={(e) => onChange("name", e.target.value)}
-                            placeholder="Enter full name"
+                            value={firstName}
+                            onChange={(e) => onChange("firstName", e.target.value)}
+                            placeholder="Enter first name"
                             required
                         />
                     </ProfileField>
-                    <ProfileField label="Designation / Role">
+                    <ProfileField label="Last Name" required>
                         <ProfileInput
                             type="text"
-                            value={designation}
-                            onChange={(e) => onChange("designation", e.target.value)}
-                            placeholder="e.g. Senior Software Engineer"
+                            value={lastName}
+                            onChange={(e) => onChange("lastName", e.target.value)}
+                            placeholder="Enter last name"
+                            required
                         />
                     </ProfileField>
+                    <div className="md:col-span-2">
+                        <ProfileField label="Designation / Role">
+                            <ProfileInput
+                                type="text"
+                                value={designation}
+                                onChange={(e) => onChange("designation", e.target.value)}
+                                placeholder="e.g. Senior Software Engineer"
+                            />
+                        </ProfileField>
+                    </div>
                 </div>
             </fieldset>
 

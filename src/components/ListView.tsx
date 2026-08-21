@@ -15,6 +15,8 @@ import {
     AlertCircle,
     Layers,
     Filter,
+    MessageSquare,
+    Paperclip,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 
@@ -974,6 +976,26 @@ export default function ListView({
                                                                                     {completedChecklist}/
                                                                                     {totalChecklist}
                                                                                 </span>
+                                                                            </span>
+                                                                        )}
+
+                                                                        {Boolean(task._count?.comments && task._count.comments > 0) && (
+                                                                            <span
+                                                                                className="inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border text-[var(--app-muted,#888883)] bg-[var(--app-bg,#FAFAF9)] border-[var(--app-border,#E5E5E3)] font-mono"
+                                                                                title={`${task._count?.comments} comment${task._count?.comments === 1 ? "" : "s"}`}
+                                                                            >
+                                                                                <MessageSquare className="w-2.5 h-2.5" />
+                                                                                <span>{task._count?.comments}</span>
+                                                                            </span>
+                                                                        )}
+
+                                                                        {Boolean(task._count?.attachments && task._count.attachments > 0) && (
+                                                                            <span
+                                                                                className="inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border text-[var(--app-muted,#888883)] bg-[var(--app-bg,#FAFAF9)] border-[var(--app-border,#E5E5E3)] font-mono"
+                                                                                title={`${task._count?.attachments} attachment${task._count?.attachments === 1 ? "" : "s"}`}
+                                                                            >
+                                                                                <Paperclip className="w-2.5 h-2.5" />
+                                                                                <span>{task._count?.attachments}</span>
                                                                             </span>
                                                                         )}
                                                                     </div>

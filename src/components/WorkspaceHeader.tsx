@@ -75,22 +75,22 @@ export default function WorkspaceHeader({
 
                 <button
                     onClick={(e) => onToggleTheme(e)}
-                    className="relative corner-brackets-4 p-2 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#1A1A1A] transition-colors flex items-center justify-center cursor-pointer"
+                    className="relative corner-brackets-4 p-2 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#888883] hover:text-[#1A1A1A] transition-colors flex items-center justify-center cursor-pointer"
                     title={`Switch to ${theme === "light" ? "Dark" : "Light"} Mode`}
                 >
                     {theme !== "light" ? (
-                        <Sun className="w-4 h-4 shrink-0 text-[#EBCB8B]" />
+                        <Sun className="w-4 h-4 shrink-0 text-[#888883]" />
                     ) : (
-                        <Moon className="w-4 h-4 shrink-0 text-[#1A1A1A]" />
+                        <Moon className="w-4 h-4 shrink-0 text-[#888883]" />
                     )}
                 </button>
 
                 <button
                     onClick={() => setIsNotificationsOpen((p) => !p)}
-                    className="relative corner-brackets-4 p-2 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#1A1A1A] transition-colors flex items-center justify-center cursor-pointer"
+                    className="relative corner-brackets-4 p-2 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#888883] hover:text-[#1A1A1A] transition-colors flex items-center justify-center cursor-pointer"
                     title="Notifications"
                 >
-                    <Bell className="w-4 h-4 shrink-0" />
+                    <Bell className="w-4 h-4 shrink-0 text-[#888883]" />
                     {unreadCount > 0 && (
                         <span className="absolute -top-1 -right-1 bg-[#CB2431] text-white rounded-full w-4 h-4 text-[9px] font-medium flex items-center justify-center scale-90">
                             {unreadCount}
@@ -100,10 +100,10 @@ export default function WorkspaceHeader({
 
                 <button
                     onClick={onOpenSystemSettings}
-                    className="relative corner-brackets-4 p-2 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#1A1A1A] transition-colors flex items-center justify-center cursor-pointer"
+                    className="relative corner-brackets-4 p-2 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#888883] hover:text-[#1A1A1A] transition-colors flex items-center justify-center cursor-pointer"
                     title="System Appearance & Preferences"
                 >
-                    <Settings className="w-4 h-4 shrink-0 text-[#1A1A1A]" />
+                    <Settings className="w-4 h-4 shrink-0 text-[#888883]" />
                 </button>
 
                 {userRole !== "OBSERVER" && pathname !== "/profile" && (

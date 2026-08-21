@@ -509,9 +509,6 @@ export default function TaskModal({
 
             if (isNewDone && !isOldDone) {
                 triggerMicroCelebration({ intensity: "medium" });
-                playFeedback("complete");
-            } else {
-                playFeedback("click");
             }
 
             onRefresh();
@@ -1208,7 +1205,7 @@ export default function TaskModal({
                                                                                       c.id,
                                                                                   )
                                                                               }
-                                                                              className="px-2 py-0.5 border border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#1A1A1A] hover:text-white text-[#1A1A1A] rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                              className="px-2 py-0.5 border border-[var(--app-border,#E5E5E3)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text,#1A1A1A)] rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                               title="Reopen comment"
                                                                           >
                                                                               {resolvingCommentId === c.id && (
@@ -1229,7 +1226,7 @@ export default function TaskModal({
                                                                                 c.id,
                                                                             )
                                                                         }
-                                                                        className="px-2 py-0.5 border border-red-200 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                        className="px-2 py-0.5 border border-[var(--color-danger,#CB2431)]/30 bg-[var(--color-danger,#CB2431)]/10 hover:bg-[var(--color-danger,#CB2431)] text-[var(--color-danger,#CB2431)] hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                         title="Delete comment permanently"
                                                                     >
                                                                         <span>
@@ -1239,7 +1236,7 @@ export default function TaskModal({
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        <p className="text-[11px] text-[#1A1A1A] leading-relaxed break-words font-sans">
+                                                        <p className="text-[11px] text-[var(--app-text,#1A1A1A)] leading-relaxed break-words font-sans">
                                                             {c.content
                                                                 .split(" ")
                                                                 .map(

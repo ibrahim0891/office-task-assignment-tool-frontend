@@ -50,6 +50,8 @@ export function getIframeProxyUrl(url: string) {
 
 export interface User {
   id: string;
+  firstName?: string | null;
+  lastName?: string | null;
   name: string;
   email: string;
   avatarUrl?: string | null;
@@ -149,6 +151,10 @@ export interface Task {
   checklist: ChecklistItem[];
   comments?: Comment[];
   attachments: Attachment[];
+  _count?: {
+    comments?: number;
+    attachments?: number;
+  };
   activities?: TaskActivity[];
 }
 
@@ -228,11 +234,43 @@ export const api = {
     return res.json();
   },
 
-  async register(name: string, email: string, password: string): Promise<{ user: User; token?: string; requiresVerification?: boolean }> {
+  async register(
+    firstNameOrName: string,
+    lastNameOrEmail: string,
+    emailOrPassword?: string,
+    maybePassword?: string
+  ): Promise<{ user: User; token?: string; requiresVerification?: boolean }> {
+    let firstName: string;
+    let lastName: string;
+    let email: string;
+    let password: string;
+
+    if (maybePassword !== undefined) {
+      // Called with (firstName, lastName, email, password)
+      firstName = (firstNameOrName || '').trim();
+      lastName = (lastNameOrEmail || '').trim();
+      email = (emailOrPassword || '').trim();
+      password = maybePassword;
+    } else {
+      // Called with (name, email, password)
+      firstName = (firstNameOrName || '').trim();
+      lastName = '';
+      email = (lastNameOrEmail || '').trim();
+      password = emailOrPassword || '';
+    }
+
+    const fullName = [firstName, lastName].filter(Boolean).join(' ') || firstName;
+
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password })
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        name: fullName,
+        email,
+        password,
+      })
     });
     if (!res.ok) {
       const err = await res.json();

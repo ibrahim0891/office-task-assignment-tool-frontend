@@ -256,31 +256,31 @@ export default function KanbanBoard({
         switch (priority?.toUpperCase()) {
             case "URGENT":
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium capitalize   bg-[#FAF5F5] text-[#7A4040] border border-[#E5D8D8] shrink-0">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#B87070] shrink-0" />
-                        <span>URGENT</span>
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-[var(--priority-urgent,#CB2431)] shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--priority-urgent,#CB2431)] shrink-0" />
+                        <span>Urgent</span>
                     </span>
                 );
             case "HIGH":
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium capitalize   bg-[#FAF8F2] text-[#6A5830] border border-[#E2DAC0] shrink-0">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#B8A050] shrink-0" />
-                        <span>HIGH</span>
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-[var(--priority-high,#B08800)] shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--priority-high,#B08800)] shrink-0" />
+                        <span>High</span>
                     </span>
                 );
             case "MEDIUM":
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium capitalize   bg-[#F5F7F9] text-[#4A5D70] border border-[#D5DCE5] shrink-0">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#8A9BAC] shrink-0" />
-                        <span>MEDIUM</span>
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-[var(--priority-medium,#0284C7)] shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--priority-medium,#0284C7)] shrink-0" />
+                        <span>Medium</span>
                     </span>
                 );
             case "LOW":
             default:
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] text-[9px] font-medium capitalize   bg-[#F5F5F4] text-[#888883] border border-[#E5E5E3] shrink-0">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#C8C8C2] shrink-0" />
-                        <span>LOW</span>
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-[var(--priority-low,#888883)] shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--priority-low,#888883)] shrink-0" />
+                        <span>Low</span>
                     </span>
                 );
         }

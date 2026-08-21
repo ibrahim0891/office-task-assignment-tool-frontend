@@ -31,6 +31,12 @@ html {
   --font-sans: var(--font-primary, var(--font-inter), 'Inter', -apple-system, system-ui, sans-serif);
   --font-scale: 1.25;
 
+  /* Priority theme tokens */
+  --priority-urgent: #CB2431;
+  --priority-high: #B08800;
+  --priority-medium: #0284C7;
+  --priority-low: #888883;
+
   /* Spacing tokens */
   --space-card: 14px;
   --space-card-sm: 10px;
@@ -141,6 +147,11 @@ body {
 
 /* ─── Global Dark Theme Overrides (Nested for size and clarity) ─── */
 html[data-theme*="dark"] {
+  --priority-urgent: #F87171;
+  --priority-high: #FBBF24;
+  --priority-medium: #38BDF8;
+  --priority-low: #94A3B8;
+
   body {
     background: var(--app-bg) !important;
     color: var(--app-text) !important;
@@ -418,7 +429,7 @@ html[data-theme*="dark"] {
 
   button[class*="bg-white"][class*="text-[#1A1A1A]"] {
     background-color: var(--app-card) !important;
-    color: var(--color-accent) !important;
+    color: var(--app-text) !important;
     border-color: var(--app-border) !important;
   }
 

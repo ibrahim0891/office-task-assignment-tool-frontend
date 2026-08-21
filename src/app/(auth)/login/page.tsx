@@ -14,7 +14,8 @@ export default function LoginPage() {
     const [view, setView] = useState<
         "SIGNIN" | "SIGNUP" | "VERIFY" | "FORGOT" | "RESET"
     >("SIGNIN");
-    const [name, setName] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [code, setCode] = useState("");
@@ -40,12 +41,22 @@ export default function LoginPage() {
 
         try {
             if (view === "SIGNUP") {
-                if (!name.trim()) {
-                    setError("Name is required.");
+                if (!firstName.trim()) {
+                    setError("First name is required.");
                     setIsLoading(false);
                     return;
                 }
-                const resObj = await api.register(name, email, password);
+                if (!lastName.trim()) {
+                    setError("Last name is required.");
+                    setIsLoading(false);
+                    return;
+                }
+                const resObj = await api.register(
+                    firstName,
+                    lastName,
+                    email,
+                    password,
+                );
                 if (resObj.requiresVerification) {
                     setSuccess(
                         "Account created successfully! Verification code sent to your email.",
@@ -291,18 +302,37 @@ export default function LoginPage() {
                     {(view === "SIGNIN" || view === "SIGNUP") && (
                         <div className="flex flex-col gap-3.5 animate-fade-in">
                             {view === "SIGNUP" && (
-                                <div className="flex flex-col gap-1">
-                                    <label className="eyebrow">Full Name</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Enter your fullname"
-                                        value={name}
-                                        onChange={(e) =>
-                                            setName(e.target.value)
-                                        }
-                                        className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
-                                        required={view === "SIGNUP"}
-                                    />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="eyebrow">
+                                            First Name <span className="text-[#CB2431]">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. John"
+                                            value={firstName}
+                                            onChange={(e) =>
+                                                setFirstName(e.target.value)
+                                            }
+                                            className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
+                                            required={view === "SIGNUP"}
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="eyebrow">
+                                            Last Name <span className="text-[#CB2431]">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Doe"
+                                            value={lastName}
+                                            onChange={(e) =>
+                                                setLastName(e.target.value)
+                                            }
+                                            className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
+                                            required={view === "SIGNUP"}
+                                        />
+                                    </div>
                                 </div>
                             )}
 
