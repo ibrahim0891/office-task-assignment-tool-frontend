@@ -39,6 +39,22 @@ export default function ProfilePage() {
         bio: "",
     });
 
+    const [initialFormData, setInitialFormData] = useState({
+        firstName: "",
+        lastName: "",
+        name: "",
+        secondaryEmail: "",
+        primaryPhone: "",
+        secondaryPhone: "",
+        emergencyContact: "",
+        telegram: "",
+        whatsapp: "",
+        github: "",
+        bloodGroup: "",
+        designation: "",
+        bio: "",
+    });
+
     useEffect(() => {
         async function initUser() {
             let user: User | null = null;
@@ -85,11 +101,10 @@ export default function ProfilePage() {
                 [firstNameVal, lastNameVal].filter(Boolean).join(" ") ||
                 firstNameVal;
 
-            setFormData({
+            const initialSnapshot = {
                 firstName: firstNameVal,
                 lastName: lastNameVal,
                 name: fullNameVal,
-                avatarUrl: data.avatarUrl || "",
                 secondaryEmail: data.secondaryEmail || "",
                 primaryPhone: data.primaryPhone || "",
                 secondaryPhone: data.secondaryPhone || "",
@@ -100,7 +115,13 @@ export default function ProfilePage() {
                 bloodGroup: data.bloodGroup || "",
                 designation: data.designation || "",
                 bio: data.bio || "",
+            };
+
+            setFormData({
+                ...initialSnapshot,
+                avatarUrl: data.avatarUrl || "",
             });
+            setInitialFormData(initialSnapshot);
         } catch (err: any) {
             toast.error(err.message || "Failed to load profile details.");
         } finally {
@@ -119,6 +140,67 @@ export default function ProfilePage() {
             }
             return next;
         });
+    };
+
+    const handleAvatarChange = async (newAvatarUrl: string) => {
+        if (!currentUser) return;
+
+        const previousAvatar = currentUser.avatarUrl || formData.avatarUrl || "";
+        setFormData((prev) => ({ ...prev, avatarUrl: newAvatarUrl }));
+
+        const toastId = toast.loading(
+            newAvatarUrl
+                ? "Updating profile picture…"
+                : "Removing profile picture…",
+        );
+
+        try {
+            const payload = {
+                ...formData,
+                avatarUrl: newAvatarUrl,
+            };
+
+            const updated = await api.updateUserProfile(
+                currentUser.id,
+                payload,
+            );
+
+            const resolvedAvatar = updated.avatarUrl !== undefined && updated.avatarUrl !== null ? updated.avatarUrl : newAvatarUrl;
+
+            const updatedLocalUser = {
+                ...currentUser,
+                avatarUrl: resolvedAvatar,
+            };
+
+            localStorage.setItem(
+                "sessionUser",
+                JSON.stringify(updatedLocalUser),
+            );
+            localStorage.setItem(
+                "task_user",
+                JSON.stringify(updatedLocalUser),
+            );
+            setCurrentUser(updatedLocalUser);
+            setFormData((prev) => ({
+                ...prev,
+                avatarUrl: resolvedAvatar || "",
+            }));
+
+            window.dispatchEvent(new Event("storage"));
+
+            toast.success(
+                newAvatarUrl
+                    ? "Profile picture updated successfully!"
+                    : "Profile picture removed successfully!",
+                { id: toastId },
+            );
+        } catch (err: any) {
+            setFormData((prev) => ({ ...prev, avatarUrl: previousAvatar }));
+            toast.error(
+                err.message || "Failed to update profile picture.",
+                { id: toastId },
+            );
+        }
     };
 
     const handleSave = async () => {
@@ -169,12 +251,28 @@ export default function ProfilePage() {
                 JSON.stringify(updatedLocalUser),
             );
             setCurrentUser(updatedLocalUser);
-            setFormData((prev) => ({
-                ...prev,
+
+            const savedSnapshot = {
                 firstName: updated.firstName || resolvedFirst,
                 lastName: updated.lastName || resolvedLast,
                 name: updated.name || resolvedFullName,
+                secondaryEmail: formData.secondaryEmail,
+                primaryPhone: formData.primaryPhone,
+                secondaryPhone: formData.secondaryPhone,
+                emergencyContact: formData.emergencyContact,
+                telegram: formData.telegram,
+                whatsapp: formData.whatsapp,
+                github: formData.github,
+                bloodGroup: formData.bloodGroup,
+                designation: formData.designation,
+                bio: formData.bio,
+            };
+
+            setFormData((prev) => ({
+                ...prev,
+                ...savedSnapshot,
             }));
+            setInitialFormData(savedSnapshot);
 
             toast.success("Profile updated successfully!");
         } catch (err: any) {
@@ -183,6 +281,27 @@ export default function ProfilePage() {
             setIsSaving(false);
         }
     };
+
+    const handleCancel = () => {
+        setFormData((prev) => ({
+            ...prev,
+            ...initialFormData,
+        }));
+    };
+
+    const isDirty =
+        formData.firstName !== initialFormData.firstName ||
+        formData.lastName !== initialFormData.lastName ||
+        formData.secondaryEmail !== initialFormData.secondaryEmail ||
+        formData.primaryPhone !== initialFormData.primaryPhone ||
+        formData.secondaryPhone !== initialFormData.secondaryPhone ||
+        formData.emergencyContact !== initialFormData.emergencyContact ||
+        formData.telegram !== initialFormData.telegram ||
+        formData.whatsapp !== initialFormData.whatsapp ||
+        formData.github !== initialFormData.github ||
+        formData.bloodGroup !== initialFormData.bloodGroup ||
+        formData.designation !== initialFormData.designation ||
+        formData.bio !== initialFormData.bio;
 
     if (isLoading) {
         return <SkeletonProfile />;
@@ -215,7 +334,7 @@ export default function ProfilePage() {
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
-                    handleSave();
+                    if (isDirty) handleSave();
                 }}
                 className="max-w-3xl mx-auto w-full flex flex-col gap-5 select-none"
             >
@@ -235,27 +354,30 @@ export default function ProfilePage() {
                             </span>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="ghost"
-                                size="md"
-                                type="button"
-                                onClick={() => window.history.back()}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="button"
-                                onClick={handleSave}
-                                disabled={isSaving}
-                                isLoading={isSaving}
-                                loadingText="Saving…"
-                                showDot={!isSaving}
-                                size="md"
-                            >
-                                Save Changes
-                            </Button>
-                        </div>
+                        {isDirty && (
+                            <div className="flex items-center gap-2 animate-fade-in">
+                                <Button
+                                    variant="ghost"
+                                    size="md"
+                                    type="button"
+                                    onClick={handleCancel}
+                                    disabled={isSaving}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                    isLoading={isSaving}
+                                    loadingText="Saving…"
+                                    showDot={!isSaving}
+                                    size="md"
+                                >
+                                    Save Changes
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Unified Frame Container with Corner Brackets */}
@@ -271,9 +393,7 @@ export default function ProfilePage() {
                             }}
                             isSaving={isSaving}
                             onSave={handleSave}
-                            onAvatarChange={(newUrl) =>
-                                handleChange("avatarUrl", newUrl)
-                            }
+                            onAvatarChange={handleAvatarChange}
                         />
 
                         {/* Section 2: Tab Bar switcher */}

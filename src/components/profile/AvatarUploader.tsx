@@ -149,7 +149,6 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
         onChange(compressedBase64);
         setIsCropModalOpen(false);
         setSelectedImageSrc(null);
-        toast.success("Profile photo cropped successfully!");
     }, [completedCrop, onChange]);
 
     return (
@@ -214,7 +213,6 @@ export const AvatarUploader: React.FC<AvatarUploaderProps> = ({
                         onClick={(e) => {
                             e.stopPropagation();
                             onChange("");
-                            toast.success("Profile picture removed");
                         }}
                         className="px-2.5 py-1 text-[11px] font-medium text-[#CB2431] border border-[#CB2431]/20 hover:bg-[#CB2431]/10 rounded transition-colors shrink-0"
                     >
