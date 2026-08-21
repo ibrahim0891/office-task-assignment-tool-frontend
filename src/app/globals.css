@@ -292,7 +292,6 @@ html[data-theme*="dark"] {
   /* Button controls */
   button {
     color: var(--app-text);
-
     &[class*="bg-white"] {
       background-color: var(--app-card) !important;
       border-color: var(--app-border) !important;
@@ -326,6 +325,11 @@ html[data-theme*="dark"] {
         color: var(--app-text) !important;
       }
     }
+  }
+
+  button:active {
+    transform: scale(0.90);
+    transition: transform 0.1s ease-in-out; 
   }
 
   /* Component specific overrides */
