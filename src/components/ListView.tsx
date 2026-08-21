@@ -49,12 +49,17 @@ export default function ListView({
     );
     const userRole = activeMembership ? activeMembership.role : "MEMBER";
     const isObserver = userRole === "OBSERVER";
+    const isLeader = userRole === "LEADER";
+    const isMember = userRole === "MEMBER";
 
-    const activeTasks = tasks.filter((t) =>
-        showArchived
+    const activeTasks = tasks.filter((t) => {
+        if (isMember && t.assignedToId !== currentUser.id) {
+            return false;
+        }
+        return showArchived
             ? t.isSoftDeleted || t.isArchived
-            : !t.isSoftDeleted && !t.isArchived,
-    );
+            : !t.isSoftDeleted && !t.isArchived;
+    });
 
     const filteredTasks = activeTasks.filter((t) => {
         const matchesSearch =
@@ -111,8 +116,6 @@ export default function ListView({
         if (valA > valB) return sortOrder === "asc" ? 1 : -1;
         return 0;
     });
-
-    const isLeader = userRole === "LEADER";
 
     // A task is selectable if the user is a LEADER, or if they created it, or if they are assigned to it.
     const selectableTasks = isObserver
@@ -291,7 +294,11 @@ export default function ListView({
 
             {/* Filters */}
             <div className="relative border border-[#E5E5E3] p-3.5 flex flex-col gap-3 corner-brackets rounded-[2px]">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
+                <div
+                    className={`grid grid-cols-1 ${
+                        isMember ? "md:grid-cols-3" : "md:grid-cols-4"
+                    } gap-2 items-center`}
+                >
                     <input
                         type="text"
                         placeholder="Search by title, details…"
@@ -323,19 +330,21 @@ export default function ListView({
                         onChange={(val) => setSelectedPriority(val)}
                         className="w-full"
                     />
-                    <CustomSelect
-                        options={[
-                            { value: "", label: "All Assignees" },
-                            ...teamMembers.map(({ user }) => ({
-                                value: user.id,
-                                label: user.name,
-                                avatarUrl: user.avatarUrl || null,
-                            })),
-                        ]}
-                        value={selectedAssignee}
-                        onChange={(val) => setSelectedAssignee(val)}
-                        className="w-full"
-                    />
+                    {!isMember && (
+                        <CustomSelect
+                            options={[
+                                { value: "", label: "All Assignees" },
+                                ...teamMembers.map(({ user }) => ({
+                                    value: user.id,
+                                    label: user.name,
+                                    avatarUrl: user.avatarUrl || null,
+                                })),
+                            ]}
+                            value={selectedAssignee}
+                            onChange={(val) => setSelectedAssignee(val)}
+                            className="w-full"
+                        />
+                    )}
                 </div>
 
                 {/* Bulk Actions */}

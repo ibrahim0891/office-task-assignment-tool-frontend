@@ -202,25 +202,44 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             if (!userObj || !cachedToken) {
                 setTimeout(() => {
                     setIsInitialized(true);
-                }, 1500); // 1.5s artificial delay for unauthenticated users to enjoy the circular reveal
+                }, 1000);
                 return;
             }
 
             try {
-                const u = await api.getUsers();
+                const [u, t] = await Promise.all([
+                    api.getUsers().catch(() => []),
+                    api.getTeams(userObj.id).catch(() => [])
+                ]);
+
                 if (Array.isArray(u)) {
                     setUsers(u);
                 }
-                const t = await api.getTeams(userObj.id);
-                if (Array.isArray(t)) {
+                if (Array.isArray(t) && t.length > 0) {
                     setTeams(t);
                     const savedTeamId = localStorage.getItem("selected_team_id");
-                    const matched = t.find((team) => team.id === savedTeamId);
+                    const matched = t.find((team) => team.id === savedTeamId) || t[0];
                     if (matched) {
                         setCurrentTeam(matched);
-                    } else if (t.length > 0) {
-                        setCurrentTeam(t[0]);
-                        localStorage.setItem("selected_team_id", t[0].id);
+                        localStorage.setItem("selected_team_id", matched.id);
+                        if (matched.members) {
+                            setTeamMembers(matched.members);
+                        }
+
+                        // Load initial columns and tasks for the active workspace before finishing initialization
+                        const [cols, initialTasks] = await Promise.all([
+                            api.getColumns(matched.id).catch(() => []),
+                            api.getTasks(
+                                {
+                                    teamId: matched.id,
+                                    date: activeDateStr || getLocalDateString(),
+                                },
+                                userObj.id,
+                            ).catch(() => [])
+                        ]);
+
+                        if (Array.isArray(cols)) setColumns(cols);
+                        if (Array.isArray(initialTasks)) setTasks(initialTasks);
                     }
                 }
             } catch (err: any) {
@@ -289,6 +308,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             const params: any = { teamId: currentTeam.id };
             if (
                 currentView === "kanban" ||
+                currentView === "list" ||
                 currentView === "myday" ||
                 currentView === "dashboard" ||
                 currentView === "map"

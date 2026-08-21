@@ -4,7 +4,7 @@ import { CustomSelect } from "./ui/CustomSelect";
 import { CustomDatePicker } from "./ui/CustomDatePicker";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import { TipTapEditor } from "./ui/TipTapEditor";
-import { Task, TaskColumn, User, Comment, api } from "../api";
+import { Task, TaskColumn, User, Comment, TaskActivity, api } from "../api";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { APP_CONFIG } from "../config/appConfig";
 import {
@@ -18,6 +18,8 @@ import {
     FileText,
     MessageSquare,
     Paperclip,
+    ClipboardList,
+    ChevronRight,
 } from "lucide-react";
 
 // 30% Image Compression helper (70% quality)
@@ -138,6 +140,35 @@ export default function TaskModal({
     const [showLoadMore, setShowLoadMore] = useState(false);
     const [commentToDeleteId, setCommentToDeleteId] = useState<string | null>(null);
     const [resolvingCommentId, setResolvingCommentId] = useState<string | null>(null);
+    const [activitiesList, setActivitiesList] = useState<TaskActivity[]>([]);
+    const [activitiesPage, setActivitiesPage] = useState(1);
+    const [hasMoreActivities, setHasMoreActivities] = useState(false);
+    const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+    const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
+
+    const loadTaskActivities = async (page = 1, append = false) => {
+        if (!task?.id) return;
+        if (append) {
+            setIsLoadingMoreActivities(true);
+        } else {
+            setIsLoadingActivities(true);
+        }
+        try {
+            const res = await api.getTaskActivities(task.id, page, 15);
+            if (append) {
+                setActivitiesList((prev) => [...prev, ...res.activities]);
+            } else {
+                setActivitiesList(res.activities);
+            }
+            setActivitiesPage(page);
+            setHasMoreActivities(res.hasMore);
+        } catch (err) {
+            console.error("Failed to load task activities:", err);
+        } finally {
+            setIsLoadingActivities(false);
+            setIsLoadingMoreActivities(false);
+        }
+    };
     const [isDeletingComment, setIsDeletingComment] = useState(false);
     const commentsEndRef = React.useRef<HTMLDivElement>(null);
     const commentsContainerRef = React.useRef<HTMLDivElement>(null);
@@ -186,6 +217,9 @@ export default function TaskModal({
             setActiveTab(mappedTab);
             setHiddenCommentIds([]);
             setCommentsList([]);
+            setActivitiesList([]);
+            setActivitiesPage(1);
+            setHasMoreActivities(false);
             setShowLoadMore(false);
         } else {
             // Same task updating. Only update inputs that have not been modified locally!
@@ -1696,118 +1730,24 @@ export default function TaskModal({
                             </div>
                         </div>
 
-                        {/* Activity Log — Takes remaining vertical space */}
-                        <div className="flex-1 min-h-0 flex flex-col gap-2 pt-3 border-t border-[#E5E5E3]">
-                            <div className="flex items-center justify-between shrink-0">
-                                <label className="eyebrow">Activity Log</label>
-                                {task.activities &&
-                                    task.activities.length > 0 && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setShowAllAuditLog(true)
-                                            }
-                                            className="text-base text-[#1A1A1A] font-medium hover:underline"
-                                        >
-                                            View All →
-                                        </button>
-                                    )}
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 scrollbar-none">
-                                {(task.activities || [])
-                                    .filter((act) => {
-                                        const { summaryText, diffs } =
-                                            parseActivityInfo(act);
-                                        return !(
-                                            summaryText ===
-                                                "Updated task details." &&
-                                            diffs.length === 0
-                                        );
-                                    })
-                                    .slice(0, 3)
-                                    .map((act) => {
-                                        const { summaryText, diffs } =
-                                            parseActivityInfo(act);
-                                        const isExpanded =
-                                            expandedActivityId === act.id;
-
-                                        return (
-                                            <div
-                                                key={act.id}
-                                                onClick={() =>
-                                                    setExpandedActivityId(
-                                                        isExpanded
-                                                            ? null
-                                                            : act.id,
-                                                    )
-                                                }
-                                                className="text-[9px] text-[#888883] leading-snug border-b border-[#E5E5E3] pb-1.5 last:border-0 cursor-pointer hover:bg-[#FAFAF9] p-1 rounded-[2px] transition-colors"
-                                            >
-                                                <div className="flex justify-between items-center">
-                                                    <span className="font-medium text-[#1A1A1A]">
-                                                        {act.user?.name ||
-                                                            "System"}
-                                                    </span>
-                                                    <span className="text-[8px] text-[#888883]/70">
-                                                        {new Date(
-                                                            act.createdAt,
-                                                        ).toLocaleString()}
-                                                    </span>
-                                                </div>
-                                                <div className="text-[#1A1A1A] mt-0.5 flex justify-between items-center">
-                                                    <span>{summaryText}</span>
-                                                    {diffs.length > 0 && (
-                                                        <span className="text-[8px] text-[#888883] underline">
-                                                            {isExpanded
-                                                                ? "Hide"
-                                                                : "Details"}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Expanded Field Diffs */}
-                                                {isExpanded &&
-                                                    diffs.length > 0 && (
-                                                        <div className="mt-1 pt-1 border-t border-[#E5E5E3] flex flex-col gap-1">
-                                                            {diffs.map(
-                                                                (d, idx) => (
-                                                                    <div
-                                                                        key={
-                                                                            idx
-                                                                        }
-                                                                        className="flex justify-between items-center text-[8px] bg-white p-1 border border-[#E5E5E3]"
-                                                                    >
-                                                                        <span className="font-medium text-[#1A1A1A]">
-                                                                            {
-                                                                                d.field
-                                                                            }
-                                                                            :
-                                                                        </span>
-                                                                        <div className="flex items-center gap-1">
-                                                                            <span className="line-through text-[#888883]">
-                                                                                {
-                                                                                    d.from
-                                                                                }
-                                                                            </span>
-                                                                            <span>
-                                                                                →
-                                                                            </span>
-                                                                            <span className="font-semibold text-[#1A1A1A]">
-                                                                                {
-                                                                                    d.to
-                                                                                }
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                ),
-                                                            )}
-                                                        </div>
-                                                    )}
-                                            </div>
-                                        );
-                                    })}
-                            </div>
+                        {/* Activity Log Button — Pushed to the Very End */}
+                        <div className="mt-auto pt-3 border-t border-[var(--app-border,#E5E5E3)]">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowAllAuditLog(true);
+                                    if (activitiesList.length === 0) {
+                                        loadTaskActivities(1);
+                                    }
+                                }}
+                                className="w-full py-1.5 px-2.5 bg-[var(--app-card,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] hover:border-[var(--color-accent,#1A1A1A)] hover:bg-[var(--app-hover-bg,white)] text-[11px] text-[var(--app-text,#1A1A1A)] font-medium rounded-[3px] transition-colors flex items-center justify-between group cursor-pointer"
+                            >
+                                <span className="flex items-center gap-1.5 min-w-0">
+                                    <ClipboardList className="w-3.5 h-3.5 text-[var(--app-muted,#888883)] group-hover:text-[var(--app-text,#1A1A1A)] transition-colors shrink-0" />
+                                    <span className="truncate">View Activity Logs</span>
+                                </span>
+                                <ChevronRight className="w-3.5 h-3.5 text-[var(--app-muted,#888883)] group-hover:text-[var(--app-text,#1A1A1A)] group-hover:translate-x-0.5 transition-all shrink-0" />
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1893,90 +1833,130 @@ export default function TaskModal({
                         </div>
 
                         <div className="flex-1 overflow-y-auto flex flex-col gap-2 py-1 pr-1">
-                            {(task.activities || [])
-                                .filter((act) => {
-                                    const { summaryText, diffs } =
-                                        parseActivityInfo(act);
-                                    return !(
-                                        summaryText ===
-                                            "Updated task details." &&
-                                        diffs.length === 0
-                                    );
-                                })
-                                .map((act) => {
-                                    const { summaryText, diffs } =
-                                        parseActivityInfo(act);
-                                    const isExpanded =
-                                        expandedActivityId === act.id;
+                            {isLoadingActivities && activitiesList.length === 0 ? (
+                                <div className="py-12 text-center text-[#888883] text-base animate-pulse">
+                                    Loading activity logs...
+                                </div>
+                            ) : activitiesList.length === 0 ? (
+                                <div className="py-12 text-center text-[#888883] text-base">
+                                    No activity logs recorded for this task.
+                                </div>
+                            ) : (
+                                <>
+                                    {activitiesList
+                                        .filter((act) => {
+                                            const { summaryText, diffs } =
+                                                parseActivityInfo(act);
+                                            return !(
+                                                summaryText ===
+                                                    "Updated task details." &&
+                                                diffs.length === 0
+                                            );
+                                        })
+                                        .map((act) => {
+                                            const { summaryText, diffs } =
+                                                parseActivityInfo(act);
+                                            const isExpanded =
+                                                expandedActivityId === act.id;
 
-                                    return (
-                                        <div
-                                            key={act.id}
+                                            return (
+                                                <div
+                                                    key={act.id}
+                                                    onClick={() =>
+                                                        setExpandedActivityId(
+                                                            isExpanded
+                                                                ? null
+                                                                : act.id,
+                                                        )
+                                                    }
+                                                    className={`p-3 border transition-colors cursor-pointer text-left ${
+                                                        isExpanded
+                                                            ? "border-[#1A1A1A] bg-white"
+                                                            : "border-[#E5E5E3] bg-[#FAFAF9] hover:border-[#DADAD6]"
+                                                    }`}
+                                                >
+                                                    <div className="flex justify-between items-center text-base text-[#888883]">
+                                                        <span className="font-semibold text-[#1A1A1A]">
+                                                            {act.user?.name ||
+                                                                "System"}
+                                                        </span>
+                                                        <span>
+                                                            {new Date(
+                                                                act.createdAt,
+                                                            ).toLocaleString()}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="text-[#1A1A1A] font-medium text-[11px] mt-1 flex justify-between items-center">
+                                                        <span>{summaryText}</span>
+                                                        {diffs.length > 0 && (
+                                                            <span className="text-base text-[#888883] hover:text-[#1A1A1A] font-semibold">
+                                                                {isExpanded
+                                                                    ? "Collapse ▲"
+                                                                    : "View Details ▼"}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {isExpanded &&
+                                                        diffs.length > 0 && (
+                                                            <div className="mt-2 pt-2 border-t border-[#E5E5E3] flex flex-col gap-1.5 animate-fade-in">
+                                                                {diffs.map(
+                                                                    (
+                                                                        diff,
+                                                                        idx,
+                                                                    ) => (
+                                                                        <div
+                                                                            key={
+                                                                                idx
+                                                                            }
+                                                                            className="bg-[#FAFAF9] p-2 border border-[#E5E5E3] text-base leading-snug"
+                                                                        >
+                                                                            <span className="font-semibold text-[#1A1A1A]">
+                                                                                {
+                                                                                    diff.field
+                                                                                }
+                                                                                :
+                                                                            </span>{" "}
+                                                                            <span className="line-through text-[#888883] mr-1">
+                                                                                {
+                                                                                    diff.from
+                                                                                }
+                                                                            </span>{" "}
+                                                                            <span className="text-[#22863A] font-medium">
+                                                                                →{" "}
+                                                                                {
+                                                                                    diff.to
+                                                                                }
+                                                                            </span>
+                                                                        </div>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                </div>
+                                            );
+                                        })}
+
+                                    {hasMoreActivities && (
+                                        <button
+                                            type="button"
                                             onClick={() =>
-                                                setExpandedActivityId(
-                                                    isExpanded ? null : act.id,
+                                                loadTaskActivities(
+                                                    activitiesPage + 1,
+                                                    true,
                                                 )
                                             }
-                                            className={`p-3 border transition-colors cursor-pointer text-left ${
-                                                isExpanded
-                                                    ? "border-[#1A1A1A] bg-white"
-                                                    : "border-[#E5E5E3] bg-[#FAFAF9] hover:border-[#DADAD6]"
-                                            }`}
+                                            disabled={isLoadingMoreActivities}
+                                            className="w-full py-2.5 bg-[#FAFAF9] border border-[#E5E5E3] hover:border-[#1A1A1A] hover:bg-white text-base text-[#1A1A1A] font-medium rounded-[2px] transition-colors mt-2"
                                         >
-                                            <div className="flex justify-between items-center text-base text-[#888883]">
-                                                <span className="font-semibold text-[#1A1A1A]">
-                                                    {act.user?.name || "System"}
-                                                </span>
-                                                <span>
-                                                    {new Date(
-                                                        act.createdAt,
-                                                    ).toLocaleString()}
-                                                </span>
-                                            </div>
-
-                                            <div className="text-[#1A1A1A] font-medium text-[11px] mt-1 flex justify-between items-center">
-                                                <span>{summaryText}</span>
-                                                {diffs.length > 0 && (
-                                                    <span className="text-base text-[#888883] hover:text-[#1A1A1A] font-semibold">
-                                                        {isExpanded
-                                                            ? "Collapse ▲"
-                                                            : "View Details ▼"}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Click to view field changes */}
-                                            {isExpanded && diffs.length > 0 && (
-                                                <div className="mt-2 pt-2 border-t border-[#E5E5E3] flex flex-col gap-1.5 animate-fade-in">
-                                                    <span className="text-[9px] font-semibold text-[#888883] capitalize capitalize">
-                                                        Field Changes
-                                                    </span>
-                                                    {diffs.map((d, idx) => (
-                                                        <div
-                                                            key={idx}
-                                                            className="flex justify-between items-center text-base bg-[#FAFAF9] p-2 border border-[#E5E5E3]"
-                                                        >
-                                                            <span className="font-semibold text-[#1A1A1A]">
-                                                                {d.field}
-                                                            </span>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="line-through text-[#888883]">
-                                                                    {d.from}
-                                                                </span>
-                                                                <span className="text-[#888883]">
-                                                                    →
-                                                                </span>
-                                                                <span className="font-semibold text-[#1A1A1A]">
-                                                                    {d.to}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                            {isLoadingMoreActivities
+                                                ? "Loading more..."
+                                                : "Load More Logs"}
+                                        </button>
+                                    )}
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

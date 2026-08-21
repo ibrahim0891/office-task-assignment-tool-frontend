@@ -29,6 +29,21 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
 
 const fetch = customFetch;
 
+const inFlightGetRequests = new Map<string, Promise<any>>();
+
+export function deduplicateGet<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const existing = inFlightGetRequests.get(key);
+  if (existing) {
+    return existing;
+  }
+  const promise = fetcher().finally(() => {
+    inFlightGetRequests.delete(key);
+  });
+  inFlightGetRequests.set(key, promise);
+  return promise;
+}
+
+
 export function getIframeProxyUrl(url: string) {
   return `${API_BASE}/iframe-proxy?url=${encodeURIComponent(url)}`;
 }
@@ -134,7 +149,7 @@ export interface Task {
   checklist: ChecklistItem[];
   comments?: Comment[];
   attachments: Attachment[];
-  activities: TaskActivity[];
+  activities?: TaskActivity[];
 }
 
 export interface Notification {
@@ -233,8 +248,10 @@ export const api = {
 
   async getUsers(search?: string): Promise<User[]> {
     const url = search ? `${API_BASE}/users?search=${encodeURIComponent(search)}` : `${API_BASE}/users`;
-    const res = await fetch(url);
-    return res.json();
+    return deduplicateGet(url, async () => {
+      const res = await fetch(url);
+      return res.json();
+    });
   },
 
   async getUserProfile(userId: string): Promise<User> {
@@ -261,8 +278,10 @@ export const api = {
 
   async getTeams(userId?: string): Promise<Team[]> {
     const url = userId ? `${API_BASE}/teams?userId=${userId}` : `${API_BASE}/teams`;
-    const res = await fetch(url);
-    return res.json();
+    return deduplicateGet(url, async () => {
+      const res = await fetch(url);
+      return res.json();
+    });
   },
 
   async createTeam(name: string, creatorId: string, emoji?: string): Promise<Team> {
@@ -362,8 +381,11 @@ export const api = {
   },
 
   async getColumns(teamId: string): Promise<TaskColumn[]> {
-    const res = await fetch(`${API_BASE}/teams/${teamId}/columns`);
-    return res.json();
+    const url = `${API_BASE}/teams/${teamId}/columns`;
+    return deduplicateGet(url, async () => {
+      const res = await fetch(url);
+      return res.json();
+    });
   },
 
   async updateColumns(teamId: string, columns: any[]): Promise<TaskColumn[]> {
@@ -508,6 +530,15 @@ export const api = {
     const res = await fetch(`${API_BASE}/tasks/${taskId}/checklist/${itemId}`, {
       method: 'DELETE'
     });
+    return res.json();
+  },
+
+  async getTaskActivities(taskId: string, page = 1, limit = 15): Promise<{ activities: TaskActivity[]; totalCount: number; hasMore: boolean }> {
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/activities?page=${page}&limit=${limit}`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to fetch task activities.");
+    }
     return res.json();
   },
 

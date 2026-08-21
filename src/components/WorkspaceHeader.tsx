@@ -44,6 +44,7 @@ export default function WorkspaceHeader({
                 </span>
 
                 {(currentView === "kanban" ||
+                    currentView === "list" ||
                     currentView === "dashboard" ||
                     currentView === "map") && (
                     <div className="flex items-center gap-2 text-[11px]">
