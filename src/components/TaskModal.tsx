@@ -1272,51 +1272,21 @@ export default function TaskModal({
                                             {canEditDetails && (
                                                 <div className="flex items-center gap-2">
                                                     {isEditingDescription ? (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setDescription(
-                                                                        task.description ||
-                                                                            "",
-                                                                    );
-                                                                    setIsEditingDescription(
-                                                                        false,
-                                                                    );
-                                                                }}
-                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#888883] hover:text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
-                                                            >
-                                                                <span>
-                                                                    Cancel
-                                                                </span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                disabled={
-                                                                    isSaving
-                                                                }
-                                                                onClick={() => {
-                                                                    setIsEditingDescription(
-                                                                        false,
-                                                                    );
-                                                                    handleSaveChanges(
-                                                                        false,
-                                                                    );
-                                                                }}
-                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            >
-                                                                {isSaving ? (
-                                                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                                                ) : (
-                                                                    <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
-                                                                )}
-                                                                <span>
-                                                                    {isSaving
-                                                                        ? "Saving…"
-                                                                        : "Save"}
-                                                                </span>
-                                                            </button>
-                                                        </>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setDescription(
+                                                                    task.description ||
+                                                                        "",
+                                                                );
+                                                                setIsEditingDescription(
+                                                                    false,
+                                                                );
+                                                            }}
+                                                            className="relative corner-brackets-4 bg-[var(--app-card,#FFFFFF)] hover:bg-[var(--app-hover-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
+                                                        >
+                                                            <span>Cancel</span>
+                                                        </button>
                                                     ) : hasDescription ? (
                                                         <>
                                                             <button

@@ -9,7 +9,7 @@ import { CustomDatePicker } from "./ui/CustomDatePicker";
 interface WorkspaceHeaderProps {
     viewLabel: string;
     theme: string;
-    onToggleTheme: () => void;
+    onToggleTheme: (e?: React.MouseEvent) => void;
     onOpenSystemSettings: () => void;
 }
 
@@ -60,7 +60,7 @@ export default function WorkspaceHeader({
 
             <div className="flex items-center gap-2.5">
                 <button
-                    onClick={onToggleTheme}
+                    onClick={(e) => onToggleTheme(e)}
                     className="relative corner-brackets-4 p-2 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#1A1A1A] transition-colors flex items-center justify-center cursor-pointer"
                     title={`Switch to ${theme === "light" ? "Dark" : "Light"} Mode`}
                 >

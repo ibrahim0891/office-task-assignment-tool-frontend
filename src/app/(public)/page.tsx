@@ -14,6 +14,7 @@ import FaqSection from "@/components/public/FaqSection";
 import CtaSection from "@/components/public/CtaSection";
 import DeveloperCredits from "@/components/public/DeveloperCredits";
 import LandingFooter from "@/components/public/LandingFooter";
+import { toggleThemeWithCircularReveal } from "@/utils/themeTransition";
 
 export default function PublicLandingPage() {
     const { currentUser, isInitialized } = useWorkspace();
@@ -57,16 +58,7 @@ export default function PublicLandingPage() {
 
     // 2. Theme detection & synchronization
     useEffect(() => {
-        const savedTheme = localStorage.getItem("sys_theme");
-        if (
-            savedTheme === "lws-dark" ||
-            savedTheme === "nord-dark" ||
-            savedTheme === "amoled-dark" ||
-            savedTheme === "dark"
-        ) {
-            setIsDarkMode(true);
-            document.documentElement.setAttribute("data-theme", savedTheme);
-        } else {
+        if (typeof window !== "undefined") {
             const currentTheme = document.documentElement.getAttribute("data-theme");
             if (currentTheme && currentTheme !== "light") {
                 setIsDarkMode(true);
@@ -74,12 +66,14 @@ export default function PublicLandingPage() {
         }
     }, []);
 
-    const toggleTheme = () => {
+    const toggleTheme = (e?: React.MouseEvent) => {
         const next = !isDarkMode;
-        setIsDarkMode(next);
-        const themeVal = next ? "lws-dark" : "light";
-        document.documentElement.setAttribute("data-theme", themeVal);
-        localStorage.setItem("sys_theme", themeVal);
+        toggleThemeWithCircularReveal(e, () => {
+            setIsDarkMode(next);
+            const themeVal = next ? "lws-dark" : "light";
+            document.documentElement.setAttribute("data-theme", themeVal);
+            localStorage.setItem("sys_theme", themeVal);
+        });
     };
 
     if (isInitialized && currentUser) {

@@ -1460,3 +1460,32 @@ html[data-theme="dark"] .target-bracket-btn-secondary:hover::before {
   will-change: left, right;
   animation: googleTopLoader2 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) 1.15s infinite;
 }
+
+/* ─── Circular View Transition for Theme Switcher ─── */
+.theme-transitioning,
+.theme-transitioning * {
+  transition: none !important;
+}
+
+::view-transition-group(root) {
+  animation-duration: 1.5s;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  will-change: clip-path;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 999999;
+}

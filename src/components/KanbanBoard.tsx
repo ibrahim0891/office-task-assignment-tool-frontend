@@ -350,7 +350,7 @@ export default function KanbanBoard({
 
 
                             {/* Member Assignee Selector */}
-                            {userRole !== "MEMBER" && teamMembers && teamMembers.length > 0 && (
+                            {userRole !== "MEMBER" && teamMembers && teamMembers.length > 1 && (
                                 <CustomSelect
                                     options={[
                                         {
@@ -382,7 +382,7 @@ export default function KanbanBoard({
 
                         {/* Filters & Sorting Pushed to Far Right */}
                         <div className="flex items-center gap-2 ml-auto shrink-0">
-                            {userRole === "LEADER" && (
+                            {userRole === "LEADER" && teamMembers && teamMembers.length > 1 && (
                                 <CustomSelect
                                     options={[
                                         { value: "", label: "All Team Tasks" },

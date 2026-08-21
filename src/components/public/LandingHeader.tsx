@@ -8,7 +8,7 @@ import { User } from "@/api";
 interface LandingHeaderProps {
     currentUser: User | null;
     isDarkMode: boolean;
-    onToggleTheme: () => void;
+    onToggleTheme: (e?: React.MouseEvent) => void;
 }
 
 export default function LandingHeader({
@@ -87,7 +87,7 @@ export default function LandingHeader({
                 {/* Header Action Buttons */}
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={onToggleTheme}
+                        onClick={(e) => onToggleTheme(e)}
                         className="btn-glass-shimmer p-2.5 border border-[var(--app-border)] rounded-[3px] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] transition-all cursor-pointer hover:-translate-y-0.5 active:scale-95"
                         title="Toggle Theme"
                     >

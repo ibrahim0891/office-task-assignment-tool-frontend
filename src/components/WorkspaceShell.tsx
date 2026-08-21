@@ -13,6 +13,8 @@ import TopLoadingBar from "./ui/TopLoadingBar";
 import { fontMap } from "../config/fontConfig";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 
+import { toggleThemeWithCircularReveal } from "../utils/themeTransition";
+
 export default function WorkspaceShell({
     children,
 }: {
@@ -130,11 +132,13 @@ export default function WorkspaceShell({
         }
     }, []);
 
-    const handleToggleTheme = () => {
+    const handleToggleTheme = (e?: React.MouseEvent) => {
         const nextTheme = theme === "light" ? "lws-dark" : "light";
-        setTheme(nextTheme);
-        document.documentElement.setAttribute("data-theme", nextTheme);
-        localStorage.setItem("sys_theme", nextTheme);
+        toggleThemeWithCircularReveal(e, () => {
+            setTheme(nextTheme);
+            document.documentElement.setAttribute("data-theme", nextTheme);
+            localStorage.setItem("sys_theme", nextTheme);
+        });
         toast.success(
             `Switched to ${nextTheme === "lws-dark" ? "LWS Dark Mode" : "Light Mode"}`,
         );
