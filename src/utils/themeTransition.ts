@@ -43,7 +43,7 @@ export function toggleThemeWithCircularReveal(
                 clipPath: clipPath,
             },
             {
-                duration: 1000,
+                duration: 3000,
                 easing: "cubic-bezier(0.4, 0, 0.2, 1)",
                 pseudoElement: "::view-transition-new(root)",
             },
