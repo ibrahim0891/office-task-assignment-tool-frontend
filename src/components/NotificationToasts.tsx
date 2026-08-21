@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
+import { useWorkspace } from "../context/WorkspaceContext";
 
 export interface NotificationToast {
     id: string;
@@ -20,6 +22,9 @@ interface NotificationToastsProps {
 }
 
 export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: NotificationToastsProps) {
+    const router = useRouter();
+    const { setIsManageInvitationsOpen, setIsManageFoldersOpen } = useWorkspace();
+
     const getNotificationType = (n: any) => {
         let type = n.type;
         if (type === "REASSIGN") {
@@ -41,48 +46,83 @@ export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: 
         return type;
     };
 
+    const getTypeBadgeClass = (type: string) => {
+        if (type === "PROJECT_INVITATION") {
+            return "border-[#7C3AED]/30 text-[#7C3AED] bg-[#7C3AED]/10 font-bold";
+        }
+        if (type === "TASK_ASSIGNED" || type === "TASK_REASSIGNED" || type === "TASK_CREATED") {
+            return "border-[var(--color-success)]/30 text-[var(--color-success)] bg-[var(--color-success)]/10 font-bold";
+        }
+        if (type === "MEMBER_ADDED" || type === "MEMBER_INVITED" || type === "ROLE_UPDATED") {
+            return "border-[var(--color-warning)]/30 text-[var(--color-warning)] bg-[var(--color-warning)]/10 font-bold";
+        }
+        if (type === "COMMENT_MENTION") {
+            return "border-[var(--app-border-strong)] text-[var(--app-text)] bg-[var(--app-card)] font-bold";
+        }
+        if (type === "NEED_ATTENTION") {
+            return "border-[var(--color-error)]/30 text-[var(--color-error)] bg-[var(--color-error)]/10 font-bold";
+        }
+        return "border-[var(--app-border)] text-[var(--app-muted)] bg-[var(--app-bg)]";
+    };
+
     return (
         <div className="fixed top-16 right-4 z-[9999] flex flex-col gap-3 pointer-events-none w-[340px] max-w-full">
-            {toasts.map((toast) => (
-                <div
-                    key={toast.id}
-                    onClick={() => {
-                        if (toast.notification.taskId && onSelectTask) {
-                            onSelectTask(
-                                toast.notification.taskId,
-                                toast.notification.type === "COMMENT_MENTION" ? "comments" : "details"
-                            );
-                        }
-                        onDismiss(toast.id);
-                    }}
-                    className={`pointer-events-auto w-full bg-white border border-[#E5E5E3] text-[#1A1A1A] px-4 py-3.5 shadow-md flex items-start gap-3 relative select-none corner-brackets animate-slide-in hover:border-[#DADAD6] transition-colors ${toast.notification.taskId && onSelectTask ? "cursor-pointer" : "cursor-default"}`}
-                    style={{ 
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
-                        borderRadius: "2px"
-                    }}
-                >
-                    <div className="flex-1 flex flex-col gap-1 text-left">
-                        <div className="flex items-center justify-between">
-                            <span className="px-1.5 py-0.5 rounded-[2px] text-[9px] font-medium border border-[#E5E5E3] text-[#888883] bg-[#FAFAF9]">
-                                {getNotificationType(toast.notification).replace("_", " ")}
-                            </span>
-                            <span className="text-[10px] text-[#888883]">Just now</span>
-                        </div>
-                        <p className="text-[11px] leading-relaxed font-semibold pr-2">
-                            {toast.notification.content}
-                        </p>
-                    </div>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
+            {toasts.map((toast) => {
+                const type = getNotificationType(toast.notification);
+                const isProjectInvitation = type === "PROJECT_INVITATION";
+
+                return (
+                    <div
+                        key={toast.id}
+                        onClick={() => {
+                            if (isProjectInvitation) {
+                                router.push("/projects");
+                                if (setIsManageFoldersOpen) setIsManageFoldersOpen(false);
+                                if (setIsManageInvitationsOpen) setIsManageInvitationsOpen(true);
+                            } else if (toast.notification.taskId && onSelectTask) {
+                                onSelectTask(
+                                    toast.notification.taskId,
+                                    toast.notification.type === "COMMENT_MENTION" ? "comments" : "details"
+                                );
+                            }
                             onDismiss(toast.id);
                         }}
-                        className="text-[#888883] hover:text-[#1A1A1A] transition-colors text-[11px] font-medium shrink-0 pt-0.5"
+                        className={`pointer-events-auto w-full bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] px-4 py-3.5 shadow-md flex items-start gap-3 relative select-none corner-brackets animate-slide-in hover:border-[var(--app-border-strong)] transition-colors ${
+                            toast.notification.taskId || isProjectInvitation ? "cursor-pointer" : "cursor-default"
+                        }`}
+                        style={{
+                            boxShadow: "var(--shadow-float)",
+                            borderRadius: "2px",
+                        }}
                     >
-                        ✕
-                    </button>
-                </div>
-            ))}
+                        <div className="flex-1 flex flex-col gap-1 text-left">
+                            <div className="flex items-center justify-between">
+                                <span className={`px-1.5 py-0.5 rounded-[2px] text-[9px] font-medium border ${getTypeBadgeClass(type)}`}>
+                                    {type.replace("_", " ")}
+                                </span>
+                                <span className="text-[10px] text-[var(--app-muted)]">Just now</span>
+                            </div>
+                            <p className="text-[11px] leading-relaxed font-semibold pr-2">
+                                {toast.notification.content}
+                            </p>
+                            {isProjectInvitation && (
+                                <span className="text-[9px] text-[#7C3AED] font-semibold mt-0.5 hover:underline inline-flex items-center gap-1">
+                                    → View in Projects Collection
+                                </span>
+                            )}
+                        </div>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDismiss(toast.id);
+                            }}
+                            className="text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors text-[11px] font-medium shrink-0 pt-0.5"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                );
+            })}
         </div>
     );
 }

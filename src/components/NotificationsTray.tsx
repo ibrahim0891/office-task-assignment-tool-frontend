@@ -81,6 +81,8 @@ export default function NotificationsTray({
                 return "text-[#CB2431] border-[#CB2431]/20";
             case "COMMENT_MENTION":
                 return "text-[#B08800] border-[#B08800]/20";
+            case "PROJECT_INVITATION":
+                return "text-[#7C3AED] border-[#7C3AED]/20 bg-[#7C3AED]/10";
             default:
                 return "text-[#1A1A1A] border-[#E5E5E3]";
         }

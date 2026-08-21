@@ -917,4 +917,407 @@ export const api = {
       throw new Error(err.error || 'Failed to delete push subscription.');
     }
   },
+
+  // ----------------------------------------------------
+  // PROJECT MODULE API METHODS
+  // ----------------------------------------------------
+  async getProjects(teamId: string, userId?: string): Promise<any[]> {
+    const headers: Record<string, string> = {
+      'x-team-id': teamId,
+    };
+    if (userId) {
+      headers['x-user-id'] = userId;
+    }
+    const res = await fetch(`${API_BASE}/projects?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`, {
+      headers,
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch projects.');
+    }
+    return res.json();
+  },
+
+  async getPortfolioSummary(teamId: string, userId?: string): Promise<any> {
+    const headers: Record<string, string> = {
+      'x-team-id': teamId,
+    };
+    if (userId) {
+      headers['x-user-id'] = userId;
+    }
+    const res = await fetch(`${API_BASE}/projects/summary?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`, {
+      headers,
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch portfolio summary.');
+    }
+    return res.json();
+  },
+
+  async getProjectDetail(projectId: string, teamId?: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}`, {
+      headers: teamId ? { 'x-team-id': teamId } : undefined,
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch project details.');
+    }
+    return res.json();
+  },
+
+  async createProject(data: any, teamId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-team-id': teamId
+      },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create project.');
+    }
+    return res.json();
+  },
+
+  async updateProject(projectId: string, data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update project.');
+    }
+    return res.json();
+  },
+
+  async deleteProject(projectId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete project.');
+    }
+    return res.json();
+  },
+
+  async getProjectAnalytics(projectId: string, startDate?: string): Promise<any> {
+    const url = startDate 
+      ? `${API_BASE}/projects/${projectId}/analytics?startDate=${startDate}` 
+      : `${API_BASE}/projects/${projectId}/analytics`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch project analytics.');
+    }
+    return res.json();
+  },
+
+  async addProjectMember(projectId: string, data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/members`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to add project member.');
+    }
+    return res.json();
+  },
+
+  async updateProjectMember(projectId: string, memberId: string, data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/members/${memberId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update project member.');
+    }
+    return res.json();
+  },
+
+  async removeProjectMember(projectId: string, memberId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/members/${memberId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to remove project member.');
+    }
+    return res.json();
+  },
+
+  async createProjectTask(projectId: string, data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create project task.');
+    }
+    return res.json();
+  },
+
+  async updateProjectTask(projectId: string, taskId: string, data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update project task.');
+    }
+    return res.json();
+  },
+
+  async deleteProjectTask(projectId: string, taskId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete project task.');
+    }
+    return res.json();
+  },
+
+  async reworkProjectTask(projectId: string, taskId: string, data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/rework`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to rework project task.');
+    }
+    return res.json();
+  },
+
+  async createProjectSubtask(projectId: string, taskId: string, data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create subtask.');
+    }
+    return res.json();
+  },
+
+  async updateProjectSubtask(projectId: string, taskId: string, subtaskId: string, data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update subtask.');
+    }
+    return res.json();
+  },
+
+  async deleteProjectSubtask(projectId: string, taskId: string, subtaskId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete subtask.');
+    }
+    return res.json();
+  },
+
+  async createDependency(projectId: string, data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/dependencies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create dependency.');
+    }
+    return res.json();
+  },
+
+  async deleteDependency(projectId: string, dependencyId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/dependencies/${dependencyId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete dependency.');
+    }
+    return res.json();
+  },
+
+  // ----------------------------------------------------
+  // FOLDER API METHODS
+  // ----------------------------------------------------
+  async getFolders(teamId: string): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/folders?teamId=${teamId}`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch folders.');
+    }
+    return res.json();
+  },
+
+  async createFolder(teamId: string, name: string, emoji?: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/folders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-team-id': teamId
+      },
+      body: JSON.stringify({ name, emoji })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create folder.');
+    }
+    return res.json();
+  },
+
+  async updateFolder(folderId: string, teamId: string, name?: string, emoji?: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/folders/${folderId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-team-id': teamId
+      },
+      body: JSON.stringify({ name, emoji })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update folder.');
+    }
+    return res.json();
+  },
+
+  async deleteFolder(folderId: string, teamId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/folders/${folderId}?teamId=${teamId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete folder.');
+    }
+    return res.json();
+  },
+
+  // ----------------------------------------------------
+  // PROJECT INVITATION API METHODS
+  // ----------------------------------------------------
+  async getReceivedProjectInvitations(teamId?: string): Promise<any[]> {
+    const query = teamId ? `?teamId=${teamId}` : '';
+    const res = await fetch(`${API_BASE}/projects/invitations/received${query}`, {
+      headers: teamId ? { 'x-team-id': teamId } : {}
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch received project invitations.');
+    }
+    return res.json();
+  },
+
+  async getSentProjectInvitations(teamId?: string): Promise<any[]> {
+    const query = teamId ? `?teamId=${teamId}` : '';
+    const res = await fetch(`${API_BASE}/projects/invitations/sent${query}`, {
+      headers: teamId ? { 'x-team-id': teamId } : {}
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch sent project invitations.');
+    }
+    return res.json();
+  },
+
+  async getPendingProjectInvitationsCount(teamId?: string): Promise<{ count: number }> {
+    const query = teamId ? `?teamId=${teamId}` : '';
+    const res = await fetch(`${API_BASE}/projects/invitations/count${query}`, {
+      headers: teamId ? { 'x-team-id': teamId } : {}
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch invitations count.');
+    }
+    return res.json();
+  },
+
+  async sendProjectInvitation(projectId: string, data: { userId?: string; email?: string; role?: string; dailyCapacity?: number }, teamId?: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/invitations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(teamId ? { 'x-team-id': teamId } : {})
+      },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to send project invitation.');
+    }
+    return res.json();
+  },
+
+  async acceptProjectInvitation(invitationId: string, teamId?: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/invitations/${invitationId}/accept`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(teamId ? { 'x-team-id': teamId } : {})
+      }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to accept project invitation.');
+    }
+    return res.json();
+  },
+
+  async rejectProjectInvitation(invitationId: string, teamId?: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/invitations/${invitationId}/reject`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(teamId ? { 'x-team-id': teamId } : {})
+      }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to decline project invitation.');
+    }
+    return res.json();
+  },
+
+  async cancelProjectInvitation(invitationId: string, teamId?: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/invitations/${invitationId}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(teamId ? { 'x-team-id': teamId } : {})
+      }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to cancel project invitation.');
+    }
+    return res.json();
+  },
 };

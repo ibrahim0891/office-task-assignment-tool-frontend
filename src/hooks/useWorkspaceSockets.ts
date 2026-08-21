@@ -19,6 +19,8 @@ export function useWorkspaceSockets(
     setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>,
     pendingColumnUpdatesRef: React.MutableRefObject<Record<string, { timeoutId: NodeJS.Timeout; previousTasks: any[]; targetColumnId: string }>>,
     moveVersionRef: React.MutableRefObject<Record<string, number>>,
+    loadProjects?: () => Promise<void>,
+    loadProjectInvitations?: () => Promise<void>,
 ) {
     const draggingCardIdRef = useRef<string | null>(null);
     const deferredSocketEventsRef = useRef<Array<{ action: string; taskId: string; columnId?: string; actingUserId?: string; timestamp?: number }>>([]);
@@ -84,6 +86,10 @@ export function useWorkspaceSockets(
         socket.on("new_notification", (notification: any) => {
             console.log("[Socket Client] Received new_notification:", notification);
             
+            if (notification.type === "PROJECT_INVITATION" && loadProjects) {
+                loadProjects();
+            }
+
             // Avoid showing toast banners/chimes if the details modal for this specific task is already open
             const isTaskModalOpenForThisTask = selectedTaskIdRef.current && notification.taskId === selectedTaskIdRef.current;
             if (!isTaskModalOpenForThisTask) {
@@ -94,6 +100,57 @@ export function useWorkspaceSockets(
                 if (prev.some((n) => n.id === notification.id)) return prev;
                 return [notification, ...prev];
             });
+        });
+
+        socket.on("project_updated", (data: any) => {
+            console.log("[Socket Client] Received project_updated:", data);
+            if (loadProjects) {
+                loadProjects();
+            }
+            if (loadProjectInvitations) {
+                loadProjectInvitations();
+            }
+        });
+
+        socket.on("project_invitation", (data: any) => {
+            console.log("[Socket Client] Received project_invitation:", data);
+            if (loadProjects) {
+                loadProjects();
+            }
+            if (loadProjectInvitations) {
+                loadProjectInvitations();
+            }
+        });
+
+        socket.on("project_invitation_accepted", (data: any) => {
+            console.log("[Socket Client] Received project_invitation_accepted:", data);
+            if (loadProjects) {
+                loadProjects();
+            }
+            if (loadProjectInvitations) {
+                loadProjectInvitations();
+            }
+        });
+
+        socket.on("project_invitation_rejected", (data: any) => {
+            console.log("[Socket Client] Received project_invitation_rejected:", data);
+            if (loadProjectInvitations) {
+                loadProjectInvitations();
+            }
+        });
+
+        socket.on("project_invitation_cancelled", (data: any) => {
+            console.log("[Socket Client] Received project_invitation_cancelled:", data);
+            if (loadProjectInvitations) {
+                loadProjectInvitations();
+            }
+        });
+
+        socket.on("invitation_sent", (data: any) => {
+            console.log("[Socket Client] Received invitation_sent:", data);
+            if (loadProjectInvitations) {
+                loadProjectInvitations();
+            }
         });
 
         socket.on("connect_error", (err) => {

@@ -315,8 +315,10 @@ export default function WorkspaceShell({
         if (pathname === "/dashboard") return "Analytics Dashboard";
         if (pathname === "/map") return "Team Flow";
         if (pathname === "/list") return "Task List View";
-        if (pathname === "/task-board")
-            return "Task Board";
+        if (pathname === "/task-board") return "Task Board";
+        if (pathname.includes("/tasks/")) return "Subtask Breakdown";
+        if (pathname.startsWith("/projects/")) return "Project Detail";
+        if (pathname === "/projects") return "Projects";
         return "Workspace";
     })();
 
@@ -436,6 +438,8 @@ export default function WorkspaceShell({
                 onToggleTheme={handleToggleTheme}
                 onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
             />
+
+
         </div>
     );
 }

@@ -19,6 +19,7 @@ import {
     Bookmark,
     Moon,
     Network,
+    FolderKanban,
 } from "lucide-react";
 import { User, Team } from "../api";
 import { CustomSelect } from "./ui/CustomSelect";
@@ -90,6 +91,13 @@ export default function Sidebar({
             href: "/task-board",
             name: "Task Board",
             icon: Kanban,
+            leaderOnly: false,
+        },
+        {
+            id: "projects",
+            href: "/projects",
+            name: "Projects",
+            icon: FolderKanban,
             leaderOnly: false,
         },
         {

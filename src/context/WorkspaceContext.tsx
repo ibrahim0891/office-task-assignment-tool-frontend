@@ -34,6 +34,8 @@ interface WorkspaceContextType {
     userRole: string;
     tasks: Task[];
     isTasksLoading: boolean;
+    projects: any[];
+    isProjectsLoading: boolean;
     columns: TaskColumn[];
     notifications: Notification[];
     isNotificationsLoading: boolean;
@@ -71,7 +73,26 @@ interface WorkspaceContextType {
     loadTasks: (opts?: { isDateChange?: boolean }) => Promise<void>;
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     loadTeamMetadata: () => Promise<void>;
+    loadProjects: () => Promise<void>;
+    handleCreateProject: (projectData: any) => Promise<any>;
     loadNotifications: () => Promise<void>;
+    folders: any[];
+    isFoldersLoading: boolean;
+    loadFolders: () => Promise<void>;
+    projectInvitations: any[];
+    isProjectInvitationsLoading: boolean;
+    loadProjectInvitations: () => Promise<void>;
+    handleAcceptProjectInvitation: (invitationId: string) => Promise<void>;
+    handleRejectProjectInvitation: (invitationId: string) => Promise<void>;
+    handleCancelProjectInvitation: (invitationId: string) => Promise<void>;
+    handleSendProjectInvitation: (projectId: string, data: { userId?: string; email?: string; role?: string; dailyCapacity?: number }) => Promise<any>;
+    handleCreateFolder: (name: string, emoji?: string) => Promise<void>;
+    handleUpdateFolder: (id: string, name?: string, emoji?: string) => Promise<void>;
+    handleDeleteFolder: (id: string) => Promise<void>;
+    isManageFoldersOpen: boolean;
+    setIsManageFoldersOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isManageInvitationsOpen: boolean;
+    setIsManageInvitationsOpen: React.Dispatch<React.SetStateAction<boolean>>;
     handleUpdateTaskColumn: (taskId: string, targetColumnId: string) => Promise<void>;
     handleToggleComplete: (taskId: string, isCompleted: boolean) => Promise<void>;
     handleArchiveTask: (taskId: string) => Promise<void>;
@@ -119,6 +140,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         if (path.includes("/trash")) return "trash";
         if (path.includes("/profile")) return "profile";
         if (path.includes("/map")) return "map";
+        if (path.includes("/projects")) return "projects";
         return "kanban";
     };
 
@@ -155,7 +177,49 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const [isTasksLoading, setIsTasksLoading] = useState<boolean>(false);
     const [columns, setColumns] = useState<TaskColumn[]>([]);
 
+    const [projects, setProjects] = useState<any[]>([]);
+    const [isProjectsLoading, setIsProjectsLoading] = useState<boolean>(false);
+    const [projectInvitations, setProjectInvitations] = useState<any[]>([]);
+    const [isProjectInvitationsLoading, setIsProjectInvitationsLoading] = useState<boolean>(false);
+    const [folders, setFolders] = useState<any[]>([]);
+    const [isFoldersLoading, setIsFoldersLoading] = useState<boolean>(false);
+    const [isManageFoldersOpen, setIsManageFoldersOpenState] = useState<boolean>(false);
+    const [isManageInvitationsOpen, setIsManageInvitationsOpenState] = useState<boolean>(false);
+    const [isNotificationsOpen, setIsNotificationsOpenState] = useState<boolean>(false);
 
+    // Mutually exclusive panel setters: Opening one automatically closes the others
+    const setIsManageFoldersOpen: React.Dispatch<React.SetStateAction<boolean>> = React.useCallback((val) => {
+        setIsManageFoldersOpenState((prev) => {
+            const next = typeof val === "function" ? val(prev) : val;
+            if (next) {
+                setIsManageInvitationsOpenState(false);
+                setIsNotificationsOpenState(false);
+            }
+            return next;
+        });
+    }, []);
+
+    const setIsManageInvitationsOpen: React.Dispatch<React.SetStateAction<boolean>> = React.useCallback((val) => {
+        setIsManageInvitationsOpenState((prev) => {
+            const next = typeof val === "function" ? val(prev) : val;
+            if (next) {
+                setIsManageFoldersOpenState(false);
+                setIsNotificationsOpenState(false);
+            }
+            return next;
+        });
+    }, []);
+
+    const setIsNotificationsOpen: React.Dispatch<React.SetStateAction<boolean>> = React.useCallback((val) => {
+        setIsNotificationsOpenState((prev) => {
+            const next = typeof val === "function" ? val(prev) : val;
+            if (next) {
+                setIsManageFoldersOpenState(false);
+                setIsManageInvitationsOpenState(false);
+            }
+            return next;
+        });
+    }, []);
     const [activeDateStr, setActiveDateStr] = useState<string>(
         getLocalDateString()
     );
@@ -166,7 +230,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [commentUpdateTrigger, setCommentUpdateTrigger] = useState<number>(0);
 
-    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
     const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
     const [addTaskColId, setAddTaskColId] = useState<string>("");
@@ -226,8 +289,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                             setTeamMembers(matched.members);
                         }
 
-                        // Load initial columns and tasks for the active workspace before finishing initialization
-                        const [cols, initialTasks] = await Promise.all([
+                        // Load initial columns, tasks and folders for the active workspace before finishing initialization
+                        const [cols, initialTasks, initialFolders] = await Promise.all([
                             api.getColumns(matched.id).catch(() => []),
                             api.getTasks(
                                 {
@@ -235,11 +298,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                                     date: activeDateStr || getLocalDateString(),
                                 },
                                 userObj.id,
-                            ).catch(() => [])
+                            ).catch(() => []),
+                            api.getFolders(matched.id).catch(() => []),
                         ]);
 
                         if (Array.isArray(cols)) setColumns(cols);
                         if (Array.isArray(initialTasks)) setTasks(initialTasks);
+                        if (Array.isArray(initialFolders)) setFolders(initialFolders);
                     }
                 }
             } catch (err: any) {
@@ -273,6 +338,159 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
+    const loadFolders = React.useCallback(async () => {
+        if (!currentTeam) return;
+        setIsFoldersLoading(true);
+        try {
+            const data = await api.getFolders(currentTeam.id);
+            if (Array.isArray(data)) {
+                setFolders(data);
+            } else {
+                setFolders([]);
+            }
+        } catch (err) {
+            console.error("Error loading folders:", err);
+            setFolders([]);
+        } finally {
+            setIsFoldersLoading(false);
+        }
+    }, [currentTeam?.id]);
+
+    const handleCreateFolder = async (name: string, emoji?: string) => {
+        if (!currentTeam) return;
+        try {
+            await api.createFolder(currentTeam.id, name, emoji);
+            toast.success(`Folder "${name}" created successfully!`);
+            await loadFolders();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to create folder");
+            throw err;
+        }
+    };
+
+    const handleUpdateFolder = async (id: string, name?: string, emoji?: string) => {
+        if (!currentTeam) return;
+        try {
+            await api.updateFolder(id, currentTeam.id, name, emoji);
+            toast.success("Folder updated successfully!");
+            await loadFolders();
+            await loadProjects();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update folder");
+            throw err;
+        }
+    };
+
+    const handleDeleteFolder = async (id: string) => {
+        if (!currentTeam) return;
+        try {
+            await api.deleteFolder(id, currentTeam.id);
+            toast.success("Folder deleted. Projects moved to default folder.");
+            await loadFolders();
+            await loadProjects();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to delete folder");
+            throw err;
+        }
+    };
+
+    const loadProjects = React.useCallback(async () => {
+        if (!currentTeam) return;
+        setIsProjectsLoading(true);
+        try {
+            const data = await api.getProjects(currentTeam.id, currentUser?.id);
+            if (Array.isArray(data)) {
+                setProjects(data);
+            } else {
+                setProjects([]);
+            }
+        } catch (err) {
+            console.error("Error loading projects:", err);
+            setProjects([]);
+        } finally {
+            setIsProjectsLoading(false);
+        }
+    }, [currentTeam?.id, currentUser?.id]);
+
+    const loadProjectInvitations = React.useCallback(async () => {
+        if (!currentTeam) return;
+        setIsProjectInvitationsLoading(true);
+        try {
+            const data = await api.getReceivedProjectInvitations(currentTeam.id);
+            if (Array.isArray(data)) {
+                setProjectInvitations(data);
+            } else {
+                setProjectInvitations([]);
+            }
+        } catch (err) {
+            console.error("Error loading project invitations:", err);
+            setProjectInvitations([]);
+        } finally {
+            setIsProjectInvitationsLoading(false);
+        }
+    }, [currentTeam?.id]);
+
+    const handleAcceptProjectInvitation = async (invitationId: string) => {
+        if (!currentTeam) return;
+        try {
+            const res = await api.acceptProjectInvitation(invitationId, currentTeam.id);
+            toast.success(`Joined project "${res.invitation?.project?.title || 'Project'}" successfully!`);
+            await Promise.all([loadProjectInvitations(), loadProjects()]);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to accept invitation");
+            throw err;
+        }
+    };
+
+    const handleRejectProjectInvitation = async (invitationId: string) => {
+        if (!currentTeam) return;
+        try {
+            await api.rejectProjectInvitation(invitationId, currentTeam.id);
+            toast.success("Invitation declined.");
+            await loadProjectInvitations();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to decline invitation");
+            throw err;
+        }
+    };
+
+    const handleCancelProjectInvitation = async (invitationId: string) => {
+        if (!currentTeam) return;
+        try {
+            await api.cancelProjectInvitation(invitationId, currentTeam.id);
+            toast.success("Invitation cancelled.");
+            await loadProjectInvitations();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to cancel invitation");
+            throw err;
+        }
+    };
+
+    const handleSendProjectInvitation = async (projectId: string, data: { userId?: string; email?: string; role?: string; dailyCapacity?: number }) => {
+        if (!currentTeam) return;
+        try {
+            const res = await api.sendProjectInvitation(projectId, data, currentTeam.id);
+            toast.success("Invitation sent successfully!");
+            return res;
+        } catch (err: any) {
+            toast.error(err.message || "Failed to send invitation");
+            throw err;
+        }
+    };
+
+    const handleCreateProject = async (projectData: any) => {
+        if (!currentTeam) return;
+        try {
+            const newProj = await api.createProject(projectData, currentTeam.id);
+            toast.success(`Project "${newProj.title}" created successfully!`);
+            await loadProjects();
+            return newProj;
+        } catch (err: any) {
+            toast.error(err.message || "Failed to create project");
+            throw err;
+        }
+    };
+
     useEffect(() => {
         if (!currentTeam?.id) return;
 
@@ -280,7 +498,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             try {
                 await Promise.all([
                     loadTeamMetadata(),
-                    loadTasks()
+                    loadTasks(),
+                    loadProjects(),
+                    loadFolders(),
+                    loadProjectInvitations(),
                 ]);
             } catch (err) {
                 console.error("Error loading team data:", err);
@@ -294,7 +515,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         };
 
         loadSwitchData();
-    }, [currentTeam?.id]);
+    }, [currentTeam?.id, loadProjects, loadFolders, loadProjectInvitations]);
 
     const latestTasksRequestIdRef = React.useRef(0);
 
@@ -373,6 +594,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         setNotifications,
         pendingColumnUpdatesRef,
         moveVersionRef,
+        loadProjects,
+        loadProjectInvitations,
     );
 
     useEffect(() => {
@@ -743,6 +966,27 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 userRole,
                 tasks,
                 isTasksLoading,
+                projects,
+                isProjectsLoading,
+                loadProjects,
+                handleCreateProject,
+                folders,
+                isFoldersLoading,
+                loadFolders,
+                projectInvitations,
+                isProjectInvitationsLoading,
+                loadProjectInvitations,
+                handleAcceptProjectInvitation,
+                handleRejectProjectInvitation,
+                handleCancelProjectInvitation,
+                handleSendProjectInvitation,
+                handleCreateFolder,
+                handleUpdateFolder,
+                handleDeleteFolder,
+                isManageFoldersOpen,
+                setIsManageFoldersOpen,
+                isManageInvitationsOpen,
+                setIsManageInvitationsOpen,
                 columns,
                 notifications,
                 isNotificationsLoading,
