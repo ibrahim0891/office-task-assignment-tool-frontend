@@ -204,7 +204,7 @@ export default function MyDayView({
                                                         </span>
                                                     )}
                                                     {task.carryCount > 0 && (
-                                                        <span className="text-[#B08800] border border-[#B08800]/20 px-1.5 py-0.5 rounded-[2px] font-medium">
+                                                        <span className="text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] font-medium">
                                                             {task.carryCount}d carried
                                                         </span>
                                                     )}

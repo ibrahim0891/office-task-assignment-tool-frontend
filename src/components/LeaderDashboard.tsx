@@ -390,7 +390,7 @@ export default function LeaderDashboard({
                                             </p>
                                         </div>
 
-                                        <span className="text-[9px] font-medium text-[#B08800] border border-[#B08800]/20 px-1.5 py-0.5 rounded-[2px] shrink-0">
+                                        <span className="text-[9px] font-medium text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] shrink-0">
                                             {task.carryCount}d carried
                                         </span>
                                     </div>

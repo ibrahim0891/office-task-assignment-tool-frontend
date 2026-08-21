@@ -9,6 +9,7 @@ import { RotateCcw, Loader2 } from "lucide-react";
 import WorkspaceHeader from "./WorkspaceHeader";
 import GlobalModals from "./GlobalModals";
 import SystemPreferenceModal from "./SystemPreferenceModal";
+import TopLoadingBar from "./ui/TopLoadingBar";
 import { fontMap } from "../config/fontConfig";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 
@@ -344,6 +345,7 @@ export default function WorkspaceShell({
 
     return (
         <div className="relative w-screen h-screen overflow-hidden bg-[#FAFAF9]" style={{ perspective: "1500px" }}>
+            <TopLoadingBar />
             <div
                 className="w-full h-full relative"
                 style={{

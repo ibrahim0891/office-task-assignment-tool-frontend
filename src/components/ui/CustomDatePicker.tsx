@@ -158,7 +158,7 @@ export function CustomDatePicker({
                 type="button"
                 disabled={disabled}
                 onClick={toggleOpen}
-                className={`w-full bg-white border border-[#E5E5E3] rounded-[3px] px-2.5 py-1.5 text-[11px] text-[#1A1A1A] flex items-center justify-between gap-2 hover:border-[#1A1A1A] focus:outline-none transition-colors ${
+                className={`w-full bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] px-2.5 py-1.5 text-[11px] text-[var(--app-text)] flex items-center justify-between gap-2 hover:border-[var(--color-accent)] focus:outline-none transition-colors ${
                     disabled
                         ? "opacity-50 cursor-not-allowed"
                         : "cursor-pointer"
@@ -167,30 +167,30 @@ export function CustomDatePicker({
                 <span className="truncate">
                     {formattedValue || placeholder}
                 </span>
-                <ChevronDown className="w-3.5 h-3.5 text-[#888883] shrink-0" />
+                <ChevronDown className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
             </button>
 
             {isOpen && !disabled && (
                 <div
-                    className={`absolute right-0 bg-white border border-[#E5E5E3] rounded-[3px] p-3 z-[999999] w-72 text-[#1A1A1A] select-none shadow-2xl ${
+                    className={`absolute right-0 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-3 z-[999999] w-72 text-[var(--app-text)] select-none shadow-2xl corner-brackets ${
                         openUpward ? "bottom-full mb-1" : "top-full mt-1"
                     }`}
                     style={{ boxShadow: "var(--shadow-float)" }}
                 >
                     {/* Today Button Header */}
-                    <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-[#E5E5E3]">
+                    <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-[var(--app-border)]">
                         <button
                             type="button"
                             onClick={handleSelectToday}
-                            className="text-[11px] font-medium text-[#1A1A1A] hover:underline flex items-center gap-1.5"
+                            className="text-[11px] font-medium text-[var(--app-text)] hover:opacity-80 flex items-center gap-1.5 cursor-pointer transition-opacity"
                         >
-                            <span className="w-2 h-2 rounded-full bg-[#1A1A1A] inline-block"></span>
-                            Today:{" "}
+                            <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] inline-block ring-2 ring-[var(--color-accent)]/30"></span>
+                            <span>Today:{" "}
                             {todayDate.toLocaleDateString("en-US", {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",
-                            })}
+                            })}</span>
                         </button>
                     </div>
 
@@ -226,7 +226,7 @@ export function CustomDatePicker({
                                 onClick={() =>
                                     setViewDate(new Date(year, month - 1, 1))
                                 }
-                                className="p-1.5 border border-[#E5E5E3] rounded-[2px] text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9]"
+                                className="p-1.5 border border-[var(--app-border)] bg-[var(--app-card)] rounded-[2px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] cursor-pointer transition-colors"
                                 title="Previous month"
                             >
                                 <ChevronLeft className="w-3 h-3" />
@@ -236,7 +236,7 @@ export function CustomDatePicker({
                                 onClick={() =>
                                     setViewDate(new Date(year, month + 1, 1))
                                 }
-                                className="p-1.5 border border-[#E5E5E3] rounded-[2px] text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9]"
+                                className="p-1.5 border border-[var(--app-border)] bg-[var(--app-card)] rounded-[2px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] cursor-pointer transition-colors"
                                 title="Next month"
                             >
                                 <ChevronRight className="w-3 h-3" />
@@ -249,7 +249,7 @@ export function CustomDatePicker({
                         {daysOfWeek.map((d) => (
                             <span
                                 key={d}
-                                className="text-[9px] font-medium text-[#888883] capitalize"
+                                className="text-[9px] font-medium text-[var(--app-muted)] capitalize"
                             >
                                 {d}
                             </span>
@@ -269,17 +269,20 @@ export function CustomDatePicker({
                                         onChange(cell.dateStr);
                                         setIsOpen(false);
                                     }}
-                                    className={`h-7 text-[11px] font-medium rounded-[2px] flex items-center justify-center transition-colors relative ${
+                                    className={`h-7 text-[11px] font-medium rounded-[2px] flex items-center justify-center transition-colors relative cursor-pointer ${
                                         isSelected
-                                            ? "bg-[#1A1A1A] text-white font-semibold"
+                                            ? "bg-[var(--color-accent)] text-[var(--app-bg)] font-semibold shadow-xs"
                                             : isTodayCell
-                                              ? "border border-[#1A1A1A] text-[#1A1A1A] font-semibold"
+                                              ? "border-2 border-[var(--color-accent)] text-[var(--color-accent)] font-bold bg-[var(--color-accent)]/15 shadow-xs"
                                               : cell.isCurrentMonth
-                                                ? "text-[#1A1A1A] hover:bg-[#F5F5F3]"
-                                                : "text-[#DADAD6] hover:bg-[#FAFAF9]"
+                                                ? "text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                                : "text-[var(--app-muted)]/40 hover:bg-[var(--app-hover-bg)]/40"
                                     }`}
                                 >
                                     {cell.dayNum}
+                                    {isTodayCell && !isSelected && (
+                                        <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--color-accent)]" />
+                                    )}
                                 </button>
                             );
                         })}

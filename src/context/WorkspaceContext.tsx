@@ -33,6 +33,7 @@ interface WorkspaceContextType {
     teamMembers: { user: User; role: string }[];
     userRole: string;
     tasks: Task[];
+    isTasksLoading: boolean;
     columns: TaskColumn[];
     notifications: Notification[];
     isNotificationsLoading: boolean;
@@ -67,7 +68,7 @@ interface WorkspaceContextType {
     openMemberProfile: (user: User) => void;
 
     // Handlers
-    loadTasks: () => Promise<void>;
+    loadTasks: (opts?: { isDateChange?: boolean }) => Promise<void>;
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     loadTeamMetadata: () => Promise<void>;
     loadNotifications: () => Promise<void>;
@@ -151,6 +152,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     }, [currentTeam?.id]);
 
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [isTasksLoading, setIsTasksLoading] = useState<boolean>(false);
     const [columns, setColumns] = useState<TaskColumn[]>([]);
 
 
@@ -277,9 +279,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const latestTasksRequestIdRef = React.useRef(0);
 
-    const loadTasks = React.useCallback(async () => {
+    const loadTasks = React.useCallback(async (opts?: { isDateChange?: boolean }) => {
         if (!currentTeam) return;
         const requestId = ++latestTasksRequestIdRef.current;
+        if (opts?.isDateChange && !isSwitchingTeamRef.current) {
+            setIsTasksLoading(true);
+        }
         try {
             const params: any = { teamId: currentTeam.id };
             if (
@@ -308,6 +313,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         } catch (err) {
             if (requestId === latestTasksRequestIdRef.current) {
                 console.error("Error loading tasks:", err);
+            }
+        } finally {
+            if (requestId === latestTasksRequestIdRef.current) {
+                setIsTasksLoading(false);
             }
         }
     }, [currentTeam?.id, activeDateStr, currentView, searchQuery, currentUser]);
@@ -360,10 +369,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const isSwitchingTeamRef = useRef(false);
     isSwitchingTeamRef.current = isSwitchingTeam;
 
+    const prevDateRef = useRef<string>(activeDateStr);
+
     useEffect(() => {
         if (isSwitchingTeamRef.current) return;
-        loadTasks();
-    }, [loadTasks]);
+        const isDateChange = prevDateRef.current !== activeDateStr;
+        prevDateRef.current = activeDateStr;
+        loadTasks({ isDateChange });
+    }, [loadTasks, activeDateStr]);
 
     // Parse URL search parameters on load/redirect to automatically open task modal (e.g., from desktop notifications)
     useEffect(() => {
@@ -709,6 +722,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 teamMembers,
                 userRole,
                 tasks,
+                isTasksLoading,
                 columns,
                 notifications,
                 isNotificationsLoading,

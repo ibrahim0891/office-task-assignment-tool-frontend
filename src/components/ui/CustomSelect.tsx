@@ -111,8 +111,11 @@ export function CustomSelect({
                 type="button"
                 disabled={disabled}
                 onClick={handleToggle}
-                className={`w-full h-full bg-white border border-[#E5E5E3] hover:border-[#1A1A1A] rounded-[3px] px-2.5 py-1.5 text-[11px] text-[#1A1A1A] flex items-center justify-between gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${isOpen ? "border-[#1A1A1A] ring-1 ring-[#1A1A1A]/10" : ""
-                    }`}
+                className={`w-full h-full bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--color-accent)] rounded-[3px] px-2.5 py-1.5 text-[11px] text-[var(--app-text)] flex items-center justify-between gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isOpen
+                        ? "border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/20"
+                        : ""
+                }`}
             >
                 {selectedOpt ? (
                     <div className="flex items-center gap-1.5 min-w-0">
@@ -121,10 +124,10 @@ export function CustomSelect({
                                 <img
                                     src={selectedOpt.avatarUrl}
                                     alt={selectedOpt.label}
-                                    className="w-4 h-4 rounded-[2px] object-cover border border-[#E5E5E3] shrink-0"
+                                    className="w-4 h-4 rounded-[2px] object-cover border border-[var(--app-border)] shrink-0"
                                 />
                             ) : (
-                                <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] font-bold text-[#1A1A1A] shrink-0">
+                                <div className="w-4 h-4 rounded-[2px] border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[7px] font-bold text-[var(--app-text)] shrink-0">
                                     {selectedOpt.label
                                         .split(" ")
                                         .map((n) => n[0])
@@ -136,22 +139,25 @@ export function CustomSelect({
                         {renderSelected ? (
                             renderSelected(selectedOpt)
                         ) : (
-                            <span className="font-medium truncate" style={selectedOpt.style}>
+                            <span
+                                className="font-medium truncate text-[var(--app-text)]"
+                                style={selectedOpt.style}
+                            >
                                 {selectedOpt.label}
                             </span>
                         )}
                         {selectedOpt.sublabel && (
-                            <span className="text-[9px] text-[#888883] truncate">
+                            <span className="text-[9px] text-[var(--app-muted)] truncate">
                                 ({selectedOpt.sublabel})
                             </span>
                         )}
                     </div>
                 ) : (
-                    <span className="text-[#888883] text-[11px] truncate">
+                    <span className="text-[var(--app-muted)] text-[11px] truncate">
                         {placeholder}
                     </span>
                 )}
-                <ChevronDown className="w-3.5 h-3.5 text-[#888883] shrink-0" />
+                <ChevronDown className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
             </button>
 
             {/* Floating Dropdown Menu via Portal */}
@@ -165,30 +171,33 @@ export function CustomSelect({
                             position: "fixed",
                             left: `${coords.left}px`,
                             top: coords.openUp ? "auto" : `${coords.top + 4}px`,
-                            bottom: coords.openUp ? `${window.innerHeight - coords.top + 4}px` : "auto",
+                            bottom: coords.openUp
+                                ? `${window.innerHeight - coords.top + 4}px`
+                                : "auto",
                             minWidth: `${coords.width}px`,
                             maxWidth: "280px",
                             zIndex: 99999,
+                            boxShadow: "var(--shadow-float)",
                         }}
-                        className="bg-white border border-[#E5E5E3] rounded-[3px] shadow-2xl p-1 flex flex-col gap-1 animate-fade-in text-left select-none"
+                        className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-1 flex flex-col gap-1 animate-fade-in text-left select-none text-[var(--app-text)] corner-brackets shadow-2xl"
                     >
                         {showSearch && (
                             <div className="relative p-1">
-                                <Search className="w-3 h-3 text-[#888883] absolute left-2.5 top-1/2 -translate-y-1/2" />
+                                <Search className="w-3 h-3 text-[var(--app-muted)] absolute left-2.5 top-1/2 -translate-y-1/2" />
                                 <input
                                     type="text"
                                     placeholder="Filter..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    className="w-full bg-[#FAFAF9] border border-[#E5E5E3] rounded-[2px] pl-7 pr-2 py-1 text-[11px] text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A]"
+                                    className="w-full bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] pl-7 pr-2 py-1 text-[11px] text-[var(--app-text)] focus:outline-none focus:border-[var(--color-accent)]"
                                     autoFocus
                                 />
                             </div>
                         )}
 
-                        <div className="max-h-48 overflow-y-auto divide-y divide-[#E5E5E3]/40 scrollbar-none">
+                        <div className="max-h-48 overflow-y-auto divide-y divide-[var(--app-border)]/40 scrollbar-none">
                             {filteredOptions.length === 0 ? (
-                                <div className="py-2.5 px-2 text-center text-base text-[#888883] italic">
+                                <div className="py-2.5 px-2 text-center text-xs text-[var(--app-muted)] italic">
                                     No options.
                                 </div>
                             ) : (
@@ -202,42 +211,50 @@ export function CustomSelect({
                                                 setIsOpen(false);
                                                 setSearch("");
                                             }}
-                                            className={`px-2 py-1.5 text-[11px] rounded-[2px] flex items-center justify-between gap-2 transition-colors cursor-pointer ${isSelected
-                                                    ? "bg-[#FAFAF9] font-semibold text-[#1A1A1A]"
-                                                    : "text-[#1A1A1A] hover:bg-[#FAFAF9]"
-                                                }`}
+                                            className={`px-2 py-1.5 text-[11px] rounded-[2px] flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                                                isSelected
+                                                    ? "bg-[var(--app-hover-bg)] font-semibold text-[var(--app-text)]"
+                                                    : "text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                            }`}
                                         >
                                             <div className="flex items-center gap-1.5 min-w-0">
                                                 {opt.avatarUrl !== undefined &&
                                                     (opt.avatarUrl ? (
                                                         <img
-                                                            src={opt.avatarUrl}
+                                                            src={
+                                                                opt.avatarUrl
+                                                            }
                                                             alt={opt.label}
-                                                            className="w-4 h-4 rounded-[2px] object-cover border border-[#E5E5E3] shrink-0"
+                                                            className="w-4 h-4 rounded-[2px] object-cover border border-[var(--app-border)] shrink-0"
                                                         />
                                                     ) : (
-                                                        <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] font-bold text-[#1A1A1A] shrink-0">
+                                                        <div className="w-4 h-4 rounded-[2px] border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[7px] font-bold text-[var(--app-text)] shrink-0">
                                                             {opt.label
                                                                 .split(" ")
-                                                                .map((n) => n[0])
+                                                                .map(
+                                                                    (n) => n[0],
+                                                                )
                                                                 .join("")
                                                                 .toUpperCase()
                                                                 .slice(0, 2)}
                                                         </div>
                                                     ))}
                                                 <div className="min-w-0">
-                                                    <span className="block truncate" style={opt.style}>
+                                                    <span
+                                                        className="block truncate"
+                                                        style={opt.style}
+                                                    >
                                                         {opt.label}
                                                     </span>
                                                     {opt.sublabel && (
-                                                        <span className="block text-[9px] text-[#888883] truncate font-normal">
+                                                        <span className="block text-[9px] text-[var(--app-muted)] truncate font-normal">
                                                             {opt.sublabel}
                                                         </span>
                                                     )}
                                                 </div>
                                             </div>
                                             {isSelected && (
-                                                <Check className="w-3.5 h-3.5 text-[#1A1A1A] shrink-0" />
+                                                <Check className="w-3.5 h-3.5 text-[var(--color-accent)] shrink-0" />
                                             )}
                                         </div>
                                     );

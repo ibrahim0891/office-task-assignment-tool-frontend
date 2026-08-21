@@ -570,7 +570,7 @@ export default function KanbanBoard({
                                                                             task.priority,
                                                                         )}
                                                                         {task.carryCount > 0 && (
-                                                                            <span className="text-[9px] font-medium text-[#B08800] bg-[#FEFCE8] border border-[#B08800]/30 px-1.5 py-0.5 rounded-[2px] shrink-0">
+                                                                            <span className="text-[9px] font-medium text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] shrink-0">
                                                                                 Carried {task.carryCount}d
                                                                             </span>
                                                                         )}
