@@ -50,6 +50,7 @@ export function getIframeProxyUrl(url: string) {
 
 export interface User {
   id: string;
+  name?: string | null;
   fullName: string;
   email: string;
   avatarUrl?: string | null;

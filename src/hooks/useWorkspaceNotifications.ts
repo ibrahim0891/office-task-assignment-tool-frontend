@@ -17,6 +17,11 @@ export function useWorkspaceNotifications(
 
     const playNotificationChime = () => {
         try {
+            // Disable app sound if the tab is not active/opened (hidden in background)
+            if (typeof document !== "undefined" && document.hidden) {
+                return;
+            }
+
             const AudioContext =
                 window.AudioContext || (window as any).webkitAudioContext;
             if (!AudioContext) return;
