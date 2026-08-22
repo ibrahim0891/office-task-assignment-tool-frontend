@@ -50,9 +50,7 @@ export function getIframeProxyUrl(url: string) {
 
 export interface User {
   id: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  name: string;
+  fullName: string;
   email: string;
   avatarUrl?: string | null;
   secondaryEmail?: string | null;
@@ -178,7 +176,7 @@ export interface KnowledgeArticle {
   createdById: string;
   createdAt: string;
   updatedAt: string;
-  createdBy: { id: string; name: string; avatarUrl?: string | null };
+  createdBy: { id: string; fullName: string; avatarUrl?: string | null };
 }
 
 export interface Bookmark {
@@ -190,7 +188,7 @@ export interface Bookmark {
   createdById: string;
   createdAt: string;
   updatedAt: string;
-  createdBy: { id: string; name: string; avatarUrl?: string | null };
+  createdBy: { id: string; fullName: string; avatarUrl?: string | null };
 }
 
 export interface ReportData {
@@ -235,41 +233,17 @@ export const api = {
   },
 
   async register(
-    firstNameOrName: string,
-    lastNameOrEmail: string,
-    emailOrPassword?: string,
-    maybePassword?: string
+    fullName: string,
+    email: string,
+    password?: string
   ): Promise<{ user: User; token?: string; requiresVerification?: boolean }> {
-    let firstName: string;
-    let lastName: string;
-    let email: string;
-    let password: string;
-
-    if (maybePassword !== undefined) {
-      // Called with (firstName, lastName, email, password)
-      firstName = (firstNameOrName || '').trim();
-      lastName = (lastNameOrEmail || '').trim();
-      email = (emailOrPassword || '').trim();
-      password = maybePassword;
-    } else {
-      // Called with (name, email, password)
-      firstName = (firstNameOrName || '').trim();
-      lastName = '';
-      email = (lastNameOrEmail || '').trim();
-      password = emailOrPassword || '';
-    }
-
-    const fullName = [firstName, lastName].filter(Boolean).join(' ') || firstName;
-
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        firstName,
-        lastName,
-        name: fullName,
-        email,
-        password,
+        fullName: (fullName || '').trim(),
+        email: (email || '').trim(),
+        password: password || '',
       })
     });
     if (!res.ok) {

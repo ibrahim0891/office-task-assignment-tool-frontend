@@ -387,13 +387,13 @@ export default function Sidebar({
                             {currentUser.avatarUrl ? (
                                 <img
                                     src={currentUser.avatarUrl}
-                                    alt={currentUser.name}
+                                    alt={currentUser.fullName}
                                     className="w-7 h-7 rounded-full object-cover border border-[var(--app-border)] shrink-0"
                                 />
                             ) : (
                                 <div className="w-7 h-7 rounded-full border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-xs text-[var(--app-text)] font-semibold shrink-0">
-                                    {currentUser.name
-                                        ? currentUser.name
+                                    {currentUser.fullName
+                                        ? currentUser.fullName
                                               .split(" ")
                                               .map((n) => n[0])
                                               .join("")
@@ -405,7 +405,7 @@ export default function Sidebar({
                             {!isCollapsed && (
                                 <div className="text-left min-w-0">
                                     <div className="text-sm font-semibold text-[var(--app-text)] truncate">
-                                        {currentUser.name}
+                                        {currentUser.fullName}
                                     </div>
                                     <div className="text-xs text-[var(--app-muted)] truncate capitalize">
                                         {userRole.toLowerCase()}
@@ -454,7 +454,7 @@ export default function Sidebar({
                     {/* Tooltip in Collapsed mode */}
                     {isCollapsed && (
                         <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A1A] text-white text-xs rounded-[2px] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
-                            Profile Settings ({currentUser.name})
+                            Profile Settings ({currentUser.fullName})
                         </div>
                     )}
                 </div>

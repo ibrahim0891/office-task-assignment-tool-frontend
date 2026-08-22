@@ -335,13 +335,13 @@ export default function KanbanBoard({
                                     options={[
                                         {
                                             value: currentUser.id,
-                                            label: `Assign: Me (${currentUser.name.split(" ")[0]})`,
+                                            label: `Assign: Me (${currentUser.fullName.split(" ")[0]})`,
                                         },
                                         ...teamMembers
                                             .filter(({ user }) => user.id !== currentUser.id)
                                             .map(({ user }) => ({
                                                 value: user.id,
-                                                label: `Assign: ${user.name}`,
+                                                label: `Assign: ${user.fullName}`,
                                                 avatarUrl: user.avatarUrl || null,
                                             })),
                                     ]}
@@ -368,7 +368,7 @@ export default function KanbanBoard({
                                         { value: "", label: "All Team Tasks" },
                                         ...teamMembers.map(({ user }) => ({
                                             value: user.id,
-                                            label: user.name,
+                                            label: user.fullName,
                                             avatarUrl: user.avatarUrl || null,
                                         })),
                                     ]}

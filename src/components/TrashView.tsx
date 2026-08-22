@@ -220,14 +220,14 @@ export default function TrashView({
                                                                 .avatarUrl
                                                         }
                                                         alt={
-                                                            task.assignedTo.name
+                                                            task.assignedTo.fullName
                                                         }
                                                         className="w-4 h-4 rounded-full object-cover border border-[#E5E5E3]"
                                                     />
                                                 ) : (
                                                     <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] text-[#1A1A1A] font-semibold">
-                                                        {task.assignedTo?.name
-                                                            ? task.assignedTo.name
+                                                        {task.assignedTo?.fullName
+                                                            ? task.assignedTo.fullName
                                                                 .split(" ")
                                                                 .map(
                                                                     (n) =>
@@ -238,7 +238,7 @@ export default function TrashView({
                                                     </div>
                                                 )}
                                                 <span className="text-[#1A1A1A] truncate max-w-[100px]">
-                                                    {task.assignedTo?.name ||
+                                                    {task.assignedTo?.fullName ||
                                                         "Unassigned"}
                                                 </span>
                                             </div>

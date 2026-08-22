@@ -621,10 +621,10 @@ export default function TaskModal({
 
                 if (key === "assignedTo") {
                     const uFrom = teamMembers.find((m) => m.user.id === fromVal)
-                        ?.user.name;
+                        ?.user.fullName;
                     if (uFrom) fromVal = uFrom;
                     const uTo = teamMembers.find((m) => m.user.id === toVal)
-                        ?.user.name;
+                        ?.user.fullName;
                     if (uTo) toVal = uTo;
                 }
 
@@ -944,7 +944,7 @@ export default function TaskModal({
                         <p className="text-[11px] text-[#888883]">
                             Created by{" "}
                             <span className="text-[#1A1A1A] font-medium">
-                                {task.createdBy?.name}
+                                {task.createdBy?.fullName}
                             </span>{" "}
                             on {new Date(task.createdAt).toLocaleDateString()}
                         </p>
@@ -1124,15 +1124,15 @@ export default function TaskModal({
                                                                 {c.user?.avatarUrl ? (
                                                                     <img
                                                                         src={c.user.avatarUrl}
-                                                                        alt={c.user.name}
+                                                                        alt={c.user.fullName}
                                                                         className="w-4 h-4 rounded-full object-cover border border-[#E5E5E3] shrink-0"
                                                                     />
                                                                 ) : (
                                                                     <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] text-[#1A1A1A] font-semibold shrink-0">
-                                                                        {c.user?.name
-                                                                            ? c.user.name
+                                                                        {c.user?.fullName
+                                                                            ? c.user.fullName
                                                                                   .split(" ")
-                                                                                  .map((n) => n[0])
+                                                                                  .map((n: string) => n[0])
                                                                                   .join("")
                                                                                   .toUpperCase()
                                                                                   .slice(0, 2)
@@ -1140,7 +1140,7 @@ export default function TaskModal({
                                                                     </div>
                                                                 )}
                                                                 <span className="font-semibold text-[#1A1A1A]">
-                                                                    {c.user?.name}
+                                                                    {c.user?.fullName}
                                                                 </span>
                                                             </div>
                                                             <div className="flex items-center gap-2 text-[#888883]">
@@ -1647,7 +1647,7 @@ export default function TaskModal({
                                         ? [
                                               {
                                                   value: currentUser.id,
-                                                  label: `${currentUser.name} (You)`,
+                                                  label: `${currentUser.fullName} (You)`,
                                                   avatarUrl:
                                                       currentUser.avatarUrl ||
                                                       null,
@@ -1661,7 +1661,7 @@ export default function TaskModal({
                                                                 .assignedTo.id,
                                                             label: task
                                                                 .assignedTo
-                                                                .name,
+                                                                .fullName,
                                                             avatarUrl:
                                                                 task.assignedTo
                                                                     .avatarUrl ||
@@ -1674,8 +1674,8 @@ export default function TaskModal({
                                               value: user.id,
                                               label:
                                                   user.id === currentUser.id
-                                                      ? `${user.name} (You)`
-                                                      : user.name,
+                                                      ? `${user.fullName} (You)`
+                                                      : user.fullName,
                                               avatarUrl: user.avatarUrl || null,
                                           }))
                                 }
@@ -1900,7 +1900,7 @@ export default function TaskModal({
                                                 >
                                                     <div className="flex justify-between items-center text-base text-[#888883]">
                                                         <span className="font-semibold text-[#1A1A1A]">
-                                                            {act.user?.name ||
+                                                            {act.user?.fullName ||
                                                                 "System"}
                                                         </span>
                                                         <span>

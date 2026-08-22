@@ -241,11 +241,11 @@ export default function KnowledgePage() {
                     ) : paginatedArticles.map(a => {
                         const author = users.find(u => u.id === a.createdById || u.id === a.createdBy?.id) || a.createdBy;
                         const avatarUrl = author?.avatarUrl || a.createdBy?.avatarUrl;
-                        const authorName = author?.name || a.createdBy?.name || "Unknown";
+                        const authorName = author?.fullName || a.createdBy?.fullName || "Unknown";
                         const initials = authorName
                             ? authorName
                                 .split(" ")
-                                .map((n) => n[0])
+                                .map((n: string) => n[0])
                                 .join("")
                                 .toUpperCase()
                                 .slice(0, 2)

@@ -73,8 +73,8 @@ export default function MemberProfileModal({
         }
     };
 
-    const initials = user.name
-        ? user.name
+    const initials = user.fullName
+        ? user.fullName
             .split(" ")
             .map((n) => n[0])
             .join("")
@@ -131,7 +131,7 @@ export default function MemberProfileModal({
                         {user.avatarUrl ? (
                             <img
                                 src={user.avatarUrl}
-                                alt={user.name}
+                                alt={user.fullName}
                                 className="w-16 h-16 rounded-[2px] object-cover border border-[#E5E5E3] bg-white shrink-0 shadow-xs"
                             />
                         ) : (
@@ -142,7 +142,7 @@ export default function MemberProfileModal({
 
                         <div className="flex flex-col gap-1 min-w-0 pr-8">
                             <h2 className="font-heading text-xl md:text-2xl text-[#1A1A1A]    truncate">
-                                {user.name}
+                                {user.fullName}
                             </h2>
                             <span className="text-[11px] text-[#888883] truncate">{user.email}</span>
 

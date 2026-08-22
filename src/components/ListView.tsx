@@ -383,7 +383,7 @@ export default function ListView({
             `"${(t.column?.name || "").replace(/"/g, '""')}"`,
             `"${t.priority || ""}"`,
             `"${t.dueDate ? new Date(t.dueDate).toISOString().split("T")[0] : ""}"`,
-            `"${(t.assignedTo?.name || "").replace(/"/g, '""')}"`,
+            `"${(t.assignedTo?.fullName || "").replace(/"/g, '""')}"`,
             t.estimatedTime ?? "",
             t.actualTime ?? "",
             t.carryCount ?? 0,
@@ -534,8 +534,8 @@ export default function ListView({
                     key: `user-${user.id}`,
                     label:
                         user.id === currentUser.id
-                            ? `${user.name} (You)`
-                            : user.name,
+                            ? `${user.fullName} (You)`
+                            : user.fullName,
                     tasks: sortedTasks.filter((t) => t.assignedToId === user.id),
                 }))
                 .filter((g) => g.tasks.length > 0);
@@ -676,7 +676,7 @@ export default function ListView({
                                 { value: "", label: "All Assignees" },
                                 ...teamMembers.map(({ user }) => ({
                                     value: user.id,
-                                    label: user.name,
+                                    label: user.fullName,
                                     avatarUrl: user.avatarUrl || null,
                                 })),
                             ]}
@@ -701,7 +701,7 @@ export default function ListView({
                                             { value: "", label: "Reassign to…" },
                                             ...teamMembers.map(({ user }) => ({
                                                 value: user.id,
-                                                label: user.name,
+                                                label: user.fullName,
                                                 avatarUrl: user.avatarUrl || null,
                                             })),
                                         ]}
@@ -1138,7 +1138,7 @@ export default function ListView({
                                                             {/* Assignee */}
                                                             <td className="py-2.5 px-3 text-[11px] text-[var(--app-text,#1A1A1A)]">
                                                                 {task.assignedTo
-                                                                    ?.name ||
+                                                                    ?.fullName ||
                                                                     "Unassigned"}
                                                             </td>
 
