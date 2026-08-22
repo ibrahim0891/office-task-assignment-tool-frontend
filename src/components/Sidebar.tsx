@@ -165,13 +165,22 @@ export default function Sidebar({
                 className={`flex-1 flex flex-col gap-4 min-h-0 ${isCollapsed ? "overflow-visible" : "overflow-y-auto scrollbar-none"}`}
             >
                 {/* Header & Toggle Button */}
-                <div className="pb-3 border-b border-[var(--app-border)] flex items-center justify-between">
+                <div className="pb-4 border-b border-[var(--app-border)] flex items-center justify-between">
                     {!isCollapsed && (
-                        <div className="flex flex-col text-left select-none">
-                            <h1 className="font-heading text-xl font-bold tracking-tight text-[var(--app-text)]">
-                                SM Technology
-                            </h1>
-                            <p className="eyebrow mt-0.5">Assignment Core</p>
+                        <div className="flex items-center gap-2 text-left select-none">
+                            <img
+                                src="/icon.png"
+                                alt="OfficeTask Logo"
+                                className="w-7 h-7 object-contain rounded-sm overflow-hidden"
+                            />
+                            <div className="flex flex-col">
+                                <h1 className="font-heading text-base font-bold tracking-tight text-[var(--app-text)] leading-tight">
+                                    Office Task
+                                </h1>
+                                <p className="eyebrow text-[9px] text-[var(--app-muted)] leading-none mt-0.5">
+                                    Assignment Core
+                                </p>
+                            </div>
                         </div>
                     )}
                     <button
@@ -180,7 +189,7 @@ export default function Sidebar({
                             isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"
                         }
                         className={`relative corner-brackets-4 p-1.5 border border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors flex items-center justify-center cursor-pointer ${
-                            isCollapsed ? "mx-auto" : ""
+                            isCollapsed ? "mx-auto mt-2" : ""
                         }`}
                     >
                         <svg

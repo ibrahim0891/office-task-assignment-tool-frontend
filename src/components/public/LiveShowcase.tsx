@@ -24,7 +24,7 @@ export default function LiveShowcase() {
                         Engineered for Clarity & Momentum
                     </h2>
                     <p className="text-sm text-[var(--app-muted)] mt-2">
-                        Toggle between primary views to see how SM Technology powers modern engineering and operations.
+                        Toggle between primary views to see how OfficeTask powers modern engineering and operations.
                     </p>
                 </div>
 

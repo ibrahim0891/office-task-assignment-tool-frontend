@@ -21,7 +21,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-    title: "SM Technology — Workspace Assignment Tool",
+    title: "OfficeTask — Task Assignment Board",
     description:
         "Role-based task assignment and daily workflow management for teams.",
 };

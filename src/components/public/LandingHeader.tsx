@@ -39,12 +39,14 @@ export default function LandingHeader({
             <div className="max-w-7xl mx-auto flex items-center justify-between">
                 {/* Brand Logo */}
                 <Link href="/" className="flex items-center gap-3 group">
-                    <div className="w-8 h-8 rounded-[3px] bg-[var(--app-text)] text-[var(--app-bg)] flex items-center justify-center font-bold text-sm font-heading group-hover:scale-105 transition-transform">
-                        SM
-                    </div>
+                    <img
+                        src="/icon.png"
+                        alt="OfficeTask Logo"
+                        className="w-8 h-8 object-contain rounded-sm overflow-hidden group-hover:scale-105 transition-transform"
+                    />
                     <div className="flex flex-col">
                         <span className="font-heading font-bold text-base text-[var(--app-text)]">
-                            SM Technology
+                            Office Task
                         </span>
                         <span className="text-[10px] text-[var(--app-muted)] capitalize font-medium">
                             Assignment Core

@@ -120,8 +120,13 @@ export default function LoginPage() {
                     title="Go to Landing Page"
                     className="flex flex-col items-center text-center gap-1 hover:opacity-80 transition-opacity cursor-pointer group"
                 >
+                    <img
+                        src="/icon.png"
+                        alt="OfficeTask Logo"
+                        className="w-12 h-12 object-contain mb-1.5"
+                    />
                     <h1 className="font-heading text-2xl text-[#1A1A1A]">
-                        SM Technology
+                       OfficeTask
                     </h1>
                     <p className="eyebrow text-[#888883]">
                         Daily Task Management System
@@ -131,7 +136,7 @@ export default function LoginPage() {
                 {/* View Title */}
                 {(view === "SIGNIN" || view === "SIGNUP") && (
                     <h2 className="text-lg font-semibold text-center text-[#1A1A1A] -mt-1 border-b border-[#F5F5F3] pb-2">
-                        {view === "SIGNIN" ? "Sign In" : "Register"}
+                        {view === "SIGNIN" ? "Welcome Back! 👋" : "Join the board "}
                     </h2>
                 )}
 
