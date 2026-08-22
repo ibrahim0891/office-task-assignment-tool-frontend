@@ -16,6 +16,7 @@ interface CustomSelectProps {
     onChange: (value: string) => void;
     placeholder?: string;
     className?: string;
+    buttonClassName?: string;
     disabled?: boolean;
     searchable?: boolean;
     renderSelected?: (selected: SelectOption) => React.ReactNode;
@@ -27,6 +28,7 @@ export function CustomSelect({
     onChange,
     placeholder = "Select...",
     className = "",
+    buttonClassName = "",
     disabled = false,
     searchable = false,
     renderSelected,
@@ -115,7 +117,7 @@ export function CustomSelect({
                     isOpen
                         ? "border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/20"
                         : ""
-                }`}
+                } ${buttonClassName}`}
             >
                 {selectedOpt ? (
                     <div className="flex items-center gap-1.5 min-w-0">
