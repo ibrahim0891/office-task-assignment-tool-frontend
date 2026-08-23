@@ -9,7 +9,7 @@ function getInitials(name: string) {
 
 function getBarColor(status: string) {
     switch (status) {
-        case "Done": return "bg-[var(--color-success)]";
+        case "Completed": case "Done": return "bg-[var(--color-success)]";
         case "InProgress": return "bg-[var(--color-warning)]";
         case "InReview": return "bg-[var(--priority-medium)]";
         case "AtRisk": case "Blocked": return "bg-[var(--color-error)]";
@@ -20,7 +20,7 @@ function getBarColor(status: string) {
 
 function getStatusLabel(status: string) {
     switch (status) {
-        case "Done": return "Done";
+        case "Completed": case "Done": return "Completed";
         case "InProgress": return "In Progress";
         case "InReview": return "In Review";
         case "AtRisk": return "At Risk";
@@ -134,7 +134,7 @@ export default function ProjectTimelineView({ project }: ProjectTimelineViewProp
             <div className="flex items-center gap-4 text-[9px] text-[var(--app-muted)] shrink-0">
                 <div className="flex items-center gap-1.5">
                     <div className="w-3 h-1.5 bg-[var(--color-success)] rounded-[1px]" />
-                    <span>Done</span>
+                    <span>Completed</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                     <div className="w-3 h-1.5 bg-[var(--color-warning)] rounded-[1px]" />

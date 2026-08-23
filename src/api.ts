@@ -1079,6 +1079,57 @@ export const api = {
     return res.json();
   },
 
+  async createProjectColumn(projectId: string, name: string, type: string = "CUSTOM", isComplete: boolean = false): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/columns`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, type, isComplete })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create project column.');
+    }
+    return res.json();
+  },
+
+  async updateProjectColumn(projectId: string, columnId: string, data: { name?: string; type?: string; isComplete?: boolean }): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/columns/${columnId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update project column.');
+    }
+    return res.json();
+  },
+
+  async deleteProjectColumn(projectId: string, columnId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/columns/${columnId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete project column.');
+    }
+    return res.json();
+  },
+
+  async reorderProjectColumns(projectId: string, columnOrders: { id: string; order: number }[]): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/columns/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ columnOrders })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to reorder project columns.');
+    }
+    return res.json();
+  },
+
+
   async reworkProjectTask(projectId: string, taskId: string, data: any): Promise<any> {
     const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/rework`, {
       method: 'POST',

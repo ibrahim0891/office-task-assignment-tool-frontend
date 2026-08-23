@@ -122,7 +122,7 @@ export default function ProjectMembersView({ project, onRefresh }: ProjectMember
         project.tasks.forEach((task: any) => {
             if (task.subtasks && Array.isArray(task.subtasks)) {
                 task.subtasks.forEach((sub: any) => {
-                    if (sub.status !== "Done" && sub.assignedToId) {
+                    if (sub.status !== "Completed" && sub.status !== "Done" && !sub.isCompleted && sub.assignedToId) {
                         memberTaskCounts[sub.assignedToId] = (memberTaskCounts[sub.assignedToId] || 0) + 1;
                     }
                 });
@@ -137,9 +137,9 @@ export default function ProjectMembersView({ project, onRefresh }: ProjectMember
 
     const workspaceMemberOptions = availableWorkspaceMembers.map((tm) => ({
         value: tm.user.id,
-        label: tm.user.name,
+        label: tm.user.name || tm.user.email || "Unknown User",
         sublabel: `${tm.user.email} (${tm.role})`,
-        avatarUrl: tm.user.avatarUrl,
+        avatarUrl: tm.user.avatarUrl || undefined,
     }));
 
     // Available users across any team who are not yet members of this project
@@ -269,21 +269,6 @@ export default function ProjectMembersView({ project, onRefresh }: ProjectMember
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setIsManageInvitationsOpen(true)}
-                        className="bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-[11px] font-medium px-3.5 py-1.5 rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-                        title="View pending invitations in sidebar"
-                    >
-                        <Mail className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                        <span>Invitations</span>
-                        {((project.invitations?.length || 0) + (projectInvitations?.length || 0)) > 0 && (
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold">
-                                {(project.invitations?.length || 0) + (projectInvitations?.length || 0)}
-                            </span>
-                        )}
-                    </button>
-
                     {canManageRoles && (
                         <button
                             type="button"
@@ -298,7 +283,7 @@ export default function ProjectMembersView({ project, onRefresh }: ProjectMember
             </div>
 
             {/* Pending Invitations Alert Banner (Links directly to Right Sidebar) */}
-            {project.invitations && project.invitations.length > 0 && (
+            {canManageRoles && project.invitations && project.invitations.length > 0 && (
                 <div
                     onClick={() => setIsManageInvitationsOpen(true)}
                     className="border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-bg)] rounded-[3px] p-3 flex items-center justify-between gap-3 cursor-pointer transition-colors"
@@ -597,7 +582,7 @@ export default function ProjectMembersView({ project, onRefresh }: ProjectMember
                                                 }`}
                                             >
                                                 <span className="text-[8px] font-bold">
-                                                    {getInitials(tm.user.name)}
+                                                    {getInitials(tm.user.name || tm.user.email || "")}
                                                 </span>
                                                 <span>{tm.user.name}</span>
                                             </button>

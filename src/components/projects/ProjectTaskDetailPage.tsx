@@ -52,7 +52,7 @@ const SUBTASK_COLUMNS: SubtaskColumn[] = [
     { id: "col-todo", name: "To Do", status: "Backlog" },
     { id: "col-progress", name: "In Progress", status: "InProgress" },
     { id: "col-review", name: "Under Review", status: "InReview" },
-    { id: "col-done", name: "Done", status: "Done" },
+    { id: "col-done", name: "Completed", status: "Completed" },
 ];
 
 export default function ProjectTaskDetailPage() {
@@ -100,7 +100,7 @@ export default function ProjectTaskDetailPage() {
         );
         try {
             await api.updateProjectSubtask(projectId, taskId, stId, {
-                isCompleted: newStatus === "Done",
+                isCompleted: newStatus === "Completed" || newStatus === "Done",
                 acceptanceStatus: newStatus === "PendingAcceptance" ? "PENDING" : "ACCEPTED",
             });
             toast.success("Subtask status updated");
@@ -127,7 +127,7 @@ export default function ProjectTaskDetailPage() {
                 startDate: task.startDate,
                 dueDate: task.dueDate,
                 estimatedDays: Number(estimatedDays) || 1,
-                isCompleted: colStatus === "Done",
+                isCompleted: colStatus === "Completed" || colStatus === "Done",
             });
             toast.success("Subtask added successfully");
             setNewTitle("");
@@ -167,7 +167,7 @@ export default function ProjectTaskDetailPage() {
         );
     }
 
-    const completedCount = subtasks.filter((s) => s.status === "Done").length;
+    const completedCount = subtasks.filter((s) => s.status === "Completed" || s.status === "Done").length;
     const progressPct = subtasks.length > 0 ? Math.round((completedCount / subtasks.length) * 100) : 0;
 
     const filteredSubtasks = memberFilter
@@ -208,28 +208,23 @@ export default function ProjectTaskDetailPage() {
                         >
                             <ArrowLeft className="w-4 h-4" />
                         </Link>
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                                <span className={`text-[8px] font-medium px-1.5 py-0.5 rounded-[2px] border ${getPriorityBadge(task.priority)}`}>
-                                    {task.priority} Priority
-                                </span>
-                                <span className="text-[8px] text-[var(--app-muted)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px]">
-                                    {task.effortMode} Effort
-                                </span>
-                                {(task.riskLevel === "AT_RISK" || task.riskLevel === "AtRisk") && (
-                                    <span className="text-[8px] text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1">
-                                        <AlertTriangle className="w-2.5 h-2.5" /> At Risk
-                                    </span>
-                                )}
-                                {(task.riskLevel === "OVERDUE" || task.riskLevel === "Overdue" || task.riskLevel === "CriticalSLA") && (
-                                    <span className="text-[8px] text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1">
-                                        <ShieldAlert className="w-2.5 h-2.5" /> Overdue
-                                    </span>
-                                )}
-                            </div>
-                            <h1 className="font-heading text-lg text-[var(--app-text)] truncate mt-0.5">
+                        <div className="min-w-0 flex items-center gap-2.5 flex-wrap">
+                            <h1 className="font-heading text-lg font-semibold text-[var(--app-text)] truncate">
                                 {task.title}
                             </h1>
+                            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border shrink-0 ${getPriorityBadge(task.priority)}`}>
+                                {task.priority}
+                            </span>
+                            {(task.riskLevel === "AT_RISK" || task.riskLevel === "AtRisk") && (
+                                <span className="text-[9px] text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1 shrink-0">
+                                    <AlertTriangle className="w-2.5 h-2.5" /> At Risk
+                                </span>
+                            )}
+                            {(task.riskLevel === "OVERDUE" || task.riskLevel === "Overdue" || task.riskLevel === "CriticalSLA") && (
+                                <span className="text-[9px] text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1 shrink-0">
+                                    <ShieldAlert className="w-2.5 h-2.5" /> Overdue
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -301,10 +296,10 @@ export default function ProjectTaskDetailPage() {
                         if (col.status === "Backlog") return st.status === "Backlog" || st.status === "PendingAcceptance";
                         if (col.status === "InProgress") return st.status === "InProgress" || st.status === "AtRisk" || st.status === "Blocked";
                         if (col.status === "InReview") return st.status === "InReview" || st.status === "ReworkRequired";
-                        return st.status === "Done";
+                        return st.status === "Completed" || st.status === "Done";
                     });
 
-                    const isDoneCol = col.status === "Done";
+                    const isDoneCol = col.status === "Completed" || col.status === "Done";
 
                     return (
                         <div
@@ -337,7 +332,7 @@ export default function ProjectTaskDetailPage() {
                                                 <h4 className="text-[11px] font-medium text-[var(--app-text)] leading-snug break-words">
                                                     {st.title}
                                                 </h4>
-                                                {st.status === "Done" && (
+                                                {(st.status === "Completed" || st.status === "Done") && (
                                                     <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-success)] shrink-0" />
                                                 )}
                                             </div>
@@ -363,7 +358,7 @@ export default function ProjectTaskDetailPage() {
                                                     <option value="Backlog">To Do</option>
                                                     <option value="InProgress">In Progress</option>
                                                     <option value="InReview">In Review</option>
-                                                    <option value="Done">Done</option>
+                                                    <option value="Completed">Completed</option>
                                                 </select>
                                             </div>
                                         </div>

@@ -295,7 +295,7 @@ export default function Sidebar({
                     )}
                     {views.map((v) => {
                         const Icon = v.icon;
-                        const isActive = pathname === v.href;
+                        const isActive = pathname === v.href || (v.href !== "/" && pathname?.startsWith(`${v.href}/`));
                         const isLeaderOnly = v.leaderOnly;
                         const isLeaderOrObserverOnly = (v as any)
                             .leaderOrObserverOnly;

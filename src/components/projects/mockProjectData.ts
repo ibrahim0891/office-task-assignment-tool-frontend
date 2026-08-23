@@ -10,7 +10,7 @@ export interface MockUser {
 
 export type ProjectStatus = "Active" | "AtRisk" | "OnTrack" | "Completed" | "Archived";
 export type ProjectRole = "Manager" | "Leader" | "Member" | "Viewer";
-export type TaskStatus = "PendingAcceptance" | "Backlog" | "InProgress" | "AtRisk" | "Blocked" | "InReview" | "ReworkRequired" | "Done";
+export type TaskStatus = "PendingAcceptance" | "Backlog" | "InProgress" | "AtRisk" | "Blocked" | "InReview" | "ReworkRequired" | "Completed" | "Done";
 export type RiskLevel = "OnTrack" | "ApproachingDeadline" | "AtRisk" | "Overdue" | "CriticalSLA";
 export type Priority = "Low" | "Medium" | "High" | "Urgent";
 export type EffortMode = "Shared" | "Parallel";
@@ -129,7 +129,7 @@ const defaultColumns: MockProjectColumn[] = [
   { id: "col-backlog", name: "Backlog", order: 0 },
   { id: "col-progress", name: "In Progress", order: 1 },
   { id: "col-review", name: "In Review", order: 2 },
-  { id: "col-done", name: "Done", order: 3 },
+  { id: "col-done", name: "Completed", order: 3 },
 ];
 
 // ─── Helper ───

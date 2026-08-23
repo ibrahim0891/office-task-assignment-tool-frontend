@@ -40,7 +40,7 @@ export default function ProjectTaskModal({ task, project, isOpen, onClose }: Pro
         setSubtasks((prev) =>
             prev.map((st) =>
                 st.id === id
-                    ? { ...st, status: st.status === "Done" ? "InProgress" : "Done" }
+                    ? { ...st, status: st.status === "Completed" || st.status === "Done" ? "InProgress" : "Completed" }
                     : st
             )
         );
@@ -73,7 +73,7 @@ export default function ProjectTaskModal({ task, project, isOpen, onClose }: Pro
         setIsAddingSubtask(false);
     };
 
-    const completedCount = subtasks.filter((s) => s.status === "Done").length;
+    const completedCount = subtasks.filter((s) => s.status === "Completed" || s.status === "Done").length;
     const progressPct = subtasks.length > 0 ? Math.round((completedCount / subtasks.length) * 100) : 0;
 
     return (
@@ -88,9 +88,6 @@ export default function ProjectTaskModal({ task, project, isOpen, onClose }: Pro
                         <div className="flex items-center gap-2">
                             <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border ${getPriorityBadge(task.priority)}`}>
                                 {task.priority} Priority
-                            </span>
-                            <span className="text-[9px] text-[var(--app-muted)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px]">
-                                {task.effortMode} Effort
                             </span>
                             {task.riskLevel === "AtRisk" && (
                                 <span className="text-[9px] text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1">
@@ -210,7 +207,7 @@ export default function ProjectTaskModal({ task, project, isOpen, onClose }: Pro
                                 </div>
                             ) : (
                                 subtasks.map((st) => {
-                                    const isDone = st.status === "Done";
+                                    const isDone = st.status === "Completed" || st.status === "Done";
                                     return (
                                         <div
                                             key={st.id}

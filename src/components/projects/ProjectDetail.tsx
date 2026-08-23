@@ -3,14 +3,16 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Kanban, Users, Calendar, BarChart2, Loader2, Mail } from "lucide-react";
+import { ArrowLeft, ArrowRight, LayoutGrid, Users, Calendar, BarChart2, Loader2, Mail, Settings, Plus } from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import ProjectBoardView from "./ProjectBoardView";
 import ProjectMembersView from "./ProjectMembersView";
 import ProjectTimelineView from "./ProjectTimelineView";
 import ProjectAnalyticsView from "./ProjectAnalyticsView";
+import ProjectSettingsView from "./ProjectSettingsView";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
+import CreateProjectTaskModal from "./CreateProjectTaskModal";
 
 function getStatusConfig(status: string) {
     switch (status) {
@@ -44,33 +46,37 @@ function getInitials(name: string) {
         .slice(0, 2);
 }
 
-type Tab = "board" | "members" | "timeline" | "analytics";
+type Tab = "main-board" | "members" | "timeline" | "analytics" | "settings";
 
 const tabs: { id: Tab; label: string; icon: any }[] = [
-    { id: "board", label: "Board (Kanban)", icon: Kanban },
+    { id: "main-board", label: "Main Tasks", icon: LayoutGrid },
     { id: "members", label: "Members", icon: Users },
     { id: "timeline", label: "Timeline", icon: Calendar },
     { id: "analytics", label: "Analytics", icon: BarChart2 },
+    { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export default function ProjectDetail() {
     const params = useParams();
     const projectId = params.id as string;
-    const { currentTeam, isManageInvitationsOpen, setIsManageInvitationsOpen, projectInvitations } = useWorkspace();
+    const { currentTeam, currentUser, isManageInvitationsOpen, setIsManageInvitationsOpen, projectInvitations } = useWorkspace();
 
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<Tab>("board");
+    const [activeTab, setActiveTab] = useState<Tab>("main-board");
+    const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
 
-    const loadProjectDetail = async () => {
+    const loadProjectDetail = async (silent = false) => {
         if (!projectId) return;
-        setLoading(true);
+        if (!silent && !project) {
+            setLoading(true);
+        }
         try {
             const data = await api.getProjectDetail(projectId, currentTeam?.id);
             setProject(data);
         } catch (err) {
             console.error("Failed to load project detail:", err);
-            setProject(null);
+            if (!project) setProject(null);
         } finally {
             setLoading(false);
         }
@@ -118,6 +124,19 @@ export default function ProjectDetail() {
         const d = new Date(dateInput);
         return d.toISOString().split("T")[0];
     };
+
+    const currentProjectMember = (project.members || []).find(
+        (m: any) => m.userId === currentUser?.id
+    );
+    const isProjectManager =
+        project.managerId === currentUser?.id ||
+        project.manager?.id === currentUser?.id ||
+        (currentProjectMember?.role || "").toUpperCase() === "MANAGER";
+    const isProjectLeader =
+        isProjectManager ||
+        (currentProjectMember?.role || "").toUpperCase() === "LEADER";
+
+    const canManageInvitations = isProjectManager || isProjectLeader;
 
     const pendingProjectInvitesCount = (project.invitations?.length || 0) + (projectInvitations?.length || 0);
 
@@ -243,33 +262,47 @@ export default function ProjectDetail() {
                         })}
                     </div>
 
-                    {/* Right Sidebar Invitations Toggle */}
-                    <button
-                        type="button"
-                        onClick={() => setIsManageInvitationsOpen(!isManageInvitationsOpen)}
-                        className={`text-[11px] font-medium px-3 py-1 rounded-[2px] border transition-colors cursor-pointer flex items-center gap-1.5 ${
-                            isManageInvitationsOpen
-                                ? "bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
-                                : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)]"
-                        }`}
-                        title="Toggle Invitations Right Sidebar"
-                    >
-                        <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
-                        <span>Invitations</span>
-                        {pendingProjectInvitesCount > 0 && (
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold">
-                                {pendingProjectInvitesCount}
-                            </span>
+                    <div className="flex items-center gap-2 py-1.5">
+                        <button
+                            type="button"
+                            onClick={() => setIsCreateTaskModalOpen(true)}
+                            className="relative corner-brackets-4 px-3 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Task</span>
+                        </button>
+
+                        {/* Right Sidebar Invitations Toggle */}
+                        {canManageInvitations && (
+                            <button
+                                type="button"
+                                onClick={() => setIsManageInvitationsOpen(!isManageInvitationsOpen)}
+                                className={`text-[11px] font-medium px-3 py-1 rounded-[2px] border transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                    isManageInvitationsOpen
+                                        ? "bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
+                                        : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)]"
+                                }`}
+                                title="Toggle Invitations Right Sidebar"
+                            >
+                                <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                <span>Invitations</span>
+                                {pendingProjectInvitesCount > 0 && (
+                                    <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold">
+                                        {pendingProjectInvitesCount}
+                                    </span>
+                                )}
+                            </button>
                         )}
-                    </button>
+                    </div>
                 </div>
 
                 {/* Tab Content */}
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    {activeTab === "board" && <ProjectBoardView project={project} />}
+                    {activeTab === "main-board" && <ProjectBoardView project={project} onRefresh={loadProjectDetail} />}
                     {activeTab === "members" && <ProjectMembersView project={project} onRefresh={loadProjectDetail} />}
                     {activeTab === "timeline" && <ProjectTimelineView project={project} />}
                     {activeTab === "analytics" && <ProjectAnalyticsView project={project} />}
+                    {activeTab === "settings" && <ProjectSettingsView project={project} onRefresh={loadProjectDetail} />}
                 </div>
             </div>
 
@@ -278,6 +311,14 @@ export default function ProjectDetail() {
                 isOpen={isManageInvitationsOpen}
                 onClose={() => setIsManageInvitationsOpen(false)}
                 activeProjectId={project.id}
+                onRefresh={loadProjectDetail}
+            />
+
+            {/* Create Project Main Task Modal */}
+            <CreateProjectTaskModal
+                isOpen={isCreateTaskModalOpen}
+                onClose={() => setIsCreateTaskModalOpen(false)}
+                project={project}
                 onRefresh={loadProjectDetail}
             />
         </div>

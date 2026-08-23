@@ -56,7 +56,7 @@ function AvatarChip({ name, size = "sm" }: { name: string; size?: "sm" | "md" })
 function ProjectCard({ project }: { project: any }) {
     const status = getStatusConfig(project.status);
     const totalTasks = project.totalTasks !== undefined ? project.totalTasks : (project.tasks?.length || 0);
-    const doneTasks = project.doneTasks !== undefined ? project.doneTasks : (project.tasks?.filter((t: any) => t.column?.isComplete || t.status === "Done").length || 0);
+    const doneTasks = project.doneTasks !== undefined ? project.doneTasks : (project.tasks?.filter((t: any) => t.column?.isComplete || t.status === "Completed" || t.status === "Done").length || 0);
     const overdueTasks = project.overdueTasks !== undefined ? project.overdueTasks : (project.tasks?.filter((t: any) => t.riskLevel === "OVERDUE" || t.riskLevel === "CRITICAL_SLA" || t.riskLevel === "Overdue" || t.riskLevel === "CriticalSLA").length || 0);
     const leaders = (project.members || []).filter((m: any) => m.role === "Leader" || m.role === "LEADER");
 
