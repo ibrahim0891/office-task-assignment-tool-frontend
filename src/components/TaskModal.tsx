@@ -130,6 +130,136 @@ export default function TaskModal({
     );
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const commentInputRef = React.useRef<HTMLInputElement>(null);
+    const mentionMenuRef = React.useRef<HTMLDivElement>(null);
+
+    // Mention Autocomplete Popover state
+    const [showMentionMenu, setShowMentionMenu] = useState(false);
+    const [mentionQuery, setMentionQuery] = useState("");
+    const [mentionIndex, setMentionIndex] = useState(0);
+
+    const mentionOptions = React.useMemo(() => {
+        const query = mentionQuery.toLowerCase();
+
+        // Mentions are strictly for Leaders (and @leaders) across all workspace users
+        const allLeadersInTeam = (teamMembers || []).filter(({ role }) => role === "LEADER");
+        const leaderMembers = allLeadersInTeam.filter(({ user }) => user.id !== currentUser?.id);
+
+        const options = [];
+
+        // Only include @leaders group option if there are multiple leaders in the workspace
+        if (allLeadersInTeam.length > 1) {
+            options.push({
+                id: "leaders-group",
+                name: "leaders",
+                label: "@leaders",
+                description: "Notify all Leaders in workspace",
+                role: "LEADER",
+                isGroup: true,
+            });
+        }
+
+        options.push(
+            ...leaderMembers.map(({ user, role }) => ({
+                id: user.id,
+                name: user.fullName,
+                label: `@${user.fullName}`,
+                description: user.designation || user.email,
+                role: role,
+                isGroup: false,
+            }))
+        );
+
+        if (!query) return options;
+
+        return options.filter(
+            (opt) =>
+                opt.name.toLowerCase().includes(query) ||
+                opt.role.toLowerCase().includes(query) ||
+                opt.label.toLowerCase().includes(query)
+        );
+    }, [mentionQuery, teamMembers, currentUser?.id]);
+
+    const handleCommentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setComment(val);
+
+        const cursorPos = e.target.selectionStart || val.length;
+        const textBeforeCursor = val.substring(0, cursorPos);
+        const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+
+        if (lastAtIndex !== -1) {
+            const query = textBeforeCursor.substring(lastAtIndex + 1);
+            if (!/[\n,]/.test(query) && query.length <= 30) {
+                setMentionQuery(query);
+                setShowMentionMenu(true);
+                setMentionIndex(0);
+                return;
+            }
+        }
+        setShowMentionMenu(false);
+    };
+
+    const insertMention = (opt: { name: string; isGroup?: boolean }) => {
+        if (!commentInputRef.current) return;
+        const inputEl = commentInputRef.current;
+        const cursorPos = inputEl.selectionStart || comment.length;
+        const textBeforeCursor = comment.substring(0, cursorPos);
+        const lastAtIndex = textBeforeCursor.lastIndexOf("@");
+
+        if (lastAtIndex !== -1) {
+            const beforeAt = comment.substring(0, lastAtIndex);
+            const afterCursor = comment.substring(cursorPos);
+            const mentionText = opt.isGroup ? `@leaders ` : `@${opt.name} `;
+            const updated = beforeAt + mentionText + afterCursor;
+            setComment(updated);
+            setShowMentionMenu(false);
+
+            setTimeout(() => {
+                inputEl.focus();
+                const newPos = beforeAt.length + mentionText.length;
+                inputEl.setSelectionRange(newPos, newPos);
+            }, 0);
+        }
+    };
+
+    const handleCommentKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!showMentionMenu || mentionOptions.length === 0) return;
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setMentionIndex((prev) => (prev + 1) % mentionOptions.length);
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setMentionIndex((prev) => (prev - 1 + mentionOptions.length) % mentionOptions.length);
+        } else if (e.key === "Enter" || e.key === "Tab") {
+            e.preventDefault();
+            const selected = mentionOptions[mentionIndex];
+            if (selected) {
+                insertMention(selected);
+            }
+        } else if (e.key === "Escape") {
+            setShowMentionMenu(false);
+        }
+    };
+
+    React.useEffect(() => {
+        function handleOutsideClick(e: MouseEvent) {
+            if (
+                mentionMenuRef.current &&
+                !mentionMenuRef.current.contains(e.target as Node) &&
+                commentInputRef.current &&
+                !commentInputRef.current.contains(e.target as Node)
+            ) {
+                setShowMentionMenu(false);
+            }
+        }
+        if (showMentionMenu) {
+            document.addEventListener("mousedown", handleOutsideClick);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleOutsideClick);
+        };
+    }, [showMentionMenu]);
 
     const prevTaskIdRef = React.useRef<string | null>(null);
     const prevIsOpenRef = React.useRef<boolean>(false);
@@ -1278,15 +1408,66 @@ export default function TaskModal({
                                 {canPostComment && (
                                     <form
                                         onSubmit={handleAddComment}
-                                        className="flex gap-1.5 shrink-0 pt-2 border-t border-[#E5E5E3]"
+                                        className="flex gap-1.5 shrink-0 pt-2 border-t border-[#E5E5E3] relative"
                                     >
+                                        {/* Mention Selection Popover Menu */}
+                                        {showMentionMenu && mentionOptions.length > 0 && (
+                                            <div
+                                                ref={mentionMenuRef}
+                                                className="absolute bottom-full mb-1 left-0 w-72 max-h-56 overflow-x-hidden overflow-y-auto scrollbar-none bg-white border border-[#E5E5E3] rounded-[3px] shadow-md z-50 flex flex-col p-1.5 corner-brackets"
+                                            >
+                                                <div className="px-2 py-1 text-[10px] font-medium text-[#888883] border-b border-[#E5E5E3] mb-1 flex items-center justify-between shrink-0 min-w-0">
+                                                    <span>Mention leader</span>
+                                                    <span className="truncate ml-1">Use ↑↓ to navigate</span>
+                                                </div>
+                                                {mentionOptions.map((opt, idx) => (
+                                                    <button
+                                                        key={opt.id}
+                                                        type="button"
+                                                        onClick={() => insertMention(opt)}
+                                                        className={`w-full text-left px-2.5 py-1.5 rounded-[2px] text-[11px] flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                                                            idx === mentionIndex
+                                                                ? "bg-[#FAFAF9] text-[#1A1A1A] font-semibold"
+                                                                : "text-[#1A1A1A] hover:bg-[#FAFAF9]"
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <span className="font-semibold text-[#22863A]">@</span>
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="truncate font-medium text-[11px]">
+                                                                    {opt.name}
+                                                                </span>
+                                                                {opt.description && (
+                                                                    <span className="truncate text-[9px] text-[#888883]">
+                                                                        {opt.description}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <span
+                                                            className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border shrink-0 ${
+                                                                opt.role === "LEADER"
+                                                                    ? "text-[#CB2431] bg-[#CB2431]/10 border-[#CB2431]/20"
+                                                                    : opt.role === "OBSERVER"
+                                                                    ? "text-[#B08800] bg-[#B08800]/10 border-[#B08800]/20"
+                                                                    : "text-[#22863A] bg-[#22863A]/10 border-[#22863A]/20"
+                                                            }`}
+                                                        >
+                                                            {opt.isGroup ? "All Leaders" : opt.role === "LEADER" ? "Leader" : opt.role === "OBSERVER" ? "Observer" : "Member"}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
                                         <input
                                             ref={commentInputRef}
                                             type="text"
-                                            placeholder="Write a comment..."
+                                            placeholder="Write a comment... (Type @ to mention)"
                                             value={comment}
                                             disabled={isSendingComment}
-                                            onChange={(e) => setComment(e.target.value)}
+                                            onChange={handleCommentChange}
+                                            onKeyDown={handleCommentKeyDown}
                                             className={`flex-1 ${inputClass}`}
                                         />
                                         <button
