@@ -13,6 +13,8 @@ import SpotlightSearch from "./SpotlightSearch";
 import TopLoadingBar from "./ui/TopLoadingBar";
 import { fontMap } from "../config/fontConfig";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+import { usePWAInstall } from "../hooks/usePWAInstall";
+import PWAInstallModal from "./PWAInstallModal";
 
 import { toggleThemeWithCircularReveal } from "../utils/themeTransition";
 import { applyAccentColor } from "../config/accentConfig";
@@ -39,6 +41,8 @@ export default function WorkspaceShell({
     } = useWorkspace();
 
     usePushNotifications(currentUser);
+    const { isStandalone, isIOS, promptInstall, hasDeferredPrompt } = usePWAInstall();
+    const [isPwaModalOpen, setIsPwaModalOpen] = useState(false);
 
     const [cubeState, setCubeState] = useState<"IDLE" | "ROTATING" | "REVERSING">("IDLE");
     const [switchingMessage, setSwitchingMessage] = useState("");
@@ -314,6 +318,7 @@ export default function WorkspaceShell({
         if (pathname === "/trash") return "Trash Archive";
         if (pathname === "/dashboard") return "Analytics Dashboard";
         if (pathname === "/map") return "Team Flow";
+        if (pathname === "/team-details") return "Team Details";
         if (pathname === "/list") return "Task List View";
         if (pathname === "/task-board") return "Task Board";
         if (pathname.includes("/tasks/")) return "Subtask Breakdown";
@@ -348,6 +353,8 @@ export default function WorkspaceShell({
                     onToggleTheme={handleToggleTheme}
                     onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
                     onOpenSpotlight={() => setIsSpotlightOpen(true)}
+                    isStandalone={isStandalone}
+                    onOpenPwaInstall={() => setIsPwaModalOpen(true)}
                 />
 
                 {/* Page Content Slot */}
@@ -440,6 +447,14 @@ export default function WorkspaceShell({
             />
 
 
+            {/* PWA Installation Guidance Modal */}
+            <PWAInstallModal
+                isOpen={isPwaModalOpen}
+                onClose={() => setIsPwaModalOpen(false)}
+                onInstall={promptInstall}
+                hasDeferredPrompt={hasDeferredPrompt}
+                isIOS={isIOS}
+            />
         </div>
     );
 }

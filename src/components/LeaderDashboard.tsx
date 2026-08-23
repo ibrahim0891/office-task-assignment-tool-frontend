@@ -310,12 +310,12 @@ export default function LeaderDashboard({
                                                     {user.avatarUrl ? (
                                                         <img
                                                             src={user.avatarUrl}
-                                                            alt={user.name}
+                                                            alt={user.fullName}
                                                             className="w-8 h-8 rounded-[3px] object-cover border border-[#E5E5E3] shrink-0"
                                                         />
                                                     ) : (
                                                         <div className="w-8 h-8 rounded-[3px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[10px] text-[#1A1A1A] font-semibold shrink-0">
-                                                            {user.name
+                                                            {user.fullName
                                                                 .split(" ")
                                                                 .map(
                                                                     (n) => n[0],
@@ -325,7 +325,7 @@ export default function LeaderDashboard({
                                                     )}
                                                     <div>
                                                         <span className="font-medium text-[#1A1A1A] block text-[11px]">
-                                                            {user.name}
+                                                            {user.fullName}
                                                         </span>
                                                         <span
                                                             className={`text-[8px] font-medium capitalize ${getRoleColor(role)}`}
@@ -385,7 +385,7 @@ export default function LeaderDashboard({
                                                 {task.title}
                                             </h4>
                                             <p className="text-[9px] text-[#888883] mt-0.5">
-                                                {task.assignedTo.name} ·{" "}
+                                                {task.assignedTo.fullName} ·{" "}
                                                 {task.column.name}
                                             </p>
                                         </div>
@@ -544,12 +544,12 @@ export default function LeaderDashboard({
                                             {user.avatarUrl ? (
                                                 <img
                                                     src={user.avatarUrl}
-                                                    alt={user.name}
+                                                    alt={user.fullName}
                                                     className="w-9 h-9 rounded-[3px] object-cover border border-[#E5E5E3] shrink-0"
                                                 />
                                             ) : (
                                                 <div className="w-9 h-9 rounded-[3px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-base text-[#1A1A1A] font-bold shrink-0">
-                                                    {user.name
+                                                    {user.fullName
                                                         .split(" ")
                                                         .map((n) => n[0])
                                                         .join("")}
@@ -557,7 +557,7 @@ export default function LeaderDashboard({
                                             )}
                                             <div className="min-w-0 flex-1">
                                                 <span className="text-[11px] font-medium text-[#1A1A1A] block truncate">
-                                                    {user.name}
+                                                    {user.fullName}
                                                 </span>
                                                 <span className="text-[9px] text-[#888883] truncate block">
                                                     {user.email}

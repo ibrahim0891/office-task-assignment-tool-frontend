@@ -150,7 +150,7 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
                                         ? [
                                               {
                                                   value: currentUser.id,
-                                                  label: `${currentUser.name} (You)`,
+                                                  label: `${currentUser.fullName} (You)`,
                                                   avatarUrl:
                                                       currentUser.avatarUrl ||
                                                       null,
@@ -167,8 +167,8 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
                                                       label:
                                                           user.id ===
                                                           currentUser?.id
-                                                              ? `${user.name} (You)`
-                                                              : user.name,
+                                                              ? `${user.fullName} (You)`
+                                                              : user.fullName,
                                                       avatarUrl:
                                                           user.avatarUrl ||
                                                           null,

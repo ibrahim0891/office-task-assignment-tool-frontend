@@ -21,7 +21,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-    title: "SM Technology — Workspace Assignment Tool",
+    title: "OfficeTask — Task Assignment Board",
     description:
         "Role-based task assignment and daily workflow management for teams.",
 };
@@ -113,6 +113,12 @@ export default function RootLayout({
                         `,
                     }}
                 />
+                <link rel="manifest" href="/manifest.json" />
+                <meta name="theme-color" content="#1A1A1A" />
+                <meta name="apple-mobile-web-app-capable" content="yes" />
+                <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+                <meta name="apple-mobile-web-app-title" content="OfficeTask" />
+                <link rel="apple-touch-icon" href="/icon.png" />
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <link

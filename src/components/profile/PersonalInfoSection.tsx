@@ -3,9 +3,7 @@
 import React from "react";
 
 interface PersonalInfoSectionProps {
-    firstName: string;
-    lastName: string;
-    name?: string;
+    fullName: string;
     designation: string;
     bio: string;
     avatarUrl: string;
@@ -26,8 +24,7 @@ const BLOOD_GROUPS = [
 ];
 
 export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
-    firstName,
-    lastName,
+    fullName,
     designation,
     bio,
     bloodGroup,
@@ -39,24 +36,17 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
             <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
                 <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Identity</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <ProfileField label="First Name" required>
-                        <ProfileInput
-                            type="text"
-                            value={firstName}
-                            onChange={(e) => onChange("firstName", e.target.value)}
-                            placeholder="Enter first name"
-                            required
-                        />
-                    </ProfileField>
-                    <ProfileField label="Last Name" required>
-                        <ProfileInput
-                            type="text"
-                            value={lastName}
-                            onChange={(e) => onChange("lastName", e.target.value)}
-                            placeholder="Enter last name"
-                            required
-                        />
-                    </ProfileField>
+                    <div className="md:col-span-2">
+                        <ProfileField label="Full Name" required>
+                            <ProfileInput
+                                type="text"
+                                value={fullName}
+                                onChange={(e) => onChange("fullName", e.target.value)}
+                                placeholder="Enter full name"
+                                required
+                            />
+                        </ProfileField>
+                    </div>
                     <div className="md:col-span-2">
                         <ProfileField label="Designation / Role">
                             <ProfileInput

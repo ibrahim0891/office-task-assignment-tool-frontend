@@ -594,6 +594,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         setNotifications,
         pendingColumnUpdatesRef,
         moveVersionRef,
+        setCommentUpdateTrigger,
         loadProjects,
         loadProjectInvitations,
     );
@@ -887,7 +888,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                     setCurrentTeam(updatedTeams[0]);
                 } else {
                     const defaultTeam = await api.createTeam(
-                        `${currentUser.name.split(" ")[0]}'s Personal Space`,
+                        `${currentUser.fullName.split(" ")[0]}'s Personal Space`,
                         currentUser.id
                     );
                     const finalTeams = await api.getTeams(currentUser.id);
@@ -915,7 +916,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                     localStorage.setItem("selected_team_id", updatedTeams[0].id);
                 } else {
                     const defaultTeam = await api.createTeam(
-                        `${currentUser.name.split(" ")[0]}'s Personal Space`,
+                        `${currentUser.fullName.split(" ")[0]}'s Personal Space`,
                         currentUser.id
                     );
                     const finalTeams = await api.getTeams(currentUser.id);

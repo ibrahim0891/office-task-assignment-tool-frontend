@@ -309,7 +309,7 @@ export default function SpotlightSearch({
                 title: task.title,
                 subtitle:
                     task.description?.replace(/<[^>]*>/g, "").trim() ||
-                    `Status: ${col?.name || "Pending"} • ${task.assignedTo?.name ? `Assigned to ${task.assignedTo.name}` : "Unassigned"}`,
+                    `Status: ${col?.name || "Pending"} • ${task.assignedTo?.fullName ? `Assigned to ${task.assignedTo.fullName}` : "Unassigned"}`,
                 icon: (
                     <CheckSquare
                         className={`w-4 h-4 shrink-0 ${

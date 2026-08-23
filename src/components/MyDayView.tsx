@@ -247,15 +247,15 @@ export default function MyDayView({
                                             {user.avatarUrl ? (
                                                 <img
                                                     src={user.avatarUrl}
-                                                    alt={user.name}
+                                                    alt={user.fullName}
                                                     className="w-5 h-5 rounded-full object-cover border border-[#E5E5E3] shrink-0"
                                                 />
                                             ) : (
                                                 <div className="w-5 h-5 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[8px] font-bold shrink-0">
-                                                    {user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                                                    {user.fullName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
                                                 </div>
                                             )}
-                                            <span className="text-base font-semibold text-[#1A1A1A] truncate">{user.name}</span>
+                                            <span className="text-base font-semibold text-[#1A1A1A] truncate">{user.fullName}</span>
                                         </div>
                                         <span className="text-[10px] text-[#888883] border border-[#E5E5E3] px-1.5 py-0.5 rounded-[2px]">
                                             {done}/{total} done
@@ -312,7 +312,7 @@ export default function MyDayView({
 
                                         <div className="flex items-center gap-2 shrink-0 text-[10px]">
                                             <span className="text-[#888883] font-medium">
-                                                {t.assignedTo?.name}
+                                                {t.assignedTo?.fullName}
                                             </span>
                                             <span className="border border-[#E5E5E3] px-1.5 py-0.5 rounded-[2px]">
                                                 {t.column?.name}

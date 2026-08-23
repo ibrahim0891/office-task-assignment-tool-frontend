@@ -19,6 +19,7 @@ import {
     Bookmark,
     Moon,
     Network,
+    Users,
     FolderKanban,
 } from "lucide-react";
 import { User, Team } from "../api";
@@ -116,6 +117,13 @@ export default function Sidebar({
             leaderOrObserverOnly: true,
         },
         {
+            id: "team-details",
+            href: "/team-details",
+            name: "Team Details",
+            icon: Users,
+            leaderOnly: false,
+        },
+        {
             id: "calendar",
             href: "/calendar",
             name: "Calendar",
@@ -173,13 +181,22 @@ export default function Sidebar({
                 className={`flex-1 flex flex-col gap-4 min-h-0 ${isCollapsed ? "overflow-visible" : "overflow-y-auto scrollbar-none"}`}
             >
                 {/* Header & Toggle Button */}
-                <div className="pb-3 border-b border-[var(--app-border)] flex items-center justify-between">
+                <div className="pb-4 border-b border-[var(--app-border)] flex items-center justify-between">
                     {!isCollapsed && (
-                        <div className="flex flex-col text-left select-none">
-                            <h1 className="font-heading text-xl font-bold tracking-tight text-[var(--app-text)]">
-                                SM Technology
-                            </h1>
-                            <p className="eyebrow mt-0.5">Assignment Core</p>
+                        <div className="flex items-center gap-2 text-left select-none">
+                            <img
+                                src="/icon.png"
+                                alt="OfficeTask Logo"
+                                className="w-7 h-7 object-contain rounded-sm overflow-hidden"
+                            />
+                            <div className="flex flex-col">
+                                <h1 className="font-heading text-base font-bold tracking-tight text-[var(--app-text)] leading-tight">
+                                    Office Task
+                                </h1>
+                                <p className="eyebrow text-[9px] text-[var(--app-muted)] leading-none mt-0.5">
+                                    Assignment Core
+                                </p>
+                            </div>
                         </div>
                     )}
                     <button
@@ -188,7 +205,7 @@ export default function Sidebar({
                             isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"
                         }
                         className={`relative corner-brackets-4 p-1.5 border border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors flex items-center justify-center cursor-pointer ${
-                            isCollapsed ? "mx-auto" : ""
+                            isCollapsed ? "mx-auto mt-2" : ""
                         }`}
                     >
                         <svg
@@ -395,13 +412,13 @@ export default function Sidebar({
                             {currentUser.avatarUrl ? (
                                 <img
                                     src={currentUser.avatarUrl}
-                                    alt={currentUser.name}
+                                    alt={currentUser.fullName}
                                     className="w-7 h-7 rounded-full object-cover border border-[var(--app-border)] shrink-0"
                                 />
                             ) : (
                                 <div className="w-7 h-7 rounded-full border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-xs text-[var(--app-text)] font-semibold shrink-0">
-                                    {currentUser.name
-                                        ? currentUser.name
+                                    {currentUser.fullName
+                                        ? currentUser.fullName
                                               .split(" ")
                                               .map((n) => n[0])
                                               .join("")
@@ -413,7 +430,7 @@ export default function Sidebar({
                             {!isCollapsed && (
                                 <div className="text-left min-w-0">
                                     <div className="text-sm font-semibold text-[var(--app-text)] truncate">
-                                        {currentUser.name}
+                                        {currentUser.fullName}
                                     </div>
                                     <div className="text-xs text-[var(--app-muted)] truncate capitalize">
                                         {userRole.toLowerCase()}
@@ -462,7 +479,7 @@ export default function Sidebar({
                     {/* Tooltip in Collapsed mode */}
                     {isCollapsed && (
                         <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A1A] text-white text-xs rounded-[2px] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity">
-                            Profile Settings ({currentUser.name})
+                            Profile Settings ({currentUser.fullName})
                         </div>
                     )}
                 </div>

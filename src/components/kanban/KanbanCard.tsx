@@ -35,7 +35,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     const isSameAssigneeAndCreator = Boolean(
         (task.createdById && task.assignedToId && task.createdById === task.assignedToId) ||
         (task.createdBy?.id && task.assignedTo?.id && task.createdBy.id === task.assignedTo.id) ||
-        (task.createdBy?.name && task.assignedTo?.name && task.createdBy.name === task.assignedTo.name),
+        (task.createdBy?.fullName && task.assignedTo?.fullName && task.createdBy.fullName === task.assignedTo.fullName),
     );
 
     return (
@@ -167,9 +167,9 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                         {!isSameAssigneeAndCreator && (
                             <span
                                 className="text-[9px] text-[#888883] truncate max-w-[50%] text-right shrink-0"
-                                title={`Created by ${task.createdBy?.name || "Unknown"}`}
+                                title={`Created by ${task.createdBy?.fullName || "Unknown"}`}
                             >
-                                by <span className="capitalize">{task.createdBy?.name || "Unknown"}</span>
+                                by <span className="capitalize">{task.createdBy?.fullName || "Unknown"}</span>
                             </span>
                         )}
                     </div>
@@ -181,15 +181,15 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                             {task.assignedTo?.avatarUrl ? (
                                 <img
                                     src={task.assignedTo.avatarUrl}
-                                    alt={task.assignedTo.name}
+                                    alt={task.assignedTo.fullName}
                                     className="w-4 h-4 rounded-[2px] object-cover border border-[#E5E5E3] shrink-0"
                                 />
                             ) : (
                                 <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] font-bold text-[#1A1A1A] shrink-0">
-                                    {task.assignedTo?.name
-                                        ? task.assignedTo.name
+                                    {task.assignedTo?.fullName
+                                        ? task.assignedTo.fullName
                                               .split(" ")
-                                              .map((n) => n[0])
+                                              .map((n: string) => n[0])
                                               .join("")
                                               .toUpperCase()
                                               .slice(0, 2)
@@ -198,9 +198,9 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                             )}
                             <span
                                 className="truncate font-medium text-[#1A1A1A]"
-                                title={task.assignedTo?.name || "Unassigned"}
+                                title={task.assignedTo?.fullName || "Unassigned"}
                             >
-                                {task.assignedTo?.name || "Unassigned"}
+                                {task.assignedTo?.fullName || "Unassigned"}
                             </span>
                         </div>
 

@@ -23,9 +23,7 @@ export default function ProfilePage() {
 
     // Profile form state
     const [formData, setFormData] = useState({
-        firstName: "",
-        lastName: "",
-        name: "",
+        fullName: "",
         avatarUrl: "",
         secondaryEmail: "",
         primaryPhone: "",
@@ -40,9 +38,7 @@ export default function ProfilePage() {
     });
 
     const [initialFormData, setInitialFormData] = useState({
-        firstName: "",
-        lastName: "",
-        name: "",
+        fullName: "",
         secondaryEmail: "",
         primaryPhone: "",
         secondaryPhone: "",
@@ -95,16 +91,9 @@ export default function ProfilePage() {
     const loadProfile = async (userId: string) => {
         try {
             const data = await api.getUserProfile(userId);
-            const firstNameVal = data.firstName || data.name || "";
-            const lastNameVal = data.lastName || "";
-            const fullNameVal =
-                [firstNameVal, lastNameVal].filter(Boolean).join(" ") ||
-                firstNameVal;
 
             const initialSnapshot = {
-                firstName: firstNameVal,
-                lastName: lastNameVal,
-                name: fullNameVal,
+                fullName: data.fullName || "",
                 secondaryEmail: data.secondaryEmail || "",
                 primaryPhone: data.primaryPhone || "",
                 secondaryPhone: data.secondaryPhone || "",
@@ -130,16 +119,10 @@ export default function ProfilePage() {
     };
 
     const handleChange = (field: string, value: string) => {
-        setFormData((prev) => {
-            const next = { ...prev, [field]: value };
-            if (field === "firstName" || field === "lastName") {
-                next.name =
-                    [next.firstName, next.lastName]
-                        .filter(Boolean)
-                        .join(" ") || next.firstName;
-            }
-            return next;
-        });
+        setFormData((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
     };
 
     const handleAvatarChange = async (newAvatarUrl: string) => {
@@ -205,29 +188,18 @@ export default function ProfilePage() {
 
     const handleSave = async () => {
         if (!currentUser) return;
-        const trimmedFirst = formData.firstName.trim();
-        const trimmedLast = formData.lastName.trim();
+        const trimmedFullName = formData.fullName.trim();
 
-        if (!trimmedFirst) {
-            toast.error("First name is required.");
+        if (!trimmedFullName) {
+            toast.error("Full name is required.");
             return;
         }
-        if (!trimmedLast) {
-            toast.error("Last name is required.");
-            return;
-        }
-
-        const resolvedFirst = trimmedFirst;
-        const resolvedLast = trimmedLast;
-        const resolvedFullName = `${resolvedFirst} ${resolvedLast}`.trim();
 
         setIsSaving(true);
         try {
             const payload = {
                 ...formData,
-                firstName: resolvedFirst,
-                lastName: resolvedLast,
-                name: resolvedFullName,
+                fullName: trimmedFullName,
             };
 
             const updated = await api.updateUserProfile(
@@ -237,9 +209,7 @@ export default function ProfilePage() {
 
             const updatedLocalUser = {
                 ...currentUser,
-                firstName: updated.firstName || resolvedFirst,
-                lastName: updated.lastName || resolvedLast,
-                name: updated.name || resolvedFullName,
+                fullName: updated.fullName || trimmedFullName,
                 avatarUrl: updated.avatarUrl,
             };
             localStorage.setItem(
@@ -253,9 +223,7 @@ export default function ProfilePage() {
             setCurrentUser(updatedLocalUser);
 
             const savedSnapshot = {
-                firstName: updated.firstName || resolvedFirst,
-                lastName: updated.lastName || resolvedLast,
-                name: updated.name || resolvedFullName,
+                fullName: updated.fullName || trimmedFullName,
                 secondaryEmail: formData.secondaryEmail,
                 primaryPhone: formData.primaryPhone,
                 secondaryPhone: formData.secondaryPhone,
@@ -290,8 +258,7 @@ export default function ProfilePage() {
     };
 
     const isDirty =
-        formData.firstName !== initialFormData.firstName ||
-        formData.lastName !== initialFormData.lastName ||
+        formData.fullName !== initialFormData.fullName ||
         formData.secondaryEmail !== initialFormData.secondaryEmail ||
         formData.primaryPhone !== initialFormData.primaryPhone ||
         formData.secondaryPhone !== initialFormData.secondaryPhone ||
@@ -386,7 +353,7 @@ export default function ProfilePage() {
                         <ProfileHeader
                             user={{
                                 ...currentUser,
-                                name: formData.name,
+                                fullName: formData.fullName,
                                 avatarUrl: formData.avatarUrl,
                                 designation: formData.designation,
                                 bloodGroup: formData.bloodGroup,
@@ -423,9 +390,7 @@ export default function ProfilePage() {
                         <div className="p-5 select-text">
                             {activeTab === "personal" && (
                                 <PersonalInfoSection
-                                    firstName={formData.firstName}
-                                    lastName={formData.lastName}
-                                    name={formData.name}
+                                    fullName={formData.fullName}
                                     designation={formData.designation}
                                     bio={formData.bio}
                                     avatarUrl={formData.avatarUrl}

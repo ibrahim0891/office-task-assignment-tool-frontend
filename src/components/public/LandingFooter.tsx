@@ -8,8 +8,13 @@ export default function LandingFooter() {
         <footer className="bg-[var(--app-card)] border-t border-[var(--app-border)] py-8 px-6 text-xs text-[var(--app-muted)]">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
+                    <img
+                        src="/icon.png"
+                        alt="OfficeTask Logo"
+                        className="w-4.5 h-4.5 object-contain rounded-sm overflow-hidden"
+                    />
                     <span className="font-heading font-bold text-[var(--app-text)]">
-                        SM Technology
+                        Office Task
                     </span>
                     <span>
                         © 2026 Office Task Assignment Tool. All rights reserved.

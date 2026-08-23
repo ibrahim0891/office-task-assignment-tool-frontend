@@ -172,7 +172,7 @@ export default function SolarMapView({
         const leaderMembership = teamMembers.find((m) => m.role === "LEADER");
         const leaderUser = leaderMembership?.user;
         const leaderId = leaderUser?.id || currentUser?.id || "leader";
-        const leaderName = leaderUser?.name || currentUser?.name || "Workspace Leader";
+        const leaderName = leaderUser?.fullName || currentUser?.fullName || "Workspace Leader";
 
         const tempNodes: Node[] = [];
         const tempEdges: Edge[] = [];
@@ -215,7 +215,7 @@ export default function SolarMapView({
         // 2. Member Columns (Level 2 Headers & Level 3 Tasks)
         sortedMembers.forEach((member, colIdx) => {
             const colX = startX + colIdx * colWidth;
-            const initials = member.user.name
+            const initials = member.user.fullName
                 .split(" ")
                 .map((n) => n[0])
                 .join("")
@@ -228,7 +228,7 @@ export default function SolarMapView({
                 type: "member",
                 position: { x: colX, y: level2Y },
                 data: {
-                    name: member.user.name,
+                    name: member.user.fullName,
                     initials,
                     role: member.role,
                     userObj: member.user,

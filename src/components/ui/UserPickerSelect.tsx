@@ -75,7 +75,7 @@ export default function UserPickerSelect({
                 setApiUsers(
                     users.filter(
                         (u) =>
-                            u.name
+                            u.fullName
                                 .toLowerCase()
                                 .includes(search.toLowerCase()) ||
                             u.email
@@ -144,19 +144,19 @@ export default function UserPickerSelect({
                         {selectedUser.avatarUrl ? (
                             <img
                                 src={selectedUser.avatarUrl}
-                                alt={selectedUser.name}
+                                alt={selectedUser.fullName}
                                 className="w-4 h-4 rounded-[2px] object-cover border border-[#E5E5E3] shrink-0"
                             />
                         ) : (
                             <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] font-bold text-[#1A1A1A] shrink-0">
-                                {selectedUser.name
+                                {selectedUser.fullName
                                     .split(" ")
                                     .map((n) => n[0])
                                     .join("")}
                             </div>
                         )}
                         <span className="font-medium truncate">
-                            {selectedUser.name}
+                            {selectedUser.fullName}
                         </span>
                         <span className="text-[9px] text-[#888883] truncate">
                             ({selectedUser.email})
@@ -213,19 +213,19 @@ export default function UserPickerSelect({
                                         {u.avatarUrl ? (
                                             <img
                                                 src={u.avatarUrl}
-                                                alt={u.name}
+                                                alt={u.fullName}
                                                 className="w-3.5 h-3.5 rounded-[2px] object-cover"
                                             />
                                         ) : (
                                             <span className="font-bold text-[8px]">
-                                                {u.name
+                                                {u.fullName
                                                     .split(" ")
                                                     .map((n) => n[0])
                                                     .join("")}
                                             </span>
                                         )}
                                         <span className="truncate max-w-[80px]">
-                                            {u.name}
+                                            {u.fullName}
                                         </span>
                                     </button>
                                 ))}
@@ -265,12 +265,12 @@ export default function UserPickerSelect({
                                                 {u.avatarUrl ? (
                                                     <img
                                                         src={u.avatarUrl}
-                                                        alt={u.name}
+                                                        alt={u.fullName}
                                                         className="w-6 h-6 rounded-[2px] object-cover border border-[#E5E5E3] shrink-0"
                                                     />
                                                 ) : (
                                                     <div className="w-6 h-6 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[8px] font-semibold text-[#1A1A1A] shrink-0">
-                                                        {u.name
+                                                        {u.fullName
                                                             .split(" ")
                                                             .map((n) => n[0])
                                                             .join("")}
@@ -279,7 +279,7 @@ export default function UserPickerSelect({
                                                 <div className="min-w-0">
                                                     <span className="text-[11px] font-medium text-[#1A1A1A] block truncate">
                                                         <HighlightMatch
-                                                            text={u.name}
+                                                            text={u.fullName}
                                                             query={search}
                                                         />
                                                     </span>

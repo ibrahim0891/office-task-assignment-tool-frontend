@@ -14,8 +14,7 @@ export default function LoginPage() {
     const [view, setView] = useState<
         "SIGNIN" | "SIGNUP" | "VERIFY" | "FORGOT" | "RESET"
     >("SIGNIN");
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
+    const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [code, setCode] = useState("");
@@ -41,19 +40,13 @@ export default function LoginPage() {
 
         try {
             if (view === "SIGNUP") {
-                if (!firstName.trim()) {
-                    setError("First name is required.");
-                    setIsLoading(false);
-                    return;
-                }
-                if (!lastName.trim()) {
-                    setError("Last name is required.");
+                if (!fullName.trim()) {
+                    setError("Full name is required.");
                     setIsLoading(false);
                     return;
                 }
                 const resObj = await api.register(
-                    firstName,
-                    lastName,
+                    fullName,
                     email,
                     password,
                 );
@@ -127,8 +120,13 @@ export default function LoginPage() {
                     title="Go to Landing Page"
                     className="flex flex-col items-center text-center gap-1 hover:opacity-80 transition-opacity cursor-pointer group"
                 >
+                    <img
+                        src="/icon.png"
+                        alt="OfficeTask Logo"
+                        className="w-12 h-12 object-contain mb-1.5"
+                    />
                     <h1 className="font-heading text-2xl text-[#1A1A1A]">
-                        SM Technology
+                       OfficeTask
                     </h1>
                     <p className="eyebrow text-[#888883]">
                         Daily Task Management System
@@ -138,7 +136,7 @@ export default function LoginPage() {
                 {/* View Title */}
                 {(view === "SIGNIN" || view === "SIGNUP") && (
                     <h2 className="text-lg font-semibold text-center text-[#1A1A1A] -mt-1 border-b border-[#F5F5F3] pb-2">
-                        {view === "SIGNIN" ? "Sign In" : "Register"}
+                        {view === "SIGNIN" ? "Welcome Back! 👋" : "Join the board "}
                     </h2>
                 )}
 
@@ -302,37 +300,20 @@ export default function LoginPage() {
                     {(view === "SIGNIN" || view === "SIGNUP") && (
                         <div className="flex flex-col gap-3.5 animate-fade-in">
                             {view === "SIGNUP" && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                    <div className="flex flex-col gap-1">
-                                        <label className="eyebrow">
-                                            First Name <span className="text-[#CB2431]">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. John"
-                                            value={firstName}
-                                            onChange={(e) =>
-                                                setFirstName(e.target.value)
-                                            }
-                                            className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
-                                            required={view === "SIGNUP"}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        <label className="eyebrow">
-                                            Last Name <span className="text-[#CB2431]">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. Doe"
-                                            value={lastName}
-                                            onChange={(e) =>
-                                                setLastName(e.target.value)
-                                            }
-                                            className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
-                                            required={view === "SIGNUP"}
-                                        />
-                                    </div>
+                                <div className="flex flex-col gap-1">
+                                    <label className="eyebrow">
+                                        Full Name <span className="text-[#CB2431]">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. John Doe"
+                                        value={fullName}
+                                        onChange={(e) =>
+                                            setFullName(e.target.value)
+                                        }
+                                        className="w-full bg-white border border-[#E5E5E3] rounded-[3px] px-3 py-2 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors"
+                                        required={view === "SIGNUP"}
+                                    />
                                 </div>
                             )}
 

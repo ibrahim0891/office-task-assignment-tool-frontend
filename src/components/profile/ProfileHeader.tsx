@@ -18,8 +18,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 }) => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
-    const initials = user.name
-        ? user.name
+    const initials = user.fullName
+        ? user.fullName
             .split(" ")
             .map((n) => n[0])
             .join("")
@@ -40,7 +40,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         {user.avatarUrl ? (
                             <img
                                 src={user.avatarUrl}
-                                alt={user.name || "Avatar"}
+                                alt={user.fullName || "Avatar"}
                                 className="w-full h-full object-cover group-hover:opacity-40 transition-opacity"
                             />
                         ) : (
@@ -54,7 +54,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     <div className="flex flex-col gap-1 min-w-0">
                         <div className="flex items-center gap-2.5">
                             <h1 className="text-base font-semibold font-heading text-[#1A1A1A] truncate">
-                                {user.name || "User Profile"}
+                                {user.fullName || "User Profile"}
                             </h1>
                         </div>
                         <p className="text-[11px] text-[#888883] truncate">
