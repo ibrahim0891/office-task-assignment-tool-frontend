@@ -19,6 +19,7 @@ export function useWorkspaceSockets(
     setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>,
     pendingColumnUpdatesRef: React.MutableRefObject<Record<string, { timeoutId: NodeJS.Timeout; previousTasks: any[]; targetColumnId: string }>>,
     moveVersionRef: React.MutableRefObject<Record<string, number>>,
+    setCommentUpdateTrigger?: React.Dispatch<React.SetStateAction<number>>,
 ) {
     const draggingCardIdRef = useRef<string | null>(null);
     const deferredSocketEventsRef = useRef<Array<{ action: string; taskId: string; columnId?: string; actingUserId?: string; timestamp?: number }>>([]);
@@ -49,7 +50,6 @@ export function useWorkspaceSockets(
                             );
                         } else {
                             loadTasks();
-                            break;
                         }
                     }
                 }
@@ -112,6 +112,17 @@ export function useWorkspaceSockets(
             // Safety: skip if no data or if this event was initiated by this specific client tab
             if (!data) return;
             
+            const { action, taskId, columnId } = data;
+
+            // Handle real-time comment synchronization for all users
+            if (action && (action.startsWith("comment_") || action === "comment_created" || action === "comment_deleted" || action === "comment_resolved" || action === "comment_reopened")) {
+                if (setCommentUpdateTrigger) {
+                    setCommentUpdateTrigger((prev) => prev + 1);
+                }
+                loadTasks();
+                return;
+            }
+
             const isSelfEcho = data.clientId 
                 ? data.clientId === clientId 
                 : (data.actingUserId && data.actingUserId === currentUserRef.current?.id);
@@ -120,8 +131,6 @@ export function useWorkspaceSockets(
                 console.debug(`[DragSync] Ignoring self-originated socket echo for task ${data.taskId}, action=${data.action}`);
                 return;
             }
-
-            const { action, taskId, columnId } = data;
 
             // If the card being updated is currently being dragged by us, defer the event
             if (taskId && draggingCardIdRef.current === taskId) {
@@ -143,12 +152,6 @@ export function useWorkspaceSockets(
                     console.debug(`[DragSync] Discarding socket event for task ${taskId} — local move version is newer (pending debounce)`);
                     return;
                 }
-            }
-
-            // For comment actions, just reload to refresh comment list on the task
-            if (action === "comment_created" || action === "comment_deleted" || action === "comment_resolved" || action === "comment_reopened") {
-                loadTasks();
-                return;
             }
 
             // Granular update: for column moves caused by drag-drop where we have a

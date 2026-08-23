@@ -19,6 +19,7 @@ import {
     Bookmark,
     Moon,
     Network,
+    Users,
 } from "lucide-react";
 import { User, Team } from "../api";
 import { CustomSelect } from "./ui/CustomSelect";
@@ -106,6 +107,13 @@ export default function Sidebar({
             icon: Network,
             leaderOnly: false,
             leaderOrObserverOnly: true,
+        },
+        {
+            id: "team-details",
+            href: "/team-details",
+            name: "Team Details",
+            icon: Users,
+            leaderOnly: false,
         },
         {
             id: "calendar",

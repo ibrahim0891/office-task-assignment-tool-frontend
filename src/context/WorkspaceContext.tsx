@@ -373,6 +373,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         setNotifications,
         pendingColumnUpdatesRef,
         moveVersionRef,
+        setCommentUpdateTrigger,
     );
 
     useEffect(() => {

@@ -15,7 +15,6 @@ import { fontMap } from "../config/fontConfig";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 import PWAInstallModal from "./PWAInstallModal";
-import PWAInstallPromptBanner from "./PWAInstallPromptBanner";
 
 import { toggleThemeWithCircularReveal } from "../utils/themeTransition";
 import { applyAccentColor } from "../config/accentConfig";
@@ -319,6 +318,7 @@ export default function WorkspaceShell({
         if (pathname === "/trash") return "Trash Archive";
         if (pathname === "/dashboard") return "Analytics Dashboard";
         if (pathname === "/map") return "Team Flow";
+        if (pathname === "/team-details") return "Team Details";
         if (pathname === "/list") return "Task List View";
         if (pathname === "/task-board")
             return "Task Board";
@@ -444,14 +444,6 @@ export default function WorkspaceShell({
                 onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
             />
 
-            {/* PWA Floating Install Prompt Banner */}
-            <PWAInstallPromptBanner
-                isStandalone={isStandalone}
-                hasDeferredPrompt={hasDeferredPrompt}
-                isIOS={isIOS}
-                onOpenModal={() => setIsPwaModalOpen(true)}
-                onInstall={promptInstall}
-            />
 
             {/* PWA Installation Guidance Modal */}
             <PWAInstallModal

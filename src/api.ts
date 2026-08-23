@@ -22,6 +22,18 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
     if (newToken) {
       localStorage.setItem("sessionToken", newToken);
     }
+
+    const urlStr = typeof input === 'string' ? input : ('url' in input ? input.url : input.toString());
+    if (res.status === 401 && !urlStr.includes('/auth/login')) {
+      localStorage.removeItem("sessionToken");
+      localStorage.removeItem("sessionUser");
+      localStorage.removeItem("task_user");
+      localStorage.removeItem("selected_team_id");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+      throw new Error("Unauthorized");
+    }
   }
 
   return res;
