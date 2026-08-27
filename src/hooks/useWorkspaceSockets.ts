@@ -153,6 +153,34 @@ export function useWorkspaceSockets(
             }
         });
 
+        socket.on("project_task_comment_created", (data: any) => {
+            console.log("[Socket Client] Received project_task_comment_created:", data);
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("project_task_comment_created", { detail: data }));
+            }
+        });
+
+        socket.on("project_task_comment_updated", (data: any) => {
+            console.log("[Socket Client] Received project_task_comment_updated:", data);
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("project_task_comment_updated", { detail: data }));
+            }
+        });
+
+        socket.on("project_task_comment_resolved", (data: any) => {
+            console.log("[Socket Client] Received project_task_comment_resolved:", data);
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("project_task_comment_resolved", { detail: data }));
+            }
+        });
+
+        socket.on("project_task_comment_deleted", (data: any) => {
+            console.log("[Socket Client] Received project_task_comment_deleted:", data);
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("project_task_comment_deleted", { detail: data }));
+            }
+        });
+
         socket.on("connect_error", (err) => {
             console.error("[Socket Client] Connection error:", err);
         });

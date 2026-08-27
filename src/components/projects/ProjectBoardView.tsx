@@ -2,13 +2,14 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Filter, Calendar, ChevronRight, CheckCircle2, AlertTriangle, Layers, Clock } from "lucide-react";
+import { Plus, Search, Filter, Calendar, ChevronRight, CheckCircle2, AlertTriangle, Layers, Clock, Edit2, User } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { Button } from "../ui/Button";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
 import CreateProjectTaskModal from "./CreateProjectTaskModal";
+import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
 
 const PRIORITY_OPTIONS: SelectOption[] = [
     { value: "ALL", label: "All Priorities" },
@@ -100,10 +101,14 @@ function MainTaskGridCard({
     task,
     projectId,
     columnMap,
+    canManageTasks,
+    onEditTask,
 }: {
     task: any;
     projectId: string;
     columnMap: Record<string, any>;
+    canManageTasks: boolean;
+    onEditTask: (task: any) => void;
 }) {
     const router = useRouter();
     const subtasks = task.subtasks || [];
@@ -132,7 +137,7 @@ function MainTaskGridCard({
             className="group relative corner-brackets-4 bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] rounded-[2px] p-4 flex flex-col justify-between gap-4 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
             onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
         >
-            {/* Top Row: Derived Status + Priority & Risk Badges */}
+            {/* Top Row: Derived Status + Priority & Risk Badges & Optional Edit Button */}
             <div className="flex items-center justify-between gap-2">
                 <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-[2px] border flex items-center gap-1.5 ${statusConfig.cls}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
@@ -148,13 +153,26 @@ function MainTaskGridCard({
                             {riskBadge.label}
                         </span>
                     )}
+                    {canManageTasks && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEditTask(task);
+                            }}
+                            title="Edit Main Task"
+                            className="p-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent hover:border-[var(--app-border)] transition-colors cursor-pointer"
+                        >
+                            <Edit2 className="w-3 h-3" />
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* Content Section: Category/Column + Title + Cleaned Description */}
             <div className="flex flex-col gap-1.5">
                 {column?.name && (
-                    <span className="text-[9px] font-medium text-[var(--app-muted)] uppercase tracking-wider">
+                    <span className="text-[10px] font-medium text-[var(--app-muted)]">
                         {column.name}
                     </span>
                 )}
@@ -249,10 +267,27 @@ interface ProjectBoardViewProps {
 }
 
 export default function ProjectBoardView({ project, onRefresh }: ProjectBoardViewProps) {
-    const { currentUser } = useWorkspace();
+    const { currentUser, userRole } = useWorkspace();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedPriority, setSelectedPriority] = useState<string>("ALL");
+    const [filterMode, setFilterMode] = useState<"all" | "my-tasks">("all");
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+    const [editingTask, setEditingTask] = useState<any | null>(null);
+    const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
+
+    // Permission checks: Project Manager and Leader can create, edit, or delete main tasks
+    const currentProjectMember = (project?.members || []).find(
+        (m: any) => m.userId === currentUser?.id || m.user?.id === currentUser?.id
+    );
+    const isProjectManager =
+        project?.managerId === currentUser?.id ||
+        project?.manager?.id === currentUser?.id ||
+        (currentProjectMember?.role || "").toUpperCase() === "MANAGER" ||
+        userRole === "LEADER";
+    const isProjectLeader =
+        isProjectManager ||
+        (currentProjectMember?.role || "").toUpperCase() === "LEADER";
+    const canManageTasks = isProjectManager || isProjectLeader;
 
     const tasks = project?.tasks || [];
     const columns = project?.columns || [];
@@ -263,20 +298,49 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
         columnMap[col.id] = col;
     });
 
-    // Filter tasks based on search & priority
+    // Count tasks assigned to current user (either main task assignee or subtask assignee)
+    const myTasksCount = tasks.filter((t: any) => {
+        const isMainAssignee =
+            Array.isArray(t.assignees) &&
+            t.assignees.some((a: any) => (a.userId || a.user?.id || a.id) === currentUser?.id);
+        const isSubtaskAssignee =
+            Array.isArray(t.subtasks) &&
+            t.subtasks.some((st: any) => (st.assignedToId || st.assignedTo?.id) === currentUser?.id);
+        return isMainAssignee || isSubtaskAssignee;
+    }).length;
+
+    // Filter tasks based on search, priority, and "Assigned to Me" quick filter
     const filteredTasks = tasks.filter((t: any) => {
-        const matchesSearch = searchQuery === "" || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || (t.description || "").toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesPriority = selectedPriority === "ALL" || (t.priority || "").toUpperCase() === selectedPriority;
-        return matchesSearch && matchesPriority;
+        const matchesSearch =
+            searchQuery === "" ||
+            t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (t.description || "").toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesPriority =
+            selectedPriority === "ALL" || (t.priority || "").toUpperCase() === selectedPriority;
+
+        const isAssignedToMe =
+            (Array.isArray(t.assignees) &&
+                t.assignees.some((a: any) => (a.userId || a.user?.id || a.id) === currentUser?.id)) ||
+            (Array.isArray(t.subtasks) &&
+                t.subtasks.some((st: any) => (st.assignedToId || st.assignedTo?.id) === currentUser?.id));
+
+        const matchesFilterMode = filterMode === "all" || isAssignedToMe;
+
+        return matchesSearch && matchesPriority && matchesFilterMode;
     });
+
+    const handleOpenEditTask = (taskToEdit: any) => {
+        setEditingTask(taskToEdit);
+        setIsEditTaskModalOpen(true);
+    };
 
     return (
         <div className="flex-1 flex flex-col min-h-0 bg-[var(--app-bg)]">
             {/* Header Toolbar */}
             <div className="shrink-0 px-5 py-3 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-wrap items-center justify-between gap-3">
-                {/* Search & Priority Filter */}
-                <div className="flex items-center gap-2.5 flex-1 min-w-[240px] max-w-lg">
-                    <div className="relative flex-1 corner-brackets-4">
+                {/* Search & Priority Filter & Quick View Segmented Toggle */}
+                <div className="flex items-center gap-2.5 flex-1 min-w-[240px] max-w-2xl flex-wrap">
+                    <div className="relative flex-1 min-w-[160px] corner-brackets-4">
                         <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
                         <input
                             type="text"
@@ -292,15 +356,60 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         value={selectedPriority}
                         onChange={setSelectedPriority}
                         buttonClassName="corner-brackets-4 text-[10px] h-[28px] py-0.5"
-                        className="w-36 shrink-0"
+                        className="w-32 shrink-0"
                     />
+
+                    {/* Quick View Segmented Toggle: All Tasks vs Assigned to Me */}
+                    <div className="flex items-center bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-[10px] font-medium shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => setFilterMode("all")}
+                            className={`px-2.5 py-1 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                filterMode === "all"
+                                    ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
+                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                            }`}
+                        >
+                            <span>All Tasks</span>
+                            <span className="text-[9px] px-1 py-0.2 rounded-full bg-[var(--app-border)]/50 text-[var(--app-text)] font-mono">
+                                {tasks.length}
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setFilterMode("my-tasks")}
+                            className={`px-2.5 py-1 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                filterMode === "my-tasks"
+                                    ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
+                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                            }`}
+                        >
+                            <User className="w-3 h-3 text-[var(--app-muted)]" />
+                            <span>Assigned to Me</span>
+                            {myTasksCount > 0 && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[var(--app-text)] text-[var(--app-bg)] font-mono font-semibold">
+                                    {myTasksCount}
+                                </span>
+                            )}
+                        </button>
+                    </div>
                 </div>
 
-                {/* Right: Task Count */}
+                {/* Right: Task Count & Add Main Task Button */}
                 <div className="flex items-center gap-3">
                     <span className="text-[10px] text-[var(--app-muted)]">
                         Showing <span className="font-semibold text-[var(--app-text)] tabular-nums">{filteredTasks.length}</span> main tasks
                     </span>
+                    {canManageTasks && (
+                        <button
+                            type="button"
+                            onClick={() => setIsCreateTaskModalOpen(true)}
+                            className="relative corner-brackets-4 px-3 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Main Task</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -313,13 +422,15 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         <p className="text-[11px] text-[var(--app-muted)] max-w-sm mb-4">
                             {searchQuery ? "No tasks matched your search query or filter." : "Get started by creating your first main task for this project."}
                         </p>
-                        <Button
-                            size="sm"
-                            icon={<Plus className="w-3.5 h-3.5" />}
-                            onClick={() => setIsCreateTaskModalOpen(true)}
-                        >
-                            Create Main Task
-                        </Button>
+                        {canManageTasks && (
+                            <Button
+                                size="sm"
+                                icon={<Plus className="w-3.5 h-3.5" />}
+                                onClick={() => setIsCreateTaskModalOpen(true)}
+                            >
+                                Create Main Task
+                            </Button>
+                        )}
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4.5">
@@ -329,6 +440,8 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                                 task={task}
                                 projectId={project.id}
                                 columnMap={columnMap}
+                                canManageTasks={canManageTasks}
+                                onEditTask={handleOpenEditTask}
                             />
                         ))}
                     </div>
@@ -340,6 +453,18 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                 isOpen={isCreateTaskModalOpen}
                 onClose={() => setIsCreateTaskModalOpen(false)}
                 project={project}
+                onRefresh={onRefresh}
+            />
+
+            {/* Update Project Main Task Modal */}
+            <UpdateProjectTaskModal
+                isOpen={isEditTaskModalOpen}
+                onClose={() => {
+                    setIsEditTaskModalOpen(false);
+                    setEditingTask(null);
+                }}
+                project={project}
+                task={editingTask}
                 onRefresh={onRefresh}
             />
         </div>

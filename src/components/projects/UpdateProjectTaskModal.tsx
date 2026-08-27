@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Users, Calendar, Loader2, Check, X } from "lucide-react";
+import { Edit3, Users, Calendar, Loader2, Trash2, X, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { CustomSelect } from "../ui/CustomSelect";
@@ -9,12 +9,13 @@ import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { TipTapEditor } from "../ui/TipTapEditor";
 import ModalWrapper from "../ui/ModalWrapper";
 
-interface CreateProjectTaskModalProps {
+interface UpdateProjectTaskModalProps {
     isOpen: boolean;
     onClose: () => void;
     project: any;
-    defaultColumnId?: string;
+    task: any;
     onRefresh?: (silent?: boolean) => void;
+    onTaskDeleted?: () => void;
 }
 
 function getInitials(name: string) {
@@ -27,13 +28,25 @@ function getInitials(name: string) {
         .slice(0, 2);
 }
 
-export default function CreateProjectTaskModal({
+const formatDateInput = (dateInput: any) => {
+    if (!dateInput) return "";
+    try {
+        const d = new Date(dateInput);
+        if (isNaN(d.getTime())) return "";
+        return d.toISOString().split("T")[0];
+    } catch {
+        return "";
+    }
+};
+
+export default function UpdateProjectTaskModal({
     isOpen,
     onClose,
     project,
-    defaultColumnId,
+    task,
     onRefresh,
-}: CreateProjectTaskModalProps) {
+    onTaskDeleted,
+}: UpdateProjectTaskModalProps) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [columnId, setColumnId] = useState("");
@@ -42,12 +55,14 @@ export default function CreateProjectTaskModal({
     const [startDate, setStartDate] = useState("");
     const [dueDate, setDueDate] = useState("");
     const [loading, setLoading] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const columns = (project?.columns || []).slice().sort((a: any, b: any) => a.order - b.order);
 
     // Calculate project bounds (YYYY-MM-DD)
-    const projMinDate = project?.startDate ? new Date(project.startDate).toISOString().split("T")[0] : "";
-    const projMaxDate = project?.endDate ? new Date(project.endDate).toISOString().split("T")[0] : "";
+    const projMinDate = project?.startDate ? formatDateInput(project.startDate) : "";
+    const projMaxDate = project?.endDate ? formatDateInput(project.endDate) : "";
 
     // Consolidate project members and manager into selectable list
     const availableMembers: any[] = [];
@@ -78,44 +93,30 @@ export default function CreateProjectTaskModal({
     }
 
     useEffect(() => {
-        if (isOpen) {
-            setTitle("");
-            setDescription("");
-            setColumnId(defaultColumnId || (columns[0]?.id || ""));
-            setSelectedAssigneeIds([]);
-            setPriority("MEDIUM");
+        if (isOpen && task) {
+            setTitle(task.title || "");
+            setDescription(task.description || "");
+            setColumnId(task.columnId || (columns[0]?.id || ""));
+            setPriority((task.priority || "MEDIUM").toUpperCase());
+            setStartDate(formatDateInput(task.startDate));
+            setDueDate(formatDateInput(task.dueDate));
+            setShowDeleteConfirm(false);
 
-            // Set initial start date within project bounds
-            const todayStr = new Date().toISOString().split("T")[0];
-            let initialStart = todayStr;
-            if (projMinDate && initialStart < projMinDate) {
-                initialStart = projMinDate;
-            } else if (projMaxDate && initialStart > projMaxDate) {
-                initialStart = projMinDate || projMaxDate;
+            // Extract initial assignees IDs
+            const assigneeIds: string[] = [];
+            if (Array.isArray(task.assignees)) {
+                task.assignees.forEach((a: any) => {
+                    const id = a.userId || a.user?.id || a.id;
+                    if (id && !assigneeIds.includes(id)) {
+                        assigneeIds.push(id);
+                    }
+                });
             }
-            setStartDate(initialStart);
-
-            // Set initial due date within project bounds
-            const defaultDue = new Date();
-            defaultDue.setDate(defaultDue.getDate() + 7);
-            let dueStr = defaultDue.toISOString().split("T")[0];
-            if (projMaxDate && dueStr > projMaxDate) {
-                dueStr = projMaxDate;
-            }
-            if (projMinDate && dueStr < projMinDate) {
-                dueStr = projMaxDate || projMinDate;
-            }
-            setDueDate(dueStr);
+            setSelectedAssigneeIds(assigneeIds);
         }
-    }, [isOpen, defaultColumnId, project?.startDate, project?.endDate]);
+    }, [isOpen, task, project]);
 
-    if (!isOpen) return null;
-
-    const toggleAssignee = (userId: string) => {
-        setSelectedAssigneeIds((prev) =>
-            prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
-        );
-    };
+    if (!isOpen || !task) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -131,46 +132,65 @@ export default function CreateProjectTaskModal({
         }
 
         // Validate date boundaries against project timeline
-        if (projMinDate && startDate < projMinDate) {
+        if (startDate && projMinDate && startDate < projMinDate) {
             toast.error(`Start date cannot be earlier than project start date (${projMinDate})`);
             return;
         }
-        if (projMaxDate && startDate > projMaxDate) {
+        if (startDate && projMaxDate && startDate > projMaxDate) {
             toast.error(`Start date cannot be later than project end date (${projMaxDate})`);
             return;
         }
-        if (projMinDate && dueDate < projMinDate) {
+        if (dueDate && projMinDate && dueDate < projMinDate) {
             toast.error(`Due date cannot be earlier than project start date (${projMinDate})`);
             return;
         }
-        if (projMaxDate && dueDate > projMaxDate) {
+        if (dueDate && projMaxDate && dueDate > projMaxDate) {
             toast.error(`Due date cannot be later than project end date (${projMaxDate})`);
             return;
         }
-        if (startDate > dueDate) {
+        if (startDate && dueDate && startDate > dueDate) {
             toast.error("Start date cannot be later than due date");
             return;
         }
 
         try {
             setLoading(true);
-            await api.createProjectTask(project.id, {
+            await api.updateProjectTask(project.id, task.id, {
                 title: title.trim(),
                 description: description.trim(),
                 columnId: targetColId,
                 assigneeIds: selectedAssigneeIds,
-                startDate,
-                dueDate,
+                startDate: startDate || undefined,
+                dueDate: dueDate || undefined,
                 priority,
             });
 
-            toast.success("Main task created! Assigned members notified.");
+            toast.success("Main task updated successfully!");
             onClose();
             if (onRefresh) onRefresh(true);
         } catch (err: any) {
-            toast.error(err.message || "Failed to create task");
+            toast.error(err.message || "Failed to update main task");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeleteTask = async () => {
+        try {
+            setIsDeleting(true);
+            await api.deleteProjectTask(project.id, task.id);
+            toast.success("Main task deleted.");
+            onClose();
+            if (onTaskDeleted) {
+                onTaskDeleted();
+            } else if (onRefresh) {
+                onRefresh(true);
+            }
+        } catch (err: any) {
+            toast.error(err.message || "Failed to delete task");
+        } finally {
+            setIsDeleting(false);
+            setShowDeleteConfirm(false);
         }
     };
 
@@ -184,8 +204,8 @@ export default function CreateProjectTaskModal({
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-2 border-b border-[var(--app-border)]">
                     <h2 className="font-heading text-base font-semibold text-[var(--app-text)] flex items-center gap-2">
-                        <Plus className="w-4 h-4 text-[var(--app-text)]" />
-                        Create New Main Task
+                        <Edit3 className="w-4 h-4 text-[var(--app-text)]" />
+                        Update Main Task
                     </h2>
                     <button
                         type="button"
@@ -195,6 +215,38 @@ export default function CreateProjectTaskModal({
                         ✕
                     </button>
                 </div>
+
+                {/* Delete Confirmation Alert Banner */}
+                {showDeleteConfirm && (
+                    <div className="p-3 bg-[#FFF5F5] border border-[#F5C6CB] rounded-[2px] flex flex-col gap-2 animate-fade-in text-[var(--color-error)]">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                            <span className="text-xs font-semibold">Delete this Main Task?</span>
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-[#900C1C]">
+                            This will permanently delete "{task.title}" and all its subtasks, comments, and attachments. This action cannot be undone.
+                        </p>
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                            <button
+                                type="button"
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={isDeleting}
+                                className="px-2.5 py-1 text-[10px] font-medium border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-[2px] hover:bg-[#FAFAF9]"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDeleteTask}
+                                disabled={isDeleting}
+                                className="px-2.5 py-1 text-[10px] font-medium bg-[#CB2431] hover:bg-[#A01C27] text-white rounded-[2px] flex items-center gap-1"
+                            >
+                                {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                <span>{isDeleting ? "Deleting..." : "Confirm Delete"}</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Form Content */}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
@@ -208,7 +260,6 @@ export default function CreateProjectTaskModal({
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="Task title..."
-                            autoFocus
                             required
                             className="w-full px-3 py-1.5 text-xs bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)]"
                         />
@@ -272,11 +323,11 @@ export default function CreateProjectTaskModal({
                                 <CustomDatePicker
                                     value={startDate}
                                     onChange={(val) => {
-                                        if (projMinDate && val < projMinDate) {
+                                        if (projMinDate && val && val < projMinDate) {
                                             toast.error(`Start date cannot be earlier than project start (${projMinDate})`);
                                             return;
                                         }
-                                        if (projMaxDate && val > projMaxDate) {
+                                        if (projMaxDate && val && val > projMaxDate) {
                                             toast.error(`Start date cannot be later than project end (${projMaxDate})`);
                                             return;
                                         }
@@ -290,11 +341,11 @@ export default function CreateProjectTaskModal({
                                 <CustomDatePicker
                                     value={dueDate}
                                     onChange={(val) => {
-                                        if (projMinDate && val < projMinDate) {
+                                        if (projMinDate && val && val < projMinDate) {
                                             toast.error(`Due date cannot be earlier than project start (${projMinDate})`);
                                             return;
                                         }
-                                        if (projMaxDate && val > projMaxDate) {
+                                        if (projMaxDate && val && val > projMaxDate) {
                                             toast.error(`Due date cannot be later than project end (${projMaxDate})`);
                                             return;
                                         }
@@ -382,28 +433,40 @@ export default function CreateProjectTaskModal({
                         )}
                     </div>
 
-                    {/* Submit Actions */}
-                    <div className="flex justify-end gap-2 pt-3 border-t border-[var(--app-border)]">
+                    {/* Submit & Delete Actions */}
+                    <div className="flex items-center justify-between pt-3 border-t border-[var(--app-border)]">
                         <button
                             type="button"
-                            onClick={onClose}
-                            disabled={loading}
-                            className="relative corner-brackets-4 px-3.5 py-1.5 border border-[var(--app-border)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[11px] font-medium text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer disabled:opacity-50"
+                            onClick={() => setShowDeleteConfirm(true)}
+                            disabled={loading || isDeleting}
+                            className="px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-[2px] transition-colors cursor-pointer flex items-center gap-1 disabled:opacity-50"
                         >
-                            Cancel
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete Task</span>
                         </button>
-                        <button
-                            type="submit"
-                            disabled={loading || !title.trim()}
-                            className="relative corner-brackets-4 px-4 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-[var(--app-text)]" />
-                            ) : (
-                                <span className="w-1.5 h-1.5 bg-[var(--app-text)] rounded-[0.5px] inline-block" />
-                            )}
-                            <span>{loading ? "Creating..." : "Create Task"}</span>
-                        </button>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                disabled={loading || isDeleting}
+                                className="relative corner-brackets-4 px-3.5 py-1.5 border border-[var(--app-border)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[11px] font-medium text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading || isDeleting || !title.trim()}
+                                className="relative corner-brackets-4 px-4 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loading ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-[var(--app-text)]" />
+                                ) : (
+                                    <span className="w-1.5 h-1.5 bg-[var(--app-text)] rounded-[0.5px] inline-block" />
+                                )}
+                                <span>{loading ? "Saving..." : "Save Changes"}</span>
+                            </button>
+                        </div>
                     </div>
                 </form>
         </ModalWrapper>

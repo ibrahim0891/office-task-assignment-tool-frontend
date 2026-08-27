@@ -59,7 +59,7 @@ const tabs: { id: Tab; label: string; icon: any }[] = [
 export default function ProjectDetail() {
     const params = useParams();
     const projectId = params.id as string;
-    const { currentTeam, currentUser, isManageInvitationsOpen, setIsManageInvitationsOpen, projectInvitations } = useWorkspace();
+    const { currentTeam, currentUser, userRole, isManageInvitationsOpen, setIsManageInvitationsOpen, projectInvitations } = useWorkspace();
 
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -126,16 +126,18 @@ export default function ProjectDetail() {
     };
 
     const currentProjectMember = (project.members || []).find(
-        (m: any) => m.userId === currentUser?.id
+        (m: any) => m.userId === currentUser?.id || m.user?.id === currentUser?.id
     );
     const isProjectManager =
         project.managerId === currentUser?.id ||
         project.manager?.id === currentUser?.id ||
-        (currentProjectMember?.role || "").toUpperCase() === "MANAGER";
+        (currentProjectMember?.role || "").toUpperCase() === "MANAGER" ||
+        userRole === "LEADER";
     const isProjectLeader =
         isProjectManager ||
         (currentProjectMember?.role || "").toUpperCase() === "LEADER";
 
+    const canManageTasks = isProjectManager || isProjectLeader;
     const canManageInvitations = isProjectManager || isProjectLeader;
 
     const pendingProjectInvitesCount = (project.invitations?.length || 0) + (projectInvitations?.length || 0);
@@ -263,14 +265,16 @@ export default function ProjectDetail() {
                     </div>
 
                     <div className="flex items-center gap-2 py-1.5">
-                        <button
-                            type="button"
-                            onClick={() => setIsCreateTaskModalOpen(true)}
-                            className="relative corner-brackets-4 px-3 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>Add Task</span>
-                        </button>
+                        {canManageTasks && (
+                            <button
+                                type="button"
+                                onClick={() => setIsCreateTaskModalOpen(true)}
+                                className="relative corner-brackets-4 px-3 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Add Task</span>
+                            </button>
+                        )}
 
                         {/* Right Sidebar Invitations Toggle */}
                         {canManageInvitations && (

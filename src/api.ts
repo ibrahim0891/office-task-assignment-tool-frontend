@@ -1180,6 +1180,68 @@ export const api = {
     return res.json();
   },
 
+  async getProjectTaskComments(projectId: string, taskId: string, subtaskId?: string): Promise<any[]> {
+    const url = subtaskId
+      ? `${API_BASE}/projects/${projectId}/tasks/${taskId}/comments?subtaskId=${encodeURIComponent(subtaskId)}`
+      : `${API_BASE}/projects/${projectId}/tasks/${taskId}/comments`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch comments.');
+    }
+    return res.json();
+  },
+
+  async createProjectTaskComment(projectId: string, taskId: string, content: string, subtaskId?: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, subtaskId })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create comment.');
+    }
+    return res.json();
+  },
+
+  async deleteProjectTaskComment(projectId: string, taskId: string, commentId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/comments/${commentId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete comment.');
+    }
+    return res.json();
+  },
+
+  async updateProjectTaskComment(projectId: string, taskId: string, commentId: string, content: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/comments/${commentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update comment.');
+    }
+    return res.json();
+  },
+
+  async toggleResolveProjectTaskComment(projectId: string, taskId: string, commentId: string, isResolved?: boolean): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/comments/${commentId}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isResolved })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to resolve/reopen comment.');
+    }
+    return res.json();
+  },
+
   async createDependency(projectId: string, data: any): Promise<any> {
     const res = await fetch(`${API_BASE}/projects/${projectId}/dependencies`, {
       method: 'POST',
