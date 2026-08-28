@@ -67,18 +67,26 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
         }
     };
 
-    const handleCreateOrUpdateColumn = async (name: string) => {
+    const handleCreateOrUpdateColumn = async (name: string, type = "CUSTOM", isComplete = false) => {
         if (editingColumn) {
-            await api.updateProjectColumn(project.id, editingColumn.id, { name, type: "CUSTOM", isComplete: false });
+            await api.updateProjectColumn(project.id, editingColumn.id, {
+                name,
+                type: editingColumn.type || "CUSTOM",
+                isComplete: isComplete !== undefined ? isComplete : editingColumn.isComplete,
+            });
             toast.success("Column configuration saved.");
         } else {
-            await api.createProjectColumn(project.id, name, "CUSTOM", false);
-            toast.success("Custom column created.");
+            await api.createProjectColumn(project.id, name, type, isComplete);
+            toast.success("Column created.");
         }
         if (onRefresh) onRefresh(true);
     };
 
     const handleDeleteColumn = async (columnId: string, colName: string) => {
+        if (localColumns.length <= 1) {
+            toast.error("Cannot delete the only remaining column.");
+            return;
+        }
         if (!confirm(`Are you sure you want to delete column "${colName}"? Any tasks inside this column will be moved to another existing column.`)) {
             return;
         }
@@ -252,7 +260,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                 </div>
 
                 <p className="text-[11px] text-[var(--app-muted)] leading-normal">
-                    Reconfigure your main task Kanban board columns. You can add new custom columns, edit names, and reorder column positions. System columns cannot be edited or deleted.
+                    Reconfigure your main task Kanban board columns. You can add new columns, edit names, reorder positions, and delete columns. When deleting a column, any tasks will be moved to a remaining column.
                 </p>
 
                 {/* Column Table / List */}
@@ -330,12 +338,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
 
                                     {/* Actions */}
                                     <div className="col-span-3 flex items-center justify-end gap-2">
-                                        {col.type && col.type !== "CUSTOM" && col.type !== null ? (
-                                            <span className="text-[10px] text-[var(--app-muted)] italic flex items-center gap-1" title="System column (reorder only)">
-                                                <Lock className="w-3 h-3 text-[var(--app-muted)]" />
-                                                System
-                                            </span>
-                                        ) : isProjectManagerOrLeader ? (
+                                        isProjectManagerOrLeader ? (
                                             <>
                                                 <button
                                                     onClick={() => {
@@ -343,21 +346,22 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                                                         setIsColumnModalOpen(true);
                                                     }}
                                                     className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-card)] rounded transition-colors cursor-pointer"
-                                                    title="Edit Custom Column"
+                                                    title={`Edit column ${col.name}`}
                                                 >
                                                     <Edit2 className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteColumn(col.id, col.name)}
-                                                    className="p-1 text-[var(--app-muted)] hover:text-[var(--color-error)] hover:bg-[var(--app-card)] rounded transition-colors cursor-pointer"
-                                                    title="Delete Custom Column"
+                                                    disabled={localColumns.length <= 1}
+                                                    className="p-1 text-[var(--app-muted)] hover:text-[var(--color-error)] hover:bg-[var(--app-card)] rounded transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title={localColumns.length <= 1 ? "Cannot delete only remaining column" : `Delete column ${col.name}`}
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                             </>
                                         ) : (
                                             <span className="text-[10px] text-[var(--app-muted)] italic">Locked</span>
-                                        )}
+                                        )
                                     </div>
                                 </div>
                             );
@@ -371,6 +375,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                 isOpen={isColumnModalOpen}
                 onClose={() => setIsColumnModalOpen(false)}
                 onSave={handleCreateOrUpdateColumn}
+                onDelete={(col) => handleDeleteColumn(col.id, col.name)}
                 initialData={editingColumn}
             />
         </div>

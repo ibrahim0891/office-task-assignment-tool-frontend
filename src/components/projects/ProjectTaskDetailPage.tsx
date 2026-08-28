@@ -206,23 +206,24 @@ export default function ProjectTaskDetailPage() {
 
     // Helper: Map subtask to a column ID
     const getSubtaskColumnId = (st: any): string => {
-        if (st.isCompleted) {
-            const doneCol = columns.find((c) => c.isComplete || c.name.toLowerCase() === "completed");
-            return doneCol?.id || columns[columns.length - 1]?.id || "col-done";
-        }
-        if (st.acceptanceStatus === "PENDING" || st.status === "InReview" || st.status === "PendingAcceptance") {
-            const reviewCol = columns.find((c) => c.name.toLowerCase().includes("review"));
-            if (reviewCol) return reviewCol.id;
-        }
-        if (st.status === "InProgress" || st.status === "In Progress") {
-            const progCol = columns.find((c) => c.name.toLowerCase().includes("progress"));
-            if (progCol) return progCol.id;
-        }
+        // 1. If explicit columnId is stored on the subtask, match it directly!
         if (st.columnId) {
             const matchingCol = columns.find((c) => c.id === st.columnId);
             if (matchingCol) return matchingCol.id;
         }
-        // Default to first column
+        // 2. If subtask is marked completed, put in the completed column
+        if (st.isCompleted) {
+            const doneCol = columns.find((c) => c.isComplete || c.name.toLowerCase().includes("done") || c.name.toLowerCase().includes("completed"));
+            if (doneCol) return doneCol.id;
+        }
+        // 3. Status name matching fallback
+        if (st.status) {
+            const matchingByName = columns.find(
+                (c) => c.name.toLowerCase().trim() === st.status.toLowerCase().trim()
+            );
+            if (matchingByName) return matchingByName.id;
+        }
+        // 4. Default to first column on board
         return columns[0]?.id || "col-todo";
     };
 
@@ -359,8 +360,8 @@ export default function ProjectTaskDetailPage() {
     };
 
     const handleDeleteColumn = async (col: ColumnDef) => {
-        if (col.type === "SYSTEM") {
-            toast.error("Default core columns cannot be deleted.");
+        if (columns.length <= 1) {
+            toast.error("Cannot delete the only remaining column.");
             return;
         }
 
@@ -559,7 +560,7 @@ export default function ProjectTaskDetailPage() {
                                 type="button"
                                 onClick={() => {
                                     setSubtaskModalData(null);
-                                    setSubtaskModalInitialColStatus(columns[0]?.name || "To Do");
+                                    setSubtaskModalInitialColStatus(columns[0]?.id || columns[0]?.name || "To Do");
                                     setIsSubtaskModalOpen(true);
                                 }}
                                 className="relative corner-brackets-4 px-3.5 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] font-medium text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"

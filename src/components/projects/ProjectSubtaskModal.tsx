@@ -230,12 +230,22 @@ export default function ProjectSubtaskModal({
             } else {
                 setAssignedToId(candidateAssignees[0]?.id || currentUser?.id || "");
             }
-            setColumnId(columns[0]?.id || "");
+            const matchedCol = columns.find(
+                (c) =>
+                    c.id === initialColumnStatus ||
+                    c.name.toLowerCase().trim() === (initialColumnStatus || "").toLowerCase().trim()
+            );
+            const targetColId = matchedCol?.id || columns[0]?.id || "";
+            setColumnId(targetColId);
             setStartDate(toYMD(parentTask?.startDate) || toYMD(new Date()));
             setDueDate(toYMD(parentTask?.dueDate) || toYMD(new Date()));
             setEstimatedDays(1);
             setActualDays(0);
-            setIsCompleted(initialColumnStatus === "Completed" || initialColumnStatus === "Done");
+            setIsCompleted(
+                Boolean(matchedCol?.isComplete) ||
+                initialColumnStatus === "Completed" ||
+                initialColumnStatus === "Done"
+            );
             setComments([]);
             setActivities([]);
             setAttachments([]);
@@ -776,7 +786,15 @@ export default function ProjectSubtaskModal({
                                 <CustomSelect
                                     options={columnOptions}
                                     value={columnId}
-                                    onChange={setColumnId}
+                                    onChange={(newColId) => {
+                                        setColumnId(newColId);
+                                        const selectedCol = columns.find((c) => c.id === newColId);
+                                        if (selectedCol?.isComplete) {
+                                            setIsCompleted(true);
+                                        } else if (isCompleted && selectedCol && !selectedCol.isComplete) {
+                                            setIsCompleted(false);
+                                        }
+                                    }}
                                     buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
                                 />
                             </div>

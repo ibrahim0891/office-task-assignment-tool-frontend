@@ -68,7 +68,7 @@ export default function ProjectColumnModal({
         }
     };
 
-    const isCustomColumn = initialData?.id && initialData?.type === "CUSTOM";
+    const isExistingColumn = Boolean(initialData?.id);
 
     return (
         <ModalWrapper
@@ -79,16 +79,16 @@ export default function ProjectColumnModal({
             {/* Modal Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--app-border)]">
                 <h3 className="text-xs font-semibold text-[var(--app-text)]">
-                    {initialData?.id ? "Configure Column" : "Add Custom Column"}
+                    {initialData?.id ? "Configure Column" : "Add Column"}
                 </h3>
                 <div className="flex items-center gap-1">
-                    {isCustomColumn && onDelete && (
+                    {isExistingColumn && onDelete && (
                         <button
                             type="button"
                             onClick={handleDelete}
                             disabled={loading || isDeleting}
                             className="p-1 text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-[2px] transition-colors cursor-pointer disabled:opacity-50"
-                            title="Delete this custom column"
+                            title="Delete column"
                         >
                             {isDeleting ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -125,7 +125,7 @@ export default function ProjectColumnModal({
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-3 border-t border-[var(--app-border)]">
                     <div>
-                        {isCustomColumn && onDelete && (
+                        {isExistingColumn && onDelete && (
                             <button
                                 type="button"
                                 onClick={handleDelete}
