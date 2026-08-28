@@ -15,6 +15,7 @@ import { APP_CONFIG } from "../config/appConfig";
 import { getLocalDateString } from "../utils/date";
 import { useWorkspaceNotifications } from "../hooks/useWorkspaceNotifications";
 import { useWorkspaceSockets } from "../hooks/useWorkspaceSockets";
+import { useProjects, useProjectInvitations, mutatePortfolioSummary } from "../hooks/useProjectSWR";
 
 const clientId = typeof window !== "undefined"
     ? Math.random().toString(36).substring(2) + Date.now().toString(36)
@@ -177,10 +178,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const [isTasksLoading, setIsTasksLoading] = useState<boolean>(false);
     const [columns, setColumns] = useState<TaskColumn[]>([]);
 
-    const [projects, setProjects] = useState<any[]>([]);
-    const [isProjectsLoading, setIsProjectsLoading] = useState<boolean>(false);
-    const [projectInvitations, setProjectInvitations] = useState<any[]>([]);
-    const [isProjectInvitationsLoading, setIsProjectInvitationsLoading] = useState<boolean>(false);
+    const { projects, isLoading: isProjectsLoading, mutate: mutateProjects } = useProjects(currentTeam?.id, currentUser?.id);
+    const { projectInvitations, isLoading: isProjectInvitationsLoading, mutate: mutateProjectInvitations } = useProjectInvitations(currentTeam?.id);
     const [folders, setFolders] = useState<any[]>([]);
     const [isFoldersLoading, setIsFoldersLoading] = useState<boolean>(false);
     const [isManageFoldersOpen, setIsManageFoldersOpenState] = useState<boolean>(false);
@@ -395,40 +394,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     const loadProjects = React.useCallback(async () => {
-        if (!currentTeam) return;
-        setIsProjectsLoading(true);
-        try {
-            const data = await api.getProjects(currentTeam.id, currentUser?.id);
-            if (Array.isArray(data)) {
-                setProjects(data);
-            } else {
-                setProjects([]);
-            }
-        } catch (err) {
-            console.error("Error loading projects:", err);
-            setProjects([]);
-        } finally {
-            setIsProjectsLoading(false);
-        }
-    }, [currentTeam?.id, currentUser?.id]);
+        await Promise.all([
+            mutateProjects(),
+            mutatePortfolioSummary(currentTeam?.id, currentUser?.id),
+        ]);
+    }, [mutateProjects, currentTeam?.id, currentUser?.id]);
 
     const loadProjectInvitations = React.useCallback(async () => {
-        if (!currentTeam) return;
-        setIsProjectInvitationsLoading(true);
-        try {
-            const data = await api.getReceivedProjectInvitations(currentTeam.id);
-            if (Array.isArray(data)) {
-                setProjectInvitations(data);
-            } else {
-                setProjectInvitations([]);
-            }
-        } catch (err) {
-            console.error("Error loading project invitations:", err);
-            setProjectInvitations([]);
-        } finally {
-            setIsProjectInvitationsLoading(false);
-        }
-    }, [currentTeam?.id]);
+        await mutateProjectInvitations();
+    }, [mutateProjectInvitations]);
 
     const handleAcceptProjectInvitation = async (invitationId: string) => {
         if (!currentTeam) return;

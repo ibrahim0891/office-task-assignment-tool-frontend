@@ -336,7 +336,7 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
 
                             {subtask.estimatedDays > 0 && (
                                 <span
-                                    className="inline-flex items-center gap-0.5 font-mono text-[9.5px]"
+                                    className="inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums"
                                     title={`Estimated days: ${subtask.estimatedDays}d`}
                                 >
                                     <Clock className="w-3 h-3 shrink-0" />
@@ -346,7 +346,7 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
 
                             {subtask.dueDate && (
                                 <span
-                                    className={`inline-flex items-center gap-1 font-mono text-[9.5px] px-1 py-0.2 rounded-[1px] ${
+                                    className={`inline-flex items-center gap-1 text-[10px] font-medium tabular-nums px-1 py-0.2 rounded-[1px] ${
                                         isOverdue
                                             ? "text-[var(--color-error)] bg-[var(--color-error)]/10 font-semibold"
                                             : ""

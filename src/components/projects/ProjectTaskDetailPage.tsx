@@ -20,6 +20,8 @@ import {
     RotateCcw,
     Plus,
     ChevronRight,
+    ChevronLeft,
+    Layers,
     Kanban,
     ListFilter,
     Loader2,
@@ -36,6 +38,7 @@ import { playFeedback } from "../../utils/feedback";
 import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
 import ProjectColumnModal from "./ProjectColumnModal";
 import ProjectSubtaskModal from "./ProjectSubtaskModal";
+import { useProjectDetail } from "../../hooks/useProjectSWR";
 import { SubtaskKanbanCard } from "./SubtaskKanbanCard";
 import ProjectSubtaskDetailSkeleton from "./ProjectSubtaskDetailSkeleton";
 import { UserAvatar } from "../ui/UserAvatar";
@@ -78,10 +81,18 @@ export default function ProjectTaskDetailPage() {
     const taskId = params.taskId as string;
     const { currentTeam, currentUser, userRole } = useWorkspace();
 
-    const [project, setProject] = useState<any>(null);
-    const [task, setTask] = useState<any>(null);
+    const { project, isLoading, mutate: refreshProject } = useProjectDetail(projectId, currentTeam?.id);
     const [subtasks, setSubtasks] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+
+    const task = React.useMemo(() => {
+        return (project?.tasks || []).find((t: any) => t.id === taskId) || null;
+    }, [project?.tasks, taskId]);
+
+    useEffect(() => {
+        if (task?.subtasks) {
+            setSubtasks(task.subtasks);
+        }
+    }, [task?.subtasks]);
 
     // Modals
     const [isEditMainTaskModalOpen, setIsEditMainTaskModalOpen] = useState(false);
@@ -132,6 +143,7 @@ export default function ProjectTaskDetailPage() {
                     candidateAssignees.push({
                         id,
                         name: userObj.name || userObj.fullName || "User",
+                        avatarUrl: userObj.avatarUrl || null,
                     });
                 }
             });
@@ -141,93 +153,56 @@ export default function ProjectTaskDetailPage() {
             candidateAssignees.push({
                 id: currentUser.id,
                 name: `${currentUser.name || "Me"} (You)`,
+                avatarUrl: currentUser.avatarUrl || null,
             });
         }
     } else if (currentUser?.id) {
         candidateAssignees.push({
             id: currentUser.id,
             name: `${currentUser.name || "Me"} (You)`,
+            avatarUrl: currentUser.avatarUrl || null,
         });
     }
 
-    const loadProjectDetail = async () => {
-        if (!projectId || !taskId) return;
-        try {
-            const data = await api.getProjectDetail(projectId);
-            setProject(data);
-            const foundTask = (data.tasks || []).find((t: any) => t.id === taskId);
-            setTask(foundTask);
-            setSubtasks(foundTask?.subtasks || []);
-        } catch (err) {
-            console.error("Failed to load project details:", err);
-        } finally {
-            setLoading(false);
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
+    const checkScroll = () => {
+        if (scrollContainerRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+            setCanScrollLeft(scrollLeft > 10);
+            setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
         }
     };
 
-    useEffect(() => {
-        loadProjectDetail();
-    }, [projectId, taskId]);
+    const handleScrollLeft = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollBy({ left: -320, behavior: "smooth" });
+        }
+    };
 
-    // Real-time listener: Update subtask card comment counts when comments are posted/deleted
-    useEffect(() => {
-        const handleCommentCreated = (e: Event) => {
-            const customEvent = e as CustomEvent;
-            const { subtaskId, comment } = customEvent.detail || {};
-            if (subtaskId) {
-                setSubtasks((prev) =>
-                    prev.map((st) => {
-                        if (st.id === subtaskId) {
-                            const existingComments = Array.isArray(st.comments) ? st.comments : [];
-                            const updatedComments = comment && existingComments.some((c: any) => c.id === comment?.id)
-                                ? existingComments
-                                : comment ? [...existingComments, comment] : existingComments;
-                            return {
-                                ...st,
-                                comments: updatedComments,
-                                commentsCount: (st.commentsCount || existingComments.length || 0) + 1,
-                            };
-                        }
-                        return st;
-                    })
-                );
-            }
-        };
+    const handleScrollRight = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollBy({ left: 320, behavior: "smooth" });
+        }
+    };
 
-        const handleCommentDeleted = (e: Event) => {
-            const customEvent = e as CustomEvent;
-            const { subtaskId, commentId } = customEvent.detail || {};
-            if (subtaskId) {
-                setSubtasks((prev) =>
-                    prev.map((st) => {
-                        if (st.id === subtaskId) {
-                            const existingComments = Array.isArray(st.comments) ? st.comments : [];
-                            const updatedComments = existingComments.filter((c: any) => c.id !== commentId);
-                            return {
-                                ...st,
-                                comments: updatedComments,
-                                commentsCount: Math.max(0, (st.commentsCount || existingComments.length || 1) - 1),
-                            };
-                        }
-                        return st;
-                    })
-                );
-            }
-        };
-
-        window.addEventListener("project_task_comment_created", handleCommentCreated);
-        window.addEventListener("project_task_comment_deleted", handleCommentDeleted);
-        return () => {
-            window.removeEventListener("project_task_comment_created", handleCommentCreated);
-            window.removeEventListener("project_task_comment_deleted", handleCommentDeleted);
-        };
-    }, []);
+    const loadProjectDetail = React.useCallback(async () => {
+        await refreshProject();
+    }, [refreshProject]);
 
     // Compute board columns: project custom columns if available, or default subtask columns
     const columns: ColumnDef[] =
         project?.columns && project.columns.length > 0
             ? project.columns
             : DEFAULT_SUBTASK_COLUMNS;
+
+    useEffect(() => {
+        checkScroll();
+        window.addEventListener("resize", checkScroll);
+        return () => window.removeEventListener("resize", checkScroll);
+    }, [columns, subtasks]);
 
     // Helper: Map subtask to a column ID
     const getSubtaskColumnId = (st: any): string => {
@@ -424,7 +399,7 @@ export default function ProjectTaskDetailPage() {
         }
     };
 
-    if (loading) {
+    if (isLoading && !project) {
         return <ProjectSubtaskDetailSkeleton />;
     }
 
@@ -432,7 +407,7 @@ export default function ProjectTaskDetailPage() {
         return (
             <div className="flex-1 flex items-center justify-center p-6 bg-[var(--app-bg)]">
                 <div className="text-center flex flex-col gap-3">
-                    <h2 className="font-heading text-lg text-[var(--app-text)]">
+                    <h2 className="text-lg font-semibold text-[var(--app-text)]">
                         Task Not Found
                     </h2>
                     <p className="text-sm text-[var(--app-muted)]">
@@ -467,14 +442,14 @@ export default function ProjectTaskDetailPage() {
                     <Link href="/projects" className="hover:text-[var(--app-text)] transition-colors">
                         Projects
                     </Link>
-                    <ChevronRight className="w-3 h-3" />
+                    <ChevronRight className="w-3 h-3 text-[var(--app-muted)]" />
                     <Link
                         href={`/projects/${project.id}`}
                         className="hover:text-[var(--app-text)] transition-colors truncate max-w-[180px]"
                     >
-                        {project.name}
+                        {project.title || project.name}
                     </Link>
-                    <ChevronRight className="w-3 h-3" />
+                    <ChevronRight className="w-3 h-3 text-[var(--app-muted)]" />
                     <span className="font-medium text-[var(--app-text)] truncate max-w-[220px]">
                         {task.title}
                     </span>
@@ -491,7 +466,7 @@ export default function ProjectTaskDetailPage() {
                             <ArrowLeft className="w-4 h-4" />
                         </Link>
                         <div className="min-w-0 flex items-center gap-2.5 flex-wrap">
-                            <h1 className="font-heading text-lg font-semibold text-[var(--app-text)] truncate">
+                            <h1 className="text-lg font-semibold tracking-tight text-[var(--app-text)] truncate">
                                 {task.title}
                             </h1>
                             <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border shrink-0 ${getPriorityBadge(task.priority)}`}>
@@ -520,7 +495,7 @@ export default function ProjectTaskDetailPage() {
                         </div>
                     </div>
 
-                    {/* Progress Bar & Member Filter */}
+                    {/* Progress Bar & Member Filter & Action CTAs */}
                     <div className="flex items-center gap-3 shrink-0 flex-wrap">
                         <div className="flex items-center gap-2 text-[10px]">
                             <span className="text-[var(--app-muted)]">Subtasks:</span>
@@ -556,7 +531,29 @@ export default function ProjectTaskDetailPage() {
                             </select>
                         </div>
 
-                        {/* New Subtask Button (Opens Full Modal) */}
+                        {/* Scroll Affordance Controls */}
+                        <div className="flex items-center gap-0.5 border border-[var(--app-border)] rounded-[2px] bg-[var(--app-bg)] p-0.5">
+                            <button
+                                type="button"
+                                onClick={handleScrollLeft}
+                                disabled={!canScrollLeft}
+                                className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] disabled:opacity-30 disabled:cursor-not-allowed rounded-[1px] transition-colors cursor-pointer"
+                                title="Scroll left"
+                            >
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleScrollRight}
+                                disabled={!canScrollRight}
+                                className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] disabled:opacity-30 disabled:cursor-not-allowed rounded-[1px] transition-colors cursor-pointer"
+                                title="Scroll right"
+                            >
+                                <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+
+                        {/* Primary CTA: New Subtask Button */}
                         {canCreateSubtask && (
                             <button
                                 type="button"
@@ -565,26 +562,11 @@ export default function ProjectTaskDetailPage() {
                                     setSubtaskModalInitialColStatus(columns[0]?.name || "To Do");
                                     setIsSubtaskModalOpen(true);
                                 }}
-                                className="relative corner-brackets-4 px-3 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold text-[10px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"
+                                className="relative corner-brackets-4 px-3.5 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] font-medium text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"
                                 title="Create a new subtask breakdown"
                             >
-                                <Plus className="w-3.5 h-3.5" />
+                                <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
                                 <span>New Subtask</span>
-                            </button>
-                        )}
-
-                        {/* Header Action: Add Column (Managers / Leaders) */}
-                        {canManageTasks && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setColumnModalInitialData(null);
-                                    setIsColumnModalOpen(true);
-                                }}
-                                className="relative corner-brackets-4 px-2.5 py-1 bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] font-medium text-[10px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
-                            >
-                                <Plus className="w-3 h-3" />
-                                <span>Add Column</span>
                             </button>
                         )}
                     </div>
@@ -623,17 +605,31 @@ export default function ProjectTaskDetailPage() {
 
             {/* Kanban Columns Grid with DragDropContext */}
             <DragDropContext onDragEnd={handleDragEnd}>
-                <div className="flex-1 p-4 flex gap-4 overflow-x-auto overflow-y-hidden">
+                <div
+                    ref={scrollContainerRef}
+                    onScroll={checkScroll}
+                    className="flex-1 p-4 flex gap-4 overflow-x-auto overflow-y-hidden"
+                >
                     {columns.map((col) => {
                         const colSubtasks = filteredSubtasks.filter(
                             (st) => getSubtaskColumnId(st) === col.id
                         );
-                        const isDoneCol = Boolean(col.isComplete || col.name.toLowerCase() === "completed");
+                        const isDoneCol = Boolean(col.isComplete || col.name.toLowerCase().includes("done") || col.name.toLowerCase().includes("completed"));
+                        const isProgressCol = col.name.toLowerCase().includes("progress") || col.name.toLowerCase().includes("doing");
+                        const isReviewCol = col.name.toLowerCase().includes("review") || col.name.toLowerCase().includes("qa");
+
+                        const colAccent = isDoneCol
+                            ? "border-t-2 border-t-[var(--status-completed,#15803D)]"
+                            : isProgressCol
+                            ? "border-t-2 border-t-[var(--status-in-progress,#7C3AED)]"
+                            : isReviewCol
+                            ? "border-t-2 border-t-[var(--status-at-risk,#D97706)]"
+                            : "border-t-2 border-t-[var(--status-todo,#6B7280)]";
 
                         return (
                             <div
                                 key={col.id}
-                                className="w-72 sm:w-80 shrink-0 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-3 flex flex-col gap-3 max-h-full"
+                                className={`w-72 sm:w-80 shrink-0 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-3 flex flex-col gap-3 max-h-full ${colAccent}`}
                             >
                                 {/* Column Header */}
                                 <div className="flex items-center justify-between pb-2 border-b border-[var(--app-border)]">
@@ -641,7 +637,7 @@ export default function ProjectTaskDetailPage() {
                                         <span className="text-[11px] font-semibold text-[var(--app-text)] truncate">
                                             {col.name}
                                         </span>
-                                        <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-full tabular-nums shrink-0">
+                                        <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px] tabular-nums shrink-0">
                                             {colSubtasks.length}
                                         </span>
                                     </div>
@@ -692,8 +688,22 @@ export default function ProjectTaskDetailPage() {
                                             }`}
                                         >
                                             {colSubtasks.length === 0 ? (
-                                                <div className="text-center py-8 text-[var(--app-muted)] text-[10px] border border-dashed border-[var(--app-border)] rounded-[2px]">
-                                                    No subtasks
+                                                <div className="flex-1 flex flex-col items-center justify-center py-8 text-center border border-dashed border-[var(--app-border)] rounded-[2px] p-3 gap-1.5 min-h-[120px]">
+                                                    <Layers className="w-4 h-4 text-[var(--app-muted)]" />
+                                                    <span className="text-[10px] text-[var(--app-muted)]">No subtasks yet</span>
+                                                    {canCreateSubtask && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSubtaskModalData(null);
+                                                                setSubtaskModalInitialColStatus(col.name);
+                                                                setIsSubtaskModalOpen(true);
+                                                            }}
+                                                            className="text-[10px] text-[var(--app-text)] font-semibold underline hover:no-underline cursor-pointer"
+                                                        >
+                                                            + Add subtask
+                                                        </button>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 colSubtasks.map((st, idx) => (
@@ -705,7 +715,7 @@ export default function ProjectTaskDetailPage() {
                                                         canManageTasks={canManageTasks}
                                                         candidateAssignees={candidateAssignees}
                                                         onSelectSubtask={(sub) => {
-                                                            setSubtaskModalData(sub);
+                                                             setSubtaskModalData(sub);
                                                             setIsSubtaskModalOpen(true);
                                                         }}
                                                         onEditSubtask={(sub) => {
@@ -725,6 +735,25 @@ export default function ProjectTaskDetailPage() {
                             </div>
                         );
                     })}
+
+                    {/* End-of-Board Ghost "Add Column" Card */}
+                    {canManageTasks && (
+                        <div
+                            onClick={() => {
+                                setColumnModalInitialData(null);
+                                setIsColumnModalOpen(true);
+                            }}
+                            className="w-72 sm:w-80 shrink-0 border-2 border-dashed border-[var(--app-border)] hover:border-[var(--app-border-strong)] hover:bg-[var(--app-hover-bg)] rounded-[3px] p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all min-h-[220px]"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-[var(--app-card)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shadow-2xs">
+                                <Plus className="w-4 h-4" />
+                            </div>
+                            <span className="text-xs font-semibold text-[var(--app-text)]">Add Column</span>
+                            <span className="text-[10px] text-[var(--app-muted)] text-center">
+                                Create custom subtask stage
+                            </span>
+                        </div>
+                    )}
                 </div>
             </DragDropContext>
 

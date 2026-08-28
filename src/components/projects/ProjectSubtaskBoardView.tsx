@@ -75,7 +75,7 @@ export default function ProjectSubtaskBoardView({ project, onRefresh }: ProjectS
                     <h3 className="text-xs font-semibold text-[var(--app-text)]">
                         Subtasks Board
                     </h3>
-                    <span className="text-[10px] text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-full border border-[var(--app-border)]">
+                    <span className="text-[10px] text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] tabular-nums">
                         {filteredSubtasks.length} total subtasks
                     </span>
                 </div>
@@ -108,7 +108,7 @@ export default function ProjectSubtaskBoardView({ project, onRefresh }: ProjectS
                         <div className="flex items-center gap-2">
                             <Circle className="w-3.5 h-3.5 text-[var(--priority-medium)]" />
                             <h4 className="text-[11px] font-semibold text-[var(--app-text)]">In Progress / To Do</h4>
-                            <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-full">
+                            <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px] tabular-nums">
                                 {todoSubtasks.length}
                             </span>
                         </div>
@@ -187,7 +187,7 @@ export default function ProjectSubtaskBoardView({ project, onRefresh }: ProjectS
                         <div className="flex items-center gap-2">
                             <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-success)]" />
                             <h4 className="text-[11px] font-semibold text-[var(--app-text)]">Completed</h4>
-                            <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-full">
+                            <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px] tabular-nums">
                                 {doneSubtasks.length}
                             </span>
                         </div>

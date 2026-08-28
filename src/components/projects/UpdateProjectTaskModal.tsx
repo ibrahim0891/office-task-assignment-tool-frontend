@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Edit3, Users, Calendar, Loader2, Trash2, X, AlertTriangle } from "lucide-react";
+import { Edit3, Users, Calendar, Loader2, Trash2, X, AlertTriangle, Check } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { CustomSelect } from "../ui/CustomSelect";
@@ -75,6 +75,7 @@ export default function UpdateProjectTaskModal({
             id: project.manager.id,
             name: project.manager.name,
             email: project.manager.email,
+            avatarUrl: project.manager.avatarUrl || null,
             role: "Manager",
         });
     }
@@ -87,6 +88,7 @@ export default function UpdateProjectTaskModal({
                     id: m.userId,
                     name: m.user.name,
                     email: m.user.email,
+                    avatarUrl: m.user.avatarUrl || null,
                     role: m.role || "Member",
                 });
             }
@@ -204,7 +206,7 @@ export default function UpdateProjectTaskModal({
         >
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-2 border-b border-[var(--app-border)]">
-                    <h2 className="font-heading text-base font-semibold text-[var(--app-text)] flex items-center gap-2">
+                    <h2 className="text-base font-semibold text-[var(--app-text)] flex items-center gap-2">
                         <Edit3 className="w-4 h-4 text-[var(--app-text)]" />
                         Update Main Task
                     </h2>
@@ -313,7 +315,7 @@ export default function UpdateProjectTaskModal({
                         <div className="flex items-center justify-between">
                             <label className="eyebrow">Task Dates</label>
                             {(projMinDate || projMaxDate) && (
-                                <span className="text-[9px] text-[var(--app-muted)] font-mono">
+                                <span className="text-[9px] text-[var(--app-muted)]">
                                     Project bounds: {projMinDate || "Start"} to {projMaxDate || "End"}
                                 </span>
                             )}
@@ -365,7 +367,7 @@ export default function UpdateProjectTaskModal({
                                 <Users className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                                 Assign Members
                             </label>
-                            <span className="text-[10px] text-[var(--app-muted)] font-mono">
+                            <span className="text-[10px] text-[var(--app-muted)] font-medium tabular-nums">
                                 {selectedAssigneeIds.length} assigned
                             </span>
                         </div>
@@ -381,6 +383,7 @@ export default function UpdateProjectTaskModal({
                                             value: m.id,
                                             label: m.name,
                                             sublabel: `${m.email} (${m.role})`,
+                                            avatarUrl: m.avatarUrl || null,
                                         })),
                                 ]}
                                 value=""
@@ -461,12 +464,12 @@ export default function UpdateProjectTaskModal({
                             <button
                                 type="submit"
                                 disabled={loading || isDeleting || !title.trim()}
-                                className="relative corner-brackets-4 px-4 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="relative corner-brackets-4 px-4 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] font-medium text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
                             >
                                 {loading ? (
                                     <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-[var(--app-text)]" />
                                 ) : (
-                                    <span className="w-1.5 h-1.5 bg-[var(--app-text)] rounded-[0.5px] inline-block" />
+                                    <Check className="w-3.5 h-3.5 text-[var(--app-text)]" />
                                 )}
                                 <span>{loading ? "Saving..." : "Save Changes"}</span>
                             </button>

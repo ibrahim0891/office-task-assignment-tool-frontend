@@ -59,21 +59,21 @@ function getDerivedStatus(task: any, columnMap: Record<string, any>) {
         if (done === total) {
             return {
                 label: "Completed",
-                cls: "text-[#22863A] bg-[#22863A]/10 border-[#22863A]/20",
-                dotCls: "bg-[#22863A]"
+                cls: "text-[var(--status-completed,#15803D)] bg-[var(--status-completed,#15803D)]/10 border-[var(--status-completed,#15803D)]/20",
+                dotCls: "bg-[var(--status-completed,#15803D)]"
             };
         }
         if (done > 0 || subtasks.some((s: any) => s.status === "In Progress" || s.status === "IN_PROGRESS")) {
             return {
                 label: "In Progress",
-                cls: "text-[#0284C7] bg-[#0284C7]/10 border-[#0284C7]/20",
-                dotCls: "bg-[#0284C7]"
+                cls: "text-[var(--status-in-progress,#7C3AED)] bg-[var(--status-in-progress,#7C3AED)]/10 border-[var(--status-in-progress,#7C3AED)]/20",
+                dotCls: "bg-[var(--status-in-progress,#7C3AED)]"
             };
         }
         return {
             label: "To Do",
-            cls: "text-[var(--app-muted)] bg-[var(--app-bg)] border-[var(--app-border)]",
-            dotCls: "bg-[var(--app-muted)]"
+            cls: "text-[var(--status-todo,#6B7280)] bg-[var(--app-bg)] border-[var(--app-border)]",
+            dotCls: "bg-[var(--status-todo,#6B7280)]"
         };
     }
 
@@ -82,14 +82,14 @@ function getDerivedStatus(task: any, columnMap: Record<string, any>) {
     if (col?.isComplete || task.isCompleted) {
         return {
             label: "Completed",
-            cls: "text-[#22863A] bg-[#22863A]/10 border-[#22863A]/20",
-            dotCls: "bg-[#22863A]"
+            cls: "text-[var(--status-completed,#15803D)] bg-[var(--status-completed,#15803D)]/10 border-[var(--status-completed,#15803D)]/20",
+            dotCls: "bg-[var(--status-completed,#15803D)]"
         };
     }
     return {
         label: col?.name || "To Do",
-        cls: "text-[var(--app-muted)] bg-[var(--app-bg)] border-[var(--app-border)]",
-        dotCls: "bg-[var(--app-muted)]"
+        cls: "text-[var(--status-todo,#6B7280)] bg-[var(--app-bg)] border-[var(--app-border)]",
+        dotCls: "bg-[var(--status-todo,#6B7280)]"
     };
 }
 
@@ -130,7 +130,7 @@ function MainTaskGridCard({
 
     return (
         <div
-            className="group relative corner-brackets-4 bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] rounded-[2px] p-4 flex flex-col justify-between gap-4 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
+            className="group relative corner-brackets-4 bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] rounded-[2px] p-4 flex flex-col justify-between gap-4 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-sm"
             onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
         >
             {/* Top Row: Derived Status + Priority & Risk Badges & Optional Edit Button */}
@@ -172,7 +172,7 @@ function MainTaskGridCard({
                         {column.name}
                     </span>
                 )}
-                <h3 className="font-heading text-sm font-semibold text-[var(--app-text)] line-clamp-2 leading-snug">
+                <h3 className="text-sm font-semibold text-[var(--app-text)] line-clamp-2 leading-snug">
                     {task.title}
                 </h3>
                 {cleanDescription && (
@@ -304,9 +304,9 @@ function MainTaskListItem({
             </td>
 
             {/* Task Title & Column */}
-            <td className="py-3 px-4 min-w-[220px]">
+            <td className="py-3.5 px-4 min-w-[220px]">
                 <div className="flex flex-col gap-0.5">
-                    <span className="font-heading font-semibold text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
+                    <span className="font-semibold text-[13px] text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
                         {task.title}
                     </span>
                     <div className="flex items-center gap-2 text-[10px] text-[var(--app-muted)]">
@@ -569,7 +569,11 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                             }`}
                         >
                             <span>All Tasks</span>
-                            <span className="text-[9px] px-1 py-0.2 rounded-full bg-[var(--app-border)]/50 text-[var(--app-text)] font-mono">
+                            <span className={`text-[9px] px-1.5 py-0.2 rounded-[2px] border transition-colors tabular-nums ${
+                                filterMode === "all"
+                                    ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
+                                    : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
+                            }`}>
                                 {tasks.length}
                             </span>
                         </button>
@@ -585,7 +589,11 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                             <User className="w-3 h-3 text-[var(--app-muted)]" />
                             <span>Assigned to Me</span>
                             {myTasksCount > 0 && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[var(--app-text)] text-[var(--app-bg)] font-mono font-semibold">
+                                <span className={`text-[9px] px-1.5 py-0.2 rounded-[2px] border transition-colors tabular-nums ${
+                                    filterMode === "my-tasks"
+                                        ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
+                                        : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
+                                }`}>
                                     {myTasksCount}
                                 </span>
                             )}
@@ -631,9 +639,9 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         <button
                             type="button"
                             onClick={() => setIsCreateTaskModalOpen(true)}
-                            className="relative corner-brackets-4 px-3 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                            className="relative corner-brackets-4 px-3.5 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] font-medium text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"
                         >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
                             <span>Add Main Task</span>
                         </button>
                     )}
@@ -645,12 +653,13 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                 {filteredTasks.length === 0 ? (
                     <div className="h-64 flex flex-col items-center justify-center border border-dashed border-[var(--app-border)] rounded-[3px] text-center p-6 bg-[var(--app-card)] relative corner-brackets-4">
                         <Layers className="w-8 h-8 text-[var(--app-muted)] mb-2" />
-                        <h4 className="font-heading text-sm text-[var(--app-text)] mb-1">No Main Tasks Found</h4>
+                        <h4 className="text-sm font-semibold text-[var(--app-text)] mb-1">No Main Tasks Found</h4>
                         <p className="text-[11px] text-[var(--app-muted)] max-w-sm mb-4">
                             {searchQuery ? "No tasks matched your search query or filter." : "Get started by creating your first main task for this project."}
                         </p>
                         {canManageTasks && (
                             <Button
+                                variant="primary"
                                 size="sm"
                                 icon={<Plus className="w-3.5 h-3.5" />}
                                 onClick={() => setIsCreateTaskModalOpen(true)}
@@ -678,17 +687,17 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs border-collapse">
                                 <thead>
-                                    <tr className="border-b border-[var(--app-border)] bg-[var(--app-bg)] text-[10px] uppercase font-mono text-[var(--app-muted)]">
-                                        <th className="py-2.5 px-4 font-semibold">Status</th>
-                                        <th className="py-2.5 px-4 font-semibold">Task & Category</th>
-                                        <th className="py-2.5 px-4 font-semibold">Priority</th>
-                                        <th className="py-2.5 px-4 font-semibold">Squad</th>
-                                        <th className="py-2.5 px-4 font-semibold">Due Date</th>
-                                        <th className="py-2.5 px-4 font-semibold">Subtasks Progress</th>
-                                        <th className="py-2.5 px-4 font-semibold text-right">Actions</th>
+                                    <tr className="border-b border-[var(--app-border)] bg-[var(--app-bg)] text-[10px] font-medium text-[var(--app-muted)]">
+                                        <th className="py-3 px-4 font-semibold">Status</th>
+                                        <th className="py-3 px-4 font-semibold">Task & Category</th>
+                                        <th className="py-3 px-4 font-semibold">Priority</th>
+                                        <th className="py-3 px-4 font-semibold">Squad</th>
+                                        <th className="py-3 px-4 font-semibold">Due Date</th>
+                                        <th className="py-3 px-4 font-semibold">Subtasks Progress</th>
+                                        <th className="py-3 px-4 font-semibold text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[var(--app-border)]/60">
+                                <tbody>
                                     {filteredTasks.map((task: any) => (
                                         <MainTaskListItem
                                             key={task.id}

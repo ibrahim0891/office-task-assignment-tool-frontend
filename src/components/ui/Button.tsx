@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 
 export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: "default" | "danger" | "ghost" | "secondary";
+    variant?: "default" | "primary" | "secondary" | "ghost" | "danger";
     size?: "sm" | "md" | "lg";
     icon?: React.ReactNode;
     showDot?: boolean;
@@ -32,21 +32,22 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ) => {
         let variantClasses = "";
         switch (variant) {
+            case "primary":
+                variantClasses =
+                    "bg-[var(--app-text)] hover:opacity-90 border border-[var(--app-text)] text-[var(--app-bg)] font-semibold shadow-xs";
+                break;
             case "danger":
                 variantClasses =
-                    "bg-white hover:bg-[#FFF5F5] border border-[#E5E5E3] hover:border-[#CB2431] text-[#CB2431]";
+                    "bg-[var(--app-card)] hover:bg-[#FFF5F5] border border-[var(--app-border)] hover:border-[var(--color-error)] text-[var(--color-error)]";
                 break;
             case "ghost":
                 variantClasses =
-                    "bg-transparent hover:bg-[#FAFAF9] border border-transparent hover:border-[#E5E5E3] text-[#888883] hover:text-[#1A1A1A]";
+                    "bg-transparent hover:bg-[var(--app-hover-bg)] border border-transparent hover:border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)]";
                 break;
             case "secondary":
-                variantClasses =
-                    "bg-[#FAFAF9] hover:bg-[#F0F0EE] border border-[#E5E5E3] text-[#1A1A1A]";
-                break;
             default:
                 variantClasses =
-                    "bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A]";
+                    "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)]";
                 break;
         }
 

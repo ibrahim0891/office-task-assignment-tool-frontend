@@ -102,7 +102,7 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
         >
             {/* Header */}
             <div className="flex justify-between items-center pb-2 border-b border-[var(--app-border)]">
-                <h3 className="font-heading text-base text-[var(--app-text)]">
+                <h3 className="text-base font-semibold text-[var(--app-text)]">
                     New Project
                 </h3>
             </div>

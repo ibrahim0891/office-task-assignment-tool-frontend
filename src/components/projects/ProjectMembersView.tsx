@@ -469,7 +469,7 @@ export default function ProjectMembersView({ project, onRefresh }: ProjectMember
                             >
                                 <Users className="w-3 h-3" />
                                 <span>Workspace Team</span>
-                                <span className="text-[9px] bg-[var(--app-border)] text-[var(--app-text)] px-1 rounded-[2px] font-mono">
+                                <span className="text-[9px] bg-[var(--app-border)] text-[var(--app-text)] px-1 rounded-[2px] font-medium tabular-nums">
                                     {availableWorkspaceMembers.length}
                                 </span>
                             </button>

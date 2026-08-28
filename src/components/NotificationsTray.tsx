@@ -148,29 +148,37 @@ export default function NotificationsTray({
                     </div>
 
                     {/* Tabs */}
-                    <div className="flex border-b border-[#E5E5E3] text-[11px] font-medium">
+                    <div className="flex border-b border-[var(--app-border)] text-[11px] font-medium">
                         <button
                             onClick={() => setActiveTab("active")}
-                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${activeTab === "active"
-                                ? "border-[#1A1A1A] text-[#1A1A1A]"
-                                : "border-transparent text-[#888883] hover:text-[#1A1A1A]"
+                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${activeTab === "active"
+                                ? "border-[var(--app-text)] text-[var(--app-text)] font-semibold"
+                                : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]"
                                 }`}
                         >
-                            Inbox
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[#F5F5F3] border border-[#E5E5E3]">
+                            <span>Inbox</span>
+                            <span className={`px-1.5 py-0.2 rounded-[2px] text-[9px] border transition-colors tabular-nums ${
+                                activeTab === "active"
+                                    ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
+                                    : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
+                            }`}>
                                 {activeNotifications.length}
                             </span>
                         </button>
                         <button
                             onClick={() => setActiveTab("archived")}
-                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${activeTab === "archived"
-                                ? "border-[#1A1A1A] text-[#1A1A1A]"
-                                : "border-transparent text-[#888883] hover:text-[#1A1A1A]"
+                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${activeTab === "archived"
+                                ? "border-[var(--app-text)] text-[var(--app-text)] font-semibold"
+                                : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]"
                                 }`}
                         >
                             <Archive className="w-3 h-3" />
-                            Archive (30d)
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[#F5F5F3] border border-[#E5E5E3]">
+                            <span>Archive (30d)</span>
+                            <span className={`px-1.5 py-0.2 rounded-[2px] text-[9px] border transition-colors tabular-nums ${
+                                activeTab === "archived"
+                                    ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
+                                    : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
+                            }`}>
                                 {archivedNotifications.length}
                             </span>
                         </button>

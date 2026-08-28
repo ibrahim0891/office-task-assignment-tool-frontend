@@ -60,6 +60,7 @@ export default function CreateProjectTaskModal({
             id: project.manager.id,
             name: project.manager.name,
             email: project.manager.email,
+            avatarUrl: project.manager.avatarUrl || null,
             role: "Manager",
         });
     }
@@ -72,6 +73,7 @@ export default function CreateProjectTaskModal({
                     id: m.userId,
                     name: m.user.name,
                     email: m.user.email,
+                    avatarUrl: m.user.avatarUrl || null,
                     role: m.role || "Member",
                 });
             }
@@ -184,7 +186,7 @@ export default function CreateProjectTaskModal({
         >
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-2 border-b border-[var(--app-border)]">
-                    <h2 className="font-heading text-base font-semibold text-[var(--app-text)] flex items-center gap-2">
+                    <h2 className="text-base font-semibold text-[var(--app-text)] flex items-center gap-2">
                         <Plus className="w-4 h-4 text-[var(--app-text)]" />
                         Create New Main Task
                     </h2>
@@ -262,7 +264,7 @@ export default function CreateProjectTaskModal({
                         <div className="flex items-center justify-between">
                             <label className="eyebrow">Task Dates</label>
                             {(projMinDate || projMaxDate) && (
-                                <span className="text-[9px] text-[var(--app-muted)] font-mono">
+                                <span className="text-[9px] text-[var(--app-muted)]">
                                     Project bounds: {projMinDate || "Start"} to {projMaxDate || "End"}
                                 </span>
                             )}
@@ -314,7 +316,7 @@ export default function CreateProjectTaskModal({
                                 <Users className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                                 Assign Members
                             </label>
-                            <span className="text-[10px] text-[var(--app-muted)] font-mono">
+                            <span className="text-[10px] text-[var(--app-muted)] font-medium tabular-nums">
                                 {selectedAssigneeIds.length} assigned
                             </span>
                         </div>
@@ -328,8 +330,8 @@ export default function CreateProjectTaskModal({
                                         .filter((m) => !selectedAssigneeIds.includes(m.id))
                                         .map((m) => ({
                                             value: m.id,
-                                            label: m.name,
-                                            sublabel: `${m.email} (${m.role})`,
+                                            label: `${m.name} (${m.role})`,
+                                            avatarUrl: m.avatarUrl || null,
                                         })),
                                 ]}
                                 value=""
@@ -338,45 +340,39 @@ export default function CreateProjectTaskModal({
                                         setSelectedAssigneeIds((prev) => [...prev, val]);
                                     }
                                 }}
-                                placeholder="Search & select member to assign..."
-                                searchable={availableMembers.length > 3}
                                 className="w-full"
                             />
                         ) : (
-                            <div className="px-3 py-1.5 text-xs text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px]">
-                                {availableMembers.length === 0 ? "No members in project" : "All project members assigned"}
+                            <div className="text-[11px] text-[var(--app-muted)] italic p-2 border border-dashed border-[var(--app-border)] rounded-[2px] text-center">
+                                All project members assigned
                             </div>
                         )}
 
-                        {/* Assigned Members Preview Chips */}
+                        {/* Selected Members Chips */}
                         {selectedAssigneeIds.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-1 p-1 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] max-h-36 overflow-y-auto scrollbar-none">
+                            <div className="flex flex-wrap gap-1.5 pt-1">
                                 {availableMembers
                                     .filter((m) => selectedAssigneeIds.includes(m.id))
-                                    .map((member) => (
+                                    .map((m) => (
                                         <div
-                                            key={member.id}
-                                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[var(--app-card)] border border-[var(--app-border-strong)] rounded-[2px] shadow-xs text-xs animate-fade-in"
+                                            key={m.id}
+                                            className="flex items-center gap-1.5 px-2 py-0.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] text-[11px] text-[var(--app-text)]"
                                         >
                                             <UserAvatar
-                                                name={member.name}
-                                                avatarUrl={(member as any).avatarUrl || (member as any).user?.avatarUrl}
+                                                name={m.name}
+                                                avatarUrl={m.avatarUrl}
                                                 size="xs"
-                                                title={member.name}
+                                                title={m.name}
                                             />
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="text-[11px] font-medium text-[var(--app-text)] leading-none truncate max-w-[130px]">
-                                                    {member.name}
-                                                </span>
-                                                <span className="text-[9px] text-[var(--app-muted)] leading-none mt-0.5 font-medium capitalize">
-                                                    {member.role ? member.role.toLowerCase() : ""}
-                                                </span>
-                                            </div>
+                                            <span className="font-medium">{m.name}</span>
                                             <button
                                                 type="button"
-                                                onClick={() => setSelectedAssigneeIds((prev) => prev.filter((id) => id !== member.id))}
-                                                className="text-[var(--app-muted)] hover:text-[var(--color-error)] transition-colors p-0.5 ml-1 rounded-full cursor-pointer"
-                                                title={`Remove ${member.name}`}
+                                                onClick={() =>
+                                                    setSelectedAssigneeIds((prev) =>
+                                                        prev.filter((id) => id !== m.id)
+                                                    )
+                                                }
+                                                className="text-[var(--app-muted)] hover:text-[var(--color-error)] ml-0.5"
                                             >
                                                 <X className="w-3.5 h-3.5" />
                                             </button>
@@ -399,12 +395,12 @@ export default function CreateProjectTaskModal({
                         <button
                             type="submit"
                             disabled={loading || !title.trim()}
-                            className="relative corner-brackets-4 px-4 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="relative corner-brackets-4 px-4 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] font-medium text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
                         >
                             {loading ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-[var(--app-text)]" />
                             ) : (
-                                <span className="w-1.5 h-1.5 bg-[var(--app-text)] rounded-[0.5px] inline-block" />
+                                <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
                             )}
                             <span>{loading ? "Creating..." : "Create Task"}</span>
                         </button>

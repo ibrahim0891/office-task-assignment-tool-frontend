@@ -31,13 +31,30 @@ html {
   --font-sans: var(--font-primary, var(--font-inter), 'Inter', -apple-system, system-ui, sans-serif);
   --font-scale: 1.25;
 
-  /* Priority theme tokens */
+  /* Priority theme tokens - visually distinct from status */
   --priority-urgent: #CB2431;
-  --priority-high: #B08800;
-  --priority-medium: #0284C7;
-  --priority-low: #888883;
+  --priority-high: #EA580C;
+  --priority-medium: #CA8A04;
+  --priority-low: #6B7280;
 
-  /* Spacing tokens */
+  /* Status theme tokens */
+  --status-active: #0284C7;
+  --status-on-track: #16A34A;
+  --status-at-risk: #D97706;
+  --status-completed: #15803D;
+  --status-archived: #6B7280;
+  --status-in-progress: #7C3AED;
+  --status-todo: #6B7280;
+  --status-need-attention: #DC2626;
+  --status-blocked: #DC2626;
+
+  /* Spacing tokens (4px / 8px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
   --space-card: 14px;
   --space-card-sm: 10px;
 
@@ -148,9 +165,19 @@ body {
 /* ─── Global Dark Theme Overrides (Nested for size and clarity) ─── */
 html[data-theme*="dark"] {
   --priority-urgent: #F87171;
-  --priority-high: #FBBF24;
-  --priority-medium: #38BDF8;
+  --priority-high: #FB923C;
+  --priority-medium: #FACC15;
   --priority-low: #94A3B8;
+
+  --status-active: #38BDF8;
+  --status-on-track: #4ADE80;
+  --status-at-risk: #FBBF24;
+  --status-completed: #22C55E;
+  --status-archived: #94A3B8;
+  --status-in-progress: #A78BFA;
+  --status-todo: #94A3B8;
+  --status-need-attention: #F87171;
+  --status-blocked: #F87171;
 
   body {
     background: var(--app-bg) !important;

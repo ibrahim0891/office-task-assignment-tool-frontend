@@ -232,7 +232,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                         <h3 className="text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
                             Main Board Columns Configuration
                         </h3>
-                        <span className="text-[10px] text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-full border border-[var(--app-border)]">
+                        <span className="text-[10px] text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] tabular-nums">
                             {localColumns.length} columns
                         </span>
                     </div>
@@ -243,10 +243,10 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                                 setEditingColumn(null);
                                 setIsColumnModalOpen(true);
                             }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[var(--app-text)] hover:opacity-90 rounded-[2px] transition-opacity cursor-pointer"
+                            className="relative corner-brackets-4 flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer shadow-2xs"
                         >
-                            <Plus className="w-3.5 h-3.5" />
-                            Add Custom Column
+                            <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
+                            <span>Add Custom Column</span>
                         </button>
                     )}
                 </div>
@@ -323,7 +323,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
 
                                     {/* Task Count */}
                                     <div className="col-span-2 text-[11px] text-[var(--app-muted)]">
-                                        <span className="px-2 py-0.5 bg-[var(--app-card)] border border-[var(--app-border)] rounded-full font-mono text-[10px]">
+                                        <span className="px-2 py-0.5 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-[10px] font-medium tabular-nums">
                                             {taskCount} {taskCount === 1 ? "task" : "tasks"}
                                         </span>
                                     </div>

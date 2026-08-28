@@ -14,6 +14,7 @@ interface ProjectInvitationsTrayProps {
     onRefresh?: () => void;
 }
 
+import { useSentProjectInvitations } from "../../hooks/useProjectSWR";
 import { UserAvatar } from "../ui/UserAvatar";
 
 function AvatarChip({ name, avatarUrl, size = "sm" }: { name: string; avatarUrl?: string | null; size?: "sm" | "md" }) {
@@ -46,9 +47,8 @@ export default function ProjectInvitationsTray({
         userRole,
     } = useWorkspace();
 
+    const { sentInvitations, isLoading: isSentLoading, mutate: mutateSent } = useSentProjectInvitations(currentTeam?.id);
     const [activeTab, setActiveTab] = useState<"received" | "sent">(initialTab);
-    const [sentInvitations, setSentInvitations] = useState<any[]>([]);
-    const [isSentLoading, setIsSentLoading] = useState(false);
     const [filterCurrentProjectOnly, setFilterCurrentProjectOnly] = useState(Boolean(activeProjectId));
     const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "ACCEPTED" | "REJECTED">("ALL");
     const [processingId, setProcessingId] = useState<string | null>(null);
@@ -63,21 +63,9 @@ export default function ProjectInvitationsTray({
         }
     }, [isOpen, initialTab]);
 
-    // Load sent invitations when sent tab is active or tray is opened
     const loadSentInvitations = useCallback(async () => {
-        if (!currentTeam?.id) return;
-        setIsSentLoading(true);
-        try {
-            const data = await api.getSentProjectInvitations(currentTeam.id);
-            if (Array.isArray(data)) setSentInvitations(data);
-            else setSentInvitations([]);
-        } catch (err) {
-            console.error("Failed to load sent invitations:", err);
-            setSentInvitations([]);
-        } finally {
-            setIsSentLoading(false);
-        }
-    }, [currentTeam?.id]);
+        await mutateSent();
+    }, [mutateSent]);
 
     useEffect(() => {
         if (isOpen && currentTeam?.id) {
@@ -119,7 +107,7 @@ export default function ProjectInvitationsTray({
         setActionType("cancel");
         try {
             await handleCancelProjectInvitation(invitationId);
-            setSentInvitations((prev) => prev.filter((i) => i.id !== invitationId));
+            mutateSent((prev) => (prev ? prev.filter((i: any) => i.id !== invitationId) : []), false);
             if (onRefresh) onRefresh();
         } catch {
             // handled by context
@@ -173,11 +161,11 @@ export default function ProjectInvitationsTray({
                 <div className="p-4 border-b border-[var(--app-border)] flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2 min-w-0">
                         <Mail className="w-4 h-4 text-[var(--app-text)] shrink-0" />
-                        <h2 className="font-heading text-xs font-semibold text-[var(--app-text)] truncate">
+                        <h2 className="text-xs font-semibold text-[var(--app-text)] truncate">
                             Project Invitations
                         </h2>
                         {totalBadgeCount > 0 && (
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold">
+                            <span className="px-1.5 py-0.2 rounded-[2px] text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold tabular-nums">
                                 {totalBadgeCount}
                             </span>
                         )}
@@ -218,7 +206,11 @@ export default function ProjectInvitationsTray({
                     >
                         <span>Received</span>
                         {receivedCount > 0 && (
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)]">
+                            <span className={`px-1.5 py-0.2 rounded-[2px] text-[9px] border transition-colors tabular-nums ${
+                                activeTab === "received"
+                                    ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
+                                    : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
+                            }`}>
                                 {receivedCount}
                             </span>
                         )}
@@ -234,7 +226,11 @@ export default function ProjectInvitationsTray({
                     >
                         <span>Sent Invitations</span>
                         {sentPendingCount > 0 && (
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)]">
+                            <span className={`px-1.5 py-0.2 rounded-[2px] text-[9px] border transition-colors tabular-nums ${
+                                activeTab === "sent"
+                                    ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
+                                    : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
+                            }`}>
                                 {sentPendingCount}
                             </span>
                         )}
@@ -280,7 +276,7 @@ export default function ProjectInvitationsTray({
                                                         {project.emoji || "📁"}
                                                     </span>
                                                     <div className="min-w-0">
-                                                        <h3 className="font-heading text-xs font-semibold text-[var(--app-text)] truncate">
+                                                        <h3 className="text-xs font-semibold text-[var(--app-text)] truncate">
                                                             {project.title || "Project"}
                                                         </h3>
                                                         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
@@ -299,7 +295,7 @@ export default function ProjectInvitationsTray({
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <span className="shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] bg-[var(--app-card)] text-[var(--app-text)] uppercase font-mono">
+                                                <span className="shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] bg-[var(--app-card)] text-[var(--app-text)] uppercase">
                                                     {role}
                                                 </span>
                                             </div>
@@ -409,9 +405,9 @@ export default function ProjectInvitationsTray({
                                             key={st}
                                             type="button"
                                             onClick={() => setStatusFilter(st)}
-                                            className={`px-1.5 py-0.5 rounded-[2px] uppercase font-mono transition-colors cursor-pointer ${
+                                            className={`px-1.5 py-0.5 rounded-[2px] uppercase text-[9px] font-medium transition-colors cursor-pointer ${
                                                 statusFilter === st
-                                                    ? "bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] font-bold"
+                                                    ? "bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
                                                     : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
                                             }`}
                                         >
@@ -467,7 +463,7 @@ export default function ProjectInvitationsTray({
                                                     </div>
                                                 </div>
                                                 <span
-                                                    className={`text-[8px] font-medium px-1.5 py-0.5 rounded-[2px] uppercase border font-mono flex items-center gap-1 ${
+                                                    className={`text-[8px] font-medium px-1.5 py-0.5 rounded-[2px] uppercase border flex items-center gap-1 ${
                                                         isPending
                                                             ? "text-[#B08800] bg-[#B08800]/10 border-[#B08800]/20"
                                                             : isAccepted
@@ -486,7 +482,7 @@ export default function ProjectInvitationsTray({
                                                     <span className="truncate">
                                                         Project: <strong className="text-[var(--app-text)] font-medium">{project.title || "Project"}</strong>
                                                     </span>
-                                                    <span className="text-[9px] font-medium px-1.5 py-0.2 rounded-[2px] border border-[var(--app-border)] bg-[var(--app-card)] text-[var(--app-text)] uppercase font-mono">
+                                                    <span className="text-[9px] font-medium px-1.5 py-0.2 rounded-[2px] border border-[var(--app-border)] bg-[var(--app-card)] text-[var(--app-text)] uppercase">
                                                         {inv.role || "MEMBER"}
                                                     </span>
                                                 </div>

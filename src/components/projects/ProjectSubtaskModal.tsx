@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
+import { useProjectComments } from "../../hooks/useProjectSWR";
 import { UserAvatar } from "../ui/UserAvatar";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
@@ -263,32 +264,19 @@ export default function ProjectSubtaskModal({
         updatedAt: c.updatedAt,
     });
 
-    // Fetch live comments on mount when editing a subtask or switching to comments
+    const targetTaskId = parentTask?.id || subtask?.parentTaskId;
+    const { comments: fetchedComments, isLoading: swrLoadingComments, mutate: mutateComments } = useProjectComments(
+        isOpen ? projectId : undefined,
+        isOpen ? targetTaskId : undefined,
+        isOpen && subtask?.id ? subtask.id : undefined
+    );
+
+    // Sync SWR fetched comments to local state
     useEffect(() => {
-        const targetTaskId = parentTask?.id || subtask?.parentTaskId;
-        if (!isOpen || !subtask?.id || !projectId || !targetTaskId) return;
-
-        let isMounted = true;
-        const fetchComments = async () => {
-            try {
-                setLoadingComments(true);
-                const fetched = await api.getProjectTaskComments(projectId, targetTaskId, subtask.id);
-                if (isMounted && Array.isArray(fetched)) {
-                    setComments(fetched.map(mapCommentData));
-                }
-            } catch (err) {
-                console.error("Failed to load subtask comments:", err);
-            } finally {
-                if (isMounted) setLoadingComments(false);
-            }
-        };
-
-        fetchComments();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [isOpen, subtask?.id, projectId, parentTask?.id, subtask?.parentTaskId, activeTab]);
+        if (fetchedComments && fetchedComments.length >= 0) {
+            setComments(fetchedComments.map(mapCommentData));
+        }
+    }, [fetchedComments]);
 
     // Auto-scroll to bottom of comments list whenever comments change or when tab switches
     useEffect(() => {
@@ -415,8 +403,6 @@ export default function ProjectSubtaskModal({
         };
     }, [isOpen, subtask?.id]);
 
-    if (!isOpen) return null;
-
     const priorityOptions: SelectOption[] = [
         { value: "LOW", label: "Low Priority" },
         { value: "MEDIUM", label: "Medium Priority" },
@@ -424,10 +410,19 @@ export default function ProjectSubtaskModal({
         { value: "URGENT", label: "Urgent Priority" },
     ];
 
-    const assigneeOptions: SelectOption[] = candidateAssignees.map((c) => ({
+    const assigneeOptions: SelectOption[] = (candidateAssignees || []).map((c) => ({
         value: c.id,
         label: c.name,
+        avatarUrl: c.avatarUrl !== undefined ? c.avatarUrl : (c.user?.avatarUrl ?? null),
     }));
+
+    if (subtask?.assignedTo && !assigneeOptions.some((o) => o.value === (subtask.assignedTo.id || subtask.assignedToId))) {
+        assigneeOptions.unshift({
+            value: subtask.assignedTo.id || subtask.assignedToId,
+            label: subtask.assignedTo.name || subtask.assignedTo.fullName || "Assigned Member",
+            avatarUrl: subtask.assignedTo.avatarUrl ?? null,
+        });
+    }
 
     const columnOptions: SelectOption[] = columns.map((c) => ({
         value: c.id,
@@ -566,6 +561,7 @@ export default function ProjectSubtaskModal({
                 scrollToBottom(true);
             }, 60);
             toast.success("Comment posted");
+            mutateComments();
         } catch (err: any) {
             toast.error(err.message || "Failed to post comment");
             setComments((prev) => prev.filter((c) => c.id !== tempId));
@@ -607,6 +603,7 @@ export default function ProjectSubtaskModal({
             setEditingCommentId(null);
             setEditingCommentText("");
             toast.success("Comment updated");
+            mutateComments();
         } catch (err: any) {
             toast.error(err.message || "Failed to update comment");
         } finally {
@@ -643,6 +640,7 @@ export default function ProjectSubtaskModal({
         try {
             await api.toggleResolveProjectTaskComment(projectId, targetTaskId, comment.id, nextState);
             toast.success(nextState ? "Comment marked as resolved" : "Comment reopened");
+            mutateComments();
         } catch (err: any) {
             toast.error(err.message || "Failed to update resolution status");
             // Rollback
@@ -672,6 +670,7 @@ export default function ProjectSubtaskModal({
             await api.deleteProjectTaskComment(projectId, targetTaskId, commentId);
             setComments((prev) => prev.filter((c) => c.id !== commentId));
             toast.success("Comment deleted");
+            mutateComments();
         } catch (err: any) {
             toast.error(err.message || "Failed to delete comment");
         }
@@ -722,7 +721,7 @@ export default function ProjectSubtaskModal({
                                 {parentTask?.title}
                             </span>
                         </span>
-                        <h2 className="text-base font-heading font-semibold text-[var(--app-text)] truncate">
+                        <h2 className="text-base font-semibold text-[var(--app-text)] truncate">
                             {isEditMode ? title || "Edit Subtask" : "Create Subtask"}
                         </h2>
                     </div>
@@ -810,7 +809,7 @@ export default function ProjectSubtaskModal({
                                 />
                             ) : (
                                 <div className="flex items-center gap-2 p-2 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] text-xs text-[var(--app-text)]">
-                                    <User className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                    <UserAvatar name={currentUser?.name || "You"} avatarUrl={currentUser?.avatarUrl} size="xs" />
                                     <span>
                                         <span className="font-semibold">{currentUser?.name || "You"}</span> (Self)
                                     </span>
@@ -885,7 +884,7 @@ export default function ProjectSubtaskModal({
                                     type="button"
                                     onClick={() => handleSaveSubtask()}
                                     disabled={submitting}
-                                    className="w-full py-2 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold text-xs rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-2xs"
+                                    className="w-full py-2 bg-[var(--app-text)] hover:opacity-90 border border-[var(--app-text)] text-[var(--app-bg)] font-semibold text-xs rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-xs"
                                 >
                                     {submitting ? (
                                         <>
@@ -933,7 +932,7 @@ export default function ProjectSubtaskModal({
                                 <MessageSquare className="w-3.5 h-3.5" />
                                 <span>Comments</span>
                                 {comments.length > 0 && (
-                                    <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-full tabular-nums">
+                                    <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
                                         {comments.length}
                                     </span>
                                 )}
@@ -1056,7 +1055,7 @@ export default function ProjectSubtaskModal({
                                                                 <span className="text-[11px] font-semibold text-[var(--app-text)] truncate">
                                                                     {c.user?.name || "User"}
                                                                 </span>
-                                                                <span className="text-[9px] text-[var(--app-muted)] font-mono shrink-0">
+                                                                <span className="text-[9px] text-[var(--app-muted)] shrink-0">
                                                                     {new Date(c.createdAt).toLocaleTimeString([], {
                                                                         hour: "2-digit",
                                                                         minute: "2-digit",
@@ -1268,7 +1267,7 @@ export default function ProjectSubtaskModal({
                                                         {act.description}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-[9px] text-[var(--app-muted)] font-mono">
+                                                <div className="flex items-center gap-2 text-[9px] text-[var(--app-muted)]">
                                                     <span>by {act.user?.name || "System"}</span>
                                                     <span>•</span>
                                                     <span>

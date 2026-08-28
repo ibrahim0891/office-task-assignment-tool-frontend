@@ -2,33 +2,34 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, ArrowRight, Loader2, Folder, Mail, LayoutGrid, List } from "lucide-react";
+import { Plus, ArrowRight, Loader2, Folder, Mail, LayoutGrid, List, FolderKanban, Building2 } from "lucide-react";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { api } from "../../api";
 import CreateProjectModal from "./CreateProjectModal";
 import ManageFoldersTray from "../ManageFoldersTray";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
+import { usePortfolioSummary } from "../../hooks/useProjectSWR";
 import { UserAvatar } from "../ui/UserAvatar";
 
 function getStatusConfig(status: string) {
     switch (status) {
         case "ON_TRACK":
         case "OnTrack":
-            return { label: "On Track", color: "text-[#22863A]", bg: "bg-[#22863A]/10", border: "border-[#22863A]/20", dot: "bg-[#22863A]" };
+            return { label: "On Track", color: "text-[var(--status-on-track,#16A34A)]", bg: "bg-[var(--status-on-track,#16A34A)]/10", border: "border-[var(--status-on-track,#16A34A)]/20", dot: "bg-[var(--status-on-track,#16A34A)]" };
         case "AT_RISK":
         case "AtRisk":
-            return { label: "At Risk", color: "text-[#B08800]", bg: "bg-[#B08800]/10", border: "border-[#B08800]/20", dot: "bg-[#B08800]" };
+            return { label: "At Risk", color: "text-[var(--status-at-risk,#D97706)]", bg: "bg-[var(--status-at-risk,#D97706)]/10", border: "border-[var(--status-at-risk,#D97706)]/20", dot: "bg-[var(--status-at-risk,#D97706)]" };
         case "ACTIVE":
         case "Active":
-            return { label: "Active", color: "text-[#0284C7]", bg: "bg-[#0284C7]/10", border: "border-[#0284C7]/20", dot: "bg-[#0284C7]" };
+            return { label: "Active", color: "text-[var(--status-active,#0284C7)]", bg: "bg-[var(--status-active,#0284C7)]/10", border: "border-[var(--status-active,#0284C7)]/20", dot: "bg-[var(--status-active,#0284C7)]" };
         case "COMPLETED":
         case "Completed":
-            return { label: "Completed", color: "text-[#22863A]", bg: "bg-[#22863A]/10", border: "border-[#22863A]/20", dot: "bg-[#22863A]" };
+            return { label: "Completed", color: "text-[var(--status-completed,#15803D)]", bg: "bg-[var(--status-completed,#15803D)]/10", border: "border-[var(--status-completed,#15803D)]/20", dot: "bg-[var(--status-completed,#15803D)]" };
         case "ARCHIVED":
         case "Archived":
-            return { label: "Archived", color: "text-[#888883]", bg: "bg-[#888883]/10", border: "border-[#888883]/20", dot: "bg-[#888883]" };
+            return { label: "Archived", color: "text-[var(--status-archived,#6B7280)]", bg: "bg-[var(--status-archived,#6B7280)]/10", border: "border-[var(--status-archived,#6B7280)]/20", dot: "bg-[var(--status-archived,#6B7280)]" };
         default:
-            return { label: status, color: "text-[#888883]", bg: "bg-[#888883]/10", border: "border-[#888883]/20", dot: "bg-[#888883]" };
+            return { label: status, color: "text-[var(--status-archived,#6B7280)]", bg: "bg-[var(--status-archived,#6B7280)]/10", border: "border-[var(--status-archived,#6B7280)]/20", dot: "bg-[var(--status-archived,#6B7280)]" };
     }
 }
 
@@ -58,18 +59,26 @@ function ProjectCard({ project }: { project: any }) {
 
     return (
         <Link href={`/projects/${project.id}`} className="block group">
-            <div className="relative bg-[var(--app-card)] border border-[var(--app-border)] corner-brackets p-4 flex flex-col gap-3 hover:border-[var(--app-border-strong)] transition-colors cursor-pointer">
+            <div className="relative bg-[var(--app-card)] border border-[var(--app-border)] corner-brackets p-4 flex flex-col gap-3 hover:border-[var(--app-border-strong)] transition-colors cursor-pointer rounded-[3px]">
                 <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-lg emoji-font shrink-0">{project.emoji || "📁"}</span>
+                        {project.emoji ? (
+                            <span className="text-lg emoji-font shrink-0">{project.emoji}</span>
+                        ) : (
+                            <FolderKanban className="w-5 h-5 text-[var(--app-muted)] shrink-0" />
+                        )}
                         <div className="flex flex-col min-w-0">
-                            <h3 className="text-[12px] font-semibold text-[var(--app-text)] truncate">
+                            <h3 className="text-[13px] font-semibold text-[var(--app-text)] truncate">
                                 {project.title}
                             </h3>
                             {project.team && (
                                 <div className="flex items-center gap-1 mt-0.5">
                                     <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] flex items-center gap-1 w-fit max-w-full truncate" title={`Owning Team: ${project.team.name}`}>
-                                        <span className="emoji-font text-[9px] shrink-0">{project.team.emoji || "🏢"}</span>
+                                        {project.team.emoji ? (
+                                            <span className="emoji-font text-[9px] shrink-0">{project.team.emoji}</span>
+                                        ) : (
+                                            <Building2 className="w-2.5 h-2.5 shrink-0 text-[var(--app-muted)]" />
+                                        )}
                                         <span className="truncate">{project.team.name}</span>
                                     </span>
                                 </div>
@@ -84,7 +93,7 @@ function ProjectCard({ project }: { project: any }) {
                     </span>
                 </div>
 
-                <p className="text-[10px] text-[var(--app-muted)] leading-relaxed line-clamp-2">
+                <p className="text-[11px] text-[var(--app-muted)] leading-relaxed line-clamp-2">
                     {project.description}
                 </p>
 
@@ -169,17 +178,25 @@ function ProjectListItem({ project }: { project: any }) {
     return (
         <tr className="group border-b border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] transition-colors text-xs">
             {/* Project & Owning Team */}
-            <td className="py-3 px-4 min-w-[240px]">
+            <td className="py-3.5 px-4 min-w-[240px]">
                 <Link href={`/projects/${project.id}`} className="flex items-center gap-2.5 min-w-0">
-                    <span className="text-lg emoji-font shrink-0">{project.emoji || "📁"}</span>
+                    {project.emoji ? (
+                        <span className="text-lg emoji-font shrink-0">{project.emoji}</span>
+                    ) : (
+                        <FolderKanban className="w-4 h-4 text-[var(--app-muted)] shrink-0" />
+                    )}
                     <div className="flex flex-col min-w-0">
-                        <span className="font-heading font-semibold text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
+                        <span className="font-semibold text-[13px] text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
                             {project.title}
                         </span>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             {project.team && (
                                 <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-1.5 py-0.2 rounded-[2px] border border-[var(--app-border)] flex items-center gap-1 shrink-0" title={`Owning Team: ${project.team.name}`}>
-                                    <span className="emoji-font text-[9px] shrink-0">{project.team.emoji || "🏢"}</span>
+                                    {project.team.emoji ? (
+                                        <span className="emoji-font text-[9px] shrink-0">{project.team.emoji}</span>
+                                    ) : (
+                                        <Building2 className="w-2.5 h-2.5 shrink-0 text-[var(--app-muted)]" />
+                                    )}
                                     <span className="truncate max-w-[120px]">{project.team.name}</span>
                                 </span>
                             )}
@@ -194,7 +211,7 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Status */}
-            <td className="py-3 px-4 whitespace-nowrap">
+            <td className="py-3.5 px-4 whitespace-nowrap">
                 <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border inline-flex items-center gap-1 ${status.color} ${status.bg} ${status.border}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                     {status.label}
@@ -202,7 +219,7 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Manager & Leads */}
-            <td className="py-3 px-4 whitespace-nowrap">
+            <td className="py-3.5 px-4 whitespace-nowrap">
                 <div className="flex items-center gap-2">
                     {project.manager && (
                         <div className="flex items-center gap-1.5 min-w-0" title={`Manager: ${project.manager.name}`}>
@@ -223,7 +240,7 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Timeline */}
-            <td className="py-3 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
+            <td className="py-3.5 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
                 {(project.startDate || project.endDate) ? (
                     <div className="flex items-center gap-1">
                         <span>{formatDate(project.startDate)}</span>
@@ -236,7 +253,7 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Progress & Tasks */}
-            <td className="py-3 px-4 min-w-[170px]">
+            <td className="py-3.5 px-4 min-w-[170px]">
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between text-[9px]">
                         <span className="text-[var(--app-muted)]">
@@ -256,7 +273,7 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Members / Overdue */}
-            <td className="py-3 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
+            <td className="py-3.5 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
                 <div className="flex items-center gap-2">
                     <span>{project.members?.length || 0} members</span>
                     {overdueTasks > 0 && (
@@ -268,7 +285,7 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Action */}
-            <td className="py-3 px-4 text-right whitespace-nowrap">
+            <td className="py-3.5 px-4 text-right whitespace-nowrap">
                 <Link
                     href={`/projects/${project.id}`}
                     className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] text-[10px] font-medium rounded-[2px] transition-colors"
@@ -298,12 +315,7 @@ export default function ProjectsPortfolio() {
     } = useWorkspace();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-    const [summary, setSummary] = useState<any>({
-        activeProjects: 0,
-        onTimeRate: 100,
-        criticalSLABreaches: 0,
-        totalProjects: 0,
-    });
+    const { summary } = usePortfolioSummary(currentTeam?.id, currentUser?.id);
     const [activeFolderId, setActiveFolderId] = useState<string>("ALL");
     const [selectedTeamFilter, setSelectedTeamFilter] = useState<string>("ALL");
 
@@ -339,13 +351,6 @@ export default function ProjectsPortfolio() {
         projects.some((p) => p.folderId === folder.id)
     );
 
-    useEffect(() => {
-        if (!currentTeam?.id) return;
-        api.getPortfolioSummary(currentTeam.id, currentUser?.id)
-            .then(setSummary)
-            .catch((err) => console.error("Error loading portfolio summary:", err));
-    }, [currentTeam?.id, currentUser?.id, projects]);
-
     const isLeader = userRole === "LEADER";
 
     // Filter projects by team and folder
@@ -365,8 +370,8 @@ export default function ProjectsPortfolio() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
                     <div>
-                        <h1 className="font-heading text-xl">Projects</h1>
-                        <p className="text-base text-[var(--app-muted)] mt-0.5">
+                        <h1 className="text-xl font-semibold tracking-tight text-[var(--app-text)]">Projects</h1>
+                        <p className="text-xs text-[var(--app-muted)] mt-0.5">
                             Portfolio overview across all assigned projects
                         </p>
                     </div>
@@ -399,7 +404,7 @@ export default function ProjectsPortfolio() {
                             </button>
                         </div>
 
-                        {/* Invitations Tray Trigger Button */}
+                        {/* Invitations Tray Trigger Button (Secondary) */}
                         <button
                             type="button"
                             onClick={() => {
@@ -414,7 +419,7 @@ export default function ProjectsPortfolio() {
                             <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                             <span>Invitations</span>
                             {projectInvitations.length > 0 && (
-                                <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold">
+                                <span className="px-1.5 py-0.2 rounded-[2px] text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold tabular-nums">
                                     {projectInvitations.length}
                                 </span>
                             )}
@@ -433,12 +438,13 @@ export default function ProjectsPortfolio() {
                                         <span>Manage Folders</span>
                                     </button>
                                 )}
+                                {/* Primary Action: exactly ONE primary button */}
                                 <button
                                     type="button"
                                     onClick={() => setIsCreateOpen(true)}
-                                    className="bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-[11px] font-medium px-3.5 py-1.5 rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                                    className="relative corner-brackets-4 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] text-[11px] font-medium px-3.5 py-1.5 rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
                                 >
-                                    <Plus className="w-3.5 h-3.5" />
+                                    <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
                                     <span>New Project</span>
                                 </button>
                             </>
@@ -473,29 +479,35 @@ export default function ProjectsPortfolio() {
                     </div>
                 )}
 
-                {/* KPI Stats Row */}
-                <div className="corner-brackets grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--app-border)] border border-[var(--app-border)]">
+                {/* KPI Stats Row — Semantic Colors */}
+                <div className="corner-brackets grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--app-border)] border border-[var(--app-border)] rounded-[3px] overflow-hidden">
                     <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
                         <span className="eyebrow">Active Projects</span>
-                        <span className="text-2xl font-heading text-[var(--app-text)]">
+                        <span className="text-2xl font-bold tracking-tight text-[var(--app-text)] tabular-nums">
                             {summary.activeProjects}
                         </span>
                     </div>
                     <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
                         <span className="eyebrow">On-Time Rate</span>
-                        <span className="text-2xl font-heading text-[var(--app-text)]">
+                        <span className={`text-2xl font-bold tracking-tight tabular-nums ${
+                            summary.onTimeRate < 50
+                                ? "text-[var(--color-error)]"
+                                : summary.onTimeRate < 80
+                                ? "text-[var(--color-warning)]"
+                                : "text-[var(--color-success)]"
+                        }`}>
                             {summary.onTimeRate}%
                         </span>
                     </div>
                     <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
                         <span className="eyebrow">SLA Breaches</span>
-                        <span className={`text-2xl font-heading ${summary.criticalSLABreaches > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"}`}>
+                        <span className={`text-2xl font-bold tracking-tight tabular-nums ${summary.criticalSLABreaches > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"}`}>
                             {summary.criticalSLABreaches}
                         </span>
                     </div>
                     <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
                         <span className="eyebrow">Total Projects</span>
-                        <span className="text-2xl font-heading text-[var(--app-text)]">
+                        <span className="text-2xl font-bold tracking-tight text-[var(--app-text)] tabular-nums">
                             {summary.totalProjects}
                         </span>
                     </div>
@@ -504,18 +516,22 @@ export default function ProjectsPortfolio() {
                 {/* Filters Row: Team Selector & Folder Tabs */}
                 {!isProjectsLoading && (uniqueTeams.length > 1 || foldersWithProjects.length > 0) && (
                     <div className="shrink-0 border-b border-[var(--app-border)] flex flex-wrap items-center justify-between gap-3 select-none pb-1">
-                        {/* Folder / All Tabs */}
+                        {/* Folder / All Tabs — Clean Normal-Case Typography */}
                         <div className="flex flex-wrap items-center gap-2">
                             <button
                                 onClick={() => setActiveFolderId("ALL")}
-                                className={`py-1.5 px-3 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider font-semibold border-b-2 transition-colors cursor-pointer ${
+                                className={`py-1.5 px-3 flex items-center gap-1.5 text-[12px] font-medium border-b-2 transition-colors cursor-pointer ${
                                     activeFolderId === "ALL"
-                                        ? "border-[var(--app-text)] text-[var(--app-text)]"
+                                        ? "border-[var(--app-text)] text-[var(--app-text)] font-semibold"
                                         : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]"
                                 }`}
                             >
                                 <span>All Folders</span>
-                                <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${activeFolderId === "ALL" ? "bg-[var(--app-text)] text-[var(--app-bg)] font-bold" : "bg-[var(--app-border)] text-[var(--app-muted)] font-medium"}`}>
+                                <span className={`px-1.5 py-0.2 rounded-[2px] text-[10px] tabular-nums border transition-colors ${
+                                    activeFolderId === "ALL"
+                                        ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
+                                        : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
+                                }`}>
                                     {projects.length}
                                 </span>
                             </button>
@@ -526,15 +542,23 @@ export default function ProjectsPortfolio() {
                                     <button
                                         key={folder.id}
                                         onClick={() => setActiveFolderId(folder.id)}
-                                        className={`py-1.5 px-3 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider font-semibold border-b-2 transition-colors cursor-pointer ${
+                                        className={`py-1.5 px-3 flex items-center gap-1.5 text-[12px] font-medium border-b-2 transition-colors cursor-pointer ${
                                             isSelected
-                                                ? "border-[var(--app-text)] text-[var(--app-text)]"
+                                                ? "border-[var(--app-text)] text-[var(--app-text)] font-semibold"
                                                 : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]"
                                         }`}
                                     >
-                                        <span className="emoji-font text-xs">{folder.emoji || "📁"}</span>
+                                        {folder.emoji ? (
+                                            <span className="emoji-font text-xs">{folder.emoji}</span>
+                                        ) : (
+                                            <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                        )}
                                         <span>{folder.name}</span>
-                                        <span className={`px-1.5 py-0.2 rounded-full text-[9px] ${isSelected ? "bg-[var(--app-text)] text-[var(--app-bg)] font-bold" : "bg-[var(--app-border)] text-[var(--app-muted)] font-medium"}`}>
+                                        <span className={`px-1.5 py-0.2 rounded-[2px] text-[10px] tabular-nums border transition-colors ${
+                                            isSelected
+                                                ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
+                                                : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
+                                        }`}>
                                             {folderProjects.length}
                                         </span>
                                     </button>
@@ -549,7 +573,7 @@ export default function ProjectsPortfolio() {
                                 <select
                                     value={selectedTeamFilter}
                                     onChange={(e) => setSelectedTeamFilter(e.target.value)}
-                                    className="px-2 py-1 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-[11px] text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)]"
+                                    className="px-2 py-1 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-[11px] text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)] cursor-pointer"
                                 >
                                     <option value="ALL">All Teams ({projects.length})</option>
                                     {uniqueTeams.map((t) => {
@@ -573,14 +597,24 @@ export default function ProjectsPortfolio() {
                             <Loader2 className="w-6 h-6 animate-spin text-[var(--app-muted)]" />
                         </div>
                     ) : filteredProjects.length === 0 ? (
-                        <div className="border border-dashed border-[var(--app-border)] rounded-[4px] py-16 text-center">
-                            <p className="text-base text-[var(--app-muted)] mb-2">No projects found</p>
+                        /* Actionable Empty State */
+                        <div className="border border-dashed border-[var(--app-border)] rounded-[4px] py-16 text-center flex flex-col items-center justify-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[var(--app-card)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)]">
+                                <FolderKanban className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-[var(--app-text)]">No projects found</p>
+                                <p className="text-[11px] text-[var(--app-muted)] mt-0.5">
+                                    {activeFolderId !== "ALL" ? "No projects in this folder yet." : "Get started by creating a new project."}
+                                </p>
+                            </div>
                             {isLeader && (
                                 <button
                                     onClick={() => setIsCreateOpen(true)}
-                                    className="text-[11px] font-semibold text-[var(--app-text)] underline hover:no-underline"
+                                    className="relative corner-brackets-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer mt-1 shadow-2xs"
                                 >
-                                    Create your first project
+                                    <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
+                                    <span>Create Project</span>
                                 </button>
                             )}
                         </div>
@@ -591,22 +625,22 @@ export default function ProjectsPortfolio() {
                             ))}
                         </div>
                     ) : (
-                        /* List / Table View */
+                        /* List / Table View — Clean row-based borders & normal-case headers */
                         <div className="border border-[var(--app-border)] rounded-[3px] bg-[var(--app-card)] overflow-hidden shadow-xs">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-xs border-collapse">
                                     <thead>
-                                        <tr className="border-b border-[var(--app-border)] bg-[var(--app-bg)] text-[10px] uppercase font-mono text-[var(--app-muted)]">
-                                            <th className="py-2.5 px-4 font-semibold">Project & Team</th>
-                                            <th className="py-2.5 px-4 font-semibold">Status</th>
-                                            <th className="py-2.5 px-4 font-semibold">Manager & Leads</th>
-                                            <th className="py-2.5 px-4 font-semibold">Timeline</th>
-                                            <th className="py-2.5 px-4 font-semibold">Progress</th>
-                                            <th className="py-2.5 px-4 font-semibold">Members</th>
-                                            <th className="py-2.5 px-4 font-semibold text-right">Action</th>
+                                        <tr className="border-b border-[var(--app-border)] bg-[var(--app-bg)] text-[10px] font-medium text-[var(--app-muted)]">
+                                            <th className="py-3 px-4 font-semibold">Project & Team</th>
+                                            <th className="py-3 px-4 font-semibold">Status</th>
+                                            <th className="py-3 px-4 font-semibold">Manager & Leads</th>
+                                            <th className="py-3 px-4 font-semibold">Timeline</th>
+                                            <th className="py-3 px-4 font-semibold">Progress</th>
+                                            <th className="py-3 px-4 font-semibold">Members</th>
+                                            <th className="py-3 px-4 font-semibold text-right">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-[var(--app-border)]/60">
+                                    <tbody>
                                         {filteredProjects.map((project) => (
                                             <ProjectListItem key={project.id} project={project} />
                                         ))}

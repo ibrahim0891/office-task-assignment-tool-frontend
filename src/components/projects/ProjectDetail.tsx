@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, LayoutGrid, Users, Calendar, BarChart2, Loader2, Mail, Settings, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, LayoutGrid, Users, Calendar, BarChart2, Loader2, Mail, Settings, Plus, ChevronRight, FolderKanban, Building2 } from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import ProjectBoardView from "./ProjectBoardView";
@@ -13,6 +13,7 @@ import ProjectAnalyticsView from "./ProjectAnalyticsView";
 import ProjectSettingsView from "./ProjectSettingsView";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import CreateProjectTaskModal from "./CreateProjectTaskModal";
+import { useProjectDetail } from "../../hooks/useProjectSWR";
 import ProjectDetailSkeleton from "./ProjectDetailSkeleton";
 import { UserAvatar } from "../ui/UserAvatar";
 
@@ -20,21 +21,21 @@ function getStatusConfig(status: string) {
     switch (status) {
         case "ON_TRACK":
         case "OnTrack":
-            return { label: "On Track", color: "text-[#22863A]", bg: "bg-[#22863A]/10", border: "border-[#22863A]/20", dot: "bg-[#22863A]" };
+            return { label: "On Track", color: "text-[var(--status-on-track,#16A34A)]", bg: "bg-[var(--status-on-track,#16A34A)]/10", border: "border-[var(--status-on-track,#16A34A)]/20", dot: "bg-[var(--status-on-track,#16A34A)]" };
         case "AT_RISK":
         case "AtRisk":
-            return { label: "At Risk", color: "text-[#B08800]", bg: "bg-[#B08800]/10", border: "border-[#B08800]/20", dot: "bg-[#B08800]" };
+            return { label: "At Risk", color: "text-[var(--status-at-risk,#D97706)]", bg: "bg-[var(--status-at-risk,#D97706)]/10", border: "border-[var(--status-at-risk,#D97706)]/20", dot: "bg-[var(--status-at-risk,#D97706)]" };
         case "ACTIVE":
         case "Active":
-            return { label: "Active", color: "text-[#0284C7]", bg: "bg-[#0284C7]/10", border: "border-[#0284C7]/20", dot: "bg-[#0284C7]" };
+            return { label: "Active", color: "text-[var(--status-active,#0284C7)]", bg: "bg-[var(--status-active,#0284C7)]/10", border: "border-[var(--status-active,#0284C7)]/20", dot: "bg-[var(--status-active,#0284C7)]" };
         case "COMPLETED":
         case "Completed":
-            return { label: "Completed", color: "text-[#22863A]", bg: "bg-[#22863A]/10", border: "border-[#22863A]/20", dot: "bg-[#22863A]" };
+            return { label: "Completed", color: "text-[var(--status-completed,#15803D)]", bg: "bg-[var(--status-completed,#15803D)]/10", border: "border-[var(--status-completed,#15803D)]/20", dot: "bg-[var(--status-completed,#15803D)]" };
         case "ARCHIVED":
         case "Archived":
-            return { label: "Archived", color: "text-[#888883]", bg: "bg-[#888883]/10", border: "border-[#888883]/20", dot: "bg-[#888883]" };
+            return { label: "Archived", color: "text-[var(--status-archived,#6B7280)]", bg: "bg-[var(--status-archived,#6B7280)]/10", border: "border-[var(--status-archived,#6B7280)]/20", dot: "bg-[var(--status-archived,#6B7280)]" };
         default:
-            return { label: status, color: "text-[#888883]", bg: "bg-[#888883]/10", border: "border-[#888883]/20", dot: "bg-[#888883]" };
+            return { label: status, color: "text-[var(--status-archived,#6B7280)]", bg: "bg-[var(--status-archived,#6B7280)]/10", border: "border-[var(--status-archived,#6B7280)]/20", dot: "bg-[var(--status-archived,#6B7280)]" };
     }
 }
 
@@ -53,32 +54,15 @@ export default function ProjectDetail() {
     const projectId = params.id as string;
     const { currentTeam, currentUser, userRole, isManageInvitationsOpen, setIsManageInvitationsOpen, projectInvitations } = useWorkspace();
 
-    const [project, setProject] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+    const { project, isLoading, mutate: refreshProject } = useProjectDetail(projectId, currentTeam?.id);
     const [activeTab, setActiveTab] = useState<Tab>("main-board");
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
 
-    const loadProjectDetail = async (silent = false) => {
-        if (!projectId) return;
-        if (!silent && !project) {
-            setLoading(true);
-        }
-        try {
-            const data = await api.getProjectDetail(projectId, currentTeam?.id);
-            setProject(data);
-        } catch (err) {
-            console.error("Failed to load project detail:", err);
-            if (!project) setProject(null);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const loadProjectDetail = React.useCallback(async () => {
+        await refreshProject();
+    }, [refreshProject]);
 
-    useEffect(() => {
-        loadProjectDetail();
-    }, [projectId, currentTeam?.id]);
-
-    if (loading) {
+    if (isLoading && !project) {
         return <ProjectDetailSkeleton />;
     }
 
@@ -86,15 +70,15 @@ export default function ProjectDetail() {
         return (
             <div className="flex-1 flex items-center justify-center p-5 bg-[var(--app-bg)]">
                 <div className="text-center flex flex-col gap-3">
-                    <h2 className="font-heading text-lg text-[var(--app-text)]">
+                    <h2 className="text-lg font-semibold text-[var(--app-text)]">
                         Project Not Found
                     </h2>
-                    <p className="text-base text-[var(--app-muted)]">
+                    <p className="text-xs text-[var(--app-muted)]">
                         The project you are looking for does not exist.
                     </p>
                     <Link
                         href="/projects"
-                        className="text-[11px] text-[var(--app-text)] underline hover:no-underline"
+                        className="text-[11px] text-[var(--app-text)] underline hover:no-underline font-medium"
                     >
                         ← Back to Projects
                     </Link>
@@ -136,24 +120,43 @@ export default function ProjectDetail() {
         <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden bg-[var(--app-bg)] text-[var(--app-text)]">
                 {/* Project Header Bar */}
-                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 py-3 flex flex-col gap-3 select-none">
+                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 py-3 flex flex-col gap-2.5 select-none">
+                    {/* Breadcrumbs */}
+                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--app-muted)]">
+                        <Link href="/projects" className="hover:text-[var(--app-text)] transition-colors">
+                            Projects
+                        </Link>
+                        <ChevronRight className="w-3 h-3 text-[var(--app-muted)]" />
+                        <span className="font-medium text-[var(--app-text)] truncate max-w-[280px]">
+                            {project.title}
+                        </span>
+                    </div>
+
                     {/* Top Row: Back button, Title, Status */}
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3 min-w-0">
                             <Link
                                 href="/projects"
-                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors shrink-0"
+                                className="p-1.5 border border-[var(--app-border)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] rounded-[2px] transition-colors shrink-0"
                                 title="Back to Projects"
                             >
                                 <ArrowLeft className="w-4 h-4" />
                             </Link>
-                            <span className="text-lg emoji-font shrink-0">{project.emoji || "📁"}</span>
-                            <h1 className="font-heading text-lg text-[var(--app-text)] truncate">
+                            {project.emoji ? (
+                                <span className="text-lg emoji-font shrink-0">{project.emoji}</span>
+                            ) : (
+                                <FolderKanban className="w-5 h-5 text-[var(--app-muted)] shrink-0" />
+                            )}
+                            <h1 className="text-lg font-semibold tracking-tight text-[var(--app-text)] truncate">
                                 {project.title}
                             </h1>
                             {project.team && (
                                 <span className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text)] flex items-center gap-1.5" title={`Owning Team: ${project.team.name}`}>
-                                    <span className="emoji-font text-xs shrink-0">{project.team.emoji || "🏢"}</span>
+                                    {project.team.emoji ? (
+                                        <span className="emoji-font text-xs shrink-0">{project.team.emoji}</span>
+                                    ) : (
+                                        <Building2 className="w-2.5 h-2.5 shrink-0 text-[var(--app-muted)]" />
+                                    )}
                                     <span className="truncate">{project.team.name}</span>
                                 </span>
                             )}
@@ -264,33 +267,22 @@ export default function ProjectDetail() {
                     </div>
 
                     <div className="flex items-center gap-2 py-1.5">
-                        {canManageTasks && (
-                            <button
-                                type="button"
-                                onClick={() => setIsCreateTaskModalOpen(true)}
-                                className="relative corner-brackets-4 px-3 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
-                            >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>Add Task</span>
-                            </button>
-                        )}
-
                         {/* Right Sidebar Invitations Toggle */}
                         {canManageInvitations && (
                             <button
                                 type="button"
                                 onClick={() => setIsManageInvitationsOpen(!isManageInvitationsOpen)}
-                                className={`text-[11px] font-medium px-3 py-1 rounded-[2px] border transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                className={`relative corner-brackets-4 text-[11px] font-medium px-3.5 py-1.5 rounded-[2px] border transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs ${
                                     isManageInvitationsOpen
                                         ? "bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
-                                        : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)]"
+                                        : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
                                 }`}
                                 title="Toggle Invitations Right Sidebar"
                             >
                                 <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                                 <span>Invitations</span>
                                 {pendingProjectInvitesCount > 0 && (
-                                    <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold">
+                                    <span className="px-1.5 py-0.2 rounded-[2px] text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold tabular-nums">
                                         {pendingProjectInvitesCount}
                                     </span>
                                 )}
