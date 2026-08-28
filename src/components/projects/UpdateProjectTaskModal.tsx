@@ -8,6 +8,7 @@ import { CustomSelect } from "../ui/CustomSelect";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { TipTapEditor } from "../ui/TipTapEditor";
 import ModalWrapper from "../ui/ModalWrapper";
+import { UserAvatar } from "../ui/UserAvatar";
 
 interface UpdateProjectTaskModalProps {
     isOpen: boolean;
@@ -408,9 +409,12 @@ export default function UpdateProjectTaskModal({
                                             key={member.id}
                                             className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[var(--app-card)] border border-[var(--app-border-strong)] rounded-[2px] shadow-xs text-xs animate-fade-in"
                                         >
-                                            <div className="w-5 h-5 rounded-full bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[8px] font-bold text-[var(--app-text)] shrink-0">
-                                                {getInitials(member.name)}
-                                            </div>
+                                            <UserAvatar
+                                                name={member.name}
+                                                avatarUrl={(member as any).avatarUrl || (member as any).user?.avatarUrl}
+                                                size="xs"
+                                                title={member.name}
+                                            />
                                             <div className="flex flex-col min-w-0">
                                                 <span className="text-[11px] font-medium text-[var(--app-text)] leading-none truncate max-w-[130px]">
                                                     {member.name}

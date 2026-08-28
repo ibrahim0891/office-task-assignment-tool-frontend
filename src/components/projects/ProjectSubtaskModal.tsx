@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
+import { UserAvatar } from "../ui/UserAvatar";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
 import { TipTapEditor } from "../ui/TipTapEditor";
@@ -64,6 +65,10 @@ export default function ProjectSubtaskModal({
     onRefresh,
 }: ProjectSubtaskModalProps) {
     const isEditMode = Boolean(subtask?.id);
+    const isMySubtask =
+        subtask?.assignedToId === currentUser?.id ||
+        subtask?.assignedTo?.id === currentUser?.id;
+    const canModifyThisSubtask = !isEditMode || canManageTasks || isMySubtask;
 
     // Form fields
     const [title, setTitle] = useState("");
@@ -874,23 +879,29 @@ export default function ProjectSubtaskModal({
                         </div>
 
                         {/* Save Action in Left Column */}
-                        <div className="pt-2 mt-auto border-t border-[var(--app-border)] flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => handleSaveSubtask()}
-                                disabled={submitting}
-                                className="w-full py-2 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold text-xs rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-2xs"
-                            >
-                                {submitting ? (
-                                    <>
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        <span>Saving...</span>
-                                    </>
-                                ) : (
-                                    <span>{isEditMode ? "Save Changes" : "Create Subtask"}</span>
-                                )}
-                            </button>
-                        </div>
+                        {canModifyThisSubtask ? (
+                            <div className="pt-2 mt-auto border-t border-[var(--app-border)] flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSaveSubtask()}
+                                    disabled={submitting}
+                                    className="w-full py-2 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold text-xs rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-2xs"
+                                >
+                                    {submitting ? (
+                                        <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            <span>Saving...</span>
+                                        </>
+                                    ) : (
+                                        <span>{isEditMode ? "Save Changes" : "Create Subtask"}</span>
+                                    )}
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="pt-2 mt-auto border-t border-[var(--app-border)] text-center text-[10px] text-[var(--app-muted)] italic">
+                                View only mode (assigned to another member)
+                            </div>
+                        )}
                     </div>
 
                     {/* Right Column: Tabbed Content (Description, Comments, Activity Log, Attachments) */}
@@ -1036,9 +1047,12 @@ export default function ProjectSubtaskModal({
                                                         <div className="flex items-center justify-between gap-2 min-h-[22px]">
                                                             {/* Author & Timestamp Info (Left Side) */}
                                                             <div className="flex items-center gap-2 min-w-0">
-                                                                <div className="w-5 h-5 rounded-full bg-[var(--app-bg)] border border-[var(--app-border-strong)] flex items-center justify-center text-[8px] font-bold text-[var(--app-text)] shrink-0">
-                                                                    {getInitials(c.user?.name || "User")}
-                                                                </div>
+                                                                <UserAvatar
+                                                                    name={c.user?.name || "User"}
+                                                                    avatarUrl={c.user?.avatarUrl || c.avatarUrl}
+                                                                    size="xs"
+                                                                    title={c.user?.name || "User"}
+                                                                />
                                                                 <span className="text-[11px] font-semibold text-[var(--app-text)] truncate">
                                                                     {c.user?.name || "User"}
                                                                 </span>

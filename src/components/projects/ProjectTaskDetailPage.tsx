@@ -37,16 +37,8 @@ import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
 import ProjectColumnModal from "./ProjectColumnModal";
 import ProjectSubtaskModal from "./ProjectSubtaskModal";
 import { SubtaskKanbanCard } from "./SubtaskKanbanCard";
-
-function getInitials(name: string) {
-    if (!name) return "";
-    return name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-}
+import ProjectSubtaskDetailSkeleton from "./ProjectSubtaskDetailSkeleton";
+import { UserAvatar } from "../ui/UserAvatar";
 
 function getPriorityBadge(priority: string) {
     switch (priority) {
@@ -84,7 +76,7 @@ export default function ProjectTaskDetailPage() {
     const params = useParams();
     const projectId = params.id as string;
     const taskId = params.taskId as string;
-    const { currentUser, userRole } = useWorkspace();
+    const { currentTeam, currentUser, userRole } = useWorkspace();
 
     const [project, setProject] = useState<any>(null);
     const [task, setTask] = useState<any>(null);
@@ -99,58 +91,59 @@ export default function ProjectTaskDetailPage() {
     const [subtaskModalData, setSubtaskModalData] = useState<any | null>(null);
     const [subtaskModalInitialColStatus, setSubtaskModalInitialColStatus] = useState("Backlog");
 
-    // Quick add inline in column
-    const [addingInColId, setAddingInColId] = useState<string | null>(null);
-    const [quickTitle, setQuickTitle] = useState("");
-    const [quickAssigneeId, setQuickAssigneeId] = useState("");
-    const [quickEstDays, setQuickEstDays] = useState(1);
-
     // Filters
     const [memberFilter, setMemberFilter] = useState<string>("");
-
-    // Active column menu dropdown
-    const [activeColMenuId, setActiveColMenuId] = useState<string | null>(null);
 
     const currentProjectMember = (project?.members || []).find(
         (m: any) => m.userId === currentUser?.id || m.user?.id === currentUser?.id
     );
+    const isOwningWorkspaceLeader =
+        userRole === "LEADER" && currentTeam?.id === project?.teamId;
     const isProjectManager =
         project?.managerId === currentUser?.id ||
         project?.manager?.id === currentUser?.id ||
-        (currentProjectMember?.role || "").toUpperCase() === "MANAGER" ||
-        userRole === "LEADER";
+        (currentProjectMember?.role || "").toUpperCase() === "MANAGER";
     const isProjectLeader =
         isProjectManager ||
+        isOwningWorkspaceLeader ||
         (currentProjectMember?.role || "").toUpperCase() === "LEADER";
     const canManageTasks = isProjectManager || isProjectLeader;
-
     const isAssignedToMainTask =
         Array.isArray(task?.assignees) &&
         task.assignees.some(
             (a: any) => (a.userId || a.user?.id || a.id) === currentUser?.id
         );
+    const isProjectMember = Boolean(currentProjectMember) || isAssignedToMainTask || canManageTasks;
+    const canCreateSubtask = isProjectMember;
 
-    const canCreateSubtask = canManageTasks || isAssignedToMainTask;
-
-    // Build candidate assignees for subtasks: squad members + manager/leader
+    // Build candidate assignees for subtasks:
+    // If manager/leader: main task squad + manager/leader
+    // If regular member: strictly for themselves
     const candidateAssignees: any[] = [];
     const addedIds = new Set<string>();
 
-    if (Array.isArray(task?.assignees)) {
-        task.assignees.forEach((a: any) => {
-            const userObj = a.user || a;
-            const id = userObj.id || a.userId;
-            if (id && !addedIds.has(id)) {
-                addedIds.add(id);
-                candidateAssignees.push({
-                    id,
-                    name: userObj.name || userObj.fullName || "User",
-                });
-            }
-        });
-    }
+    if (canManageTasks) {
+        if (Array.isArray(task?.assignees)) {
+            task.assignees.forEach((a: any) => {
+                const userObj = a.user || a;
+                const id = userObj.id || a.userId;
+                if (id && !addedIds.has(id)) {
+                    addedIds.add(id);
+                    candidateAssignees.push({
+                        id,
+                        name: userObj.name || userObj.fullName || "User",
+                    });
+                }
+            });
+        }
 
-    if (currentUser?.id && !addedIds.has(currentUser.id)) {
+        if (currentUser?.id && !addedIds.has(currentUser.id)) {
+            candidateAssignees.push({
+                id: currentUser.id,
+                name: `${currentUser.name || "Me"} (You)`,
+            });
+        }
+    } else if (currentUser?.id) {
         candidateAssignees.push({
             id: currentUser.id,
             name: `${currentUser.name || "Me"} (You)`,
@@ -165,12 +158,6 @@ export default function ProjectTaskDetailPage() {
             const foundTask = (data.tasks || []).find((t: any) => t.id === taskId);
             setTask(foundTask);
             setSubtasks(foundTask?.subtasks || []);
-            if (foundTask?.assignees && foundTask.assignees.length > 0 && !quickAssigneeId) {
-                const firstAssignee = foundTask.assignees[0];
-                setQuickAssigneeId(
-                    firstAssignee.userId || firstAssignee.user?.id || firstAssignee.id
-                );
-            }
         } catch (err) {
             console.error("Failed to load project details:", err);
         } finally {
@@ -329,57 +316,6 @@ export default function ProjectTaskDetailPage() {
         }
     };
 
-    // Quick Add inline in column footer
-    const handleOpenQuickAdd = (colId: string) => {
-        setAddingInColId(colId);
-        setQuickTitle("");
-        setQuickEstDays(1);
-        if (!canManageTasks) {
-            setQuickAssigneeId(currentUser?.id || "");
-        } else if (!quickAssigneeId || !candidateAssignees.some((c) => c.id === quickAssigneeId)) {
-            setQuickAssigneeId(candidateAssignees[0]?.id || currentUser?.id || "");
-        }
-    };
-
-    const handleQuickAddSubmit = async (col: ColumnDef) => {
-        if (!quickTitle.trim()) {
-            toast.error("Please enter a subtask title");
-            return;
-        }
-
-        let targetAssigneeId = quickAssigneeId;
-        if (!canManageTasks) {
-            targetAssigneeId = currentUser?.id || "";
-        } else if (!targetAssigneeId) {
-            targetAssigneeId = candidateAssignees[0]?.id || currentUser?.id || "";
-        }
-
-        if (!targetAssigneeId) {
-            toast.error("No assignee available for this subtask.");
-            return;
-        }
-
-        const isColComplete = Boolean(col.isComplete || col.name.toLowerCase() === "completed");
-
-        try {
-            await api.createProjectSubtask(projectId, taskId, {
-                title: quickTitle.trim(),
-                assignedToId: targetAssigneeId,
-                startDate: task?.startDate || new Date(),
-                dueDate: task?.dueDate || new Date(),
-                estimatedDays: Number(quickEstDays) || 1,
-                isCompleted: isColComplete,
-                columnId: col.id,
-            });
-            toast.success("Subtask added successfully");
-            setQuickTitle("");
-            setAddingInColId(null);
-            loadProjectDetail();
-        } catch (err: any) {
-            toast.error(err.message || "Failed to add subtask");
-        }
-    };
-
     // Toggle completion directly from card checkbox
     const handleToggleComplete = async (st: any) => {
         const nextComplete = !st.isCompleted;
@@ -489,11 +425,7 @@ export default function ProjectTaskDetailPage() {
     };
 
     if (loading) {
-        return (
-            <div className="flex-1 flex items-center justify-center p-6 bg-[var(--app-bg)]">
-                <Loader2 className="w-8 h-8 animate-spin text-[var(--app-muted)]" />
-            </div>
-        );
+        return <ProjectSubtaskDetailSkeleton />;
     }
 
     if (!project || !task) {
@@ -624,6 +556,23 @@ export default function ProjectTaskDetailPage() {
                             </select>
                         </div>
 
+                        {/* New Subtask Button (Opens Full Modal) */}
+                        {canCreateSubtask && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSubtaskModalData(null);
+                                    setSubtaskModalInitialColStatus(columns[0]?.name || "To Do");
+                                    setIsSubtaskModalOpen(true);
+                                }}
+                                className="relative corner-brackets-4 px-3 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold text-[10px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"
+                                title="Create a new subtask breakdown"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>New Subtask</span>
+                            </button>
+                        )}
+
                         {/* Header Action: Add Column (Managers / Leaders) */}
                         {canManageTasks && (
                             <button
@@ -632,7 +581,7 @@ export default function ProjectTaskDetailPage() {
                                     setColumnModalInitialData(null);
                                     setIsColumnModalOpen(true);
                                 }}
-                                className="relative corner-brackets-4 px-2.5 py-1 bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-medium text-[10px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                                className="relative corner-brackets-4 px-2.5 py-1 bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] font-medium text-[10px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
                             >
                                 <Plus className="w-3 h-3" />
                                 <span>Add Column</span>
@@ -655,14 +604,15 @@ export default function ProjectTaskDetailPage() {
                                 {(task.assignees || []).map((u: any, idx: number) => {
                                     const userObj = u.user || u;
                                     const name = userObj.name || userObj.fullName || "User";
+                                    const avatarUrl = userObj.avatarUrl || u.avatarUrl;
                                     return (
-                                        <div
+                                        <UserAvatar
                                             key={userObj.id || idx}
-                                            className="w-4 h-4 rounded-full bg-[var(--app-card)] border border-[var(--app-border-strong)] flex items-center justify-center text-[7px] font-semibold text-[var(--app-text)]"
+                                            name={name}
+                                            avatarUrl={avatarUrl}
+                                            size="xs"
                                             title={name}
-                                        >
-                                            {getInitials(name)}
-                                        </div>
+                                        />
                                     );
                                 })}
                             </div>
@@ -696,53 +646,37 @@ export default function ProjectTaskDetailPage() {
                                         </span>
                                     </div>
 
-                                    {/* Column Settings Menu (Managers / Leaders) */}
-                                    {canManageTasks && (
-                                        <div className="relative">
+                                    <div className="flex items-center gap-1">
+                                        {canCreateSubtask && (
                                             <button
                                                 type="button"
-                                                onClick={() =>
-                                                    setActiveColMenuId(
-                                                        activeColMenuId === col.id ? null : col.id
-                                                    )
-                                                }
-                                                className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer"
-                                                title="Column settings"
+                                                onClick={() => {
+                                                    setSubtaskModalData(null);
+                                                    setSubtaskModalInitialColStatus(col.name);
+                                                    setIsSubtaskModalOpen(true);
+                                                }}
+                                                className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
+                                                title={`Create subtask in ${col.name}`}
                                             >
-                                                <MoreHorizontal className="w-3.5 h-3.5" />
+                                                <Plus className="w-3.5 h-3.5" />
                                             </button>
+                                        )}
 
-                                            {activeColMenuId === col.id && (
-                                                <div className="absolute right-0 top-6 z-50 w-36 bg-[var(--app-card)] border border-[var(--app-border-strong)] rounded-[2px] shadow-lg py-1 flex flex-col text-[10px] animate-fade-in">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setActiveColMenuId(null);
-                                                            setColumnModalInitialData(col);
-                                                            setIsColumnModalOpen(true);
-                                                        }}
-                                                        className="w-full px-2.5 py-1.5 text-left text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] flex items-center gap-1.5 cursor-pointer"
-                                                    >
-                                                        <Edit2 className="w-3 h-3 text-[var(--app-muted)]" />
-                                                        <span>Edit Column</span>
-                                                    </button>
-                                                    {col.type === "CUSTOM" && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setActiveColMenuId(null);
-                                                                handleDeleteColumn(col);
-                                                            }}
-                                                            className="w-full px-2.5 py-1.5 text-left text-[var(--color-error)] hover:bg-[var(--color-error)]/10 flex items-center gap-1.5 cursor-pointer"
-                                                        >
-                                                            <Trash2 className="w-3 h-3" />
-                                                            <span>Delete Column</span>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                        {/* Edit Column button (Managers / Leaders) */}
+                                        {canManageTasks && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setColumnModalInitialData(col);
+                                                    setIsColumnModalOpen(true);
+                                                }}
+                                                className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
+                                                title={`Edit column ${col.name}`}
+                                            >
+                                                <Edit2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Droppable Subtask Cards List */}
@@ -788,99 +722,6 @@ export default function ProjectTaskDetailPage() {
                                         </div>
                                     )}
                                 </Droppable>
-
-                                {/* Column Footer: Quick Add Inline / Full Modal */}
-                                {!isDoneCol && canCreateSubtask && (
-                                    <div className="mt-auto pt-2 border-t border-[var(--app-border)]/60">
-                                        {addingInColId === col.id ? (
-                                            <div className="flex flex-col gap-2 p-2 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] animate-fade-in">
-                                                <input
-                                                    type="text"
-                                                    autoFocus
-                                                    placeholder="Subtask title..."
-                                                    value={quickTitle}
-                                                    onChange={(e) => setQuickTitle(e.target.value)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter") {
-                                                            e.preventDefault();
-                                                            handleQuickAddSubmit(col);
-                                                        }
-                                                    }}
-                                                    className="px-2 py-1 text-[10px] bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)] w-full"
-                                                />
-                                                <div className="grid grid-cols-2 gap-1.5">
-                                                    <div>
-                                                        <label className="text-[8px] text-[var(--app-muted)] block mb-0.5">
-                                                            Assignee
-                                                        </label>
-                                                        {canManageTasks ? (
-                                                            <select
-                                                                value={quickAssigneeId}
-                                                                onChange={(e) =>
-                                                                    setQuickAssigneeId(e.target.value)
-                                                                }
-                                                                className="w-full text-[9px] bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] p-1 text-[var(--app-text)] focus:outline-none cursor-pointer"
-                                                            >
-                                                                {candidateAssignees.map((a: any) => (
-                                                                    <option key={a.id} value={a.id}>
-                                                                        {a.name}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        ) : (
-                                                            <div className="w-full text-[9px] bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] px-1.5 py-1 text-[var(--app-text)] flex items-center gap-1">
-                                                                <User className="w-2.5 h-2.5 text-[var(--app-muted)] shrink-0" />
-                                                                <span className="truncate font-medium">
-                                                                    {currentUser?.name || "You"} (Self)
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[8px] text-[var(--app-muted)] block mb-0.5">
-                                                            Est. Days
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            min="0.25"
-                                                            step="0.25"
-                                                            value={quickEstDays}
-                                                            onChange={(e) =>
-                                                                setQuickEstDays(Number(e.target.value) || 1)
-                                                            }
-                                                            className="w-full text-[9px] bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] p-1 text-[var(--app-text)] focus:outline-none"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="flex justify-end gap-1.5 pt-1">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setAddingInColId(null)}
-                                                        className="px-2 py-0.5 border border-[var(--app-border)] text-[9px] text-[var(--app-muted)] rounded-[2px] hover:bg-[var(--app-hover-bg)] cursor-pointer"
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleQuickAddSubmit(col)}
-                                                        className="px-2 py-0.5 bg-[var(--app-card)] border border-[var(--app-border)] text-[9px] text-[var(--app-text)] font-medium rounded-[2px] hover:bg-[var(--app-hover-bg)] cursor-pointer"
-                                                    >
-                                                        Add
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleOpenQuickAdd(col.id)}
-                                                className="w-full flex items-center justify-center gap-1 py-1 text-[9px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] border border-dashed border-[var(--app-border)] rounded-[2px] transition-colors cursor-pointer"
-                                            >
-                                                <Plus className="w-3 h-3" />
-                                                Add Subtask
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
                             </div>
                         );
                     })}
@@ -905,6 +746,7 @@ export default function ProjectTaskDetailPage() {
                     setColumnModalInitialData(null);
                 }}
                 onSave={handleSaveColumn}
+                onDelete={handleDeleteColumn}
                 initialData={columnModalInitialData}
             />
 

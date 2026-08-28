@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Filter, Calendar, ChevronRight, CheckCircle2, AlertTriangle, Layers, Clock, Edit2, User } from "lucide-react";
+import { Plus, Search, Filter, Calendar, ChevronRight, CheckCircle2, AlertTriangle, Layers, Clock, Edit2, User, LayoutGrid, List } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { Button } from "../ui/Button";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
+import { UserAvatar } from "../ui/UserAvatar";
 import CreateProjectTaskModal from "./CreateProjectTaskModal";
 import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
 
@@ -18,11 +19,6 @@ const PRIORITY_OPTIONS: SelectOption[] = [
     { value: "MEDIUM", label: "Medium" },
     { value: "LOW", label: "Low" },
 ];
-
-function getInitials(name: string) {
-    if (!name) return "";
-    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-}
 
 function stripHtml(html: string) {
     if (!html) return "";
@@ -222,21 +218,22 @@ function MainTaskGridCard({
                         {assigneesList.length > 0 ? (
                             assigneesList.slice(0, 3).map((user, idx) => {
                                 const name = user.name || user.fullName || "User";
+                                const avatarUrl = user.avatarUrl || user.user?.avatarUrl;
                                 return (
-                                    <div
+                                    <UserAvatar
                                         key={user.id || idx}
-                                        className="w-5 h-5 rounded-full border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[7px] font-semibold text-[var(--app-text)] shrink-0"
+                                        name={name}
+                                        avatarUrl={avatarUrl}
+                                        size="xs"
                                         title={name}
-                                    >
-                                        {getInitials(name)}
-                                    </div>
+                                    />
                                 );
                             })
                         ) : (
                             <span className="text-[9px] text-[var(--app-muted)] italic">Unassigned</span>
                         )}
                         {assigneesList.length > 3 && (
-                            <div className="w-5 h-5 rounded-full border border-[var(--app-border)] bg-[var(--app-bg)] flex items-center justify-center text-[7px] text-[var(--app-muted)] shrink-0">
+                            <div className="w-4 h-4 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[7px] font-semibold text-[var(--app-muted)] shrink-0">
                                 +{assigneesList.length - 3}
                             </div>
                         )}
@@ -261,6 +258,186 @@ function MainTaskGridCard({
     );
 }
 
+function MainTaskListItem({
+    task,
+    projectId,
+    columnMap,
+    canManageTasks,
+    onEditTask,
+}: {
+    task: any;
+    projectId: string;
+    columnMap: Record<string, any>;
+    canManageTasks: boolean;
+    onEditTask: (task: any) => void;
+}) {
+    const router = useRouter();
+    const subtasks = task.subtasks || [];
+    const doneSubtasks = subtasks.filter((s: any) => s.isCompleted || s.status === "Completed" || s.status === "Done").length;
+    const totalSubtasks = subtasks.length;
+    const progressPercent = totalSubtasks > 0 ? Math.round((doneSubtasks / totalSubtasks) * 100) : (task.isCompleted ? 100 : 0);
+
+    const statusConfig = getDerivedStatus(task, columnMap);
+    const riskBadge = getRiskBadge(task.riskLevel);
+    const column = columnMap[task.columnId];
+    const cleanDescription = stripHtml(task.description || "");
+
+    const assigneesList: any[] = [];
+    if (Array.isArray(task.assignees)) {
+        task.assignees.forEach((a: any) => {
+            if (a.user) assigneesList.push(a.user);
+            else assigneesList.push(a);
+        });
+    }
+
+    return (
+        <tr
+            className="group border-b border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer text-xs"
+            onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
+        >
+            {/* Status */}
+            <td className="py-3 px-4 whitespace-nowrap">
+                <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-[2px] border inline-flex items-center gap-1.5 ${statusConfig.cls}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
+                    {statusConfig.label}
+                </span>
+            </td>
+
+            {/* Task Title & Column */}
+            <td className="py-3 px-4 min-w-[220px]">
+                <div className="flex flex-col gap-0.5">
+                    <span className="font-heading font-semibold text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
+                        {task.title}
+                    </span>
+                    <div className="flex items-center gap-2 text-[10px] text-[var(--app-muted)]">
+                        {column?.name && <span>{column.name}</span>}
+                        {cleanDescription && (
+                            <>
+                                <span>•</span>
+                                <span className="line-clamp-1 max-w-[280px]">{cleanDescription}</span>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </td>
+
+            {/* Priority & Risk */}
+            <td className="py-3 px-4 whitespace-nowrap">
+                <div className="flex items-center gap-1.5">
+                    <span className={`text-[8px] font-medium px-1.5 py-0.5 rounded-[2px] border ${getPriorityStyle(task.priority)}`}>
+                        {task.priority || "MEDIUM"}
+                    </span>
+                    {riskBadge && (
+                        <span className={`text-[8px] font-medium px-1.5 py-0.5 rounded-[2px] border ${riskBadge.cls}`}>
+                            {riskBadge.label}
+                        </span>
+                    )}
+                </div>
+            </td>
+
+            {/* Assignees Squad */}
+            <td className="py-3 px-4 whitespace-nowrap">
+                <div className="flex items-center gap-1.5">
+                    <div className="flex -space-x-1.5">
+                        {assigneesList.length > 0 ? (
+                            assigneesList.slice(0, 3).map((user, idx) => {
+                                const name = user.name || user.fullName || "User";
+                                const avatarUrl = user.avatarUrl || user.user?.avatarUrl;
+                                return (
+                                    <UserAvatar
+                                        key={user.id || idx}
+                                        name={name}
+                                        avatarUrl={avatarUrl}
+                                        size="xs"
+                                        title={name}
+                                    />
+                                );
+                            })
+                        ) : (
+                            <span className="text-[9px] text-[var(--app-muted)] italic">Unassigned</span>
+                        )}
+                        {assigneesList.length > 3 && (
+                            <div className="w-4 h-4 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[7px] font-semibold text-[var(--app-muted)] shrink-0">
+                                +{assigneesList.length - 3}
+                            </div>
+                        )}
+                    </div>
+                    {assigneesList.length === 1 && (
+                        <span className="text-[10px] text-[var(--app-text)] font-medium truncate max-w-[90px]">
+                            {assigneesList[0].name || assigneesList[0].fullName}
+                        </span>
+                    )}
+                </div>
+            </td>
+
+            {/* Due Date */}
+            <td className="py-3 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
+                {task.dueDate ? (
+                    <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
+                        <span>{new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                    </div>
+                ) : (
+                    <span>—</span>
+                )}
+            </td>
+
+            {/* Subtask Progress */}
+            <td className="py-3 px-4 min-w-[160px]">
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-[9px]">
+                        <span className="text-[var(--app-muted)] tabular-nums">
+                            {totalSubtasks > 0 ? `${doneSubtasks}/${totalSubtasks} Subtasks` : "No Subtasks"}
+                        </span>
+                        <span className="font-semibold text-[var(--app-text)] tabular-nums">
+                            {progressPercent}%
+                        </span>
+                    </div>
+                    <div className="w-full bg-[var(--app-bg)] border border-[var(--app-border)] h-1.5 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full transition-all duration-300 rounded-full ${
+                                progressPercent === 100
+                                    ? "bg-[#22863A]"
+                                    : progressPercent > 0
+                                    ? "bg-[#0284C7]"
+                                    : "bg-[var(--app-border-strong)]"
+                            }`}
+                            style={{ width: `${progressPercent}%` }}
+                        />
+                    </div>
+                </div>
+            </td>
+
+            {/* Actions */}
+            <td className="py-3 px-4 text-right whitespace-nowrap">
+                <div className="flex items-center justify-end gap-1.5">
+                    {canManageTasks && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEditTask(task);
+                            }}
+                            title="Edit Main Task"
+                            className="p-1 rounded-[2px] hover:bg-[var(--app-card)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent hover:border-[var(--app-border)] transition-colors cursor-pointer"
+                        >
+                            <Edit2 className="w-3 h-3" />
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
+                        className="px-2 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] text-[10px] font-medium rounded-[2px] transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                        <span>Subtasks</span>
+                        <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                </div>
+            </td>
+        </tr>
+    );
+}
+
 interface ProjectBoardViewProps {
     project: any;
     onRefresh?: (silent?: boolean) => void;
@@ -271,21 +448,42 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedPriority, setSelectedPriority] = useState<string>("ALL");
     const [filterMode, setFilterMode] = useState<"all" | "my-tasks">("all");
+    const [viewMode, setViewMode] = useState<"grid" | "list">("list");
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<any | null>(null);
     const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
+
+    // Initialize preferred viewMode from localStorage
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem("project_main_tasks_view_mode");
+            if (saved === "list" || saved === "grid") {
+                setViewMode(saved);
+            }
+        } catch (e) {}
+    }, []);
+
+    const handleViewModeChange = (mode: "grid" | "list") => {
+        setViewMode(mode);
+        try {
+            localStorage.setItem("project_main_tasks_view_mode", mode);
+        } catch (e) {}
+    };
 
     // Permission checks: Project Manager and Leader can create, edit, or delete main tasks
     const currentProjectMember = (project?.members || []).find(
         (m: any) => m.userId === currentUser?.id || m.user?.id === currentUser?.id
     );
+    const { currentTeam } = useWorkspace();
+    const isOwningWorkspaceLeader =
+        userRole === "LEADER" && currentTeam?.id === project?.teamId;
     const isProjectManager =
         project?.managerId === currentUser?.id ||
         project?.manager?.id === currentUser?.id ||
-        (currentProjectMember?.role || "").toUpperCase() === "MANAGER" ||
-        userRole === "LEADER";
+        (currentProjectMember?.role || "").toUpperCase() === "MANAGER";
     const isProjectLeader =
         isProjectManager ||
+        isOwningWorkspaceLeader ||
         (currentProjectMember?.role || "").toUpperCase() === "LEADER";
     const canManageTasks = isProjectManager || isProjectLeader;
 
@@ -395,11 +593,40 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                     </div>
                 </div>
 
-                {/* Right: Task Count & Add Main Task Button */}
-                <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-[var(--app-muted)]">
+                {/* Right: View Switcher, Task Count & Add Main Task Button */}
+                <div className="flex items-center gap-3 flex-wrap">
+                    {/* View Switcher: Grid vs List */}
+                    <div className="flex items-center bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-[10px] font-medium shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => handleViewModeChange("grid")}
+                            className={`p-1.5 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
+                                viewMode === "grid"
+                                    ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
+                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                            }`}
+                            title="Grid View"
+                        >
+                            <LayoutGrid className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleViewModeChange("list")}
+                            className={`p-1.5 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
+                                viewMode === "list"
+                                    ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
+                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                            }`}
+                            title="List View"
+                        >
+                            <List className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+
+                    <span className="text-[10px] text-[var(--app-muted)] hidden sm:inline">
                         Showing <span className="font-semibold text-[var(--app-text)] tabular-nums">{filteredTasks.length}</span> main tasks
                     </span>
+
                     {canManageTasks && (
                         <button
                             type="button"
@@ -413,7 +640,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                 </div>
             </div>
 
-            {/* Main Tasks Grid View */}
+            {/* Content View: Grid or List */}
             <div className="flex-1 overflow-y-auto p-5">
                 {filteredTasks.length === 0 ? (
                     <div className="h-64 flex flex-col items-center justify-center border border-dashed border-[var(--app-border)] rounded-[3px] text-center p-6 bg-[var(--app-card)] relative corner-brackets-4">
@@ -432,7 +659,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                             </Button>
                         )}
                     </div>
-                ) : (
+                ) : viewMode === "grid" ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4.5">
                         {filteredTasks.map((task: any) => (
                             <MainTaskGridCard
@@ -444,6 +671,37 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                                 onEditTask={handleOpenEditTask}
                             />
                         ))}
+                    </div>
+                ) : (
+                    /* List / Table View */
+                    <div className="border border-[var(--app-border)] rounded-[3px] bg-[var(--app-card)] overflow-hidden shadow-xs">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr className="border-b border-[var(--app-border)] bg-[var(--app-bg)] text-[10px] uppercase font-mono text-[var(--app-muted)]">
+                                        <th className="py-2.5 px-4 font-semibold">Status</th>
+                                        <th className="py-2.5 px-4 font-semibold">Task & Category</th>
+                                        <th className="py-2.5 px-4 font-semibold">Priority</th>
+                                        <th className="py-2.5 px-4 font-semibold">Squad</th>
+                                        <th className="py-2.5 px-4 font-semibold">Due Date</th>
+                                        <th className="py-2.5 px-4 font-semibold">Subtasks Progress</th>
+                                        <th className="py-2.5 px-4 font-semibold text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[var(--app-border)]/60">
+                                    {filteredTasks.map((task: any) => (
+                                        <MainTaskListItem
+                                            key={task.id}
+                                            task={task}
+                                            projectId={project.id}
+                                            columnMap={columnMap}
+                                            canManageTasks={canManageTasks}
+                                            onEditTask={handleOpenEditTask}
+                                        />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>

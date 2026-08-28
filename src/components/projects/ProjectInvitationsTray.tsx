@@ -14,25 +14,16 @@ interface ProjectInvitationsTrayProps {
     onRefresh?: () => void;
 }
 
-function getInitials(name: string) {
-    if (!name) return "";
-    return name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-}
+import { UserAvatar } from "../ui/UserAvatar";
 
-function AvatarChip({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) {
-    const s = size === "sm" ? "w-5 h-5 text-[8px]" : "w-6 h-6 text-[9px]";
+function AvatarChip({ name, avatarUrl, size = "sm" }: { name: string; avatarUrl?: string | null; size?: "sm" | "md" }) {
     return (
-        <div
-            className={`${s} rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center font-semibold text-[var(--app-text)] shrink-0`}
+        <UserAvatar
+            name={name}
+            avatarUrl={avatarUrl}
+            size={size === "sm" ? "xs" : "sm"}
             title={name}
-        >
-            {getInitials(name)}
-        </div>
+        />
     );
 }
 
@@ -292,12 +283,20 @@ export default function ProjectInvitationsTray({
                                                         <h3 className="font-heading text-xs font-semibold text-[var(--app-text)] truncate">
                                                             {project.title || "Project"}
                                                         </h3>
-                                                        {project.folder && (
-                                                            <span className="text-[10px] text-[var(--app-muted)] flex items-center gap-1">
-                                                                <span className="emoji-font">{project.folder.emoji}</span>
-                                                                <span className="truncate">{project.folder.name}</span>
-                                                            </span>
-                                                        )}
+                                                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                                            {project.team && (
+                                                                <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-card)] px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] flex items-center gap-1" title={`Team: ${project.team.name}`}>
+                                                                    <span className="emoji-font text-[9px] shrink-0">{project.team.emoji || "🏢"}</span>
+                                                                    <span className="truncate">{project.team.name}</span>
+                                                                </span>
+                                                            )}
+                                                            {project.folder && (
+                                                                <span className="text-[10px] text-[var(--app-muted)] flex items-center gap-1">
+                                                                    <span className="emoji-font">{project.folder.emoji}</span>
+                                                                    <span className="truncate">{project.folder.name}</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <span className="shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] bg-[var(--app-card)] text-[var(--app-text)] uppercase font-mono">
@@ -316,7 +315,7 @@ export default function ProjectInvitationsTray({
                                             <div className="flex flex-col gap-1 text-[10px] text-[var(--app-muted)] pt-2 border-t border-[var(--app-border)]">
                                                 {sender.name && (
                                                     <div className="flex items-center gap-1.5">
-                                                        <AvatarChip name={sender.name} />
+                                                        <AvatarChip name={sender.name} avatarUrl={sender.avatarUrl} />
                                                         <span>Invited by <strong className="text-[var(--app-text)] font-medium">{sender.name}</strong></span>
                                                     </div>
                                                 )}
@@ -457,7 +456,7 @@ export default function ProjectInvitationsTray({
                                             {/* Member & Status */}
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="flex items-center gap-2 min-w-0">
-                                                    <AvatarChip name={receiver.name || receiver.email || "Member"} />
+                                                    <AvatarChip name={receiver.name || receiver.email || "Member"} avatarUrl={receiver.avatarUrl} />
                                                     <div className="min-w-0">
                                                         <h4 className="text-[11px] font-semibold text-[var(--app-text)] truncate">
                                                             {receiver.name || "Invited User"}

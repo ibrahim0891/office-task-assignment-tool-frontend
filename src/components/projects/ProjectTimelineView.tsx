@@ -3,10 +3,6 @@
 import React from "react";
 import type { MockProject, MockSuperTask } from "./mockProjectData";
 
-function getInitials(name: string) {
-    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-}
-
 function getBarColor(status: string) {
     switch (status) {
         case "Completed": case "Done": return "bg-[var(--color-success)]";

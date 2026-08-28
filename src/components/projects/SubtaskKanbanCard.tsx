@@ -14,6 +14,7 @@ import {
     CheckSquare,
     Paperclip,
 } from "lucide-react";
+import { UserAvatar } from "../ui/UserAvatar";
 
 function getInitials(name: string) {
     if (!name) return "";
@@ -276,17 +277,12 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                             className="flex items-center gap-1.5 min-w-0 max-w-[55%]"
                             title={isMySubtask ? `Assigned to you (${assigneeName})` : `Assigned to ${assigneeName}`}
                         >
-                            {subtask.assignedTo?.avatarUrl ? (
-                                <img
-                                    src={subtask.assignedTo.avatarUrl}
-                                    alt={assigneeName}
-                                    className="w-4 h-4 rounded-[2px] object-cover border border-[var(--app-border)] shrink-0"
-                                />
-                            ) : (
-                                <div className="w-4 h-4 rounded-[2px] border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[7px] font-bold text-[var(--app-text)] shrink-0">
-                                    {getInitials(assigneeName)}
-                                </div>
-                            )}
+                            <UserAvatar
+                                name={assigneeName}
+                                avatarUrl={subtask.assignedTo?.avatarUrl}
+                                size="xs"
+                                title={assigneeName}
+                            />
                             <span
                                 className="truncate font-medium text-[var(--app-text)] text-[10px]"
                                 title={assigneeName}

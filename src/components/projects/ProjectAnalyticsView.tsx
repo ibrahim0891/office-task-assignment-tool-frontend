@@ -3,11 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowRightLeft, CalendarClock, RotateCcw, Loader2 } from "lucide-react";
 import { api } from "../../api";
-
-function getInitials(name: string) {
-    if (!name) return "";
-    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-}
+import { UserAvatar } from "../ui/UserAvatar";
 
 function getUtilizationCell(val: number) {
     if (val <= 0) return { bg: "bg-[var(--app-bg)]", text: "text-[var(--app-muted)]", label: "—" };
@@ -141,9 +137,12 @@ export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewPr
                                     <tr key={member.userId} className="border-b border-[var(--app-border)]/50 hover:bg-[var(--app-card)] transition-colors">
                                         <td className="py-2.5 px-3">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[8px] font-semibold">
-                                                    {getInitials(member.user?.name || "")}
-                                                </div>
+                                                <UserAvatar
+                                                    name={member.user?.name || "User"}
+                                                    avatarUrl={member.user?.avatarUrl}
+                                                    size="sm"
+                                                    title={member.user?.name}
+                                                />
                                                 <div>
                                                     <div className="font-semibold text-[var(--app-text)]">{member.user?.name}</div>
                                                     <div className="text-[9px] text-[var(--app-muted)] mt-0.5">{member.role}</div>

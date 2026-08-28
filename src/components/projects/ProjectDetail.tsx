@@ -13,6 +13,8 @@ import ProjectAnalyticsView from "./ProjectAnalyticsView";
 import ProjectSettingsView from "./ProjectSettingsView";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import CreateProjectTaskModal from "./CreateProjectTaskModal";
+import ProjectDetailSkeleton from "./ProjectDetailSkeleton";
+import { UserAvatar } from "../ui/UserAvatar";
 
 function getStatusConfig(status: string) {
     switch (status) {
@@ -34,16 +36,6 @@ function getStatusConfig(status: string) {
         default:
             return { label: status, color: "text-[#888883]", bg: "bg-[#888883]/10", border: "border-[#888883]/20", dot: "bg-[#888883]" };
     }
-}
-
-function getInitials(name: string) {
-    if (!name) return "";
-    return name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
 }
 
 type Tab = "main-board" | "members" | "timeline" | "analytics" | "settings";
@@ -87,11 +79,7 @@ export default function ProjectDetail() {
     }, [projectId, currentTeam?.id]);
 
     if (loading) {
-        return (
-            <div className="flex-1 flex items-center justify-center p-5 bg-[var(--app-bg)]">
-                <Loader2 className="w-8 h-8 animate-spin text-[var(--app-muted)]" />
-            </div>
-        );
+        return <ProjectDetailSkeleton />;
     }
 
     if (!project) {
@@ -128,13 +116,15 @@ export default function ProjectDetail() {
     const currentProjectMember = (project.members || []).find(
         (m: any) => m.userId === currentUser?.id || m.user?.id === currentUser?.id
     );
+    const isOwningWorkspaceLeader =
+        userRole === "LEADER" && currentTeam?.id === project.teamId;
     const isProjectManager =
         project.managerId === currentUser?.id ||
         project.manager?.id === currentUser?.id ||
-        (currentProjectMember?.role || "").toUpperCase() === "MANAGER" ||
-        userRole === "LEADER";
+        (currentProjectMember?.role || "").toUpperCase() === "MANAGER";
     const isProjectLeader =
         isProjectManager ||
+        isOwningWorkspaceLeader ||
         (currentProjectMember?.role || "").toUpperCase() === "LEADER";
 
     const canManageTasks = isProjectManager || isProjectLeader;
@@ -161,6 +151,12 @@ export default function ProjectDetail() {
                             <h1 className="font-heading text-lg text-[var(--app-text)] truncate">
                                 {project.title}
                             </h1>
+                            {project.team && (
+                                <span className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text)] flex items-center gap-1.5" title={`Owning Team: ${project.team.name}`}>
+                                    <span className="emoji-font text-xs shrink-0">{project.team.emoji || "🏢"}</span>
+                                    <span className="truncate">{project.team.name}</span>
+                                </span>
+                            )}
                             <span
                                 className={`shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border flex items-center gap-1 ${status.color} ${status.bg} ${status.border}`}
                             >
@@ -191,9 +187,12 @@ export default function ProjectDetail() {
                         {project.manager && (
                             <div className="flex items-center gap-1.5">
                                 <span className="text-[var(--app-muted)]">Manager:</span>
-                                <div className="w-5 h-5 rounded-full border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[7px] font-semibold text-[var(--app-text)]" title={project.manager.name}>
-                                    {getInitials(project.manager.name)}
-                                </div>
+                                <UserAvatar
+                                    name={project.manager.name}
+                                    avatarUrl={project.manager.avatarUrl}
+                                    size="sm"
+                                    title={project.manager.name}
+                                />
                                 <span className="font-medium text-[var(--app-text)]">
                                     {project.manager.name}
                                 </span>
@@ -211,13 +210,13 @@ export default function ProjectDetail() {
                                 </span>
                                 <div className="flex -space-x-1">
                                     {leaders.map((l: any) => (
-                                        <div
+                                        <UserAvatar
                                             key={l.userId}
-                                            className="w-5 h-5 rounded-full border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[7px] font-semibold text-[var(--app-text)]"
+                                            name={l.user?.name || ""}
+                                            avatarUrl={l.user?.avatarUrl}
+                                            size="sm"
                                             title={l.user?.name || ""}
-                                        >
-                                            {getInitials(l.user?.name || "")}
-                                        </div>
+                                        />
                                     ))}
                                 </div>
                                 <span className="font-medium text-[var(--app-text)]">

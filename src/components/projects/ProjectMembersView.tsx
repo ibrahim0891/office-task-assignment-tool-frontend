@@ -8,26 +8,16 @@ import { api, User } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { CustomSelect } from "../ui/CustomSelect";
 import UserPickerSelect from "../ui/UserPickerSelect";
+import { UserAvatar } from "../ui/UserAvatar";
 
-function getInitials(name: string) {
-    if (!name) return "";
-    return name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-}
-
-function AvatarChip({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) {
-    const s = size === "sm" ? "w-6 h-6 text-[9px]" : "w-7 h-7 text-[10px]";
+function AvatarChip({ name, avatarUrl, size = "sm" }: { name: string; avatarUrl?: string | null; size?: "sm" | "md" }) {
     return (
-        <div
-            className={`${s} rounded-full border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center font-semibold text-[var(--app-text)] shrink-0`}
+        <UserAvatar
+            name={name}
+            avatarUrl={avatarUrl}
+            size={size === "sm" ? "sm" : "md"}
             title={name}
-        >
-            {getInitials(name)}
-        </div>
+        />
     );
 }
 
@@ -338,9 +328,12 @@ export default function ProjectMembersView({ project, onRefresh }: ProjectMember
                                         {/* Member Info */}
                                         <td className="py-3 px-4">
                                             <div className="flex items-center gap-2.5">
-                                                <div className="w-8 h-8 rounded-[3px] border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[10px] text-[var(--app-text)] font-semibold shrink-0">
-                                                    {getInitials(member.user?.name || "")}
-                                                </div>
+                                                <UserAvatar
+                                                    name={member.user?.name || "User"}
+                                                    avatarUrl={member.user?.avatarUrl}
+                                                    size="lg"
+                                                    title={member.user?.name}
+                                                />
                                                 <div>
                                                     <span className="font-medium text-[var(--app-text)] block text-[11px]">
                                                         {member.user?.name || "Unknown User"}
@@ -581,9 +574,11 @@ export default function ProjectMembersView({ project, onRefresh }: ProjectMember
                                                         : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border)]"
                                                 }`}
                                             >
-                                                <span className="text-[8px] font-bold">
-                                                    {getInitials(tm.user.name || tm.user.email || "")}
-                                                </span>
+                                                <UserAvatar
+                                                    name={tm.user.name || tm.user.email}
+                                                    avatarUrl={tm.user.avatarUrl}
+                                                    size="xs"
+                                                />
                                                 <span>{tm.user.name}</span>
                                             </button>
                                         ))}
