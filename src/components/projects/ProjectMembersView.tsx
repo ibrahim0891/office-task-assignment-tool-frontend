@@ -9,6 +9,7 @@ import { useWorkspace } from "../../context/WorkspaceContext";
 import { CustomSelect } from "../ui/CustomSelect";
 import UserPickerSelect from "../ui/UserPickerSelect";
 import { UserAvatar } from "../ui/UserAvatar";
+import { getProjectPermissions } from "../../utils/projectPermissions";
 
 function AvatarChip({ name, avatarUrl, size = "sm" }: { name: string; avatarUrl?: string | null; size?: "sm" | "md" }) {
     return (
@@ -57,21 +58,13 @@ interface ProjectMembersViewProps {
 
 export default function ProjectMembersView({ project, onRefresh }: ProjectMembersViewProps) {
     const router = useRouter();
-    const { teamMembers, users, currentUser, currentTeam, setIsManageInvitationsOpen, projectInvitations } = useWorkspace();
+    const { teamMembers, users, currentUser, currentTeam, userRole, setIsManageInvitationsOpen, projectInvitations } = useWorkspace();
 
-    // Check project-level leadership (Only Project Manager and Project Leader can update roles / manage members)
-    const currentProjectMember = (project.members || []).find(
-        (m: any) => m.userId === currentUser?.id
-    );
-    const isProjectManager =
-        project.managerId === currentUser?.id ||
-        project.manager?.id === currentUser?.id ||
-        (currentProjectMember?.role || "").toUpperCase() === "MANAGER";
-    const isProjectLeader =
-        isProjectManager ||
-        (currentProjectMember?.role || "").toUpperCase() === "LEADER";
-
-    const canManageRoles = isProjectManager || isProjectLeader;
+    // Check project-level leadership using centralized permissions
+    const permissions = getProjectPermissions(project, currentUser, userRole, currentTeam);
+    const isProjectManager = permissions.isProjectManager;
+    const isProjectLeader = permissions.isProjectLeader;
+    const canManageRoles = permissions.canManageTasks;
 
     // Mode: workspace team member | cross-team / all platform users | by email
     const [addMode, setAddMode] = useState<"workspace" | "all" | "email">("workspace");

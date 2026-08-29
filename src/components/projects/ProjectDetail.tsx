@@ -16,6 +16,8 @@ import CreateProjectTaskModal from "./CreateProjectTaskModal";
 import { useProjectDetail } from "../../hooks/useProjectSWR";
 import ProjectDetailSkeleton from "./ProjectDetailSkeleton";
 import { UserAvatar } from "../ui/UserAvatar";
+import { calculateProjectProgress } from "../../utils/projectProgress";
+import { getProjectPermissions } from "../../utils/projectPermissions";
 
 function getStatusConfig(status: string) {
     switch (status) {
@@ -97,22 +99,9 @@ export default function ProjectDetail() {
         return d.toISOString().split("T")[0];
     };
 
-    const currentProjectMember = (project.members || []).find(
-        (m: any) => m.userId === currentUser?.id || m.user?.id === currentUser?.id
-    );
-    const isOwningWorkspaceLeader =
-        userRole === "LEADER" && currentTeam?.id === project.teamId;
-    const isProjectManager =
-        project.managerId === currentUser?.id ||
-        project.manager?.id === currentUser?.id ||
-        (currentProjectMember?.role || "").toUpperCase() === "MANAGER";
-    const isProjectLeader =
-        isProjectManager ||
-        isOwningWorkspaceLeader ||
-        (currentProjectMember?.role || "").toUpperCase() === "LEADER";
-
-    const canManageTasks = isProjectManager || isProjectLeader;
-    const canManageInvitations = isProjectManager || isProjectLeader;
+    const permissions = getProjectPermissions(project, currentUser, userRole, currentTeam);
+    const canManageTasks = permissions.canManageTasks;
+    const canManageInvitations = permissions.canManageInvitations;
 
     const pendingProjectInvitesCount = (project.invitations?.length || 0) + (projectInvitations?.length || 0);
 
@@ -175,12 +164,19 @@ export default function ProjectDetail() {
                                 <ArrowRight className="w-3 h-3" />
                                 <span>{formatDate(project.endDate)}</span>
                             </div>
-                            <div className="flex items-center gap-1.5 border border-[var(--app-border)] px-2 py-1 rounded-[2px] bg-[var(--app-bg)]">
-                                <span className="text-[9px] text-[var(--app-muted)]">Progress</span>
-                                <span className="text-[11px] font-medium text-[var(--app-text)] tabular-nums">
-                                    {project.progress}%
-                                </span>
-                            </div>
+                            {(() => {
+                                const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
+                                    ? calculateProjectProgress(project.tasks, project.columns)
+                                    : (project.progress !== undefined ? project.progress : 0);
+                                return (
+                                    <div className="flex items-center gap-1.5 border border-[var(--app-border)] px-2 py-1 rounded-[2px] bg-[var(--app-bg)]">
+                                        <span className="text-[9px] text-[var(--app-muted)]">Progress</span>
+                                        <span className="text-[11px] font-medium text-[var(--app-text)] tabular-nums">
+                                            {calculatedProgress}%
+                                        </span>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
 

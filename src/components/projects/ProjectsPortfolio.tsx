@@ -10,6 +10,7 @@ import ManageFoldersTray from "../ManageFoldersTray";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import { usePortfolioSummary } from "../../hooks/useProjectSWR";
 import { UserAvatar } from "../ui/UserAvatar";
+import { calculateProjectProgress } from "../../utils/projectProgress";
 
 function getStatusConfig(status: string) {
     switch (status) {
@@ -56,6 +57,10 @@ function ProjectCard({ project }: { project: any }) {
         const d = new Date(dateInput);
         return d.toISOString().split("T")[0];
     };
+
+    const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
+        ? calculateProjectProgress(project.tasks, project.columns)
+        : (project.progress !== undefined ? project.progress : 0);
 
     return (
         <Link href={`/projects/${project.id}`} className="block group">
@@ -131,13 +136,13 @@ function ProjectCard({ project }: { project: any }) {
                     <div className="flex items-center justify-between text-[9px]">
                         <span className="text-[var(--app-muted)]">Progress</span>
                         <span className="font-semibold text-[var(--app-text)] tabular-nums">
-                            {project.progress !== undefined ? project.progress : 0}%
+                            {calculatedProgress}%
                         </span>
                     </div>
                     <div className="w-full h-1 bg-[var(--app-border)] rounded-full overflow-hidden">
                         <div
                             className="h-full bg-[var(--app-text)] transition-all duration-300"
-                            style={{ width: `${project.progress !== undefined ? project.progress : 0}%` }}
+                            style={{ width: `${calculatedProgress}%` }}
                         />
                     </div>
                 </div>
@@ -174,6 +179,10 @@ function ProjectListItem({ project }: { project: any }) {
         const d = new Date(dateInput);
         return d.toISOString().split("T")[0];
     };
+
+    const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
+        ? calculateProjectProgress(project.tasks, project.columns)
+        : (project.progress !== undefined ? project.progress : 0);
 
     return (
         <tr className="group border-b border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] transition-colors text-xs">
@@ -260,13 +269,13 @@ function ProjectListItem({ project }: { project: any }) {
                             <span className="font-medium text-[var(--app-text)] tabular-nums">{doneTasks}</span>/{totalTasks} tasks
                         </span>
                         <span className="font-semibold text-[var(--app-text)] tabular-nums">
-                            {project.progress !== undefined ? project.progress : 0}%
+                            {calculatedProgress}%
                         </span>
                     </div>
                     <div className="w-full bg-[var(--app-bg)] border border-[var(--app-border)] h-1.5 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-[var(--app-text)] transition-all duration-300 rounded-full"
-                            style={{ width: `${project.progress !== undefined ? project.progress : 0}%` }}
+                            style={{ width: `${calculatedProgress}%` }}
                         />
                     </div>
                 </div>

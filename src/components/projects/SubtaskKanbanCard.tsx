@@ -15,6 +15,7 @@ import {
     Paperclip,
 } from "lucide-react";
 import { UserAvatar } from "../ui/UserAvatar";
+import { canModifySubtask } from "../../utils/projectPermissions";
 
 function getInitials(name: string) {
     if (!name) return "";
@@ -101,7 +102,7 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
     const isMySubtask =
         subtask.assignedToId === currentUser?.id ||
         subtask.assignedTo?.id === currentUser?.id;
-    const canModifyThisSubtask = canManageTasks || isMySubtask;
+    const canModifyThisSubtask = canModifySubtask(subtask, currentUser, canManageTasks);
     const isDragDisabled = !canModifyThisSubtask;
 
     const assigneeName =

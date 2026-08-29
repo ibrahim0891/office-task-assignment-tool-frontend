@@ -13,7 +13,10 @@ interface CustomDatePickerProps {
     onChange: (value: string) => void;
     placeholder?: string;
     className?: string;
+    buttonClassName?: string;
     disabled?: boolean;
+    minDate?: string;
+    maxDate?: string;
 }
 
 export function CustomDatePicker({
@@ -21,11 +24,20 @@ export function CustomDatePicker({
     onChange,
     placeholder = "Select date...",
     className = "",
+    buttonClassName = "",
     disabled = false,
+    minDate,
+    maxDate,
 }: CustomDatePickerProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+
+    const isDateDisabled = (dateStr: string) => {
+        if (minDate && dateStr < minDate) return true;
+        if (maxDate && dateStr > maxDate) return true;
+        return false;
+    };
 
     const toggleOpen = () => {
         if (!isOpen && containerRef.current) {
@@ -143,7 +155,9 @@ export function CustomDatePicker({
           })
         : "";
 
+    const isTodayDisabled = isDateDisabled(todayStr);
     const handleSelectToday = () => {
+        if (isTodayDisabled) return;
         onChange(todayStr);
         setViewDate(todayDate);
         setIsOpen(false);
@@ -162,7 +176,7 @@ export function CustomDatePicker({
                     disabled
                         ? "opacity-50 cursor-not-allowed"
                         : "cursor-pointer"
-                }`}
+                } ${buttonClassName}`}
             >
                 <span className="truncate">
                     {formattedValue || placeholder}
@@ -182,7 +196,12 @@ export function CustomDatePicker({
                         <button
                             type="button"
                             onClick={handleSelectToday}
-                            className="text-[11px] font-medium text-[var(--app-text)] hover:opacity-80 flex items-center gap-1.5 cursor-pointer transition-opacity"
+                            disabled={isTodayDisabled}
+                            className={`text-[11px] font-medium flex items-center gap-1.5 transition-opacity ${
+                                isTodayDisabled
+                                    ? "text-[var(--app-muted)] opacity-40 cursor-not-allowed"
+                                    : "text-[var(--app-text)] hover:opacity-80 cursor-pointer"
+                            }`}
                         >
                             <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] inline-block ring-2 ring-[var(--color-accent)]/30"></span>
                             <span>Today:{" "}
@@ -261,26 +280,32 @@ export function CustomDatePicker({
                         {calendarCells.map((cell, idx) => {
                             const isSelected = cell.dateStr === value;
                             const isTodayCell = cell.dateStr === todayStr;
+                            const isCellDisabled = isDateDisabled(cell.dateStr);
+
                             return (
                                 <button
                                     key={idx}
                                     type="button"
+                                    disabled={isCellDisabled}
                                     onClick={() => {
+                                        if (isCellDisabled) return;
                                         onChange(cell.dateStr);
                                         setIsOpen(false);
                                     }}
-                                    className={`h-7 text-[11px] font-medium rounded-[2px] flex items-center justify-center transition-colors relative cursor-pointer ${
-                                        isSelected
-                                            ? "bg-[var(--color-accent)] text-[var(--app-bg)] font-semibold shadow-xs"
+                                    className={`h-7 text-[11px] font-medium rounded-[2px] flex items-center justify-center transition-colors relative ${
+                                        isCellDisabled
+                                            ? "opacity-20 cursor-not-allowed text-[var(--app-muted)] pointer-events-none"
+                                            : isSelected
+                                            ? "bg-[var(--color-accent)] text-[var(--app-bg)] font-semibold shadow-xs cursor-pointer"
                                             : isTodayCell
-                                              ? "border-2 border-[var(--color-accent)] text-[var(--color-accent)] font-bold bg-[var(--color-accent)]/15 shadow-xs"
-                                              : cell.isCurrentMonth
-                                                ? "text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
-                                                : "text-[var(--app-muted)]/40 hover:bg-[var(--app-hover-bg)]/40"
+                                            ? "border-2 border-[var(--color-accent)] text-[var(--color-accent)] font-bold bg-[var(--color-accent)]/15 shadow-xs cursor-pointer"
+                                            : cell.isCurrentMonth
+                                            ? "text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] cursor-pointer"
+                                            : "text-[var(--app-muted)]/40 hover:bg-[var(--app-hover-bg)]/40 cursor-pointer"
                                     }`}
                                 >
                                     {cell.dayNum}
-                                    {isTodayCell && !isSelected && (
+                                    {isTodayCell && !isSelected && !isCellDisabled && (
                                         <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--color-accent)]" />
                                     )}
                                 </button>

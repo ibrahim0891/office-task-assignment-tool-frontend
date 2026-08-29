@@ -17,49 +17,51 @@ export default function ProjectSubtaskDetailSkeleton() {
                     <Skeleton className="w-32 h-3 rounded-[2px]" />
                 </div>
 
-                {/* Main Task Header Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0 flex-wrap">
-                        <Skeleton className="w-7 h-7 rounded-[2px] shrink-0" />
-                        <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                {/* Task Identity & Metadata Group */}
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-3 min-w-0">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <Skeleton className="w-7 h-7 rounded-[2px] shrink-0" />
                             <Skeleton className="w-48 sm:w-64 h-6 rounded-[2px]" />
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
                             <Skeleton className="w-14 h-5 rounded-[2px]" />
                             <Skeleton className="w-20 h-6 rounded-[2px]" />
                         </div>
                     </div>
 
-                    {/* Progress Bar, Member Filter & Action Buttons */}
-                    <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex items-center gap-4 flex-wrap">
+                            <Skeleton className="w-36 h-3.5" />
+                            <div className="flex items-center gap-1.5">
+                                <Skeleton className="w-24 h-3.5" />
+                                <div className="flex -space-x-1">
+                                    <Skeleton variant="circular" className="w-4 h-4" />
+                                    <Skeleton variant="circular" className="w-4 h-4" />
+                                    <Skeleton variant="circular" className="w-4 h-4" />
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="flex items-center gap-2">
                             <Skeleton className="w-12 h-3.5" />
                             <Skeleton className="w-24 h-2 rounded-[1px]" />
                             <Skeleton className="w-16 h-3.5" />
                         </div>
-
-                        {/* Member Filter Select */}
-                        <Skeleton className="w-28 h-6 rounded-[2px]" />
-
-                        {/* New Subtask Button */}
-                        <Skeleton className="w-24 h-6 rounded-[2px]" />
-
-                        {/* Add Column Button */}
-                        <Skeleton className="w-24 h-6 rounded-[2px]" />
                     </div>
                 </div>
 
-                {/* Sub-Header: Dates & Squad Assignees */}
-                <div className="flex items-center justify-between pt-1 border-t border-[var(--app-border)]/60 flex-wrap gap-2">
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <Skeleton className="w-36 h-3.5" />
-                        <div className="flex items-center gap-1.5">
-                            <Skeleton className="w-24 h-3.5" />
-                            <div className="flex -space-x-1">
-                                <Skeleton variant="circular" className="w-4 h-4" />
-                                <Skeleton variant="circular" className="w-4 h-4" />
-                                <Skeleton variant="circular" className="w-4 h-4" />
-                            </div>
-                        </div>
+                {/* Subtask Controls Bar */}
+                <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-[var(--app-border)]/60 flex-wrap">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                        {/* Date Navigation Skeleton */}
+                        <Skeleton className="w-48 h-6 rounded-[2px]" />
+                        {/* Member Filter Select */}
+                        <Skeleton className="w-28 h-6 rounded-[2px]" />
                     </div>
+
+                    {/* New Subtask Button */}
+                    <Skeleton className="w-24 h-6 rounded-[2px]" />
                 </div>
             </div>
 

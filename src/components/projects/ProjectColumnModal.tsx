@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Loader2, Trash2 } from "lucide-react";
+import { X, Loader2, Trash2, Shield } from "lucide-react";
 import toast from "react-hot-toast";
 import ModalWrapper from "../ui/ModalWrapper";
+import { getStageMeta, isSystemColumn } from "../../utils/projectProgress";
 
 interface ProjectColumnModalProps {
     isOpen: boolean;
@@ -37,6 +38,9 @@ export default function ProjectColumnModal({
         }
     }, [initialData, isOpen]);
 
+    const isSystem = isSystemColumn(initialData);
+    const stageMeta = initialData ? getStageMeta(initialData) : null;
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name.trim()) {
@@ -46,7 +50,7 @@ export default function ProjectColumnModal({
 
         try {
             setLoading(true);
-            await onSave(name.trim(), initialData?.type || "CUSTOM", initialData?.isComplete || false);
+            await onSave(name.trim(), initialData?.type || (isSystem ? "SYSTEM" : "CUSTOM"), initialData?.isComplete || false);
             onClose();
         } catch (err: any) {
             toast.error(err.message || "Failed to save column");
@@ -56,7 +60,7 @@ export default function ProjectColumnModal({
     };
 
     const handleDelete = async () => {
-        if (!onDelete || !initialData) return;
+        if (!onDelete || !initialData || isSystem) return;
         try {
             setIsDeleting(true);
             await onDelete(initialData);
@@ -78,11 +82,19 @@ export default function ProjectColumnModal({
         >
             {/* Modal Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--app-border)]">
-                <h3 className="text-xs font-semibold text-[var(--app-text)]">
-                    {initialData?.id ? "Configure Column" : "Add Column"}
-                </h3>
+                <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-semibold text-[var(--app-text)]">
+                        {initialData?.id ? "Configure Column" : "Add Column"}
+                    </h3>
+                    {isSystem && (
+                        <span className="text-[9px] font-medium bg-[var(--app-bg)] text-[var(--app-muted)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px] flex items-center gap-1">
+                            <Shield className="w-2.5 h-2.5 text-[var(--app-muted)]" />
+                            System Stage
+                        </span>
+                    )}
+                </div>
                 <div className="flex items-center gap-1">
-                    {isExistingColumn && onDelete && (
+                    {isExistingColumn && onDelete && !isSystem && (
                         <button
                             type="button"
                             onClick={handleDelete}
@@ -122,10 +134,28 @@ export default function ProjectColumnModal({
                     />
                 </div>
 
+                {stageMeta && (
+                    <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-2.5 rounded-[2px] flex items-center justify-between text-[11px]">
+                        <span className="text-[var(--app-muted)]">Workflow Stage:</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-[var(--app-text)]">{stageMeta.label}</span>
+                            <span className="text-[10px] font-medium bg-[var(--app-card)] px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] text-[var(--app-text)] tabular-nums">
+                                {stageMeta.weight}% progress
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {isSystem && (
+                    <p className="text-[10px] text-[var(--app-muted)] leading-relaxed italic">
+                        This is a core workflow stage. You can rename its display label and drag to reorder it, but it cannot be deleted to preserve calculation integrity.
+                    </p>
+                )}
+
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-3 border-t border-[var(--app-border)]">
                     <div>
-                        {isExistingColumn && onDelete && (
+                        {isExistingColumn && onDelete && !isSystem && (
                             <button
                                 type="button"
                                 onClick={handleDelete}

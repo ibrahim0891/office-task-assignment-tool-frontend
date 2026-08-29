@@ -2,15 +2,19 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Filter, Calendar, ChevronRight, CheckCircle2, AlertTriangle, Layers, Clock, Edit2, User, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, Filter, Calendar, ChevronRight, ChevronLeft, CheckCircle2, AlertTriangle, Layers, Clock, Edit2, User, LayoutGrid, List } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { Button } from "../ui/Button";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
+import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { UserAvatar } from "../ui/UserAvatar";
 import CreateProjectTaskModal from "./CreateProjectTaskModal";
 import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
+import { calculateTaskProgress } from "../../utils/projectProgress";
+import { getProjectPermissions } from "../../utils/projectPermissions";
+import { getLocalDateString, parseLocalDate, extractDateString } from "../../utils/date";
 
 const PRIORITY_OPTIONS: SelectOption[] = [
     { value: "ALL", label: "All Priorities" },
@@ -51,41 +55,31 @@ function getRiskBadge(riskLevel: string) {
 }
 
 function getDerivedStatus(task: any, columnMap: Record<string, any>) {
-    const subtasks = task.subtasks || [];
-    const total = subtasks.length;
-    const done = subtasks.filter((s: any) => s.isCompleted || s.status === "Completed" || s.status === "Done").length;
+    const progressPercent = calculateTaskProgress(task, columnMap);
 
-    if (total > 0) {
-        if (done === total) {
-            return {
-                label: "Completed",
-                cls: "text-[var(--status-completed,#15803D)] bg-[var(--status-completed,#15803D)]/10 border-[var(--status-completed,#15803D)]/20",
-                dotCls: "bg-[var(--status-completed,#15803D)]"
-            };
-        }
-        if (done > 0 || subtasks.some((s: any) => s.status === "In Progress" || s.status === "IN_PROGRESS")) {
-            return {
-                label: "In Progress",
-                cls: "text-[var(--status-in-progress,#7C3AED)] bg-[var(--status-in-progress,#7C3AED)]/10 border-[var(--status-in-progress,#7C3AED)]/20",
-                dotCls: "bg-[var(--status-in-progress,#7C3AED)]"
-            };
-        }
-        return {
-            label: "To Do",
-            cls: "text-[var(--status-todo,#6B7280)] bg-[var(--app-bg)] border-[var(--app-border)]",
-            dotCls: "bg-[var(--status-todo,#6B7280)]"
-        };
-    }
-
-    // Fallback based on task column or completion state
-    const col = columnMap[task.columnId];
-    if (col?.isComplete || task.isCompleted) {
+    if (progressPercent === 100) {
         return {
             label: "Completed",
             cls: "text-[var(--status-completed,#15803D)] bg-[var(--status-completed,#15803D)]/10 border-[var(--status-completed,#15803D)]/20",
             dotCls: "bg-[var(--status-completed,#15803D)]"
         };
     }
+    if (progressPercent >= 75) {
+        return {
+            label: "Under Review",
+            cls: "text-[var(--status-at-risk,#D97706)] bg-[var(--status-at-risk,#D97706)]/10 border-[var(--status-at-risk,#D97706)]/20",
+            dotCls: "bg-[var(--status-at-risk,#D97706)]"
+        };
+    }
+    if (progressPercent >= 25) {
+        return {
+            label: "In Progress",
+            cls: "text-[var(--status-in-progress,#7C3AED)] bg-[var(--status-in-progress,#7C3AED)]/10 border-[var(--status-in-progress,#7C3AED)]/20",
+            dotCls: "bg-[var(--status-in-progress,#7C3AED)]"
+        };
+    }
+
+    const col = columnMap[task.columnId];
     return {
         label: col?.name || "To Do",
         cls: "text-[var(--status-todo,#6B7280)] bg-[var(--app-bg)] border-[var(--app-border)]",
@@ -110,7 +104,7 @@ function MainTaskGridCard({
     const subtasks = task.subtasks || [];
     const doneSubtasks = subtasks.filter((s: any) => s.isCompleted || s.status === "Completed" || s.status === "Done").length;
     const totalSubtasks = subtasks.length;
-    const progressPercent = totalSubtasks > 0 ? Math.round((doneSubtasks / totalSubtasks) * 100) : (task.isCompleted ? 100 : 0);
+    const progressPercent = calculateTaskProgress(task, columnMap);
 
     const statusConfig = getDerivedStatus(task, columnMap);
     const riskBadge = getRiskBadge(task.riskLevel);
@@ -275,7 +269,7 @@ function MainTaskListItem({
     const subtasks = task.subtasks || [];
     const doneSubtasks = subtasks.filter((s: any) => s.isCompleted || s.status === "Completed" || s.status === "Done").length;
     const totalSubtasks = subtasks.length;
-    const progressPercent = totalSubtasks > 0 ? Math.round((doneSubtasks / totalSubtasks) * 100) : (task.isCompleted ? 100 : 0);
+    const progressPercent = calculateTaskProgress(task, columnMap);
 
     const statusConfig = getDerivedStatus(task, columnMap);
     const riskBadge = getRiskBadge(task.riskLevel);
@@ -453,6 +447,77 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
     const [editingTask, setEditingTask] = useState<any | null>(null);
     const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
 
+    const projectStartDate = extractDateString(project?.startDate);
+    const projectEndDate = extractDateString(project?.endDate);
+    const todayStr = getLocalDateString(new Date());
+
+    const getInitialDate = () => {
+        if (projectStartDate && todayStr < projectStartDate) {
+            return projectStartDate;
+        }
+        if (projectEndDate && todayStr > projectEndDate) {
+            return projectEndDate;
+        }
+        return todayStr;
+    };
+
+    const [dateFilterMode, setDateFilterMode] = useState<"all" | "day">("day");
+    const [selectedDate, setSelectedDate] = useState<string>(getInitialDate);
+
+    useEffect(() => {
+        if (selectedDate) {
+            if (projectStartDate && selectedDate < projectStartDate) {
+                setSelectedDate(projectStartDate);
+            } else if (projectEndDate && selectedDate > projectEndDate) {
+                setSelectedDate(projectEndDate);
+            }
+        } else {
+            setSelectedDate(getInitialDate());
+        }
+    }, [projectStartDate, projectEndDate]);
+
+    const handlePrevDay = () => {
+        if (!selectedDate) return;
+        const d = parseLocalDate(selectedDate);
+        d.setDate(d.getDate() - 1);
+        const prevStr = getLocalDateString(d);
+        if (projectStartDate && prevStr < projectStartDate) return;
+        setSelectedDate(prevStr);
+    };
+
+    const handleNextDay = () => {
+        if (!selectedDate) return;
+        const d = parseLocalDate(selectedDate);
+        d.setDate(d.getDate() + 1);
+        const nextStr = getLocalDateString(d);
+        if (projectEndDate && nextStr > projectEndDate) return;
+        setSelectedDate(nextStr);
+    };
+
+    const isPrevDisabled = Boolean(projectStartDate && selectedDate <= projectStartDate);
+    const isNextDisabled = Boolean(projectEndDate && selectedDate >= projectEndDate);
+
+    const isTaskActiveOnDate = (task: any, dateStr: string) => {
+        if (!dateStr) return true;
+        const taskStart = extractDateString(task.startDate);
+        const taskDue = extractDateString(task.dueDate);
+
+        // If both start and due date are set: task spans between startDate and dueDate
+        if (taskStart && taskDue) {
+            return dateStr >= taskStart && dateStr <= taskDue;
+        }
+        // If only due date is set
+        if (taskDue) {
+            return dateStr === taskDue;
+        }
+        // If only start date is set
+        if (taskStart) {
+            return dateStr === taskStart;
+        }
+        // If no dates specified on task, show it
+        return true;
+    };
+
     // Initialize preferred viewMode from localStorage
     useEffect(() => {
         try {
@@ -470,22 +535,9 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
         } catch (e) {}
     };
 
-    // Permission checks: Project Manager and Leader can create, edit, or delete main tasks
-    const currentProjectMember = (project?.members || []).find(
-        (m: any) => m.userId === currentUser?.id || m.user?.id === currentUser?.id
-    );
     const { currentTeam } = useWorkspace();
-    const isOwningWorkspaceLeader =
-        userRole === "LEADER" && currentTeam?.id === project?.teamId;
-    const isProjectManager =
-        project?.managerId === currentUser?.id ||
-        project?.manager?.id === currentUser?.id ||
-        (currentProjectMember?.role || "").toUpperCase() === "MANAGER";
-    const isProjectLeader =
-        isProjectManager ||
-        isOwningWorkspaceLeader ||
-        (currentProjectMember?.role || "").toUpperCase() === "LEADER";
-    const canManageTasks = isProjectManager || isProjectLeader;
+    const permissions = getProjectPermissions(project, currentUser, userRole, currentTeam);
+    const canManageTasks = permissions.canManageTasks;
 
     const tasks = project?.tasks || [];
     const columns = project?.columns || [];
@@ -507,7 +559,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
         return isMainAssignee || isSubtaskAssignee;
     }).length;
 
-    // Filter tasks based on search, priority, and "Assigned to Me" quick filter
+    // Filter tasks based on search, priority, date, and "Assigned to Me" quick filter
     const filteredTasks = tasks.filter((t: any) => {
         const matchesSearch =
             searchQuery === "" ||
@@ -523,8 +575,9 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                 t.subtasks.some((st: any) => (st.assignedToId || st.assignedTo?.id) === currentUser?.id));
 
         const matchesFilterMode = filterMode === "all" || isAssignedToMe;
+        const matchesDate = dateFilterMode === "all" || isTaskActiveOnDate(t, selectedDate);
 
-        return matchesSearch && matchesPriority && matchesFilterMode;
+        return matchesSearch && matchesPriority && matchesFilterMode && matchesDate;
     });
 
     const handleOpenEditTask = (taskToEdit: any) => {
@@ -536,9 +589,9 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
         <div className="flex-1 flex flex-col min-h-0 bg-[var(--app-bg)]">
             {/* Header Toolbar */}
             <div className="shrink-0 px-5 py-3 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-wrap items-center justify-between gap-3">
-                {/* Search & Priority Filter & Quick View Segmented Toggle */}
-                <div className="flex items-center gap-2.5 flex-1 min-w-[240px] max-w-2xl flex-wrap">
-                    <div className="relative flex-1 min-w-[160px] corner-brackets-4">
+                {/* Search & Priority Filter & Date Navigation & Quick View Segmented Toggle */}
+                <div className="flex items-center gap-2.5 flex-1 min-w-[240px] flex-wrap">
+                    <div className="relative flex-1 min-w-[160px] max-w-xs corner-brackets-4">
                         <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
                         <input
                             type="text"
@@ -557,6 +610,70 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         className="w-32 shrink-0"
                     />
 
+                    {/* Date Navigation & View Mode */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        {/* Segmented Pill Toggle: All Dates vs Day View */}
+                        <div className="flex items-center h-[28px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[3px] p-0.5 text-[10px] font-medium">
+                            <button
+                                type="button"
+                                onClick={() => setDateFilterMode("all")}
+                                className={`h-full px-2.5 rounded-[2px] transition-all cursor-pointer flex items-center justify-center ${
+                                    dateFilterMode === "all"
+                                        ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border)]"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                                }`}
+                            >
+                                All Dates
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setDateFilterMode("day")}
+                                className={`h-full px-2.5 rounded-[2px] transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                                    dateFilterMode === "day"
+                                        ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border)]"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                                }`}
+                            >
+                                <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
+                                <span>Day View</span>
+                            </button>
+                        </div>
+
+                        {/* Day Navigator (when in Day View) */}
+                        {dateFilterMode === "day" && (
+                            <div className="flex items-center h-[28px] bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-0.5 shadow-2xs">
+                                <button
+                                    type="button"
+                                    onClick={handlePrevDay}
+                                    disabled={isPrevDisabled}
+                                    className="h-full px-1 flex items-center justify-center text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] disabled:opacity-25 disabled:cursor-not-allowed rounded-[2px] transition-colors cursor-pointer"
+                                    title={isPrevDisabled ? "Reached project start date" : "Previous Day"}
+                                >
+                                    <ChevronLeft className="w-3.5 h-3.5" />
+                                </button>
+
+                                <CustomDatePicker
+                                    value={selectedDate}
+                                    onChange={(val) => setSelectedDate(val)}
+                                    minDate={projectStartDate}
+                                    maxDate={projectEndDate}
+                                    buttonClassName="border-0 shadow-none bg-transparent hover:bg-[var(--app-hover-bg)] h-full py-0 px-2 text-[10px] font-medium"
+                                    className="w-28 h-full flex items-center"
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={handleNextDay}
+                                    disabled={isNextDisabled}
+                                    className="h-full px-1 flex items-center justify-center text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] disabled:opacity-25 disabled:cursor-not-allowed rounded-[2px] transition-colors cursor-pointer"
+                                    title={isNextDisabled ? "Reached project end date" : "Next Day"}
+                                >
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Quick View Segmented Toggle: All Tasks vs Assigned to Me */}
                     <div className="flex items-center bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-[10px] font-medium shrink-0">
                         <button
@@ -568,7 +685,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                                     : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
                             }`}
                         >
-                            <span>All Tasks</span>
+                            <span>All</span>
                             <span className={`text-[9px] px-1.5 py-0.2 rounded-[2px] border transition-colors tabular-nums ${
                                 filterMode === "all"
                                     ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
@@ -587,7 +704,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                             }`}
                         >
                             <User className="w-3 h-3 text-[var(--app-muted)]" />
-                            <span>Assigned to Me</span>
+                            <span>My Tasks</span>
                             {myTasksCount > 0 && (
                                 <span className={`text-[9px] px-1.5 py-0.2 rounded-[2px] border transition-colors tabular-nums ${
                                     filterMode === "my-tasks"
@@ -655,18 +772,33 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         <Layers className="w-8 h-8 text-[var(--app-muted)] mb-2" />
                         <h4 className="text-sm font-semibold text-[var(--app-text)] mb-1">No Main Tasks Found</h4>
                         <p className="text-[11px] text-[var(--app-muted)] max-w-sm mb-4">
-                            {searchQuery ? "No tasks matched your search query or filter." : "Get started by creating your first main task for this project."}
+                            {searchQuery
+                                ? "No tasks matched your search query or filter."
+                                : dateFilterMode === "day"
+                                ? `No tasks are active on ${new Date(selectedDate + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}.`
+                                : "Get started by creating your first main task for this project."}
                         </p>
-                        {canManageTasks && (
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                icon={<Plus className="w-3.5 h-3.5" />}
-                                onClick={() => setIsCreateTaskModalOpen(true)}
-                            >
-                                Create Main Task
-                            </Button>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {dateFilterMode === "day" && (
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => setDateFilterMode("all")}
+                                >
+                                    Show All Dates
+                                </Button>
+                            )}
+                            {canManageTasks && (
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    icon={<Plus className="w-3.5 h-3.5" />}
+                                    onClick={() => setIsCreateTaskModalOpen(true)}
+                                >
+                                    Create Main Task
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 ) : viewMode === "grid" ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4.5">

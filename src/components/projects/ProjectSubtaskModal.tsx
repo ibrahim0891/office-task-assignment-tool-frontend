@@ -26,6 +26,7 @@ import {
     Copy,
     RotateCcw,
     Edit3,
+    Plus,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
@@ -37,6 +38,42 @@ import { TipTapEditor } from "../ui/TipTapEditor";
 import ModalWrapper from "../ui/ModalWrapper";
 import { triggerMicroCelebration } from "../../utils/confetti";
 import { playFeedback } from "../../utils/feedback";
+
+// 30% Image Compression helper (75% quality with dimension constraining)
+const compressImage30Percent = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                let width = img.width;
+                let height = img.height;
+                const maxDim = 2000;
+                if (width > maxDim || height > maxDim) {
+                    if (width > height) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return resolve(e.target?.result as string);
+                ctx.drawImage(img, 0, 0, width, height);
+                const compressedBase64 = canvas.toDataURL("image/jpeg", 0.75);
+                resolve(compressedBase64);
+            };
+            img.onerror = () => reject(new Error("Failed to load image"));
+            img.src = e.target?.result as string;
+        };
+        reader.onerror = () => reject(new Error("Failed to read image file"));
+        reader.readAsDataURL(file);
+    });
+};
 
 interface ProjectSubtaskModalProps {
     isOpen: boolean;
@@ -145,6 +182,105 @@ export default function ProjectSubtaskModal({
 
     // Attachments state
     const [attachments, setAttachments] = useState<any[]>([]);
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
+    const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+    const [isDraggingOver, setIsDraggingOver] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const processAndUploadImage = async (file: File) => {
+        if (!file.type.startsWith("image/")) {
+            toast.error("Please select a valid image file (PNG, JPG, WebP, GIF).");
+            return;
+        }
+
+        setIsUploadingImage(true);
+        try {
+            const compressedBase64 = await compressImage30Percent(file);
+            const filename = file.name || `Image_${Date.now()}.jpg`;
+            const newAttachment = {
+                id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                name: filename,
+                url: compressedBase64,
+                type: "IMAGE",
+                createdAt: new Date().toISOString(),
+                user: currentUser ? { id: currentUser.id, name: currentUser.name || "User" } : undefined,
+            };
+
+            const updatedAttachments = [...attachments, newAttachment];
+            setAttachments(updatedAttachments);
+
+            if (isEditMode && subtask?.id && projectId) {
+                const targetTaskId = parentTask?.id || subtask?.parentTaskId;
+                if (targetTaskId) {
+                    await api.updateProjectSubtask(projectId, targetTaskId, subtask.id, {
+                        attachments: updatedAttachments,
+                    });
+                    if (onRefresh) onRefresh();
+                }
+            }
+
+            toast.success(`Attached "${filename}"`);
+        } catch (err: any) {
+            toast.error(err?.message || "Failed to process image attachment.");
+        } finally {
+            setIsUploadingImage(false);
+        }
+    };
+
+    const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        await processAndUploadImage(file);
+        if (e.target) e.target.value = "";
+    };
+
+    const handleDeleteAttachment = async (attachmentId: string) => {
+        const updatedAttachments = attachments.filter((a) => a.id !== attachmentId);
+        setAttachments(updatedAttachments);
+
+        if (isEditMode && subtask?.id && projectId) {
+            const targetTaskId = parentTask?.id || subtask?.parentTaskId;
+            if (targetTaskId) {
+                try {
+                    await api.updateProjectSubtask(projectId, targetTaskId, subtask.id, {
+                        attachments: updatedAttachments,
+                    });
+                    toast.success("Attachment removed");
+                    if (onRefresh) onRefresh();
+                } catch (err: any) {
+                    toast.error(err?.message || "Failed to remove attachment");
+                }
+            }
+        }
+    };
+
+    // Clipboard Paste Listener (Ctrl+V image upload - strictly active only on Attachments tab)
+    useEffect(() => {
+        if (!isOpen || activeTab !== "attachments") return;
+
+        const handlePaste = async (e: ClipboardEvent) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            let imageFile: File | null = null;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    imageFile = items[i].getAsFile();
+                    break;
+                }
+            }
+
+            if (imageFile) {
+                e.preventDefault();
+                await processAndUploadImage(imageFile);
+            }
+        };
+
+        window.addEventListener("paste", handlePaste);
+        return () => {
+            window.removeEventListener("paste", handlePaste);
+        };
+    }, [isOpen, activeTab, attachments, isEditMode, subtask?.id, projectId, parentTask?.id]);
 
     // Format dates helper
     const toYMD = (dateInput: any) => {
@@ -462,6 +598,7 @@ export default function ProjectSubtaskModal({
             estimatedDays,
             actualDays,
             isCompleted,
+            attachments,
         };
 
         try {
@@ -902,15 +1039,22 @@ export default function ProjectSubtaskModal({
                                     type="button"
                                     onClick={() => handleSaveSubtask()}
                                     disabled={submitting}
-                                    className="w-full py-2 bg-[var(--app-text)] hover:opacity-90 border border-[var(--app-text)] text-[var(--app-bg)] font-semibold text-xs rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-xs"
+                                    className="relative corner-brackets-4 w-full py-2 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] font-medium text-xs rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
                                 >
                                     {submitting ? (
                                         <>
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-[var(--app-text)]" />
                                             <span>Saving...</span>
                                         </>
                                     ) : (
-                                        <span>{isEditMode ? "Save Changes" : "Create Subtask"}</span>
+                                        <>
+                                            {isEditMode ? (
+                                                <Check className="w-3.5 h-3.5 text-[var(--app-text)] shrink-0" />
+                                            ) : (
+                                                <Plus className="w-3.5 h-3.5 text-[var(--app-text)] shrink-0" />
+                                            )}
+                                            <span>{isEditMode ? "Save Changes" : "Create Subtask"}</span>
+                                        </>
                                     )}
                                 </button>
                             </div>
@@ -980,6 +1124,11 @@ export default function ProjectSubtaskModal({
                             >
                                 <Paperclip className="w-3.5 h-3.5" />
                                 <span>Attachments</span>
+                                {attachments.length > 0 && (
+                                    <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
+                                        {attachments.length}
+                                    </span>
+                                )}
                             </button>
                         </div>
 
@@ -1304,44 +1453,190 @@ export default function ProjectSubtaskModal({
 
                             {/* TAB 4: ATTACHMENTS */}
                             {activeTab === "attachments" && (
-                                <div className="flex-1 flex flex-col gap-4">
+                                <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
                                     <div className="flex items-center justify-between">
-                                        <h4 className="text-xs font-semibold text-[var(--app-text)]">
-                                            Subtask Files & Deliverables
-                                        </h4>
-                                    </div>
-
-                                    {/* Upload drop area */}
-                                    <div className="p-6 border border-dashed border-[var(--app-border)] hover:border-[var(--app-border-strong)] rounded-[2px] text-center flex flex-col items-center justify-center gap-2 cursor-pointer bg-[var(--app-card)] transition-colors">
-                                        <Upload className="w-6 h-6 text-[var(--app-muted)]" />
-                                        <span className="text-xs font-medium text-[var(--app-text)]">
-                                            Click or drop files here to attach
-                                        </span>
-                                        <span className="text-[10px] text-[var(--app-muted)]">
-                                            Supports images, PDFs, diagrams up to 25MB
-                                        </span>
-                                    </div>
-
-                                    {attachments.length > 0 && (
-                                        <div className="grid grid-cols-2 gap-2 pt-2">
-                                            {attachments.map((att: any) => (
-                                                <div
-                                                    key={att.id}
-                                                    className="p-2.5 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] flex items-center justify-between text-xs"
-                                                >
-                                                    <div className="flex items-center gap-2 truncate">
-                                                        <Paperclip className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
-                                                        <span className="truncate">{att.name}</span>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                        <div>
+                                            <h4 className="text-xs font-semibold text-[var(--app-text)]">
+                                                Subtask Images & Deliverables
+                                            </h4>
+                                            <p className="text-[10px] text-[var(--app-muted)]">
+                                                Upload screenshots, mockups, or paste directly from clipboard (Ctrl+V)
+                                            </p>
                                         </div>
+                                        {attachments.length > 0 && canModifyThisSubtask && (
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                disabled={isUploadingImage}
+                                                className="px-2.5 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-[10px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                                            >
+                                                <Plus className="w-3 h-3 text-[var(--app-muted)]" />
+                                                <span>Attach Image</span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Upload drop zone */}
+                                    {canModifyThisSubtask && (
+                                        <div
+                                            onClick={() => !isUploadingImage && fileInputRef.current?.click()}
+                                            onDragOver={(e) => {
+                                                e.preventDefault();
+                                                setIsDraggingOver(true);
+                                            }}
+                                            onDragLeave={() => setIsDraggingOver(false)}
+                                            onDrop={async (e) => {
+                                                e.preventDefault();
+                                                setIsDraggingOver(false);
+                                                const file = e.dataTransfer.files?.[0];
+                                                if (file) {
+                                                    await processAndUploadImage(file);
+                                                }
+                                            }}
+                                            className={`p-6 border border-dashed rounded-[3px] text-center flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
+                                                isDraggingOver
+                                                    ? "border-[var(--color-accent)] bg-[var(--app-hover-bg)]/60 ring-2 ring-[var(--color-accent)]/20"
+                                                    : "border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)]/40"
+                                            }`}
+                                        >
+                                            {isUploadingImage ? (
+                                                <>
+                                                    <Loader2 className="w-6 h-6 text-[var(--color-accent)] animate-spin" />
+                                                    <span className="text-xs font-medium text-[var(--app-text)]">
+                                                        Processing & attaching image...
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="w-10 h-10 rounded-full bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shadow-2xs">
+                                                        <Upload className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs font-medium text-[var(--app-text)]">
+                                                            Click or drag an image here, or paste from clipboard (Ctrl+V)
+                                                        </span>
+                                                        <span className="text-[10px] text-[var(--app-muted)]">
+                                                            Supports PNG, JPG, WebP, GIF
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Hidden File Input */}
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileInputChange}
+                                        className="hidden"
+                                    />
+
+                                    {/* Attachments Image Grid */}
+                                    {attachments.length > 0 ? (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                                            {attachments.map((att: any) => {
+                                                const isImg =
+                                                    att.type === "IMAGE" ||
+                                                    att.url?.startsWith("data:image/") ||
+                                                    att.url?.includes("cloudinary.com") ||
+                                                    att.url?.match(/\.(jpeg|jpg|gif|png|webp|svg)/i);
+
+                                                return (
+                                                    <div
+                                                        key={att.id}
+                                                        className="group relative border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)] rounded-[3px] overflow-hidden shadow-2xs transition-all flex flex-col"
+                                                    >
+                                                        {isImg ? (
+                                                            <div
+                                                                onClick={() => setFullscreenImage(att.url)}
+                                                                className="w-full aspect-[4/3] relative cursor-pointer block overflow-hidden bg-[var(--app-bg)]"
+                                                            >
+                                                                <img
+                                                                    src={att.url}
+                                                                    alt={att.name || "Attachment"}
+                                                                    className="w-full h-full object-cover block transition-transform group-hover:scale-105"
+                                                                />
+                                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-colors">
+                                                                    <Maximize2 className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" />
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <a
+                                                                href={att.url}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="w-full aspect-[4/3] bg-[var(--app-bg)] flex flex-col items-center justify-center gap-1.5 p-3 text-center text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors"
+                                                            >
+                                                                <Paperclip className="w-5 h-5 text-[var(--app-muted)]" />
+                                                                <span className="text-[10px] text-[var(--app-muted)] truncate w-full font-medium">
+                                                                    {att.name || "Attachment"}
+                                                                </span>
+                                                            </a>
+                                                        )}
+
+                                                        {/* Caption / Title footer */}
+                                                        <div className="px-2 py-1.5 border-t border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-between text-[10px] text-[var(--app-muted)]">
+                                                            <span className="truncate flex-1 font-medium text-[var(--app-text)]" title={att.name}>
+                                                                {att.name || "Image"}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Delete button (hover) */}
+                                                        {canModifyThisSubtask && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDeleteAttachment(att.id);
+                                                                }}
+                                                                className="absolute top-1.5 right-1.5 bg-[var(--app-card)]/90 hover:bg-[var(--color-error)] text-[var(--app-muted)] hover:text-white border border-[var(--app-border)] hover:border-[var(--color-error)] p-1 rounded-[2px] shadow-sm transition-colors cursor-pointer z-10 opacity-0 group-hover:opacity-100"
+                                                                title="Delete attachment"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        !canModifyThisSubtask && (
+                                            <div className="py-8 text-center text-xs text-[var(--app-muted)] italic">
+                                                No attachments uploaded for this subtask.
+                                            </div>
+                                        )
                                     )}
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
+
+                {/* Fullscreen Image Lightbox Modal */}
+                {fullscreenImage && (
+                    <div
+                        onClick={() => setFullscreenImage(null)}
+                        className="fixed inset-0 bg-black/80 z-[999999] flex items-center justify-center p-4 cursor-zoom-out animate-fade-in backdrop-blur-xs"
+                    >
+                        <div className="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
+                            <button
+                                type="button"
+                                onClick={() => setFullscreenImage(null)}
+                                className="absolute -top-10 right-0 p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                            <img
+                                src={fullscreenImage}
+                                alt="Fullscreen Preview"
+                                className="max-w-full max-h-[85vh] object-contain rounded-[3px] shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                    </div>
+                )}
         </ModalWrapper>
     );
 }

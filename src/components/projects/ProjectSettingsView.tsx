@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { Settings, Plus, Edit2, Trash2, ArrowUp, ArrowDown, Columns, ShieldAlert, GripVertical, Lock, Folder, Save, Loader2 } from "lucide-react";
+import { Settings, Plus, Edit2, Trash2, ArrowUp, ArrowDown, Columns, ShieldAlert, GripVertical, Lock, Folder, Save, Loader2, Shield } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import ProjectColumnModal from "./ProjectColumnModal";
+import { getStageMeta, isSystemColumn } from "../../utils/projectProgress";
+import { getProjectPermissions } from "../../utils/projectPermissions";
 
 interface ProjectSettingsViewProps {
     project: any;
@@ -13,7 +15,10 @@ interface ProjectSettingsViewProps {
 }
 
 export default function ProjectSettingsView({ project, onRefresh }: ProjectSettingsViewProps) {
-    const { currentUser } = useWorkspace();
+    const { currentUser, userRole, currentTeam } = useWorkspace();
+    const permissions = getProjectPermissions(project, currentUser, userRole, currentTeam);
+    const isProjectManagerOrLeader = permissions.canManageTasks;
+
     const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
     const [editingColumn, setEditingColumn] = useState<any | null>(null);
 
@@ -30,11 +35,6 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
     // Drag and Drop state
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-
-    // Permission check: Only Project Manager or Leader can reconfigure settings/columns
-    const isManager = project?.managerId === currentUser?.id || (currentUser as any)?.role === "LEADER";
-    const userProjectMember = (project?.members || []).find((m: any) => m.userId === currentUser?.id);
-    const isProjectManagerOrLeader = isManager || userProjectMember?.role === "MANAGER" || userProjectMember?.role === "LEADER";
 
     const [localColumns, setLocalColumns] = React.useState<any[]>([]);
 
@@ -71,7 +71,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
         if (editingColumn) {
             await api.updateProjectColumn(project.id, editingColumn.id, {
                 name,
-                type: editingColumn.type || "CUSTOM",
+                type: editingColumn.type || (isSystemColumn(editingColumn) ? "SYSTEM" : "CUSTOM"),
                 isComplete: isComplete !== undefined ? isComplete : editingColumn.isComplete,
             });
             toast.success("Column configuration saved.");
@@ -82,7 +82,11 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
         if (onRefresh) onRefresh(true);
     };
 
-    const handleDeleteColumn = async (columnId: string, colName: string) => {
+    const handleDeleteColumn = async (columnId: string, colName: string, isSystem: boolean) => {
+        if (isSystem) {
+            toast.error("Core system workflow stages cannot be deleted.");
+            return;
+        }
         if (localColumns.length <= 1) {
             toast.error("Cannot delete the only remaining column.");
             return;
@@ -105,6 +109,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
         reorderAndSave(index, targetIndex);
     };
 
+    // Optimistic, completely silent background reordering
     const reorderAndSave = async (fromIndex: number, toIndex: number) => {
         if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= localColumns.length || toIndex >= localColumns.length) {
             return;
@@ -114,7 +119,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
         const [movedItem] = updated.splice(fromIndex, 1);
         updated.splice(toIndex, 0, movedItem);
 
-        // Optimistically update UI
+        // Optimistically update UI immediately
         setLocalColumns(updated);
 
         const columnOrders = updated.map((c: any, idx: number) => ({
@@ -123,10 +128,12 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
         }));
 
         try {
+            // Persist order state silently in database
             await api.reorderProjectColumns(project.id, columnOrders);
             if (onRefresh) onRefresh(true);
         } catch (err: any) {
             toast.error(err.message || "Failed to reorder columns.");
+            // Revert to server state on network failure
             if (project?.columns) {
                 setLocalColumns([...project.columns].sort((a: any, b: any) => a.order - b.order));
             }
@@ -176,7 +183,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                             Project Settings
                         </h2>
                         <p className="text-[11px] text-[var(--app-muted)]">
-                            Manage main board custom columns and project configurations
+                            Manage board workflow stages, fine-grained progress mapping, and project configurations
                         </p>
                     </div>
                 </div>
@@ -213,7 +220,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                                 placeholder="Enter project name..."
                                 className="flex-1 px-3 py-1.5 text-xs bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)] disabled:opacity-60 disabled:cursor-not-allowed"
                             />
-                             {isProjectManagerOrLeader && (
+                            {isProjectManagerOrLeader && (
                                 <button
                                     type="submit"
                                     disabled={isRenaming || !projectName.trim() || projectName.trim() === project?.name}
@@ -238,10 +245,10 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                     <div className="flex items-center gap-2">
                         <Columns className="w-4 h-4 text-[var(--app-text)]" />
                         <h3 className="text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
-                            Main Board Columns Configuration
+                            Board Workflow Stages & Columns
                         </h3>
                         <span className="text-[10px] text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] tabular-nums">
-                            {localColumns.length} columns
+                            {localColumns.length} stages
                         </span>
                     </div>
 
@@ -254,22 +261,23 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                             className="relative corner-brackets-4 flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer shadow-2xs"
                         >
                             <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
-                            <span>Add Custom Column</span>
+                            <span>Add Custom Stage</span>
                         </button>
                     )}
                 </div>
 
                 <p className="text-[11px] text-[var(--app-muted)] leading-normal">
-                    Reconfigure your main task Kanban board columns. You can add new columns, edit names, reorder positions, and delete columns. When deleting a column, any tasks will be moved to a remaining column.
+                    Reorder and customize your Jira-style 4-stage workflow columns. Drag any column using the handle to reorder — changes save silently in the background. System stages are protected to maintain accurate 0% → 25% → 75% → 100% progress metrics.
                 </p>
 
                 {/* Column Table / List */}
                 <div className="border border-[var(--app-border)] rounded-[2px] overflow-hidden bg-[var(--app-bg)]">
                     <div className="grid grid-cols-12 gap-2 px-4 py-2 border-b border-[var(--app-border)] text-[10px] font-semibold text-[var(--app-muted)] uppercase tracking-wider bg-[var(--app-card)]">
                         <div className="col-span-1">Order</div>
-                        <div className="col-span-6">Column Name</div>
-                        <div className="col-span-2">Task Count</div>
-                        <div className="col-span-3 text-right">Actions</div>
+                        <div className="col-span-5">Column Name</div>
+                        <div className="col-span-3">Progress Stage</div>
+                        <div className="col-span-1">Tasks</div>
+                        <div className="col-span-2 text-right">Actions</div>
                     </div>
 
                     <div className="divide-y divide-[var(--app-border)]">
@@ -277,6 +285,8 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                             const taskCount = tasks.filter((t: any) => t.columnId === col.id).length;
                             const isBeingDragged = draggedIndex === index;
                             const isBeingOvered = dragOverIndex === index && draggedIndex !== index;
+                            const isSystem = isSystemColumn(col);
+                            const stageMeta = getStageMeta(col);
 
                             return (
                                 <div
@@ -295,7 +305,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                                     {/* Order & Drag handle controls */}
                                     <div className="col-span-1 flex items-center gap-1.5">
                                         {isProjectManagerOrLeader && (
-                                            <span title="Drag to reorder">
+                                            <span title="Drag to reorder silently">
                                                 <GripVertical className="w-3.5 h-3.5 text-[var(--app-muted)] hover:text-[var(--app-text)] cursor-grab active:cursor-grabbing shrink-0" />
                                             </span>
                                         )}
@@ -325,20 +335,34 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                                     </div>
 
                                     {/* Name */}
-                                    <div className="col-span-6 font-medium flex items-center gap-2">
+                                    <div className="col-span-5 font-medium flex items-center gap-2">
                                         <span>{col.name}</span>
+                                        {isSystem && (
+                                            <span className="text-[9px] text-[var(--app-muted)] bg-[var(--app-card)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] flex items-center gap-1 shrink-0" title="Core System Stage">
+                                                <Shield className="w-2.5 h-2.5 text-[var(--app-muted)]" />
+                                                <span>System</span>
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Progress Stage Badge */}
+                                    <div className="col-span-3">
+                                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-[10px]">
+                                            <span className="font-semibold text-[var(--app-text)]">{stageMeta.label}</span>
+                                            <span className="text-[9px] text-[var(--app-muted)] tabular-nums">({stageMeta.weight}%)</span>
+                                        </div>
                                     </div>
 
                                     {/* Task Count */}
-                                    <div className="col-span-2 text-[11px] text-[var(--app-muted)]">
-                                        <span className="px-2 py-0.5 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-[10px] font-medium tabular-nums">
-                                            {taskCount} {taskCount === 1 ? "task" : "tasks"}
+                                    <div className="col-span-1 text-[11px] text-[var(--app-muted)]">
+                                        <span className="px-1.5 py-0.5 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-[10px] font-medium tabular-nums">
+                                            {taskCount}
                                         </span>
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="col-span-3 flex items-center justify-end gap-2">
-                                        isProjectManagerOrLeader ? (
+                                    <div className="col-span-2 flex items-center justify-end gap-1.5">
+                                        {isProjectManagerOrLeader ? (
                                             <>
                                                 <button
                                                     onClick={() => {
@@ -350,18 +374,27 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                                                 >
                                                     <Edit2 className="w-3.5 h-3.5" />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDeleteColumn(col.id, col.name)}
-                                                    disabled={localColumns.length <= 1}
-                                                    className="p-1 text-[var(--app-muted)] hover:text-[var(--color-error)] hover:bg-[var(--app-card)] rounded transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                                                    title={localColumns.length <= 1 ? "Cannot delete only remaining column" : `Delete column ${col.name}`}
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
+                                                {isSystem ? (
+                                                    <span
+                                                        className="p-1 text-[var(--app-muted)] opacity-40 cursor-not-allowed"
+                                                        title="System workflow stages are protected from deletion"
+                                                    >
+                                                        <Lock className="w-3.5 h-3.5" />
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleDeleteColumn(col.id, col.name, isSystem)}
+                                                        disabled={localColumns.length <= 1}
+                                                        className="p-1 text-[var(--app-muted)] hover:text-[var(--color-error)] hover:bg-[var(--app-card)] rounded transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                                        title={localColumns.length <= 1 ? "Cannot delete only remaining column" : `Delete column ${col.name}`}
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
                                             </>
                                         ) : (
                                             <span className="text-[10px] text-[var(--app-muted)] italic">Locked</span>
-                                        )
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -375,7 +408,7 @@ export default function ProjectSettingsView({ project, onRefresh }: ProjectSetti
                 isOpen={isColumnModalOpen}
                 onClose={() => setIsColumnModalOpen(false)}
                 onSave={handleCreateOrUpdateColumn}
-                onDelete={(col) => handleDeleteColumn(col.id, col.name)}
+                onDelete={(col) => handleDeleteColumn(col.id, col.name, isSystemColumn(col))}
                 initialData={editingColumn}
             />
         </div>
