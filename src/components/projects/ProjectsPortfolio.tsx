@@ -27,6 +27,7 @@ import { usePortfolioSummary } from "../../hooks/useProjectSWR";
 import { UserAvatar } from "../ui/UserAvatar";
 import { CustomSelect } from "../ui/CustomSelect";
 import { calculateProjectProgress } from "../../utils/projectProgress";
+import { calculateDaySpan, formatDaySpan } from "../../utils/date";
 
 function getStatusConfig(status: string) {
     switch (status) {
@@ -144,11 +145,42 @@ function ProjectRowSkeleton() {
 }
 
 function ProjectCard({ project }: { project: any }) {
-    const status = getStatusConfig(project.status);
     const totalTasks = project.totalTasks !== undefined ? project.totalTasks : (project.tasks?.length || 0);
     const doneTasks = project.doneTasks !== undefined ? project.doneTasks : (project.tasks?.filter((t: any) => t.column?.isComplete || t.status === "Completed" || t.status === "Done").length || 0);
     const overdueTasks = project.overdueTasks !== undefined ? project.overdueTasks : (project.tasks?.filter((t: any) => t.riskLevel === "OVERDUE" || t.riskLevel === "CRITICAL_SLA" || t.riskLevel === "Overdue" || t.riskLevel === "CriticalSLA").length || 0);
-    const leaders = (project.members || []).filter((m: any) => m.role === "Leader" || m.role === "LEADER");
+    
+    // Aggregate unique project members and manager for the avatar group
+    const allMembers = useMemo(() => {
+        const list: { id: string; name: string; avatarUrl?: string | null; role?: string }[] = [];
+        const seen = new Set<string>();
+
+        if (project.manager) {
+            const mId = project.manager.id || project.manager.userId || "manager";
+            seen.add(mId);
+            list.push({
+                id: mId,
+                name: project.manager.name || "Manager",
+                avatarUrl: project.manager.avatarUrl,
+                role: "Manager",
+            });
+        }
+
+        (project.members || []).forEach((m: any) => {
+            const u = m.user || m;
+            const id = u.id || m.userId || m.id;
+            if (id && !seen.has(id)) {
+                seen.add(id);
+                list.push({
+                    id,
+                    name: u.name || u.fullName || "Member",
+                    avatarUrl: u.avatarUrl,
+                    role: m.role || "Member",
+                });
+            }
+        });
+
+        return list;
+    }, [project.manager, project.members]);
 
     const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
         ? calculateProjectProgress(project.tasks, project.columns)
@@ -156,92 +188,107 @@ function ProjectCard({ project }: { project: any }) {
 
     return (
         <Link href={`/projects/${project.id}`} className="block group">
-            <div className="relative bg-[var(--app-card)] border border-[var(--app-border)] rounded-[4px] p-4.5 flex flex-col justify-between gap-3.5 hover:border-[var(--app-border-strong)] hover:shadow-subtle transition-all duration-200 cursor-pointer min-h-[220px]">
-                {/* Card Top: Identity & Status */}
-                <div className="flex items-start justify-between gap-2.5">
-                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                        {/* Emoji / Icon Container */}
-                        <div className="w-9 h-9 rounded-[4px] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-lg shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                            {project.emoji ? (
-                                <span className="emoji-font leading-none">{project.emoji}</span>
-                            ) : (
-                                <FolderKanban className="w-4.5 h-4.5 text-[var(--app-muted)]" />
-                            )}
-                        </div>
-
-                        {/* Title & Owning Team */}
-                        <div className="flex flex-col min-w-0 flex-1">
-                            <h3 className="text-[13.5px] font-semibold text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors truncate" title={project.title}>
-                                {project.title}
-                            </h3>
-                            {project.team && (
-                                <div className="flex items-center gap-1 mt-0.5">
-                                    <span className="text-[9.5px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] flex items-center gap-1 w-fit max-w-full truncate" title={`Owning Team: ${project.team.name}`}>
-                                        {project.team.emoji ? (
-                                            <span className="emoji-font text-[9px] shrink-0">{project.team.emoji}</span>
-                                        ) : (
-                                            <Building2 className="w-2.5 h-2.5 shrink-0 text-[var(--app-muted)]" />
-                                        )}
-                                        <span className="truncate">{project.team.name}</span>
-                                    </span>
-                                </div>
-                            )}
-                        </div>
+            <div className="relative bg-[var(--app-card)] border border-[var(--app-border)] rounded-[6px] p-5 flex flex-col justify-between gap-4 hover:border-[var(--app-border-strong)] hover:shadow-subtle transition-all duration-200 cursor-pointer min-h-[240px]">
+                {/* Card Top: Identity */}
+                <div className="flex items-center gap-3">
+                    {/* Emoji / Icon Container */}
+                    <div className="w-10 h-10 rounded-[6px] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-xl shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        {project.emoji ? (
+                            <span className="emoji-font leading-none">{project.emoji}</span>
+                        ) : (
+                            <FolderKanban className="w-5 h-5 text-[var(--app-muted)]" />
+                        )}
                     </div>
 
-                    {/* Status Pill */}
-                    <span className={`shrink-0 text-[9px] font-medium px-2 py-0.5 rounded-[2px] border ${status.color} ${status.bg} ${status.border} flex items-center gap-1`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
-                        {status.label}
-                    </span>
+                    {/* Title */}
+                    <h3 className="font-heading text-lg sm:text-xl font-bold text-[var(--app-text)] tracking-tight group-hover:text-[var(--color-accent)] transition-colors truncate min-w-0 flex-1" title={project.title}>
+                        {project.title}
+                    </h3>
                 </div>
 
-                {/* Description */}
-                <p className="text-[11px] text-[var(--app-muted)] leading-relaxed line-clamp-2 min-h-[32px]">
-                    {project.description || <span className="italic opacity-60">No description provided</span>}
-                </p>
+                {/* Owning Team Badge (Below Title Section) */}
+                {project.team && (
+                    <div className="flex items-center gap-1.5 -mt-1.5">
+                        <span className="text-[11px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[3px] border border-[var(--app-border)] flex items-center gap-1.5 w-fit max-w-full truncate" title={`Owning Team: ${project.team.name}`}>
+                            {project.team.emoji ? (
+                                <span className="emoji-font text-[10px] shrink-0">{project.team.emoji}</span>
+                            ) : (
+                                <Building2 className="w-3 h-3 shrink-0 text-[var(--app-muted)]" />
+                            )}
+                            <span className="truncate">{project.team.name}</span>
+                        </span>
+                    </div>
+                )}
 
-                {/* Metadata Row: Manager, Leads & Dates */}
-                <div className="flex items-center justify-between gap-2 pt-1 text-[10px] flex-wrap">
-                    {/* People */}
-                    <div className="flex items-center gap-2 min-w-0">
-                        {project.manager && (
-                            <div className="flex items-center gap-1.5 min-w-0 bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px]" title={`Project Manager: ${project.manager.name}`}>
-                                <UserAvatar name={project.manager.name} avatarUrl={project.manager.avatarUrl} size="sm" />
-                                <span className="text-[10px] text-[var(--app-text)] font-medium truncate max-w-[85px]">
-                                    {project.manager.name.split(" ")[0]}
+                {/* Metadata Row: Member Avatars Group & Dates (Moved Up) */}
+                <div className="flex items-center justify-between gap-3 pt-1 flex-wrap">
+                    {/* Member Group Avatar Stack in decent size */}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        {allMembers.length > 0 ? (
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center -space-x-2.5 overflow-visible">
+                                    {allMembers.slice(0, 4).map((member, idx) => (
+                                        <div
+                                            key={member.id || idx}
+                                            className="relative ring-2 ring-[var(--app-card)] rounded-full hover:scale-110 hover:z-20 transition-transform shadow-xs shrink-0"
+                                            title={`${member.name}${member.role ? ` (${member.role})` : ""}`}
+                                        >
+                                            <UserAvatar
+                                                name={member.name}
+                                                avatarUrl={member.avatarUrl}
+                                                size="lg"
+                                                showBorder={false}
+                                            />
+                                        </div>
+                                    ))}
+                                    {allMembers.length > 4 && (
+                                        <div
+                                            className="w-8 h-8 rounded-full bg-[var(--app-bg)] border-2 border-[var(--app-card)] flex items-center justify-center text-[11px] font-bold text-[var(--app-text)] shadow-xs z-10 shrink-0"
+                                            title={`+${allMembers.length - 4} more members`}
+                                        >
+                                            +{allMembers.length - 4}
+                                        </div>
+                                    )}
+                                </div>
+                                <span className="text-xs sm:text-[13px] font-semibold text-[var(--app-text)] truncate max-w-[130px]" title={allMembers.map(m => m.name).join(", ")}>
+                                    {allMembers.length === 1
+                                        ? allMembers[0].name.split(" ")[0]
+                                        : `${allMembers.length} members`}
                                 </span>
                             </div>
-                        )}
-                        {leaders.length > 0 && (
-                            <div className="flex items-center -space-x-1" title={`Leads: ${leaders.map((l: any) => l.user?.name).join(", ")}`}>
-                                {leaders.slice(0, 3).map((m: any) => (
-                                    <UserAvatar key={m.id} name={m.user?.name || ""} avatarUrl={m.user?.avatarUrl} size="sm" />
-                                ))}
-                            </div>
+                        ) : (
+                            <span className="text-xs text-[var(--app-muted)] italic">No members</span>
                         )}
                     </div>
 
-                    {/* Timeline Date Badge */}
+                    {/* Timeline Date Badge & Span */}
                     {(project.startDate || project.endDate) && (
-                        <div className="flex items-center gap-1 text-[9.5px] text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] shrink-0">
-                            <Calendar className="w-2.5 h-2.5 text-[var(--app-muted)]" />
-                            <span>{formatDate(project.startDate) || "—"}</span>
-                            <span>→</span>
-                            <span>{formatDate(project.endDate) || "—"}</span>
+                        <div
+                            className="flex items-center gap-2 text-xs sm:text-[13px] text-[var(--app-text)] bg-[var(--app-bg)] px-3 py-1.5 rounded-[4px] border border-[var(--app-border)] shrink-0 font-medium shadow-2xs"
+                            title={project.startDate && project.endDate ? `Timeline: ${formatDate(project.startDate)} – ${formatDate(project.endDate)} (${formatDaySpan(calculateDaySpan(project.startDate, project.endDate))})` : undefined}
+                        >
+                            <Calendar className="w-4 h-4 text-[var(--app-muted)] shrink-0" />
+                            <span className="font-mono text-[12.5px] text-[var(--app-text)]">{formatDate(project.startDate) || "—"}</span>
+                            <span className="text-[var(--app-muted)]">→</span>
+                            <span className="font-mono text-[12.5px] text-[var(--app-text)]">{formatDate(project.endDate) || "—"}</span>
+                            {project.startDate && project.endDate && (
+                                <span className="font-bold text-[var(--app-text)] text-[12.5px] bg-[var(--app-card)] px-1.5 py-0.5 rounded-[3px] border border-[var(--app-border)] ml-0.5">
+                                    {calculateDaySpan(project.startDate, project.endDate)}d
+                                </span>
+                            )}
                         </div>
                     )}
                 </div>
 
-                {/* Progress Bar Section */}
-                <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-[var(--app-muted)] font-medium">Progress</span>
-                        <span className="font-semibold text-[var(--app-text)] tabular-nums">
+                {/* Progress Bar Section (Moved Up) */}
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between text-xs sm:text-[13px]">
+                        <span className="text-[var(--app-muted)] font-semibold">Progress</span>
+                        <span className="font-bold text-sm text-[var(--app-text)] tabular-nums">
                             {calculatedProgress}%
                         </span>
                     </div>
-                    <div className="w-full h-1.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-full overflow-hidden">
+                    <div className="w-full h-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-full overflow-hidden">
                         <div
                             className="h-full bg-[var(--app-text)] transition-all duration-300 rounded-full"
                             style={{ width: `${calculatedProgress}%` }}
@@ -249,29 +296,42 @@ function ProjectCard({ project }: { project: any }) {
                     </div>
                 </div>
 
+                {/* Description (Moved Down & HTML Parsed, Clamped to 2 lines) */}
+                {project.description ? (
+                    <div
+                        className="text-[13px] text-[var(--app-text)]/85 leading-relaxed line-clamp-2 min-h-[40px] break-words [&_p]:inline [&_p]:m-0 [&_div]:inline [&_div]:m-0 [&_span]:inline"
+                        dangerouslySetInnerHTML={{ __html: project.description }}
+                    />
+                ) : (
+                    <p className="text-[13px] italic text-[var(--app-muted)] leading-relaxed line-clamp-2 min-h-[40px]">
+                        No description provided
+                    </p>
+                )}
+
                 {/* Card Footer: Tasks, Members & Overdue Tag */}
-                <div className="flex items-center justify-between pt-2.5 border-t border-[var(--app-border)] text-[10px]">
-                    <div className="flex items-center gap-3">
-                        <span className="text-[var(--app-muted)]">
-                            <span className="font-semibold text-[var(--app-text)] tabular-nums">{doneTasks}</span>
+                <div className="flex items-center justify-between pt-3.5 border-t border-[var(--app-border)] text-xs sm:text-[13px]">
+                    <div className="flex items-center gap-4">
+                        <span className="text-[var(--app-muted)] flex items-center gap-1 font-medium">
+                            <span className="font-bold text-sm text-[var(--app-text)] tabular-nums">{doneTasks}</span>
                             <span className="opacity-70">/{totalTasks}</span> tasks
                         </span>
-                        <span className="text-[var(--app-muted)] flex items-center gap-1">
-                            <Users className="w-3 h-3 text-[var(--app-muted)]" />
-                            <span className="font-medium text-[var(--app-text)] tabular-nums">{project.members?.length || 0}</span>
+                        <span className="text-[var(--app-muted)] flex items-center gap-1.5 font-medium">
+                            <Users className="w-4 h-4 text-[var(--app-muted)]" />
+                            <span className="font-bold text-sm text-[var(--app-text)] tabular-nums">{project.members?.length || 0}</span>
+                            <span>members</span>
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                         {overdueTasks > 0 && (
-                            <span className="text-[9px] font-semibold text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1">
-                                <AlertCircle className="w-2.5 h-2.5" />
+                            <span className="text-xs font-semibold text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-2.5 py-1 rounded-[4px] flex items-center gap-1.5">
+                                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                                 <span>{overdueTasks} overdue</span>
                             </span>
                         )}
-                        <span className="text-[10px] text-[var(--app-muted)] group-hover:text-[var(--app-text)] flex items-center gap-0.5 font-medium group-hover:translate-x-0.5 transition-all">
+                        <span className="text-xs sm:text-[13px] text-[var(--app-text)] group-hover:text-[var(--color-accent)] flex items-center gap-1 font-semibold group-hover:translate-x-0.5 transition-all">
                             <span>Open</span>
-                            <ArrowRight className="w-3 h-3" />
+                            <ArrowRight className="w-4 h-4" />
                         </span>
                     </div>
                 </div>
@@ -285,43 +345,75 @@ function ProjectListItem({ project }: { project: any }) {
     const totalTasks = project.totalTasks !== undefined ? project.totalTasks : (project.tasks?.length || 0);
     const doneTasks = project.doneTasks !== undefined ? project.doneTasks : (project.tasks?.filter((t: any) => t.column?.isComplete || t.status === "Completed" || t.status === "Done").length || 0);
     const overdueTasks = project.overdueTasks !== undefined ? project.overdueTasks : (project.tasks?.filter((t: any) => t.riskLevel === "OVERDUE" || t.riskLevel === "CRITICAL_SLA" || t.riskLevel === "Overdue" || t.riskLevel === "CriticalSLA").length || 0);
-    const leaders = (project.members || []).filter((m: any) => m.role === "Leader" || m.role === "LEADER");
+    
+    const allMembers = useMemo(() => {
+        const list: { id: string; name: string; avatarUrl?: string | null; role?: string }[] = [];
+        const seen = new Set<string>();
+
+        if (project.manager) {
+            const mId = project.manager.id || project.manager.userId || "manager";
+            seen.add(mId);
+            list.push({
+                id: mId,
+                name: project.manager.name || "Manager",
+                avatarUrl: project.manager.avatarUrl,
+                role: "Manager",
+            });
+        }
+
+        (project.members || []).forEach((m: any) => {
+            const u = m.user || m;
+            const id = u.id || m.userId || m.id;
+            if (id && !seen.has(id)) {
+                seen.add(id);
+                list.push({
+                    id,
+                    name: u.name || u.fullName || "Member",
+                    avatarUrl: u.avatarUrl,
+                    role: m.role || "Member",
+                });
+            }
+        });
+
+        return list;
+    }, [project.manager, project.members]);
 
     const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
         ? calculateProjectProgress(project.tasks, project.columns)
         : (project.progress !== undefined ? project.progress : 0);
 
     return (
-        <tr className="group border-b border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] transition-colors text-xs">
+        <tr className="group border-b border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] transition-colors text-xs sm:text-[13px]">
             {/* Project & Owning Team */}
-            <td className="py-3 px-4 min-w-[240px]">
-                <Link href={`/projects/${project.id}`} className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-sm shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+            <td className="py-4 px-4 min-w-[260px]">
+                <Link href={`/projects/${project.id}`} className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-[4px] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-lg shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                         {project.emoji ? (
                             <span className="emoji-font leading-none">{project.emoji}</span>
                         ) : (
-                            <FolderKanban className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                            <FolderKanban className="w-4.5 h-4.5 text-[var(--app-muted)]" />
                         )}
                     </div>
                     <div className="flex flex-col min-w-0">
-                        <span className="font-semibold text-[13px] text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
+                        <span className="font-heading font-bold text-[16px] text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
                             {project.title}
                         </span>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             {project.team && (
-                                <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-1.5 py-0.2 rounded-[2px] border border-[var(--app-border)] flex items-center gap-1 shrink-0" title={`Owning Team: ${project.team.name}`}>
+                                <span className="text-[11px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[3px] border border-[var(--app-border)] flex items-center gap-1 shrink-0" title={`Owning Team: ${project.team.name}`}>
                                     {project.team.emoji ? (
-                                        <span className="emoji-font text-[9px] shrink-0">{project.team.emoji}</span>
+                                        <span className="emoji-font text-[10px] shrink-0">{project.team.emoji}</span>
                                     ) : (
-                                        <Building2 className="w-2.5 h-2.5 shrink-0 text-[var(--app-muted)]" />
+                                        <Building2 className="w-3 h-3 shrink-0 text-[var(--app-muted)]" />
                                     )}
-                                    <span className="truncate max-w-[120px]">{project.team.name}</span>
+                                    <span className="truncate max-w-[130px]">{project.team.name}</span>
                                 </span>
                             )}
                             {project.description && (
-                                <span className="text-[10px] text-[var(--app-muted)] line-clamp-1 max-w-[180px]">
-                                    {project.description}
-                                </span>
+                                <span
+                                    className="text-[13px] text-[var(--app-text)]/80 line-clamp-1 max-w-[240px] [&_p]:inline [&_p]:m-0 [&_div]:inline"
+                                    dangerouslySetInnerHTML={{ __html: project.description }}
+                                />
                             )}
                         </div>
                     </div>
@@ -329,42 +421,70 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Status */}
-            <td className="py-3 px-4 whitespace-nowrap">
-                <span className={`text-[9.5px] font-medium px-2 py-0.5 rounded-[2px] border inline-flex items-center gap-1 ${status.color} ${status.bg} ${status.border}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+            <td className="py-4 px-4 whitespace-nowrap">
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-[3px] border inline-flex items-center gap-1.5 ${status.color} ${status.bg} ${status.border}`}>
+                    <span className={`w-2 h-2 rounded-full ${status.dot}`} />
                     {status.label}
                 </span>
             </td>
 
-            {/* Manager & Leads */}
-            <td className="py-3 px-4 whitespace-nowrap">
-                <div className="flex items-center gap-2">
-                    {project.manager && (
-                        <div className="flex items-center gap-1.5 min-w-0" title={`Manager: ${project.manager.name}`}>
-                            <UserAvatar name={project.manager.name} avatarUrl={project.manager.avatarUrl} size="sm" />
-                            <span className="text-[10.5px] text-[var(--app-text)] font-medium truncate max-w-[80px]">
-                                {project.manager.name.split(" ")[0]}
+            {/* Members Group Avatars */}
+            <td className="py-4 px-4 whitespace-nowrap">
+                <div className="flex items-center gap-2" title={allMembers.map(m => m.name).join(", ")}>
+                    {allMembers.length > 0 ? (
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center -space-x-2 overflow-visible">
+                                {allMembers.slice(0, 3).map((member, idx) => (
+                                    <div
+                                        key={member.id || idx}
+                                        className="relative ring-2 ring-[var(--app-card)] rounded-full hover:scale-110 hover:z-20 transition-transform shadow-xs shrink-0"
+                                        title={`${member.name}${member.role ? ` (${member.role})` : ""}`}
+                                    >
+                                        <UserAvatar
+                                            name={member.name}
+                                            avatarUrl={member.avatarUrl}
+                                            size="md"
+                                            showBorder={false}
+                                        />
+                                    </div>
+                                ))}
+                                {allMembers.length > 3 && (
+                                    <div
+                                        className="w-6 h-6 rounded-full bg-[var(--app-bg)] border-2 border-[var(--app-card)] flex items-center justify-center text-[9px] font-bold text-[var(--app-text)] shadow-xs z-10 shrink-0"
+                                        title={`+${allMembers.length - 3} more members`}
+                                    >
+                                        +{allMembers.length - 3}
+                                    </div>
+                                )}
+                            </div>
+                            <span className="text-xs font-semibold text-[var(--app-text)] truncate max-w-[100px]">
+                                {allMembers.length === 1
+                                    ? allMembers[0].name.split(" ")[0]
+                                    : `${allMembers.length} members`}
                             </span>
                         </div>
-                    )}
-                    {leaders.length > 0 && (
-                        <div className="flex -space-x-1" title={leaders.map((l: any) => l.user?.name).join(", ")}>
-                            {leaders.slice(0, 2).map((m: any) => (
-                                <UserAvatar key={m.id} name={m.user?.name || ""} avatarUrl={m.user?.avatarUrl} size="sm" />
-                            ))}
-                        </div>
+                    ) : (
+                        <span className="text-xs text-[var(--app-muted)] italic">—</span>
                     )}
                 </div>
             </td>
 
-            {/* Timeline */}
-            <td className="py-3 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
+            {/* Timeline & Span */}
+            <td className="py-4 px-4 whitespace-nowrap text-xs text-[var(--app-text)]">
                 {(project.startDate || project.endDate) ? (
-                    <div className="flex items-center gap-1 bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] w-fit">
-                        <Calendar className="w-2.5 h-2.5 text-[var(--app-muted)]" />
-                        <span>{formatDate(project.startDate) || "—"}</span>
+                    <div
+                        className="flex items-center gap-1.5 bg-[var(--app-bg)] px-2.5 py-1 rounded-[3px] border border-[var(--app-border)] w-fit font-medium"
+                        title={project.startDate && project.endDate ? `Timeline: ${formatDate(project.startDate)} – ${formatDate(project.endDate)} (${formatDaySpan(calculateDaySpan(project.startDate, project.endDate))})` : undefined}
+                    >
+                        <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                        <span className="font-mono text-xs">{formatDate(project.startDate) || "—"}</span>
                         <span>→</span>
-                        <span>{formatDate(project.endDate) || "—"}</span>
+                        <span className="font-mono text-xs">{formatDate(project.endDate) || "—"}</span>
+                        {project.startDate && project.endDate && (
+                            <span className="font-bold text-[var(--app-text)] ml-0.5">
+                                • {calculateDaySpan(project.startDate, project.endDate)}d
+                            </span>
+                        )}
                     </div>
                 ) : (
                     <span className="text-[var(--app-muted)]">—</span>
@@ -372,18 +492,18 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Progress & Tasks */}
-            <td className="py-3 px-4 min-w-[170px]">
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-[9.5px]">
+            <td className="py-4 px-4 min-w-[190px]">
+                <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between text-xs">
                         <span className="text-[var(--app-muted)]">
-                            <span className="font-semibold text-[var(--app-text)] tabular-nums">{doneTasks}</span>
+                            <span className="font-bold text-[var(--app-text)] tabular-nums">{doneTasks}</span>
                             <span className="opacity-70">/{totalTasks}</span> tasks
                         </span>
-                        <span className="font-semibold text-[var(--app-text)] tabular-nums">
+                        <span className="font-bold text-sm text-[var(--app-text)] tabular-nums">
                             {calculatedProgress}%
                         </span>
                     </div>
-                    <div className="w-full bg-[var(--app-bg)] border border-[var(--app-border)] h-1.5 rounded-full overflow-hidden">
+                    <div className="w-full bg-[var(--app-bg)] border border-[var(--app-border)] h-2.5 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-[var(--app-text)] transition-all duration-300 rounded-full"
                             style={{ width: `${calculatedProgress}%` }}
@@ -393,14 +513,14 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Members / Overdue */}
-            <td className="py-3 px-4 whitespace-nowrap text-[10.5px] text-[var(--app-muted)]">
-                <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3 text-[var(--app-muted)]" />
-                        <span className="font-medium text-[var(--app-text)] tabular-nums">{project.members?.length || 0}</span>
+            <td className="py-4 px-4 whitespace-nowrap text-xs text-[var(--app-muted)]">
+                <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5">
+                        <Users className="w-4 h-4 text-[var(--app-muted)]" />
+                        <span className="font-bold text-sm text-[var(--app-text)] tabular-nums">{project.members?.length || 0}</span>
                     </span>
                     {overdueTasks > 0 && (
-                        <span className="text-[8.5px] font-semibold text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1.5 py-0.2 rounded-[2px]">
+                        <span className="text-[11px] font-semibold text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-2.5 py-0.5 rounded-[3px]">
                             {overdueTasks} overdue
                         </span>
                     )}
@@ -408,13 +528,13 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Action */}
-            <td className="py-3 px-4 text-right whitespace-nowrap">
+            <td className="py-4 px-4 text-right whitespace-nowrap">
                 <Link
                     href={`/projects/${project.id}`}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-muted)] hover:text-[var(--app-text)] text-[10.5px] font-medium rounded-[2px] transition-colors"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] hover:text-[var(--color-accent)] text-xs font-semibold rounded-[3px] transition-colors"
                 >
                     <span>Open</span>
-                    <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
             </td>
         </tr>
@@ -689,7 +809,7 @@ export default function ProjectsPortfolio() {
 
                     <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
                         <span className="eyebrow flex items-center justify-between">
-                            <span>SLA Breaches</span>
+                            <span>Overdue Tasks</span>
                             <AlertCircle className="w-3.5 h-3.5 text-[var(--app-muted)] opacity-60" />
                         </span>
                         <span className={`text-2xl lg:text-3xl font-heading font-medium tracking-tight tabular-nums ${

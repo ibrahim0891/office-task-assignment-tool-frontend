@@ -2,11 +2,12 @@
 
 import React, { useState } from "react";
 import toast from "react-hot-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Clock, Calendar } from "lucide-react";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect } from "../ui/CustomSelect";
 import ModalWrapper from "../ui/ModalWrapper";
+import { calculateDaySpan, formatDaySpan } from "../../utils/date";
 
 const inputClass =
     "px-2.5 py-1.5 border border-[#E5E5E3] focus:border-[#1A1A1A] focus:outline-none text-[11px] bg-white rounded-[3px] transition-colors w-full";
@@ -152,22 +153,36 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="flex flex-col gap-1">
-                        <label className="eyebrow">Start Date *</label>
-                        <CustomDatePicker
-                            value={startDate}
-                            onChange={(val) => setStartDate(val)}
-                            className="w-full"
-                        />
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                        <label className="eyebrow flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
+                            <span>Timeline Dates *</span>
+                        </label>
+                        {startDate && endDate && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--app-text)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] tabular-nums">
+                                <Clock className="w-3 h-3 text-[var(--app-muted)]" />
+                                <span>{formatDaySpan(calculateDaySpan(startDate, endDate))}</span>
+                            </span>
+                        )}
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <label className="eyebrow">End Date *</label>
-                        <CustomDatePicker
-                            value={endDate}
-                            onChange={(val) => setEndDate(val)}
-                            className="w-full"
-                        />
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-[var(--app-muted)]">Start Date</span>
+                            <CustomDatePicker
+                                value={startDate}
+                                onChange={(val) => setStartDate(val)}
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-[var(--app-muted)]">End Date</span>
+                            <CustomDatePicker
+                                value={endDate}
+                                onChange={(val) => setEndDate(val)}
+                                className="w-full"
+                            />
+                        </div>
                     </div>
                 </div>
 

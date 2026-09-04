@@ -1420,4 +1420,187 @@ export const api = {
     }
     return res.json();
   },
+
+  async getProjectAssets(projectId: string, query?: { category?: string; type?: string; isPinned?: boolean; search?: string }): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (query?.category) params.append('category', query.category);
+    if (query?.type) params.append('type', query.type);
+    if (query?.isPinned !== undefined) params.append('isPinned', String(query.isPinned));
+    if (query?.search) params.append('search', query.search);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE}/projects/${projectId}/assets${qs}`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch project assets.');
+    }
+    return res.json();
+  },
+
+  async createProjectAsset(projectId: string, data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/assets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create project asset.');
+    }
+    return res.json();
+  },
+
+  async updateProjectAsset(projectId: string, assetId: string, data: any): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/assets/${assetId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update project asset.');
+    }
+    return res.json();
+  },
+
+  async deleteProjectAsset(projectId: string, assetId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/assets/${assetId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete project asset.');
+    }
+    return res.json();
+  },
+
+  async togglePinProjectAsset(projectId: string, assetId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/assets/${assetId}/pin`, {
+      method: 'PATCH'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to toggle project asset pin.');
+    }
+    return res.json();
+  },
+
+  // ==========================================
+  // PROJECT CATEGORIES
+  // ==========================================
+
+  async getProjectCategories(projectId: string, query?: { search?: string }): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (query?.search) params.append('search', query.search);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE}/projects/${projectId}/categories${qs}`);
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to fetch project categories.'); }
+    return res.json();
+  },
+
+  async createProjectCategory(projectId: string, data: { name: string; color?: string }): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to create category.'); }
+    return res.json();
+  },
+
+  async updateProjectCategory(projectId: string, categoryId: string, data: { name?: string; color?: string }): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/categories/${categoryId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to update category.'); }
+    return res.json();
+  },
+
+  async deleteProjectCategory(projectId: string, categoryId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/categories/${categoryId}`, { method: 'DELETE' });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to delete category.'); }
+    return res.json();
+  },
+
+  // ==========================================
+  // PROJECT DOCUMENTS
+  // ==========================================
+
+  async getProjectDocs(projectId: string, query?: { categoryId?: string; search?: string }): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (query?.categoryId) params.append('categoryId', query.categoryId);
+    if (query?.search) params.append('search', query.search);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE}/projects/${projectId}/docs${qs}`);
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to fetch project docs.'); }
+    return res.json();
+  },
+
+  async createProjectDoc(projectId: string, data: { title: string; content?: string; categoryId?: string | null }): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/docs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to create document.'); }
+    return res.json();
+  },
+
+  async updateProjectDoc(projectId: string, docId: string, data: { title?: string; content?: string; categoryId?: string | null }): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/docs/${docId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to update document.'); }
+    return res.json();
+  },
+
+  async deleteProjectDoc(projectId: string, docId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/docs/${docId}`, { method: 'DELETE' });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to delete document.'); }
+    return res.json();
+  },
+
+  // ==========================================
+  // PROJECT LINKS & RESOURCES
+  // ==========================================
+
+  async getProjectLinks(projectId: string, query?: { categoryId?: string; search?: string }): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (query?.categoryId) params.append('categoryId', query.categoryId);
+    if (query?.search) params.append('search', query.search);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE}/projects/${projectId}/links${qs}`);
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to fetch project links.'); }
+    return res.json();
+  },
+
+  async createProjectLink(projectId: string, data: { title: string; url: string; description?: string; categoryId?: string | null }): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/links`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to create link.'); }
+    return res.json();
+  },
+
+  async updateProjectLink(projectId: string, linkId: string, data: { title?: string; url?: string; description?: string; categoryId?: string | null }): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/links/${linkId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to update link.'); }
+    return res.json();
+  },
+
+  async deleteProjectLink(projectId: string, linkId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/links/${linkId}`, { method: 'DELETE' });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to delete link.'); }
+    return res.json();
+  },
+
 };

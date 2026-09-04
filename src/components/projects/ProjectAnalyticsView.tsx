@@ -71,12 +71,12 @@ export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewPr
                     </span>
                 </div>
                 <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
-                    <span className="eyebrow">SLA Incidents</span>
+                    <span className="eyebrow">Overdue Alerts</span>
                     <span className={`text-2xl font-bold tracking-tight tabular-nums ${incidents.length > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"}`}>
                         {incidents.length}
                     </span>
                     <span className="text-[9px] text-[var(--app-muted)]">
-                        active incidents
+                        delayed tasks
                     </span>
                 </div>
                 <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
@@ -85,7 +85,7 @@ export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewPr
                         {reworkRate}%
                     </span>
                     <span className="text-[9px] text-[var(--app-muted)]">
-                        {reworkRate}% tasks reworked
+                        carry-over tasks
                     </span>
                 </div>
             </div>
@@ -172,10 +172,10 @@ export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewPr
                 <div className="relative bg-[var(--app-card)] border border-[var(--app-border)] corner-brackets rounded-[2px] p-4 flex flex-col gap-3">
                     <div>
                         <h2 className="text-[13px] font-semibold text-[var(--color-error)]">
-                            ▪ Need Attention — Incidents
+                            ▪ Need Attention — Delayed Tasks
                         </h2>
                         <p className="text-base text-[var(--app-muted)] mt-0.5">
-                            Tasks exceeding SLA thresholds requiring leader action.
+                            Tasks past their deadline requiring leader attention.
                         </p>
                     </div>
 

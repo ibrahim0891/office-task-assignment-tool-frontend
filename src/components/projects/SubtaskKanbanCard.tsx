@@ -13,9 +13,11 @@ import {
     MessageSquare,
     CheckSquare,
     Paperclip,
+    Check,
 } from "lucide-react";
 import { UserAvatar } from "../ui/UserAvatar";
 import { canModifySubtask } from "../../utils/projectPermissions";
+import { calculateDaySpan } from "../../utils/date";
 
 function getInitials(name: string) {
     if (!name) return "";
@@ -335,15 +337,23 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                                 </div>
                             )}
 
-                            {subtask.estimatedDays > 0 && (
+                            {subtask.isCompleted ? (
+                                <span
+                                    className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--color-success,#16A34A)] bg-[var(--color-success,#16A34A)]/10 px-1 py-0.2 rounded-[1px] tabular-nums"
+                                    title={`Completed in ${subtask.actualDays || calculateDaySpan(subtask.createdAt || subtask.startDate, subtask.completedAt || subtask.updatedAt || new Date())} day(s) from creation date`}
+                                >
+                                    <Check className="w-2.5 h-2.5 shrink-0" />
+                                    <span>{subtask.actualDays || calculateDaySpan(subtask.createdAt || subtask.startDate, subtask.completedAt || subtask.updatedAt || new Date())}d actual</span>
+                                </span>
+                            ) : ((subtask.estimatedDays > 0) || (subtask.startDate && subtask.dueDate)) ? (
                                 <span
                                     className="inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums"
-                                    title={`Estimated days: ${subtask.estimatedDays}d`}
+                                    title={`Estimated days: ${subtask.estimatedDays || calculateDaySpan(subtask.startDate, subtask.dueDate)}d`}
                                 >
                                     <Clock className="w-3 h-3 shrink-0" />
-                                    <span>{subtask.estimatedDays}d</span>
+                                    <span>{subtask.estimatedDays || calculateDaySpan(subtask.startDate, subtask.dueDate)}d</span>
                                 </span>
-                            )}
+                            ) : null}
 
                             {subtask.dueDate && (
                                 <span

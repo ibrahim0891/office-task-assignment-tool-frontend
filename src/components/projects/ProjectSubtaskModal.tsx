@@ -38,6 +38,7 @@ import { TipTapEditor } from "../ui/TipTapEditor";
 import ModalWrapper from "../ui/ModalWrapper";
 import { triggerMicroCelebration } from "../../utils/confetti";
 import { playFeedback } from "../../utils/feedback";
+import { calculateDaySpan, formatDaySpan, calculateActualDays } from "../../utils/date";
 
 // 30% Image Compression helper (75% quality with dimension constraining)
 const compressImage30Percent = (file: File): Promise<string> => {
@@ -311,11 +312,20 @@ export default function ProjectSubtaskModal({
             setPriority(subtask.priority || "MEDIUM");
             setAssignedToId(subtask.assignedToId || subtask.assignedTo?.id || "");
             setColumnId(subtask.columnId || columns[0]?.id || "");
-            setStartDate(toYMD(subtask.startDate) || toYMD(parentTask?.startDate) || toYMD(new Date()));
-            setDueDate(toYMD(subtask.dueDate) || toYMD(parentTask?.dueDate) || toYMD(new Date()));
-            setEstimatedDays(Number(subtask.estimatedDays) || 1);
-            setActualDays(Number(subtask.actualDays) || 0);
-            setIsCompleted(Boolean(subtask.isCompleted));
+            const sDate = toYMD(subtask.startDate) || toYMD(parentTask?.startDate) || toYMD(new Date());
+            const dDate = toYMD(subtask.dueDate) || toYMD(parentTask?.dueDate) || toYMD(new Date());
+            setStartDate(sDate);
+            setDueDate(dDate);
+            setEstimatedDays(Number(subtask.estimatedDays) || calculateDaySpan(sDate, dDate));
+            const isComp = Boolean(subtask.isCompleted);
+            setIsCompleted(isComp);
+            if (isComp) {
+                const creationDate = subtask.createdAt || subtask.startDate || sDate;
+                const completionDate = subtask.completedAt || subtask.updatedAt || new Date();
+                setActualDays(Number(subtask.actualDays) || calculateDaySpan(creationDate, completionDate));
+            } else {
+                setActualDays(Number(subtask.actualDays) || 0);
+            }
 
             // Populate initial comments from subtask object if available
             if (Array.isArray(subtask.comments) && subtask.comments.length > 0) {
@@ -375,9 +385,11 @@ export default function ProjectSubtaskModal({
             );
             const targetColId = matchedCol?.id || columns[0]?.id || "";
             setColumnId(targetColId);
-            setStartDate(toYMD(parentTask?.startDate) || toYMD(new Date()));
-            setDueDate(toYMD(parentTask?.dueDate) || toYMD(new Date()));
-            setEstimatedDays(1);
+            const sDate = toYMD(parentTask?.startDate) || toYMD(new Date());
+            const dDate = toYMD(parentTask?.dueDate) || toYMD(new Date());
+            setStartDate(sDate);
+            setDueDate(dDate);
+            setEstimatedDays(calculateDaySpan(sDate, dDate));
             setActualDays(0);
             setIsCompleted(
                 Boolean(matchedCol?.isComplete) ||
@@ -592,6 +604,12 @@ export default function ProjectSubtaskModal({
             targetAssigneeId = currentUser?.id || "";
         }
 
+        let finalActualDays = actualDays;
+        if (isCompleted && (!finalActualDays || finalActualDays === 0)) {
+            const creationDate = subtask?.createdAt || subtask?.startDate || startDate || new Date();
+            finalActualDays = calculateDaySpan(creationDate, new Date());
+        }
+
         const subtaskPayload: any = {
             title: title.trim(),
             description: description.trim(),
@@ -601,8 +619,9 @@ export default function ProjectSubtaskModal({
             startDate,
             dueDate,
             estimatedDays,
-            actualDays,
+            actualDays: isCompleted ? finalActualDays : 0,
             isCompleted,
+            completedAt: isCompleted ? (subtask?.completedAt || new Date().toISOString()) : null,
             attachments,
         };
 
@@ -850,8 +869,13 @@ export default function ProjectSubtaskModal({
         const nextState = !isCompleted;
         setIsCompleted(nextState);
         if (nextState) {
+            const creationDate = subtask?.createdAt || subtask?.startDate || startDate || new Date();
+            const computedActual = calculateDaySpan(creationDate, new Date());
+            setActualDays(computedActual);
             triggerMicroCelebration({ intensity: "subtle" });
             playFeedback();
+        } else {
+            setActualDays(0);
         }
     };
 
@@ -938,8 +962,12 @@ export default function ProjectSubtaskModal({
                                         const selectedCol = columns.find((c) => c.id === newColId);
                                         if (selectedCol?.isComplete) {
                                             setIsCompleted(true);
+                                            const creationDate = subtask?.createdAt || subtask?.startDate || startDate || new Date();
+                                            const computedActual = calculateDaySpan(creationDate, new Date());
+                                            setActualDays(computedActual);
                                         } else if (isCompleted && selectedCol && !selectedCol.isComplete) {
                                             setIsCompleted(false);
+                                            setActualDays(0);
                                         }
                                     }}
                                     buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
@@ -956,22 +984,28 @@ export default function ProjectSubtaskModal({
                                 options={priorityOptions}
                                 value={priority}
                                 disabled={!canModifyThisSubtask}
-                                onChange={setPriority}
+                                onChange={(val) => setPriority(val)}
                                 buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
                             />
                         </div>
 
                         {/* Assignee */}
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-[11px] font-medium text-[var(--app-text)]">
-                                Assigned Member
+                            <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center justify-between">
+                                <span>Assigned Member</span>
+                                {!canManageTasks && (
+                                    <span className="text-[9px] text-[var(--app-muted)] italic font-normal">
+                                        (Self-assignment)
+                                    </span>
+                                )}
                             </label>
                             {canManageTasks ? (
                                 <CustomSelect
                                     options={assigneeOptions}
                                     value={assignedToId}
                                     disabled={!canModifyThisSubtask}
-                                    onChange={setAssignedToId}
+                                    onChange={(val) => setAssignedToId(val)}
+                                    placeholder="Select assignee..."
                                     buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
                                 />
                             ) : (
@@ -993,7 +1027,12 @@ export default function ProjectSubtaskModal({
                                 </label>
                                 <CustomDatePicker
                                     value={startDate}
-                                    onChange={setStartDate}
+                                    onChange={(val) => {
+                                        setStartDate(val);
+                                        if (val && dueDate) {
+                                            setEstimatedDays(calculateDaySpan(val, dueDate));
+                                        }
+                                    }}
                                     disabled={!canModifyThisSubtask}
                                     className="w-full text-xs"
                                 />
@@ -1006,51 +1045,76 @@ export default function ProjectSubtaskModal({
                                 </label>
                                 <CustomDatePicker
                                     value={dueDate}
-                                    onChange={setDueDate}
+                                    onChange={(val) => {
+                                        setDueDate(val);
+                                        if (startDate && val) {
+                                            setEstimatedDays(calculateDaySpan(startDate, val));
+                                        }
+                                    }}
                                     disabled={!canModifyThisSubtask}
                                     className="w-full text-xs"
                                 />
                             </div>
                         </div>
 
-                        {/* Estimated Days & Actual Days */}
+                        {/* Computed Duration Metrics (View-Only / Read-Only) */}
                         <div className="grid grid-cols-2 gap-2.5">
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center gap-1">
-                                    <Clock className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>Est. Days</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    min="0.25"
-                                    step="0.25"
-                                    value={estimatedDays}
-                                    disabled={!canModifyThisSubtask}
-                                    readOnly={!canModifyThisSubtask}
-                                    onChange={(e) => setEstimatedDays(Number(e.target.value) || 1)}
-                                    className={`px-2.5 py-1.5 text-xs bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)] ${
-                                        !canModifyThisSubtask ? "opacity-60 cursor-not-allowed bg-[var(--app-hover-bg)]" : ""
-                                    }`}
-                                />
+                            {/* Estimated Duration Card */}
+                            <div className="flex flex-col gap-1 p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px]">
+                                <div className="flex items-center justify-between text-[10.5px]">
+                                    <span className="text-[var(--app-muted)] flex items-center gap-1 font-medium">
+                                        <Clock className="w-3 h-3 text-[var(--app-muted)]" />
+                                        <span>Est. Duration</span>
+                                    </span>
+                                    <span className="text-[8.5px] font-mono uppercase tracking-wider text-[var(--app-muted)] bg-[var(--app-card)] px-1 py-0.2 rounded-[1px] border border-[var(--app-border)]">
+                                        Calculated
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline gap-1 mt-0.5">
+                                    <span className="text-sm font-bold text-[var(--app-text)] tabular-nums">
+                                        {formatDaySpan(calculateDaySpan(startDate, dueDate))}
+                                    </span>
+                                </div>
+                                <span className="text-[9px] text-[var(--app-muted)] truncate" title="Calendar day count from Start Date to Due Date">
+                                    Start → Due date span
+                                </span>
                             </div>
 
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center gap-1">
-                                    <Clock className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>Actual Days</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="0.25"
-                                    value={actualDays}
-                                    disabled={!canModifyThisSubtask}
-                                    readOnly={!canModifyThisSubtask}
-                                    onChange={(e) => setActualDays(Number(e.target.value) || 0)}
-                                    className={`px-2.5 py-1.5 text-xs bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)] ${
-                                        !canModifyThisSubtask ? "opacity-60 cursor-not-allowed bg-[var(--app-hover-bg)]" : ""
-                                    }`}
-                                />
+                            {/* Actual Duration Card */}
+                            <div className={`flex flex-col gap-1 p-2.5 rounded-[2px] border ${
+                                isCompleted
+                                    ? "bg-[var(--color-success,#16A34A)]/5 border-[var(--color-success,#16A34A)]/20"
+                                    : "bg-[var(--app-bg)] border-[var(--app-border)]"
+                            }`}>
+                                <div className="flex items-center justify-between text-[10.5px]">
+                                    <span className="text-[var(--app-muted)] flex items-center gap-1 font-medium">
+                                        {isCompleted ? (
+                                            <CheckCircle2 className="w-3 h-3 text-[var(--color-success,#16A34A)]" />
+                                        ) : (
+                                            <Clock className="w-3 h-3 text-[var(--app-muted)]" />
+                                        )}
+                                        <span>Actual Duration</span>
+                                    </span>
+                                    <span className={`text-[8.5px] font-mono uppercase tracking-wider px-1 py-0.2 rounded-[1px] font-medium border ${
+                                        isCompleted
+                                            ? "bg-[var(--color-success,#16A34A)]/10 text-[var(--color-success,#16A34A)] border-[var(--color-success,#16A34A)]/20"
+                                            : "bg-[var(--app-card)] text-[var(--app-muted)] border-[var(--app-border)]"
+                                    }`}>
+                                        {isCompleted ? "Completed" : "In Progress"}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline gap-1 mt-0.5">
+                                    <span className={`text-sm font-bold tabular-nums ${
+                                        isCompleted ? "text-[var(--color-success,#16A34A)]" : "text-[var(--app-muted)]"
+                                    }`}>
+                                        {isCompleted
+                                            ? formatDaySpan(actualDays || calculateDaySpan(subtask?.createdAt || subtask?.startDate || startDate, subtask?.completedAt || new Date()))
+                                            : "—"}
+                                    </span>
+                                </div>
+                                <span className="text-[9px] text-[var(--app-muted)] truncate" title="Day count from Creation date to Completion date">
+                                    {isCompleted ? "Creation → Completion" : "Logged upon completion"}
+                                </span>
                             </div>
                         </div>
 

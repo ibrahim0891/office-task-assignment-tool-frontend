@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { Calendar } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 import { api } from "../../api";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { EmojiPicker } from "../ui/EmojiPicker";
 import { Button } from "../ui/Button";
-import { extractDateString } from "../../utils/date";
+import { extractDateString, calculateDaySpan, formatDaySpan } from "../../utils/date";
 
 interface EditProjectModalProps {
     isOpen: boolean;
@@ -143,37 +143,45 @@ export default function EditProjectModal({
                         />
                     </div>
 
-                    {/* Timeline Dates */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="flex flex-col gap-1.5">
+                    {/* Timeline Dates with Estimated Day Count */}
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
                             <label className="eyebrow flex items-center gap-1">
                                 <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                                <span>Start Date</span>
+                                <span>Project Timeline</span>
                             </label>
-                            <CustomDatePicker
-                                value={startDate}
-                                onChange={setStartDate}
-                                disabled={isSubmitting}
-                                placeholder="Select start date..."
-                                className="w-full"
-                                buttonClassName="h-[36px] text-xs px-3"
-                            />
+                            {startDate && endDate && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--app-text)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] tabular-nums">
+                                    <Clock className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <span>{formatDaySpan(calculateDaySpan(startDate, endDate))}</span>
+                                </span>
+                            )}
                         </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-[10px] text-[var(--app-muted)]">Start Date</span>
+                                <CustomDatePicker
+                                    value={startDate}
+                                    onChange={setStartDate}
+                                    disabled={isSubmitting}
+                                    placeholder="Select start date..."
+                                    className="w-full"
+                                    buttonClassName="h-[36px] text-xs px-3"
+                                />
+                            </div>
 
-                        <div className="flex flex-col gap-1.5">
-                            <label className="eyebrow flex items-center gap-1">
-                                <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                                <span>Target End Date</span>
-                            </label>
-                            <CustomDatePicker
-                                value={endDate}
-                                onChange={setEndDate}
-                                disabled={isSubmitting}
-                                placeholder="Select end date..."
-                                minDate={startDate}
-                                className="w-full"
-                                buttonClassName="h-[36px] text-xs px-3"
-                            />
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-[10px] text-[var(--app-muted)]">Target End Date</span>
+                                <CustomDatePicker
+                                    value={endDate}
+                                    onChange={setEndDate}
+                                    disabled={isSubmitting}
+                                    placeholder="Select end date..."
+                                    minDate={startDate}
+                                    className="w-full"
+                                    buttonClassName="h-[36px] text-xs px-3"
+                                />
+                            </div>
                         </div>
                     </div>
 

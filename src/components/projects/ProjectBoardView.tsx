@@ -29,7 +29,7 @@ import CreateProjectTaskModal from "./CreateProjectTaskModal";
 import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
 import { calculateTaskProgress } from "../../utils/projectProgress";
 import { getProjectPermissions } from "../../utils/projectPermissions";
-import { getLocalDateString, extractDateString } from "../../utils/date";
+import { getLocalDateString, extractDateString, calculateDaySpan, formatDaySpan } from "../../utils/date";
 
 const PRIORITY_OPTIONS: SelectOption[] = [
     { value: "ALL", label: "All Priorities" },
@@ -88,7 +88,7 @@ function getRiskBadge(riskLevel: string) {
         case "OVERDUE":
         case "Overdue": return { label: "Overdue", cls: "text-[var(--color-error)] bg-[var(--color-error)]/10 border-[var(--color-error)]/20" };
         case "CRITICAL_SLA":
-        case "CriticalSLA": return { label: "SLA Breach", cls: "text-[var(--color-error)] bg-[var(--color-error)]/10 border-[var(--color-error)]/20" };
+        case "CriticalSLA": return { label: "Overdue", cls: "text-[var(--color-error)] bg-[var(--color-error)]/10 border-[var(--color-error)]/20" };
         default: return null;
     }
 }
@@ -287,11 +287,19 @@ function MainTaskGridCard({
                         )}
                     </div>
 
-                    {/* Due Date */}
+                    {/* Due Date & Span */}
                     {task.dueDate && (
-                        <div className="flex items-center gap-1 text-[9.5px] text-[var(--app-muted)] bg-[var(--app-bg)] px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] shrink-0">
+                        <div
+                            className="flex items-center gap-1 text-[9.5px] text-[var(--app-muted)] bg-[var(--app-bg)] px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] shrink-0"
+                            title={task.startDate ? `Timeline: ${new Date(task.startDate).toLocaleDateString()} – ${new Date(task.dueDate).toLocaleDateString()} (${formatDaySpan(calculateDaySpan(task.startDate, task.dueDate))})` : `Due: ${new Date(task.dueDate).toLocaleDateString()}`}
+                        >
                             <Calendar className="w-2.5 h-2.5 text-[var(--app-muted)]" />
                             <span>{new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                            {task.startDate && (
+                                <span className="font-semibold text-[var(--app-text)] ml-0.5">
+                                    • {calculateDaySpan(task.startDate, task.dueDate)}d
+                                </span>
+                            )}
                         </div>
                     )}
                 </div>
@@ -423,12 +431,20 @@ function MainTaskListItem({
                 </div>
             </td>
 
-            {/* Due Date */}
+            {/* Due Date & Span */}
             <td className="py-3 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
                 {task.dueDate ? (
-                    <div className="flex items-center gap-1.5 bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] w-fit">
+                    <div
+                        className="flex items-center gap-1.5 bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] w-fit"
+                        title={task.startDate ? `Timeline: ${new Date(task.startDate).toLocaleDateString()} – ${new Date(task.dueDate).toLocaleDateString()} (${formatDaySpan(calculateDaySpan(task.startDate, task.dueDate))})` : `Due: ${new Date(task.dueDate).toLocaleDateString()}`}
+                    >
                         <Calendar className="w-2.5 h-2.5 text-[var(--app-muted)]" />
                         <span>{new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                        {task.startDate && (
+                            <span className="font-semibold text-[var(--app-text)] ml-0.5">
+                                • {calculateDaySpan(task.startDate, task.dueDate)}d
+                            </span>
+                        )}
                     </div>
                 ) : (
                     <span>—</span>

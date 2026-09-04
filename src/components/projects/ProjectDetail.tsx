@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { 
     ArrowLeft, ArrowRight, LayoutGrid, Users, Calendar, BarChart2, 
     Loader2, Mail, Settings, ChevronLeft, ChevronRight, FolderKanban, 
-    Building2, Shield, ShieldCheck, User, Eye, Edit2 
+    Building2, Shield, ShieldCheck, User, Eye, Edit2, FolderGit2
 } from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
@@ -14,6 +14,7 @@ import ProjectBoardView from "./ProjectBoardView";
 import ProjectMembersView from "./ProjectMembersView";
 import ProjectTimelineView from "./ProjectTimelineView";
 import ProjectAnalyticsView from "./ProjectAnalyticsView";
+import ProjectAssetsView from "./ProjectAssetsView";
 import ProjectSettingsView from "./ProjectSettingsView";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import EditProjectModal from "./EditProjectModal";
@@ -45,13 +46,14 @@ function getStatusConfig(status: string) {
     }
 }
 
-type Tab = "main-board" | "members" | "timeline" | "analytics" | "settings";
+type Tab = "main-board" | "members" | "timeline" | "analytics" | "assets" | "settings";
 
 const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "main-board", label: "Main Tasks", icon: LayoutGrid },
     { id: "members", label: "Members", icon: Users },
     { id: "timeline", label: "Timeline", icon: Calendar },
     { id: "analytics", label: "Analytics", icon: BarChart2 },
+    { id: "assets", label: "Assets & Docs", icon: FolderGit2 },
     { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -61,12 +63,22 @@ export default function ProjectDetail() {
     const { currentTeam, currentUser, userRole, isManageInvitationsOpen, setIsManageInvitationsOpen, projectInvitations } = useWorkspace();
 
     const { project, isLoading, mutate: refreshProject } = useProjectDetail(projectId, currentTeam?.id);
-    const [activeTab, setActiveTab] = useState<Tab>("main-board");
+    const [activeTab, setActiveTab] = useState<Tab>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem(`project-active-tab-${projectId}`);
+            if (saved) return saved as Tab;
+        }
+        return "main-board";
+    });
     const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
 
     const loadProjectDetail = React.useCallback(async () => {
         await refreshProject();
     }, [refreshProject]);
+
+    useEffect(() => {
+        localStorage.setItem(`project-active-tab-${projectId}`, activeTab);
+    }, [activeTab, projectId]);
 
     useEffect(() => {
         const handleProjectDataUpdated = (e: any) => {
@@ -114,6 +126,14 @@ export default function ProjectDetail() {
         return d.toISOString().split("T")[0];
     };
 
+    const calculateDaySpan = (start: any, end: any) => {
+        if (!start || !end) return null;
+        const d1 = new Date(start).getTime();
+        const d2 = new Date(end).getTime();
+        const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+        return diff > 0 ? diff : 1;
+    };
+
     const permissions = getProjectPermissions(project, currentUser, userRole, currentTeam);
     const canManageTasks = permissions.canManageTasks;
     const canManageInvitations = permissions.canManageInvitations;
@@ -131,11 +151,11 @@ export default function ProjectDetail() {
                     {/* Row 1: Primary Project Title + Right Actions */}
                     <div className="flex items-center justify-between gap-4">
                         {/* Left: Project Emoji & Prominent Title */}
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
                             {project.emoji ? (
-                                <span className="text-lg emoji-font shrink-0">{project.emoji}</span>
+                                <span className="text-xl emoji-font shrink-0">{project.emoji}</span>
                             ) : (
-                                <FolderKanban className="w-4 h-4 text-[var(--app-muted)] shrink-0" />
+                                <FolderKanban className="w-5 h-5 text-[var(--app-muted)] shrink-0" />
                             )}
                             <h1
                                 className="font-heading text-lg sm:text-xl font-bold tracking-tight text-[var(--app-text)] truncate max-w-[320px] md:max-w-[500px] lg:max-w-[700px]"
@@ -150,13 +170,18 @@ export default function ProjectDetail() {
                             {/* Project Timeline Date Range */}
                             {(project.startDate || project.endDate) && (
                                 <div
-                                    className="hidden sm:flex items-center gap-1.5 text-[10px] text-[var(--app-muted)] border border-[var(--app-border)] px-2.5 py-1 rounded-[2px] bg-[var(--app-bg)] h-[28px]"
+                                    className="hidden sm:flex items-center gap-1.5 text-xs text-[var(--app-muted)] border border-[var(--app-border)] px-2.5 py-1 rounded-[3px] bg-[var(--app-bg)] h-[30px] font-medium"
                                     title="Project Timeline"
                                 >
-                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                                     <span>{formatDate(project.startDate) || "—"}</span>
-                                    <ArrowRight className="w-2.5 h-2.5 text-[var(--app-muted)]" />
+                                    <ArrowRight className="w-3 h-3 text-[var(--app-muted)]" />
                                     <span>{formatDate(project.endDate) || "—"}</span>
+                                    {project.startDate && project.endDate && (
+                                        <span className="font-bold text-[var(--app-text)] ml-0.5">
+                                            • {calculateDaySpan(project.startDate, project.endDate)}d
+                                        </span>
+                                    )}
                                 </div>
                             )}
 
@@ -291,6 +316,8 @@ export default function ProjectDetail() {
                                     ? (project.tasks?.length ?? 0)
                                     : tab.id === "members"
                                     ? (project.members?.length ?? 0)
+                                    : tab.id === "assets"
+                                    ? (project.metadata?.assets?.length ?? project.assets?.length ?? 0)
                                     : null;
 
                             return (
@@ -341,6 +368,7 @@ export default function ProjectDetail() {
                     {activeTab === "members" && <ProjectMembersView project={project} onRefresh={loadProjectDetail} />}
                     {activeTab === "timeline" && <ProjectTimelineView project={project} />}
                     {activeTab === "analytics" && <ProjectAnalyticsView project={project} />}
+                    {activeTab === "assets" && <ProjectAssetsView project={project} onRefresh={loadProjectDetail} />}
                     {activeTab === "settings" && <ProjectSettingsView project={project} onRefresh={loadProjectDetail} />}
                 </div>
             </div>

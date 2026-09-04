@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Edit3, Users, Calendar, Loader2, Trash2, X, AlertTriangle, Check } from "lucide-react";
+import { Edit3, Users, Calendar, Clock, Loader2, Trash2, X, AlertTriangle, Check } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { CustomSelect } from "../ui/CustomSelect";
@@ -9,6 +9,7 @@ import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { TipTapEditor } from "../ui/TipTapEditor";
 import ModalWrapper from "../ui/ModalWrapper";
 import { UserAvatar } from "../ui/UserAvatar";
+import { calculateDaySpan, formatDaySpan } from "../../utils/date";
 
 interface UpdateProjectTaskModalProps {
     isOpen: boolean;
@@ -158,6 +159,7 @@ export default function UpdateProjectTaskModal({
 
         try {
             setLoading(true);
+            const calculatedEstimatedDays = calculateDaySpan(startDate, dueDate);
             await api.updateProjectTask(project.id, task.id, {
                 title: title.trim(),
                 description: description.trim(),
@@ -166,6 +168,7 @@ export default function UpdateProjectTaskModal({
                 startDate: startDate || undefined,
                 dueDate: dueDate || undefined,
                 priority,
+                estimatedDays: calculatedEstimatedDays,
             });
 
             toast.success("Main task updated successfully!");
@@ -310,13 +313,17 @@ export default function UpdateProjectTaskModal({
                         </div>
                     </div>
 
-                    {/* Start Date & Due Date Grid */}
-                    <div className="flex flex-col gap-1">
+                    {/* Start Date & Due Date Grid with Estimated Day Count */}
+                    <div className="flex flex-col gap-1.5">
                         <div className="flex items-center justify-between">
-                            <label className="eyebrow">Task Dates</label>
-                            {(projMinDate || projMaxDate) && (
-                                <span className="text-[9px] text-[var(--app-muted)]">
-                                    Project bounds: {projMinDate || "Start"} to {projMaxDate || "End"}
+                            <label className="eyebrow flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                <span>Task Dates</span>
+                            </label>
+                            {startDate && dueDate && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--app-text)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] tabular-nums">
+                                    <Clock className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <span>Estimated Span: {formatDaySpan(calculateDaySpan(startDate, dueDate))}</span>
                                 </span>
                             )}
                         </div>
@@ -358,6 +365,11 @@ export default function UpdateProjectTaskModal({
                                 />
                             </div>
                         </div>
+                        {(projMinDate || projMaxDate) && (
+                            <span className="text-[9px] text-[var(--app-muted)] italic">
+                                Project bounds: {projMinDate || "Start"} to {projMaxDate || "End"}
+                            </span>
+                        )}
                     </div>
 
                     {/* Member Multi-Select Dropdown & Selected Chips */}

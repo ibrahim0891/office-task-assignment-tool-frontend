@@ -58,7 +58,7 @@ import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
 import { calculateTaskProgress, isSystemColumn, getStageMeta } from "../../utils/projectProgress";
 import { getProjectPermissions } from "../../utils/projectPermissions";
-import { getLocalDateString, parseLocalDate, extractDateString } from "../../utils/date";
+import { getLocalDateString, parseLocalDate, extractDateString, calculateDaySpan, formatDaySpan } from "../../utils/date";
 
 function getPriorityBadge(priority: string) {
     switch (priority) {
@@ -539,10 +539,21 @@ export default function ProjectTaskDetailPage() {
             playFeedback();
         }
 
+        const draggedSubtask = subtasks.find((s) => s.id === draggableId);
+        let actualDaysPayload = undefined;
+        if (isTargetComplete) {
+            const creationDate = draggedSubtask?.createdAt || draggedSubtask?.startDate || new Date();
+            actualDaysPayload = calculateDaySpan(creationDate, new Date());
+        } else if (draggedSubtask?.isCompleted && !isTargetComplete) {
+            actualDaysPayload = 0;
+        }
+
         try {
             await api.updateProjectSubtask(projectId, taskId, draggableId, {
                 columnId: targetColId,
                 isCompleted: isTargetComplete,
+                actualDays: actualDaysPayload,
+                completedAt: isTargetComplete ? new Date().toISOString() : null,
                 acceptanceStatus: isTargetReview ? "PENDING" : "ACCEPTED",
             });
             toast.success(`Moved to ${targetCol.name}`);
@@ -555,9 +566,11 @@ export default function ProjectTaskDetailPage() {
     // Toggle completion directly from card checkbox
     const handleToggleComplete = async (st: any) => {
         const nextComplete = !st.isCompleted;
+        const creationDate = st.createdAt || st.startDate || new Date();
+        const calculatedActual = nextComplete ? calculateDaySpan(creationDate, new Date()) : 0;
 
         setSubtasks((prev) =>
-            prev.map((s) => (s.id === st.id ? { ...s, isCompleted: nextComplete } : s))
+            prev.map((s) => (s.id === st.id ? { ...s, isCompleted: nextComplete, actualDays: calculatedActual } : s))
         );
 
         if (nextComplete) {
@@ -568,6 +581,8 @@ export default function ProjectTaskDetailPage() {
         try {
             await api.updateProjectSubtask(projectId, taskId, st.id, {
                 isCompleted: nextComplete,
+                actualDays: calculatedActual,
+                completedAt: nextComplete ? new Date().toISOString() : null,
             });
             toast.success(`Subtask marked as ${nextComplete ? "completed" : "incomplete"}`);
             loadProjectDetail();
@@ -608,6 +623,7 @@ export default function ProjectTaskDetailPage() {
             // Update existing column
             await api.updateProjectColumn(projectId, columnModalInitialData.id, {
                 name,
+                type,
                 isComplete,
             });
             toast.success("Column updated");
@@ -810,13 +826,19 @@ export default function ProjectTaskDetailPage() {
                             <strong className="font-medium text-[var(--app-text)]">{task.priority}</strong>
                         </div>
 
-                        {/* Timeline Dates */}
+                        {/* Timeline Dates & Day Count */}
                         {task.startDate && task.dueDate && (
                             <>
                                 <span className="text-[var(--app-border)] select-none">•</span>
-                                <div className="flex items-center gap-1.5 shrink-0" title="Task Timeline">
+                                <div
+                                    className="flex items-center gap-1.5 shrink-0"
+                                    title={`Timeline: ${formatDate(task.startDate)} – ${formatDate(task.dueDate)} (${formatDaySpan(calculateDaySpan(task.startDate, task.dueDate))})`}
+                                >
                                     <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
                                     <span>{formatDate(task.startDate)} → {formatDate(task.dueDate)}</span>
+                                    <span className="font-semibold text-[var(--app-text)] ml-0.5">
+                                        • {calculateDaySpan(task.startDate, task.dueDate)}d
+                                    </span>
                                 </div>
                             </>
                         )}
