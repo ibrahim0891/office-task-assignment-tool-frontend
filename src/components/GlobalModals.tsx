@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { api } from "../api";
 import TaskModal from "./TaskModal";
@@ -12,6 +13,7 @@ import NotificationsTray from "./NotificationsTray";
 import NotificationToasts from "./NotificationToasts";
 
 export default function GlobalModals() {
+    const router = useRouter();
     const {
         currentUser,
         currentTeam,
@@ -60,6 +62,21 @@ export default function GlobalModals() {
     const modalTask = directTask?.id === selectedTaskId ? directTask : activeTask;
 
     const handleSelectTaskFromNotification = async (id: string, initialTab?: "details" | "comments" | "attachments") => {
+        if (!id) return;
+        if (id.startsWith("project:")) {
+            const parts = id.split(":");
+            const projectId = parts[1];
+            const taskId = parts[3];
+            const subtaskId = parts[5];
+            if (projectId && taskId) {
+                const url = `/projects/${projectId}/tasks/${taskId}${subtaskId ? `?subtaskId=${subtaskId}&tab=${initialTab === "comments" ? "comments" : "description"}` : `?tab=${initialTab === "comments" ? "comments" : "description"}`}`;
+                router.push(url);
+                return;
+            } else if (projectId) {
+                router.push(`/projects/${projectId}`);
+                return;
+            }
+        }
         try {
             const updatedTask = await api.getTask(id, currentTeam?.id);
             setDirectTask(updatedTask);

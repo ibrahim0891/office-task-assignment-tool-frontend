@@ -7,6 +7,8 @@ export interface ProjectPermissions {
     canManageTasks: boolean;        // Create/edit main tasks, configure workflow stages/columns
     canCreateSubtask: boolean;      // Create subtasks in main task
     canManageInvitations: boolean;  // Send and manage project invitations
+    userRoleLabel: string;          // "Manager" | "Leader" | "Member" | "Viewer"
+    userRoleDescription: string;    // Human-readable permissions summary
 }
 
 /**
@@ -28,6 +30,8 @@ export function getProjectPermissions(
             canManageTasks: false,
             canCreateSubtask: false,
             canManageInvitations: false,
+            userRoleLabel: "Viewer",
+            userRoleDescription: "View-only access to this project.",
         };
     }
 
@@ -58,6 +62,20 @@ export function getProjectPermissions(
     // Project Member: any valid assigned member or leader
     const isProjectMember = Boolean(currentProjectMember) || isProjectLeader;
 
+    let userRoleLabel = "Viewer";
+    let userRoleDescription = "View-only access to this project.";
+
+    if (isProjectManager) {
+        userRoleLabel = "Manager";
+        userRoleDescription = "Full project management, member management, and task creation rights.";
+    } else if (isProjectLeader) {
+        userRoleLabel = "Leader";
+        userRoleDescription = "Full task management, workflow customization, and member invitation rights.";
+    } else if (isProjectMember) {
+        userRoleLabel = "Member";
+        userRoleDescription = "Can collaborate on tasks and create/manage subtasks.";
+    }
+
     return {
         isWorkspaceLeader,
         isProjectManager,
@@ -67,6 +85,8 @@ export function getProjectPermissions(
         canManageTasks: isProjectLeader,
         canCreateSubtask: isProjectMember,
         canManageInvitations: isProjectLeader,
+        userRoleLabel,
+        userRoleDescription,
     };
 }
 

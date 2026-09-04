@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Notification } from "../api";
 import { Archive, Trash2, CheckCircle2, Clock, Loader2, Infinity as InfinityIcon } from "lucide-react";
+import { useWorkspace } from "../context/WorkspaceContext";
 
 interface NotificationsTrayProps {
     isOpen: boolean;
@@ -31,6 +33,8 @@ export default function NotificationsTray({
     isLoadingMore,
     onLoadMore,
 }: NotificationsTrayProps) {
+    const router = useRouter();
+    const { setIsManageInvitationsOpen, setIsManageFoldersOpen } = useWorkspace();
     const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
     const [shouldRender, setShouldRender] = useState(isOpen);
     const [isAnimatingOut, setIsAnimatingOut] = useState(false);
@@ -76,16 +80,58 @@ export default function NotificationsTray({
     };
 
     const getTypeBadge = (type: string) => {
+        if (type === "PROJECT_INVITATION" || type === "PROJECT_INVITATION_ACCEPTED") {
+            return "text-[#7C3AED] border-[#7C3AED]/20 bg-[#7C3AED]/10";
+        }
+        if (type.includes("PROJECT") && type.includes("COMMENT")) {
+            return "text-[#7C3AED] border-[#7C3AED]/20 bg-[#7C3AED]/10";
+        }
         switch (type) {
             case "NEED_ATTENTION":
                 return "text-[#CB2431] border-[#CB2431]/20";
             case "COMMENT_MENTION":
                 return "text-[#B08800] border-[#B08800]/20";
-            case "PROJECT_INVITATION":
-                return "text-[#7C3AED] border-[#7C3AED]/20 bg-[#7C3AED]/10";
             default:
                 return "text-[#1A1A1A] border-[#E5E5E3]";
         }
+    };
+
+    const handleItemClick = (n: Notification) => {
+        const type = getNotificationType(n);
+        if (type === "PROJECT_INVITATION" || type === "PROJECT_INVITATION_ACCEPTED") {
+            router.push("/projects");
+            if (setIsManageFoldersOpen) setIsManageFoldersOpen(false);
+            if (setIsManageInvitationsOpen) setIsManageInvitationsOpen(true);
+            onClose();
+            if (!n.isRead) onMarkRead(n.id);
+            return;
+        }
+
+        const rawTaskId = n.taskId || "";
+        if (rawTaskId.startsWith("project:")) {
+            const parts = rawTaskId.split(":");
+            const projectId = parts[1];
+            const taskId = parts[3];
+            const subtaskId = parts[5];
+
+            if (projectId && taskId) {
+                const url = `/projects/${projectId}/tasks/${taskId}${subtaskId ? `?subtaskId=${subtaskId}&tab=comments` : `?tab=comments`}`;
+                router.push(url);
+                onClose();
+                if (!n.isRead) onMarkRead(n.id);
+                return;
+            } else if (projectId) {
+                router.push(`/projects/${projectId}`);
+                onClose();
+                if (!n.isRead) onMarkRead(n.id);
+                return;
+            }
+        }
+
+        if (n.taskId) {
+            onSelectTask(n.taskId, n.type === "COMMENT_MENTION" || n.type.includes("COMMENT") ? "comments" : "details");
+        }
+        if (!n.isRead) onMarkRead(n.id);
     };
 
     const currentList =
@@ -225,12 +271,7 @@ export default function NotificationsTray({
                         currentList.map((n) => (
                             <div
                                 key={n.id}
-                                onClick={() => {
-                                    if (n.taskId) {
-                                        onSelectTask(n.taskId, n.type === "COMMENT_MENTION" ? "comments" : "details");
-                                    }
-                                    if (!n.isRead) onMarkRead(n.id);
-                                }}
+                                onClick={() => handleItemClick(n)}
                                 className={`p-3 border transition-colors text-left cursor-pointer relative group ${n.isRead || activeTab === "archived"
                                     ? "bg-[#FAFAF9] border-[#E5E5E3] text-[#888883]"
                                     : "bg-white border-[#E5E5E3] hover:border-[#DADAD6] text-[#1A1A1A]"

@@ -204,3 +204,38 @@ export const mutateProjectInvitations = (teamId?: string) => {
         return globalMutate(key);
     }
 };
+
+export const revalidateAllProjects = () => {
+    return globalMutate((key) => {
+        if (Array.isArray(key)) {
+            const first = key[0];
+            return (
+                first === "projects" ||
+                first === "portfolio-summary" ||
+                first === "project-detail" ||
+                first === "project-analytics" ||
+                first === "project-invitations" ||
+                first === "sent-project-invitations"
+            );
+        }
+        return false;
+    });
+};
+
+export const revalidateProjectDetail = (projectId?: string) => {
+    return globalMutate((key) => {
+        if (Array.isArray(key)) {
+            if (key[0] === "project-detail") {
+                if (!projectId || key[1] === projectId) return true;
+            }
+            if (
+                key[0] === "projects" ||
+                key[0] === "portfolio-summary" ||
+                key[0] === "project-analytics"
+            ) {
+                return true;
+            }
+        }
+        return false;
+    });
+};

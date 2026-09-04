@@ -169,7 +169,7 @@ export function CustomSelect({
                                 : "auto",
                             minWidth: `${coords.width}px`,
                             maxWidth: "280px",
-                            zIndex: 99999,
+                            zIndex: 1000000,
                             boxShadow: "var(--shadow-float)",
                         }}
                         className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-1 flex flex-col gap-1 animate-fade-in text-left select-none text-[var(--app-text)] corner-brackets shadow-2xl"

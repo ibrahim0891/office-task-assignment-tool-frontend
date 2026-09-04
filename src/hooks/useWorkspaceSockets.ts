@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { io } from "socket.io-client";
 import { api, User, Team, Task, Notification } from "../api";
 import { APP_CONFIG } from "../config/appConfig";
+import { revalidateProjectDetail, revalidateAllProjects } from "./useProjectSWR";
 
 const clientId = typeof window !== "undefined"
     ? Math.random().toString(36).substring(2) + Date.now().toString(36)
@@ -104,11 +105,41 @@ export function useWorkspaceSockets(
 
         socket.on("project_updated", (data: any) => {
             console.log("[Socket Client] Received project_updated:", data);
+            if (data?.projectId) {
+                revalidateProjectDetail(data.projectId);
+            } else {
+                revalidateAllProjects();
+            }
             if (loadProjects) {
                 loadProjects();
             }
             if (loadProjectInvitations) {
                 loadProjectInvitations();
+            }
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("project_data_updated", { detail: data }));
+            }
+        });
+
+        socket.on("project_created", (data: any) => {
+            console.log("[Socket Client] Received project_created:", data);
+            revalidateAllProjects();
+            if (loadProjects) {
+                loadProjects();
+            }
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("project_data_updated", { detail: data }));
+            }
+        });
+
+        socket.on("project_deleted", (data: any) => {
+            console.log("[Socket Client] Received project_deleted:", data);
+            revalidateAllProjects();
+            if (loadProjects) {
+                loadProjects();
+            }
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("project_data_updated", { detail: data }));
             }
         });
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import {
     DragDropContext,
@@ -14,6 +14,7 @@ import {
     ArrowLeft,
     CheckCircle2,
     Calendar,
+    CalendarRange,
     Clock,
     User,
     AlertTriangle,
@@ -32,6 +33,13 @@ import {
     MoreHorizontal,
     CheckSquare,
     GripVertical,
+    Filter,
+    X,
+    SlidersHorizontal,
+    Search,
+    ShieldCheck,
+    Shield,
+    Eye,
 } from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
@@ -40,10 +48,12 @@ import { playFeedback } from "../../utils/feedback";
 import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
 import ProjectColumnModal from "./ProjectColumnModal";
 import ProjectSubtaskModal from "./ProjectSubtaskModal";
+import TaskFilterModal from "./TaskFilterModal";
 import { useProjectDetail } from "../../hooks/useProjectSWR";
 import { SubtaskKanbanCard } from "./SubtaskKanbanCard";
 import ProjectSubtaskDetailSkeleton from "./ProjectSubtaskDetailSkeleton";
 import { UserAvatar } from "../ui/UserAvatar";
+import { Button } from "../ui/Button";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
 import { calculateTaskProgress, isSystemColumn, getStageMeta } from "../../utils/projectProgress";
@@ -83,6 +93,7 @@ const DEFAULT_SUBTASK_COLUMNS: ColumnDef[] = [
 
 export default function ProjectTaskDetailPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const params = useParams();
     const projectId = params.id as string;
     const taskId = params.taskId as string;
@@ -108,6 +119,22 @@ export default function ProjectTaskDetailPage() {
     const [isSubtaskModalOpen, setIsSubtaskModalOpen] = useState(false);
     const [subtaskModalData, setSubtaskModalData] = useState<any | null>(null);
     const [subtaskModalInitialColStatus, setSubtaskModalInitialColStatus] = useState("Backlog");
+    const [subtaskModalInitialTab, setSubtaskModalInitialTab] = useState<"description" | "comments" | "activity" | "attachments">("description");
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
+    const subtaskIdParam = searchParams?.get("subtaskId") || searchParams?.get("subtask");
+    const tabParam = searchParams?.get("tab");
+
+    // Automatically open subtask modal with comment tab when directed from notification/URL
+    useEffect(() => {
+        if (!subtaskIdParam || !task?.subtasks || task.subtasks.length === 0) return;
+        const targetSubtask = task.subtasks.find((s: any) => s.id === subtaskIdParam);
+        if (targetSubtask) {
+            setSubtaskModalData(targetSubtask);
+            setSubtaskModalInitialTab(tabParam === "comments" ? "comments" : "description");
+            setIsSubtaskModalOpen(true);
+        }
+    }, [subtaskIdParam, tabParam, task?.subtasks]);
 
     // Filters
     const [memberFilter, setMemberFilter] = useState<string>("");
@@ -126,41 +153,20 @@ export default function ProjectTaskDetailPage() {
         return todayStr;
     };
 
-    const [dateFilterMode, setDateFilterMode] = useState<"all" | "day">("day");
-    const [selectedDate, setSelectedDate] = useState<string>(getInitialDate);
+    const [dateFilterMode, setDateFilterMode] = useState<"all" | "today" | "range">("all");
+    const [rangeStartDate, setRangeStartDate] = useState<string>(() => taskStartDate || todayStr);
+    const [rangeEndDate, setRangeEndDate] = useState<string>(() => taskDueDate || todayStr);
+    const [priorityFilter, setPriorityFilter] = useState<string>("");
+    const [searchQuery, setSearchQuery] = useState<string>("");
 
     useEffect(() => {
-        if (selectedDate) {
-            if (taskStartDate && selectedDate < taskStartDate) {
-                setSelectedDate(taskStartDate);
-            } else if (taskDueDate && selectedDate > taskDueDate) {
-                setSelectedDate(taskDueDate);
-            }
-        } else {
-            setSelectedDate(getInitialDate());
+        if (taskStartDate && !rangeStartDate) {
+            setRangeStartDate(taskStartDate);
+        }
+        if (taskDueDate && !rangeEndDate) {
+            setRangeEndDate(taskDueDate);
         }
     }, [taskStartDate, taskDueDate]);
-
-    const handlePrevDay = () => {
-        if (!selectedDate) return;
-        const d = parseLocalDate(selectedDate);
-        d.setDate(d.getDate() - 1);
-        const prevStr = getLocalDateString(d);
-        if (taskStartDate && prevStr < taskStartDate) return;
-        setSelectedDate(prevStr);
-    };
-
-    const handleNextDay = () => {
-        if (!selectedDate) return;
-        const d = parseLocalDate(selectedDate);
-        d.setDate(d.getDate() + 1);
-        const nextStr = getLocalDateString(d);
-        if (taskDueDate && nextStr > taskDueDate) return;
-        setSelectedDate(nextStr);
-    };
-
-    const isPrevDisabled = Boolean(taskStartDate && selectedDate <= taskStartDate);
-    const isNextDisabled = Boolean(taskDueDate && selectedDate >= taskDueDate);
 
     const isSubtaskActiveOnDate = (st: any, dateStr: string) => {
         if (!dateStr) return true;
@@ -181,6 +187,76 @@ export default function ProjectTaskDetailPage() {
         }
         // If no dates specified on subtask, show it
         return true;
+    };
+
+    const isSubtaskActiveInRange = (st: any, startRange: string, endRange: string) => {
+        if (!startRange && !endRange) return true;
+        const stStart = extractDateString(st.startDate);
+        const stDue = extractDateString(st.dueDate);
+
+        // Subtask has both start and due dates
+        if (stStart && stDue) {
+            if (startRange && endRange) {
+                return stStart <= endRange && stDue >= startRange;
+            }
+            if (startRange) return stDue >= startRange;
+            if (endRange) return stStart <= endRange;
+        }
+
+        // Subtask only has due date
+        if (stDue) {
+            if (startRange && endRange) {
+                return stDue >= startRange && stDue <= endRange;
+            }
+            if (startRange) return stDue >= startRange;
+            if (endRange) return stDue <= endRange;
+        }
+
+        // Subtask only has start date
+        if (stStart) {
+            if (startRange && endRange) {
+                return stStart >= startRange && stStart <= endRange;
+            }
+            if (startRange) return stStart >= startRange;
+            if (endRange) return stStart <= endRange;
+        }
+
+        // If no dates set on subtask, include it
+        return true;
+    };
+
+    const handleSetRangePreset = (preset: "task" | "week" | "7days" | "month" | "30days" | "project") => {
+        const today = new Date();
+        const todayFormatted = getLocalDateString(today);
+
+        if (preset === "task" || preset === "project") {
+            setRangeStartDate(taskStartDate || todayFormatted);
+            setRangeEndDate(taskDueDate || todayFormatted);
+        } else if (preset === "week") {
+            const currentDay = today.getDay();
+            const diffToMonday = (currentDay === 0 ? -6 : 1) - currentDay;
+            const monday = new Date(today);
+            monday.setDate(today.getDate() + diffToMonday);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            setRangeStartDate(getLocalDateString(monday));
+            setRangeEndDate(getLocalDateString(sunday));
+        } else if (preset === "7days") {
+            const next7 = new Date(today);
+            next7.setDate(today.getDate() + 6);
+            setRangeStartDate(todayFormatted);
+            setRangeEndDate(getLocalDateString(next7));
+        } else if (preset === "30days") {
+            const next30 = new Date(today);
+            next30.setDate(today.getDate() + 29);
+            setRangeStartDate(todayFormatted);
+            setRangeEndDate(getLocalDateString(next30));
+        } else if (preset === "month") {
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            setRangeStartDate(getLocalDateString(firstDay));
+            setRangeEndDate(getLocalDateString(lastDay));
+        }
     };
 
     const permissions = getProjectPermissions(project, currentUser, userRole, currentTeam);
@@ -284,6 +360,17 @@ export default function ProjectTaskDetailPage() {
         await refreshProject();
     }, [refreshProject]);
 
+    useEffect(() => {
+        const handleProjectDataUpdated = (e: any) => {
+            const detail = e.detail;
+            if (!detail || !detail.projectId || detail.projectId === projectId) {
+                refreshProject();
+            }
+        };
+        window.addEventListener("project_data_updated", handleProjectDataUpdated);
+        return () => window.removeEventListener("project_data_updated", handleProjectDataUpdated);
+    }, [projectId, refreshProject]);
+
     const [localColumns, setLocalColumns] = useState<ColumnDef[]>([]);
 
     useEffect(() => {
@@ -325,17 +412,58 @@ export default function ProjectTaskDetailPage() {
         return columns[0]?.id || "col-todo";
     };
 
-    // Filter subtasks by member and date if selected
+    const priorityOptions: SelectOption[] = [
+        { value: "", label: "All Priorities" },
+        { value: "URGENT", label: "Urgent" },
+        { value: "HIGH", label: "High" },
+        { value: "MEDIUM", label: "Medium" },
+        { value: "LOW", label: "Low" },
+    ];
+
+    // Filter subtasks by search query, member, priority, and date (day or range)
     const filteredSubtasks = subtasks.filter((st) => {
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            const titleMatch = (st.title || "").toLowerCase().includes(query);
+            const descMatch = (st.description || "").toLowerCase().includes(query);
+            if (!titleMatch && !descMatch) return false;
+        }
         if (memberFilter) {
             const assigneeId = st.assignedToId || st.assignedTo?.id;
             if (assigneeId !== memberFilter) return false;
         }
-        if (dateFilterMode === "day") {
-            if (!isSubtaskActiveOnDate(st, selectedDate)) return false;
+        if (priorityFilter) {
+            const stPriority = (st.priority || "MEDIUM").toUpperCase();
+            if (stPriority !== priorityFilter.toUpperCase()) return false;
+        }
+        if (dateFilterMode === "today") {
+            if (!isSubtaskActiveOnDate(st, todayStr)) return false;
+        } else if (dateFilterMode === "range") {
+            if (!isSubtaskActiveInRange(st, rangeStartDate, rangeEndDate)) return false;
         }
         return true;
     });
+
+    const todaySubtasksCount = React.useMemo(() => {
+        return subtasks.filter((st: any) => isSubtaskActiveOnDate(st, todayStr)).length;
+    }, [subtasks, todayStr]);
+
+    const modalFilterActiveCount =
+        (dateFilterMode === "range" ? 1 : 0) +
+        (priorityFilter ? 1 : 0);
+
+    const activeFilterCount =
+        (dateFilterMode !== "all" ? 1 : 0) +
+        (memberFilter ? 1 : 0) +
+        (priorityFilter ? 1 : 0) +
+        (searchQuery.trim() !== "" ? 1 : 0);
+
+    const handleClearAllFilters = () => {
+        setDateFilterMode("all");
+        setMemberFilter("");
+        setPriorityFilter("");
+        setSearchQuery("");
+    };
 
     // Drag and drop handler with @hello-pangea/dnd (Supports both subtasks and horizontal columns)
     const handleDragEnd = async (result: DropResult) => {
@@ -576,104 +704,27 @@ export default function ProjectTaskDetailPage() {
     return (
         <div className="flex-1 flex flex-col min-h-0 bg-[var(--app-bg)] text-[var(--app-text)]">
             {/* Top Navigation & Task Meta Header */}
-            <div className="shrink-0 px-5 py-3.5 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-col gap-3">
-                {/* Breadcrumbs */}
-                <div className="flex items-center gap-1.5 text-[11px] text-[var(--app-muted)]">
-                    <Link href="/projects" className="hover:text-[var(--app-text)] transition-colors">
-                        Projects
-                    </Link>
-                    <ChevronRight className="w-3 h-3 text-[var(--app-muted)]" />
-                    <Link
-                        href={`/projects/${project.id}`}
-                        className="hover:text-[var(--app-text)] transition-colors truncate max-w-[180px]"
-                    >
-                        {project.title || project.name}
-                    </Link>
-                    <ChevronRight className="w-3 h-3 text-[var(--app-muted)]" />
-                    <span className="font-medium text-[var(--app-text)] truncate max-w-[220px]">
-                        {task.title}
-                    </span>
-                </div>
-
-                {/* Task Identity & Context Group */}
-                <div className="flex flex-col gap-2">
-                    {/* Task Title Row (Left: Back + Title; Right: Priority + Edit Task) */}
-                    <div className="flex items-center justify-between gap-3 min-w-0">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <Link
-                                href={`/projects/${project.id}`}
-                                className="p-1.5 border border-[var(--app-border)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] rounded-[2px] transition-colors shrink-0"
-                                title="Back to Project Board"
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                            </Link>
-                            <h1 className="text-lg font-semibold tracking-tight text-[var(--app-text)] truncate">
-                                {task.title}
-                            </h1>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                            {(task.riskLevel === "AT_RISK" || task.riskLevel === "AtRisk") && (
-                                <span className="text-[9px] text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1 shrink-0">
-                                    <AlertTriangle className="w-2.5 h-2.5" /> At Risk
-                                </span>
-                            )}
-                            {(task.riskLevel === "OVERDUE" || task.riskLevel === "Overdue" || task.riskLevel === "CriticalSLA") && (
-                                <span className="text-[9px] text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1 shrink-0">
-                                    <ShieldAlert className="w-2.5 h-2.5" /> Overdue
-                                </span>
-                            )}
-                            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border shrink-0 ${getPriorityBadge(task.priority)}`}>
-                                {task.priority}
-                            </span>
-                            {canManageTasks && (
-                                <button
-                                    type="button"
-                                    onClick={() => setIsEditMainTaskModalOpen(true)}
-                                    className="px-2.5 py-1 text-[10px] font-medium border border-[var(--app-border)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-                                >
-                                    <Edit2 className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>Edit Task</span>
-                                </button>
-                            )}
-                        </div>
+            <div className="shrink-0 px-5 py-3 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-col gap-2 select-none">
+                {/* Row 1: Primary Task Title + Right Actions */}
+                <div className="flex items-center justify-between gap-4">
+                    {/* Left: Prominent Task Title */}
+                    <div className="flex items-center gap-2 min-w-0">
+                        <h1
+                            className="font-heading text-lg sm:text-xl font-bold tracking-tight text-[var(--app-text)] truncate max-w-[320px] md:max-w-[500px] lg:max-w-[700px]"
+                            title={task.title}
+                        >
+                            {task.title}
+                        </h1>
                     </div>
 
-                    {/* Task Metadata Row (Left: Dates & Main Task Squad; Right: Subtasks Progress below priority & edit) */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[10px]">
-                        <div className="flex items-center gap-4 text-[var(--app-muted)] flex-wrap">
-                            {task.startDate && task.dueDate && (
-                                <span className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" /> {formatDate(task.startDate)} → {formatDate(task.dueDate)}
-                                </span>
-                            )}
-                            <div className="flex items-center gap-1.5">
-                                <span>Main Task Squad:</span>
-                                <div className="flex -space-x-1">
-                                    {(task.assignees || []).map((u: any, idx: number) => {
-                                        const userObj = u.user || u;
-                                        const name = userObj.name || userObj.fullName || "User";
-                                        const avatarUrl = userObj.avatarUrl || u.avatarUrl;
-                                        return (
-                                            <UserAvatar
-                                                key={userObj.id || idx}
-                                                name={name}
-                                                avatarUrl={avatarUrl}
-                                                size="xs"
-                                                title={name}
-                                            />
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Subtasks Progress */}
-                        <div className="flex items-center gap-2 text-[10px] shrink-0">
-                            <span className="text-[var(--app-muted)]">Subtasks:</span>
-                            <div className="w-24 h-2 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[1px] overflow-hidden">
+                    {/* Right: Subtasks Progress Gauge & Edit Task Action */}
+                    <div className="flex items-center gap-2.5 shrink-0">
+                        {/* Subtasks Progress Gauge */}
+                        <div className="hidden sm:flex items-center gap-2.5 text-[11px] shrink-0" title="Subtask Completion Progress">
+                            <span className="text-[var(--app-muted)]">Subtasks</span>
+                            <div className="w-28 sm:w-36 h-1.5 bg-[var(--app-border)]/60 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-[var(--color-success)] transition-all"
+                                    className="h-full bg-[var(--color-success)] rounded-full transition-all duration-300"
                                     style={{ width: `${progressPct}%` }}
                                 />
                             </div>
@@ -681,103 +732,302 @@ export default function ProjectTaskDetailPage() {
                                 {completedCount}/{subtasks.length} ({progressPct}%)
                             </span>
                         </div>
+
+                        {/* Edit Task Modal Button */}
+                        {canManageTasks && (
+                            <button
+                                type="button"
+                                onClick={() => setIsEditMainTaskModalOpen(true)}
+                                className="relative corner-brackets-4 text-xs font-medium p-1.5 rounded-[2px] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] transition-colors cursor-pointer flex items-center justify-center shadow-2xs h-[30px] w-[30px]"
+                                title="Edit Main Task"
+                            >
+                                <Edit2 className="w-3.5 h-3.5 text-[var(--app-muted)] hover:text-[var(--app-text)]" />
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {/* Subtask Controls Bar (Filter Controls & Actions) */}
-                <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-[var(--app-border)]/60 flex-wrap">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                        {/* Date Navigation & View Mode */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                            {/* Segmented Pill Toggle: All Dates vs Day View */}
-                            <div className="flex items-center h-[28px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[3px] p-0.5 text-[10px] font-medium">
+                {/* Row 2: Breadcrumb Navigation (Left) + Minimal Task Metadata & Badges (Right) */}
+                <div className="flex items-center justify-between gap-3 text-[11px] text-[var(--app-muted)] flex-wrap pt-0.5">
+                    {/* Left: Breadcrumb Navigation in Small Size */}
+                    <div className="flex items-center gap-1.5 min-w-0 text-[11px]">
+                        <Link
+                            href="/projects"
+                            className="text-[var(--app-muted)] hover:text-[var(--app-text)] flex items-center gap-1 font-medium transition-colors shrink-0 group"
+                            title="Back to Projects"
+                        >
+                            <ChevronLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+                            <span>Projects</span>
+                        </Link>
+
+                        <span className="text-[var(--app-muted)]/70 text-xs font-medium select-none px-0.5">/</span>
+
+                        <Link
+                            href={`/projects/${project.id}`}
+                            className="text-[var(--app-muted)] hover:text-[var(--app-text)] flex items-center gap-1 font-medium transition-colors shrink-0 truncate max-w-[180px]"
+                            title={`Back to ${project.title || project.name}`}
+                        >
+                            {project.emoji && <span className="emoji-font text-xs shrink-0">{project.emoji}</span>}
+                            <span>{project.title || project.name}</span>
+                        </Link>
+
+                        <span className="text-[var(--app-muted)]/70 text-xs font-medium select-none px-0.5">/</span>
+
+                        <span className="text-[var(--app-text)] font-medium truncate max-w-[200px]" title={task.title}>
+                            {task.title}
+                        </span>
+                    </div>
+
+                    {/* Right: Task Badges & Metadata */}
+                    <div className="flex items-center gap-3 flex-wrap">
+                        {/* User Role (Minimal, untinted) */}
+                        <div className="relative group flex items-center gap-1 shrink-0 cursor-help" title={permissions.userRoleDescription}>
+                            {permissions.userRoleLabel === "Manager" ? (
+                                <ShieldCheck className="w-3 h-3 text-[var(--app-muted)]" />
+                            ) : permissions.userRoleLabel === "Leader" ? (
+                                <Shield className="w-3 h-3 text-[var(--app-muted)]" />
+                            ) : permissions.userRoleLabel === "Member" ? (
+                                <User className="w-3 h-3 text-[var(--app-muted)]" />
+                            ) : (
+                                <Eye className="w-3 h-3 text-[var(--app-muted)]" />
+                            )}
+                            <span>Role: <strong className="font-medium text-[var(--app-text)]">{permissions.userRoleLabel}</strong></span>
+
+                            {/* Role Tooltip */}
+                            <div className="absolute right-0 top-full mt-1.5 hidden group-hover:block z-50 w-56 p-2.5 bg-[var(--app-card)] border border-[var(--app-border-strong)] rounded-[3px] shadow-lg text-[10px] text-[var(--app-muted)] pointer-events-none">
+                                <div className="font-semibold text-[var(--app-text)] mb-0.5 flex items-center gap-1.5">
+                                    <span>Your Role: {permissions.userRoleLabel}</span>
+                                </div>
+                                <p>{permissions.userRoleDescription}</p>
+                            </div>
+                        </div>
+
+                        <span className="text-[var(--app-border)] select-none">•</span>
+
+                        {/* Priority Indicator */}
+                        <div className="flex items-center gap-1.5 shrink-0" title={`Priority: ${task.priority}`}>
+                            <span>Priority:</span>
+                            <strong className="font-medium text-[var(--app-text)]">{task.priority}</strong>
+                        </div>
+
+                        {/* Timeline Dates */}
+                        {task.startDate && task.dueDate && (
+                            <>
+                                <span className="text-[var(--app-border)] select-none">•</span>
+                                <div className="flex items-center gap-1.5 shrink-0" title="Task Timeline">
+                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <span>{formatDate(task.startDate)} → {formatDate(task.dueDate)}</span>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Main Task Squad */}
+                        {task.assignees && task.assignees.length > 0 && (
+                            <>
+                                <span className="text-[var(--app-border)] select-none">•</span>
+                                <div className="flex items-center gap-1.5 shrink-0" title="Main Task Squad">
+                                    <span>Squad:</span>
+                                    <div className="flex -space-x-1">
+                                        {(task.assignees || []).map((u: any, idx: number) => {
+                                            const userObj = u.user || u;
+                                            const name = userObj.name || userObj.fullName || "User";
+                                            const avatarUrl = userObj.avatarUrl || u.avatarUrl;
+                                            return (
+                                                <UserAvatar
+                                                    key={userObj.id || idx}
+                                                    name={name}
+                                                    avatarUrl={avatarUrl}
+                                                    size="xs"
+                                                    title={name}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Risk / SLA Warning (Minimal untinted status dot + label) */}
+                        {(task.riskLevel === "AT_RISK" || task.riskLevel === "AtRisk") && (
+                            <>
+                                <span className="text-[var(--app-border)] select-none">•</span>
+                                <div className="flex items-center gap-1.5 shrink-0 text-[var(--color-warning)]" title="At Risk">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)]" />
+                                    <span className="font-medium">At Risk</span>
+                                </div>
+                            </>
+                        )}
+                        {(task.riskLevel === "OVERDUE" || task.riskLevel === "Overdue" || task.riskLevel === "CriticalSLA") && (
+                            <>
+                                <span className="text-[var(--app-border)] select-none">•</span>
+                                <div className="flex items-center gap-1.5 shrink-0 text-[var(--color-error)]" title="Overdue">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-error)]" />
+                                    <span className="font-medium">Overdue</span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Subtask Controls & Filters Bar (Comfortable 32px Height & Logically Grouped) */}
+                <div className="flex items-center justify-between gap-3 pt-3 border-t border-[var(--app-border)]/60 flex-wrap">
+                    {/* Left: Search Input, Scope Toggle (All vs Today), Filters Modal Trigger, Active Date Range Tag, Reset */}
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        {/* Search Subtasks */}
+                        <div className="relative w-48 sm:w-56 h-[32px] shrink-0">
+                            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--app-muted)] pointer-events-none" />
+                            <input
+                                type="text"
+                                placeholder="Search subtasks..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full h-[32px] bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] focus:border-[var(--app-border-strong)] rounded-[2px] pl-7 pr-3 text-xs text-[var(--app-text)] placeholder-[var(--app-muted)] focus:outline-none transition-colors corner-brackets-4"
+                            />
+                        </div>
+
+                        {/* Date Scope Segmented Toggle (All vs Today) */}
+                        <div className="flex items-center h-[32px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-xs font-medium shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setDateFilterMode("all")}
+                                className={`h-full px-2.5 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                    dateFilterMode === "all"
+                                        ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                                }`}
+                            >
+                                <span>All</span>
+                                <span className={`text-xs tabular-nums font-normal transition-colors ${
+                                    dateFilterMode === "all" ? "text-[var(--app-muted)]" : "text-[var(--app-muted)]/70"
+                                }`}>
+                                    ({subtasks.length})
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setDateFilterMode("today")}
+                                className={`h-full px-2.5 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                    dateFilterMode === "today"
+                                        ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                                }`}
+                            >
+                                <Clock className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                <span>Today</span>
+                                {todaySubtasksCount > 0 && (
+                                    <span className={`text-xs tabular-nums font-normal transition-colors ${
+                                        dateFilterMode === "today" ? "text-[var(--app-muted)]" : "text-[var(--app-muted)]/70"
+                                    }`}>
+                                        ({todaySubtasksCount})
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Filter Button (Opens Priority & Date Range Filter Modal) */}
+                        <Button
+                            type="button"
+                            variant="default"
+                            size="sm"
+                            icon={<Filter className="w-3.5 h-3.5 text-[var(--app-muted)]" />}
+                            onClick={() => setIsFilterModalOpen(true)}
+                        >
+                            <span>Filters</span>
+                            {modalFilterActiveCount > 0 && (
+                                <span className="ml-1 bg-[var(--app-text)] text-[var(--app-card)] text-[9px] font-bold px-1.5 py-0.5 rounded-full tabular-nums">
+                                    {modalFilterActiveCount}
+                                </span>
+                            )}
+                        </Button>
+
+                        {/* Active Date Range Tag (When Date Range is applied from Modal) */}
+                        {dateFilterMode === "range" && (
+                            <div className="flex items-center h-[32px] bg-[var(--app-card)] border border-[var(--app-border-strong)] text-[var(--app-text)] text-[11px] font-medium px-2.5 py-0.5 rounded-[2px] gap-1.5 shadow-2xs animate-fade-in shrink-0">
+                                <CalendarRange className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                <span className="tabular-nums">
+                                    {rangeStartDate} → {rangeEndDate}
+                                </span>
                                 <button
                                     type="button"
                                     onClick={() => setDateFilterMode("all")}
-                                    className={`h-full px-2.5 rounded-[2px] transition-all cursor-pointer flex items-center justify-center ${
-                                        dateFilterMode === "all"
-                                            ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border)]"
-                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
-                                    }`}
+                                    className="text-[var(--app-muted)] hover:text-[var(--app-text)] p-0.5 ml-0.5 rounded-[1px] cursor-pointer"
+                                    title="Clear date range filter"
                                 >
-                                    All Dates
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setDateFilterMode("day")}
-                                    className={`h-full px-2.5 rounded-[2px] transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                                        dateFilterMode === "day"
-                                            ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border)]"
-                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
-                                    }`}
-                                >
-                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>Day View</span>
+                                    <X className="w-3 h-3" />
                                 </button>
                             </div>
+                        )}
 
-                            {/* Day Navigator (when in Day View) */}
-                            {dateFilterMode === "day" && (
-                                <div className="flex items-center h-[28px] bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-0.5 shadow-2xs">
-                                    <button
-                                        type="button"
-                                        onClick={handlePrevDay}
-                                        disabled={isPrevDisabled}
-                                        className="h-full px-1 flex items-center justify-center text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] disabled:opacity-25 disabled:cursor-not-allowed rounded-[2px] transition-colors cursor-pointer"
-                                        title={isPrevDisabled ? "Reached task start date" : "Previous Day"}
-                                    >
-                                        <ChevronLeft className="w-3.5 h-3.5" />
-                                    </button>
+                        {/* Reset Filters Button */}
+                        {activeFilterCount > 0 && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                icon={<X className="w-3.5 h-3.5" />}
+                                onClick={handleClearAllFilters}
+                                className="text-[var(--color-error)] hover:bg-[var(--color-error)]/10 animate-fade-in shrink-0"
+                                title="Reset all search, date, priority, and assignment filters"
+                            >
+                                Reset ({activeFilterCount})
+                            </Button>
+                        )}
+                    </div>
 
-                                    <CustomDatePicker
-                                        value={selectedDate}
-                                        onChange={(val) => setSelectedDate(val)}
-                                        minDate={taskStartDate}
-                                        maxDate={taskDueDate}
-                                        buttonClassName="border-0 shadow-none bg-transparent hover:bg-[var(--app-hover-bg)] h-full py-0 px-2 text-[10px] font-medium"
-                                        className="w-28 h-full flex items-center"
-                                    />
-
-                                    <button
-                                        type="button"
-                                        onClick={handleNextDay}
-                                        disabled={isNextDisabled}
-                                        className="h-full px-1 flex items-center justify-center text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] disabled:opacity-25 disabled:cursor-not-allowed rounded-[2px] transition-colors cursor-pointer"
-                                        title={isNextDisabled ? "Reached task due date" : "Next Day"}
-                                    >
-                                        <ChevronRight className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Filter by Member (using CustomSelect with UserAvatars) */}
+                    {/* Right: Assignee Filter, Showing Count & Action Buttons Group (Columns + Add Subtask) */}
+                    <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                        {/* Assignee / Member Filter */}
                         <CustomSelect
                             options={assigneeOptions}
                             value={memberFilter}
                             onChange={setMemberFilter}
                             placeholder="All Assignees"
-                            buttonClassName="corner-brackets-4 text-[10px] h-[28px] py-0 bg-[var(--app-card)] min-w-[130px]"
-                            className="w-38 h-[28px] shrink-0"
+                            buttonClassName="corner-brackets-4 text-xs h-[32px] !py-0 px-3 bg-[var(--app-card)]"
+                            className="w-38 sm:w-40 h-[32px] shrink-0"
                         />
-                    </div>
 
-                    {/* Primary CTA: New Subtask Button */}
-                    {canCreateSubtask && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setSubtaskModalData(null);
-                                setSubtaskModalInitialColStatus(columns[0]?.id || columns[0]?.name || "To Do");
-                                setIsSubtaskModalOpen(true);
-                            }}
-                            className="h-[28px] relative corner-brackets-4 px-3.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] font-medium text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"
-                            title="Create a new subtask breakdown"
-                        >
-                            <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
-                            <span>New Subtask</span>
-                        </button>
-                    )}
+                        {/* Divider between Filters and Actions */}
+                        <div className="w-px h-5 bg-[var(--app-border)] hidden sm:block" />
+
+                        {/* Count of visible / total subtasks */}
+                        <span className="text-xs text-[var(--app-muted)] hidden md:inline-block tabular-nums">
+                            Showing <strong className="text-[var(--app-text)] font-semibold">{filteredSubtasks.length}</strong> of {subtasks.length}
+                        </span>
+
+                        {/* Columns Management CTA */}
+                        {canManageTasks && (
+                            <Button
+                                type="button"
+                                variant="default"
+                                size="sm"
+                                icon={<SlidersHorizontal className="w-3.5 h-3.5 text-[var(--app-muted)]" />}
+                                onClick={() => {
+                                    setColumnModalInitialData(null);
+                                    setIsColumnModalOpen(true);
+                                }}
+                                title="Manage workflow columns"
+                            >
+                                Columns
+                            </Button>
+                        )}
+
+                        {/* Add Subtask Action Button - Far Right */}
+                        {canCreateSubtask && (
+                            <Button
+                                type="button"
+                                variant="default"
+                                size="sm"
+                                icon={<Plus className="w-3.5 h-3.5" />}
+                                onClick={() => {
+                                    setSubtaskModalData(null);
+                                    setSubtaskModalInitialColStatus(columns[0]?.id || columns[0]?.name || "To Do");
+                                    setIsSubtaskModalOpen(true);
+                                }}
+                            >
+                                Add Subtask
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -900,7 +1150,7 @@ export default function ProjectTaskDetailPage() {
                                                                 <div className="flex-1 flex flex-col items-center justify-center py-8 text-center border border-dashed border-[var(--app-border)] rounded-[2px] p-3 gap-1.5 min-h-[120px]">
                                                                     <Layers className="w-4 h-4 text-[var(--app-muted)]" />
                                                                     <span className="text-[10px] text-[var(--app-muted)]">
-                                                                        {dateFilterMode === "day" ? "No subtasks on this day" : "No subtasks yet"}
+                                                                        {dateFilterMode === "today" ? "No subtasks for today" : dateFilterMode === "range" ? "No subtasks in date range" : "No subtasks yet"}
                                                                     </span>
                                                                     {canCreateSubtask && (
                                                                         <button
@@ -1003,16 +1253,51 @@ export default function ProjectTaskDetailPage() {
                 onClose={() => {
                     setIsSubtaskModalOpen(false);
                     setSubtaskModalData(null);
+                    setSubtaskModalInitialTab("description");
                 }}
                 projectId={projectId}
                 parentTask={task}
                 subtask={subtaskModalData}
                 columns={columns}
                 initialColumnStatus={subtaskModalInitialColStatus}
+                initialTab={subtaskModalInitialTab}
                 currentUser={currentUser}
                 canManageTasks={canManageTasks}
                 candidateAssignees={candidateAssignees}
                 onRefresh={loadProjectDetail}
+            />
+
+            {/* Subtask Filters Modal (Priority & Date Range) */}
+            <TaskFilterModal
+                isOpen={isFilterModalOpen}
+                onClose={() => setIsFilterModalOpen(false)}
+                title="Filter Subtasks"
+                priorityFilter={priorityFilter}
+                onPriorityChange={setPriorityFilter}
+                priorityOptions={priorityOptions}
+                rangeStartDate={rangeStartDate}
+                rangeEndDate={rangeEndDate}
+                onRangeStartDateChange={(val) => {
+                    setRangeStartDate(val);
+                    setDateFilterMode("range");
+                }}
+                onRangeEndDateChange={(val) => {
+                    setRangeEndDate(val);
+                    setDateFilterMode("range");
+                }}
+                onSetRangePreset={(preset) => {
+                    handleSetRangePreset(preset);
+                    setDateFilterMode("range");
+                }}
+                windowPresetLabel="Task Window"
+                minDate={taskStartDate}
+                maxDate={taskDueDate}
+                onApply={() => {
+                    setDateFilterMode("range");
+                    setIsFilterModalOpen(false);
+                }}
+                onClearAll={handleClearAllFilters}
+                activeCount={modalFilterActiveCount}
             />
 
             {/* Fixed Bottom Right Floating Board Scroll Controls */}

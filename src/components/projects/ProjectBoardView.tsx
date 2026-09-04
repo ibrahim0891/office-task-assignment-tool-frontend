@@ -2,9 +2,24 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Filter, Calendar, ChevronRight, ChevronLeft, CheckCircle2, AlertTriangle, Layers, Clock, Edit2, User, LayoutGrid, List } from "lucide-react";
-import toast from "react-hot-toast";
-import { api } from "../../api";
+import { 
+    Plus, 
+    Search, 
+    Calendar, 
+    CalendarRange, 
+    ChevronRight, 
+    CheckCircle2, 
+    AlertCircle, 
+    Layers, 
+    Clock, 
+    Edit2, 
+    User, 
+    LayoutGrid, 
+    List, 
+    X,
+    ListTodo,
+    CheckSquare
+} from "lucide-react";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { Button } from "../ui/Button";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
@@ -14,7 +29,7 @@ import CreateProjectTaskModal from "./CreateProjectTaskModal";
 import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
 import { calculateTaskProgress } from "../../utils/projectProgress";
 import { getProjectPermissions } from "../../utils/projectPermissions";
-import { getLocalDateString, parseLocalDate, extractDateString } from "../../utils/date";
+import { getLocalDateString, extractDateString } from "../../utils/date";
 
 const PRIORITY_OPTIONS: SelectOption[] = [
     { value: "ALL", label: "All Priorities" },
@@ -29,16 +44,40 @@ function stripHtml(html: string) {
     return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
 }
 
-function getPriorityStyle(priority: string) {
+function getPriorityDetails(priority: string) {
     const p = (priority || "").toUpperCase();
     switch (p) {
         case "URGENT":
-        case "Urgent": return "text-[var(--priority-urgent)] bg-[var(--priority-urgent)]/10 border-[var(--priority-urgent)]/20";
+        case "Urgent":
+            return {
+                label: "Urgent",
+                badgeCls: "text-[var(--priority-urgent,#CB2431)] bg-[var(--priority-urgent,#CB2431)]/10 border-[var(--priority-urgent,#CB2431)]/20",
+                accentBorder: "border-l-[3.5px] border-l-[var(--priority-urgent,#CB2431)]",
+                dotCls: "bg-[var(--priority-urgent,#CB2431)]"
+            };
         case "HIGH":
-        case "High": return "text-[var(--priority-high)] bg-[var(--priority-high)]/10 border-[var(--priority-high)]/20";
+        case "High":
+            return {
+                label: "High",
+                badgeCls: "text-[var(--priority-high,#EA580C)] bg-[var(--priority-high,#EA580C)]/10 border-[var(--priority-high,#EA580C)]/20",
+                accentBorder: "border-l-[3.5px] border-l-[var(--priority-high,#EA580C)]",
+                dotCls: "bg-[var(--priority-high,#EA580C)]"
+            };
         case "MEDIUM":
-        case "Medium": return "text-[var(--priority-medium)] bg-[var(--priority-medium)]/10 border-[var(--priority-medium)]/20";
-        default: return "text-[var(--priority-low)] bg-[var(--priority-low)]/10 border-[var(--priority-low)]/20";
+        case "Medium":
+            return {
+                label: "Medium",
+                badgeCls: "text-[var(--priority-medium,#CA8A04)] bg-[var(--priority-medium,#CA8A04)]/10 border-[var(--priority-medium,#CA8A04)]/20",
+                accentBorder: "border-l-[3.5px] border-l-[var(--priority-medium,#CA8A04)]",
+                dotCls: "bg-[var(--priority-medium,#CA8A04)]"
+            };
+        default:
+            return {
+                label: "Low",
+                badgeCls: "text-[var(--priority-low,#6B7280)] bg-[var(--priority-low,#6B7280)]/10 border-[var(--priority-low,#6B7280)]/20",
+                accentBorder: "border-l-[3.5px] border-l-[var(--priority-low,#6B7280)]",
+                dotCls: "bg-[var(--priority-low,#6B7280)]"
+            };
     }
 }
 
@@ -106,6 +145,7 @@ function MainTaskGridCard({
     const totalSubtasks = subtasks.length;
     const progressPercent = calculateTaskProgress(task, columnMap);
 
+    const priorityDetails = getPriorityDetails(task.priority);
     const statusConfig = getDerivedStatus(task, columnMap);
     const riskBadge = getRiskBadge(task.riskLevel);
     const column = columnMap[task.columnId];
@@ -124,22 +164,35 @@ function MainTaskGridCard({
 
     return (
         <div
-            className="group relative corner-brackets-4 bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] rounded-[2px] p-4 flex flex-col justify-between gap-4 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-sm"
+            className={`group relative bg-[var(--app-card)] border border-[var(--app-border)] ${priorityDetails.accentBorder} hover:border-[var(--app-border-strong)] rounded-[4px] p-4 flex flex-col justify-between gap-3.5 transition-all duration-200 cursor-pointer shadow-subtle hover:shadow-sm min-h-[210px]`}
             onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
         >
-            {/* Top Row: Derived Status + Priority & Risk Badges & Optional Edit Button */}
+            {/* Top Row: Workflow Stage Chip + Priority & Risk Badges */}
             <div className="flex items-center justify-between gap-2">
-                <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-[2px] border flex items-center gap-1.5 ${statusConfig.cls}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
-                    {statusConfig.label}
-                </span>
+                {/* Left: Workflow Stage Chip */}
+                <div className="flex items-center gap-1.5 min-w-0">
+                    <span 
+                        className="text-[9.5px] font-semibold text-[var(--app-text)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] flex items-center gap-1 shrink-0" 
+                        title={`Workflow Stage: ${column?.name || 'Backlog'}`}
+                    >
+                        <ListTodo className="w-3 h-3 text-[var(--app-muted)]" />
+                        <span className="truncate max-w-[110px]">{column?.name || "Deliverable"}</span>
+                    </span>
+                    {statusConfig.label && statusConfig.label !== column?.name && (
+                        <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border flex items-center gap-1 shrink-0 ${statusConfig.cls}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
+                            <span>{statusConfig.label}</span>
+                        </span>
+                    )}
+                </div>
 
+                {/* Right: Priority, Risk & Edit Button */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[8px] font-medium px-1.5 py-0.5 rounded-[2px] border ${getPriorityStyle(task.priority)}`}>
-                        {task.priority || "MEDIUM"}
+                    <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${priorityDetails.badgeCls}`}>
+                        {priorityDetails.label}
                     </span>
                     {riskBadge && (
-                        <span className={`text-[8px] font-medium px-1.5 py-0.5 rounded-[2px] border ${riskBadge.cls}`}>
+                        <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${riskBadge.cls}`}>
                             {riskBadge.label}
                         </span>
                     )}
@@ -159,43 +212,44 @@ function MainTaskGridCard({
                 </div>
             </div>
 
-            {/* Content Section: Category/Column + Title + Cleaned Description */}
-            <div className="flex flex-col gap-1.5">
-                {column?.name && (
-                    <span className="text-[10px] font-medium text-[var(--app-muted)]">
-                        {column.name}
-                    </span>
-                )}
-                <h3 className="text-sm font-semibold text-[var(--app-text)] line-clamp-2 leading-snug">
+            {/* Task Content: Title + Description */}
+            <div className="flex flex-col gap-1">
+                <h3 className="text-[13.5px] font-semibold text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-2 leading-snug">
                     {task.title}
                 </h3>
-                {cleanDescription && (
-                    <p className="text-[11px] text-[var(--app-muted)] line-clamp-2 leading-relaxed">
+                {cleanDescription ? (
+                    <p className="text-[11px] text-[var(--app-muted)] line-clamp-2 leading-relaxed min-h-[30px]">
                         {cleanDescription}
+                    </p>
+                ) : (
+                    <p className="text-[11px] text-[var(--app-muted)] italic opacity-50 min-h-[30px]">
+                        No description provided
                     </p>
                 )}
             </div>
 
-            {/* Cumulative Progress Section */}
-            <div className="flex flex-col gap-1.5 pt-1">
+            {/* Subtask Breakdown / Checklist Tracker Box */}
+            <div className="bg-[var(--app-bg)]/60 border border-[var(--app-border)]/80 rounded-[3px] p-2 flex flex-col gap-1.5">
                 <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-[var(--app-muted)] flex items-center gap-1">
-                        <Layers className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                        <span>Subtask Progress</span>
+                    <span className="text-[var(--app-muted)] flex items-center gap-1.5 font-medium">
+                        <CheckSquare className="w-3 h-3 text-[var(--app-muted)]" />
+                        <span>Subtasks</span>
                     </span>
-                    <span className="font-medium text-[var(--app-text)] tabular-nums">
-                        {totalSubtasks > 0 ? `${doneSubtasks}/${totalSubtasks} Done (${progressPercent}%)` : (task.isCompleted ? "100%" : "No Subtasks")}
+                    <span className="font-semibold text-[var(--app-text)] tabular-nums">
+                        {totalSubtasks > 0 
+                            ? `${doneSubtasks}/${totalSubtasks} Done (${progressPercent}%)` 
+                            : (task.isCompleted ? "100% Completed" : "0 Subtasks")}
                     </span>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="w-full bg-[var(--app-bg)] border border-[var(--app-border)] h-2 rounded-full overflow-hidden">
+                {/* Subtask Progress Track */}
+                <div className="w-full bg-[var(--app-card)] border border-[var(--app-border)] h-1.5 rounded-full overflow-hidden">
                     <div
                         className={`h-full transition-all duration-300 rounded-full ${
                             progressPercent === 100
-                                ? "bg-[#22863A]"
+                                ? "bg-[var(--color-success,#22863A)]"
                                 : progressPercent > 0
-                                ? "bg-[#0284C7]"
+                                ? "bg-[var(--status-in-progress,#7C3AED)]"
                                 : "bg-[var(--app-border-strong)]"
                         }`}
                         style={{ width: `${progressPercent}%` }}
@@ -204,9 +258,9 @@ function MainTaskGridCard({
             </div>
 
             {/* Footer Row: Avatars, Due Date & Navigation Arrow */}
-            <div className="flex items-center justify-between pt-3 border-t border-[var(--app-border)] text-[10px]">
+            <div className="flex items-center justify-between pt-2.5 border-t border-[var(--app-border)] text-[10px]">
                 {/* Left: Assignees + Date */}
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                     {/* Avatars Stack */}
                     <div className="flex -space-x-1.5">
                         {assigneesList.length > 0 ? (
@@ -224,10 +278,10 @@ function MainTaskGridCard({
                                 );
                             })
                         ) : (
-                            <span className="text-[9px] text-[var(--app-muted)] italic">Unassigned</span>
+                            <span className="text-[9.5px] text-[var(--app-muted)] italic">Unassigned</span>
                         )}
                         {assigneesList.length > 3 && (
-                            <div className="w-4 h-4 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[7px] font-semibold text-[var(--app-muted)] shrink-0">
+                            <div className="w-4 h-4 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[7.5px] font-semibold text-[var(--app-muted)] shrink-0">
                                 +{assigneesList.length - 3}
                             </div>
                         )}
@@ -235,17 +289,17 @@ function MainTaskGridCard({
 
                     {/* Due Date */}
                     {task.dueDate && (
-                        <div className="flex items-center gap-1 text-[9px] text-[var(--app-muted)] shrink-0">
-                            <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
+                        <div className="flex items-center gap-1 text-[9.5px] text-[var(--app-muted)] bg-[var(--app-bg)] px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] shrink-0">
+                            <Calendar className="w-2.5 h-2.5 text-[var(--app-muted)]" />
                             <span>{new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                         </div>
                     )}
                 </div>
 
-                {/* Right: Action link */}
+                {/* Right: Action link with subtask count */}
                 <div className="flex items-center gap-1 text-[10px] font-medium text-[var(--app-muted)] group-hover:text-[var(--app-text)] transition-colors">
-                    <span>View Subtasks</span>
-                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    <span>{totalSubtasks > 0 ? `Subtasks (${totalSubtasks})` : "View Subtasks"}</span>
+                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                 </div>
             </div>
         </div>
@@ -271,6 +325,7 @@ function MainTaskListItem({
     const totalSubtasks = subtasks.length;
     const progressPercent = calculateTaskProgress(task, columnMap);
 
+    const priorityDetails = getPriorityDetails(task.priority);
     const statusConfig = getDerivedStatus(task, columnMap);
     const riskBadge = getRiskBadge(task.riskLevel);
     const column = columnMap[task.columnId];
@@ -289,12 +344,15 @@ function MainTaskListItem({
             className="group border-b border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer text-xs"
             onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
         >
-            {/* Status */}
+            {/* Status & Stage */}
             <td className="py-3 px-4 whitespace-nowrap">
-                <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-[2px] border inline-flex items-center gap-1.5 ${statusConfig.cls}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
-                    {statusConfig.label}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${priorityDetails.dotCls}`} title={`Priority: ${priorityDetails.label}`} />
+                    <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-[2px] border inline-flex items-center gap-1.5 ${statusConfig.cls}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
+                        {statusConfig.label}
+                    </span>
+                </div>
             </td>
 
             {/* Task Title & Column */}
@@ -304,12 +362,13 @@ function MainTaskListItem({
                         {task.title}
                     </span>
                     <div className="flex items-center gap-2 text-[10px] text-[var(--app-muted)]">
-                        {column?.name && <span>{column.name}</span>}
+                        {column?.name && (
+                            <span className="font-medium text-[var(--app-text)] bg-[var(--app-bg)] px-1 py-0.2 rounded-[2px] border border-[var(--app-border)]">
+                                {column.name}
+                            </span>
+                        )}
                         {cleanDescription && (
-                            <>
-                                <span>•</span>
-                                <span className="line-clamp-1 max-w-[280px]">{cleanDescription}</span>
-                            </>
+                            <span className="line-clamp-1 max-w-[280px]">{cleanDescription}</span>
                         )}
                     </div>
                 </div>
@@ -318,11 +377,11 @@ function MainTaskListItem({
             {/* Priority & Risk */}
             <td className="py-3 px-4 whitespace-nowrap">
                 <div className="flex items-center gap-1.5">
-                    <span className={`text-[8px] font-medium px-1.5 py-0.5 rounded-[2px] border ${getPriorityStyle(task.priority)}`}>
-                        {task.priority || "MEDIUM"}
+                    <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${priorityDetails.badgeCls}`}>
+                        {priorityDetails.label}
                     </span>
                     {riskBadge && (
-                        <span className={`text-[8px] font-medium px-1.5 py-0.5 rounded-[2px] border ${riskBadge.cls}`}>
+                        <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${riskBadge.cls}`}>
                             {riskBadge.label}
                         </span>
                     )}
@@ -348,10 +407,10 @@ function MainTaskListItem({
                                 );
                             })
                         ) : (
-                            <span className="text-[9px] text-[var(--app-muted)] italic">Unassigned</span>
+                            <span className="text-[9.5px] text-[var(--app-muted)] italic">Unassigned</span>
                         )}
                         {assigneesList.length > 3 && (
-                            <div className="w-4 h-4 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[7px] font-semibold text-[var(--app-muted)] shrink-0">
+                            <div className="w-4 h-4 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[7.5px] font-semibold text-[var(--app-muted)] shrink-0">
                                 +{assigneesList.length - 3}
                             </div>
                         )}
@@ -367,8 +426,8 @@ function MainTaskListItem({
             {/* Due Date */}
             <td className="py-3 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
                 {task.dueDate ? (
-                    <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
+                    <div className="flex items-center gap-1.5 bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] w-fit">
+                        <Calendar className="w-2.5 h-2.5 text-[var(--app-muted)]" />
                         <span>{new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                     </div>
                 ) : (
@@ -379,7 +438,7 @@ function MainTaskListItem({
             {/* Subtask Progress */}
             <td className="py-3 px-4 min-w-[160px]">
                 <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-[9px]">
+                    <div className="flex items-center justify-between text-[9.5px]">
                         <span className="text-[var(--app-muted)] tabular-nums">
                             {totalSubtasks > 0 ? `${doneSubtasks}/${totalSubtasks} Subtasks` : "No Subtasks"}
                         </span>
@@ -391,9 +450,9 @@ function MainTaskListItem({
                         <div
                             className={`h-full transition-all duration-300 rounded-full ${
                                 progressPercent === 100
-                                    ? "bg-[#22863A]"
+                                    ? "bg-[var(--color-success,#22863A)]"
                                     : progressPercent > 0
-                                    ? "bg-[#0284C7]"
+                                    ? "bg-[var(--status-in-progress,#7C3AED)]"
                                     : "bg-[var(--app-border-strong)]"
                             }`}
                             style={{ width: `${progressPercent}%` }}
@@ -421,7 +480,7 @@ function MainTaskListItem({
                     <button
                         type="button"
                         onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
-                        className="px-2 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] text-[10px] font-medium rounded-[2px] transition-colors flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-muted)] hover:text-[var(--app-text)] text-[10.5px] font-medium rounded-[2px] transition-colors flex items-center gap-1 cursor-pointer"
                     >
                         <span>Subtasks</span>
                         <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
@@ -442,7 +501,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedPriority, setSelectedPriority] = useState<string>("ALL");
     const [filterMode, setFilterMode] = useState<"all" | "my-tasks">("all");
-    const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<any | null>(null);
     const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
@@ -451,71 +510,79 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
     const projectEndDate = extractDateString(project?.endDate);
     const todayStr = getLocalDateString(new Date());
 
-    const getInitialDate = () => {
-        if (projectStartDate && todayStr < projectStartDate) {
-            return projectStartDate;
-        }
-        if (projectEndDate && todayStr > projectEndDate) {
-            return projectEndDate;
-        }
-        return todayStr;
-    };
-
-    const [dateFilterMode, setDateFilterMode] = useState<"all" | "day">("day");
-    const [selectedDate, setSelectedDate] = useState<string>(getInitialDate);
+    const [dateFilterMode, setDateFilterMode] = useState<"all" | "range">("all");
+    const [rangeStartDate, setRangeStartDate] = useState<string>(() => projectStartDate || todayStr);
+    const [rangeEndDate, setRangeEndDate] = useState<string>(() => projectEndDate || todayStr);
 
     useEffect(() => {
-        if (selectedDate) {
-            if (projectStartDate && selectedDate < projectStartDate) {
-                setSelectedDate(projectStartDate);
-            } else if (projectEndDate && selectedDate > projectEndDate) {
-                setSelectedDate(projectEndDate);
-            }
-        } else {
-            setSelectedDate(getInitialDate());
+        if (projectStartDate && !rangeStartDate) {
+            setRangeStartDate(projectStartDate);
         }
-    }, [projectStartDate, projectEndDate]);
+        if (projectEndDate && !rangeEndDate) {
+            setRangeEndDate(projectEndDate);
+        }
+    }, [projectStartDate, projectEndDate, rangeStartDate, rangeEndDate]);
 
-    const handlePrevDay = () => {
-        if (!selectedDate) return;
-        const d = parseLocalDate(selectedDate);
-        d.setDate(d.getDate() - 1);
-        const prevStr = getLocalDateString(d);
-        if (projectStartDate && prevStr < projectStartDate) return;
-        setSelectedDate(prevStr);
-    };
-
-    const handleNextDay = () => {
-        if (!selectedDate) return;
-        const d = parseLocalDate(selectedDate);
-        d.setDate(d.getDate() + 1);
-        const nextStr = getLocalDateString(d);
-        if (projectEndDate && nextStr > projectEndDate) return;
-        setSelectedDate(nextStr);
-    };
-
-    const isPrevDisabled = Boolean(projectStartDate && selectedDate <= projectStartDate);
-    const isNextDisabled = Boolean(projectEndDate && selectedDate >= projectEndDate);
-
-    const isTaskActiveOnDate = (task: any, dateStr: string) => {
-        if (!dateStr) return true;
+    const isTaskActiveInRange = (task: any, startRange: string, endRange: string) => {
+        if (!startRange && !endRange) return true;
         const taskStart = extractDateString(task.startDate);
         const taskDue = extractDateString(task.dueDate);
 
         // If both start and due date are set: task spans between startDate and dueDate
         if (taskStart && taskDue) {
-            return dateStr >= taskStart && dateStr <= taskDue;
+            if (startRange && endRange) {
+                return taskStart <= endRange && taskDue >= startRange;
+            }
+            if (startRange) return taskDue >= startRange;
+            if (endRange) return taskStart <= endRange;
         }
         // If only due date is set
         if (taskDue) {
-            return dateStr === taskDue;
+            if (startRange && endRange) {
+                return taskDue >= startRange && taskDue <= endRange;
+            }
+            if (startRange) return taskDue >= startRange;
+            if (endRange) return taskDue <= endRange;
         }
         // If only start date is set
         if (taskStart) {
-            return dateStr === taskStart;
+            if (startRange && endRange) {
+                return taskStart >= startRange && taskStart <= endRange;
+            }
+            if (startRange) return taskStart >= startRange;
+            if (endRange) return taskStart <= endRange;
         }
         // If no dates specified on task, show it
         return true;
+    };
+
+    const handleSetRangePreset = (preset: "project" | "month" | "30days" | "week") => {
+        const today = new Date();
+        const todayFormatted = getLocalDateString(today);
+
+        if (preset === "project") {
+            setRangeStartDate(projectStartDate || todayFormatted);
+            setRangeEndDate(projectEndDate || todayFormatted);
+        } else if (preset === "month") {
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            setRangeStartDate(getLocalDateString(firstDay));
+            setRangeEndDate(getLocalDateString(lastDay));
+        } else if (preset === "30days") {
+            const next30 = new Date(today);
+            next30.setDate(today.getDate() + 29);
+            setRangeStartDate(todayFormatted);
+            setRangeEndDate(getLocalDateString(next30));
+        } else if (preset === "week") {
+            const currentDay = today.getDay();
+            const diffToMonday = (currentDay === 0 ? -6 : 1) - currentDay;
+            const monday = new Date(today);
+            monday.setDate(today.getDate() + diffToMonday);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            setRangeStartDate(getLocalDateString(monday));
+            setRangeEndDate(getLocalDateString(sunday));
+        }
     };
 
     // Initialize preferred viewMode from localStorage
@@ -548,7 +615,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
         columnMap[col.id] = col;
     });
 
-    // Count tasks assigned to current user (either main task assignee or subtask assignee)
+    // Count tasks assigned to current user
     const myTasksCount = tasks.filter((t: any) => {
         const isMainAssignee =
             Array.isArray(t.assignees) &&
@@ -559,7 +626,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
         return isMainAssignee || isSubtaskAssignee;
     }).length;
 
-    // Filter tasks based on search, priority, date, and "Assigned to Me" quick filter
+    // Filter tasks based on search, priority, date, and assignment
     const filteredTasks = tasks.filter((t: any) => {
         const matchesSearch =
             searchQuery === "" ||
@@ -575,10 +642,25 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                 t.subtasks.some((st: any) => (st.assignedToId || st.assignedTo?.id) === currentUser?.id));
 
         const matchesFilterMode = filterMode === "all" || isAssignedToMe;
-        const matchesDate = dateFilterMode === "all" || isTaskActiveOnDate(t, selectedDate);
+        const matchesDate =
+            dateFilterMode === "all" ||
+            (dateFilterMode === "range" && isTaskActiveInRange(t, rangeStartDate, rangeEndDate));
 
         return matchesSearch && matchesPriority && matchesFilterMode && matchesDate;
     });
+
+    const activeFilterCount =
+        (dateFilterMode !== "all" ? 1 : 0) +
+        (selectedPriority !== "ALL" ? 1 : 0) +
+        (filterMode !== "all" ? 1 : 0) +
+        (searchQuery.trim() !== "" ? 1 : 0);
+
+    const handleClearAllFilters = () => {
+        setDateFilterMode("all");
+        setSelectedPriority("ALL");
+        setFilterMode("all");
+        setSearchQuery("");
+    };
 
     const handleOpenEditTask = (taskToEdit: any) => {
         setEditingTask(taskToEdit);
@@ -588,179 +670,221 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
     return (
         <div className="flex-1 flex flex-col min-h-0 bg-[var(--app-bg)]">
             {/* Header Toolbar */}
-            <div className="shrink-0 px-5 py-3 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-wrap items-center justify-between gap-3">
-                {/* Search & Priority Filter & Date Navigation & Quick View Segmented Toggle */}
-                <div className="flex items-center gap-2.5 flex-1 min-w-[240px] flex-wrap">
-                    <div className="relative flex-1 min-w-[160px] max-w-xs corner-brackets-4">
-                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
+            <div className="shrink-0 px-5 py-2.5 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-wrap items-center justify-between gap-3 select-none">
+                {/* Group 1: Task Filters (Search, Priority, Date Range Filter) */}
+                <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                    {/* Search */}
+                    <div className="relative w-48 sm:w-60 h-[32px] shrink-0">
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--app-muted)] pointer-events-none" />
                         <input
                             type="text"
-                            placeholder="Filter main tasks..."
+                            placeholder="Search main tasks..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] pl-8 pr-3 py-1 text-[11px] text-[var(--app-text)] placeholder-[var(--app-muted)] focus:outline-none focus:border-[var(--app-border-strong)] transition-colors"
+                            className="w-full h-[32px] bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] focus:border-[var(--app-border-strong)] rounded-[2px] pl-7 pr-3 text-xs text-[var(--app-text)] placeholder-[var(--app-muted)] focus:outline-none transition-colors corner-brackets-4"
                         />
                     </div>
 
+                    {/* Priority Filter */}
                     <CustomSelect
                         options={PRIORITY_OPTIONS}
                         value={selectedPriority}
                         onChange={setSelectedPriority}
-                        buttonClassName="corner-brackets-4 text-[10px] h-[28px] py-0.5"
-                        className="w-32 shrink-0"
+                        buttonClassName="corner-brackets-4 text-xs h-[32px] !py-0 px-3 bg-[var(--app-card)]"
+                        className="w-36 h-[32px] shrink-0"
                     />
 
-                    {/* Date Navigation & View Mode */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                        {/* Segmented Pill Toggle: All Dates vs Day View */}
-                        <div className="flex items-center h-[28px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[3px] p-0.5 text-[10px] font-medium">
-                            <button
-                                type="button"
-                                onClick={() => setDateFilterMode("all")}
-                                className={`h-full px-2.5 rounded-[2px] transition-all cursor-pointer flex items-center justify-center ${
-                                    dateFilterMode === "all"
-                                        ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border)]"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
-                                }`}
-                            >
-                                All Dates
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setDateFilterMode("day")}
-                                className={`h-full px-2.5 rounded-[2px] transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                                    dateFilterMode === "day"
-                                        ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border)]"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
-                                }`}
-                            >
-                                <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
-                                <span>Day View</span>
-                            </button>
-                        </div>
-
-                        {/* Day Navigator (when in Day View) */}
-                        {dateFilterMode === "day" && (
-                            <div className="flex items-center h-[28px] bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-0.5 shadow-2xs">
-                                <button
-                                    type="button"
-                                    onClick={handlePrevDay}
-                                    disabled={isPrevDisabled}
-                                    className="h-full px-1 flex items-center justify-center text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] disabled:opacity-25 disabled:cursor-not-allowed rounded-[2px] transition-colors cursor-pointer"
-                                    title={isPrevDisabled ? "Reached project start date" : "Previous Day"}
-                                >
-                                    <ChevronLeft className="w-3.5 h-3.5" />
-                                </button>
-
-                                <CustomDatePicker
-                                    value={selectedDate}
-                                    onChange={(val) => setSelectedDate(val)}
-                                    minDate={projectStartDate}
-                                    maxDate={projectEndDate}
-                                    buttonClassName="border-0 shadow-none bg-transparent hover:bg-[var(--app-hover-bg)] h-full py-0 px-2 text-[10px] font-medium"
-                                    className="w-28 h-full flex items-center"
-                                />
-
-                                <button
-                                    type="button"
-                                    onClick={handleNextDay}
-                                    disabled={isNextDisabled}
-                                    className="h-full px-1 flex items-center justify-center text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] disabled:opacity-25 disabled:cursor-not-allowed rounded-[2px] transition-colors cursor-pointer"
-                                    title={isNextDisabled ? "Reached project end date" : "Next Day"}
-                                >
-                                    <ChevronRight className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        )}
+                    {/* Date Filter: All Dates vs Date Range */}
+                    <div className="flex items-center h-[32px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-xs font-medium shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => setDateFilterMode("all")}
+                            className={`h-full px-3 rounded-[1px] transition-all cursor-pointer flex items-center justify-center ${
+                                dateFilterMode === "all"
+                                    ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border)]"
+                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                            }`}
+                        >
+                            All Dates
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setDateFilterMode("range")}
+                            className={`h-full px-3 rounded-[1px] transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                                dateFilterMode === "range"
+                                    ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border)]"
+                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                            }`}
+                        >
+                            <CalendarRange className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                            <span>Date Range</span>
+                        </button>
                     </div>
 
-                    {/* Quick View Segmented Toggle: All Tasks vs Assigned to Me */}
-                    <div className="flex items-center bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-[10px] font-medium shrink-0">
+                    {/* Date Range Selector & Presets */}
+                    {dateFilterMode === "range" && (
+                        <div className="flex items-center gap-2 shrink-0 animate-fade-in flex-wrap">
+                            <div className="flex items-center h-[32px] bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] px-1.5 py-0.5 shadow-2xs gap-1">
+                                <CustomDatePicker
+                                    value={rangeStartDate}
+                                    onChange={(val) => {
+                                        setRangeStartDate(val);
+                                        if (rangeEndDate && val > rangeEndDate) setRangeEndDate(val);
+                                    }}
+                                    placeholder="Start Date"
+                                    minDate={projectStartDate}
+                                    maxDate={projectEndDate}
+                                    buttonClassName="border-0 shadow-none bg-transparent hover:bg-[var(--app-hover-bg)] h-full py-0 px-2 text-xs font-medium"
+                                    className="w-28 h-full flex items-center"
+                                />
+                                <span className="text-xs text-[var(--app-muted)] font-semibold px-0.5 select-none">→</span>
+                                <CustomDatePicker
+                                    value={rangeEndDate}
+                                    onChange={(val) => {
+                                        setRangeEndDate(val);
+                                        if (rangeStartDate && val < rangeStartDate) setRangeStartDate(val);
+                                    }}
+                                    placeholder="End Date"
+                                    minDate={rangeStartDate || projectStartDate}
+                                    maxDate={projectEndDate}
+                                    buttonClassName="border-0 shadow-none bg-transparent hover:bg-[var(--app-hover-bg)] h-full py-0 px-2 text-xs font-medium"
+                                    className="w-28 h-full flex items-center"
+                                />
+                            </div>
+
+                            <div className="hidden sm:flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSetRangePreset("month")}
+                                    className="h-[32px] px-2.5 text-[11px] font-medium border border-[var(--app-border)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer"
+                                >
+                                    This Month
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSetRangePreset("30days")}
+                                    className="h-[32px] px-2.5 text-[11px] font-medium border border-[var(--app-border)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer"
+                                >
+                                    30 Days
+                                </button>
+                                {projectStartDate && projectEndDate && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetRangePreset("project")}
+                                        className="h-[32px] px-2.5 text-[11px] font-medium border border-[var(--app-border)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer"
+                                        title="Reset to Full Project Duration"
+                                    >
+                                        Project Window
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Reset Filters Button */}
+                    {activeFilterCount > 0 && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            icon={<X className="w-3.5 h-3.5" />}
+                            onClick={handleClearAllFilters}
+                            className="text-[var(--color-error)] hover:bg-[var(--color-error)]/10 animate-fade-in shrink-0"
+                            title="Reset all search, date, priority, and assignment filters"
+                        >
+                            Reset ({activeFilterCount})
+                        </Button>
+                    )}
+                </div>
+
+                {/* Right: Group 2 (Scope) + Group 3 (View Mode & Count) + Primary Action */}
+                <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                    {/* Scope Segmented Toggle (All Tasks vs Assigned to Me) */}
+                    <div className="flex items-center h-[32px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-xs font-medium shrink-0">
                         <button
                             type="button"
                             onClick={() => setFilterMode("all")}
-                            className={`px-2.5 py-1 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                            className={`h-full px-3 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
                                 filterMode === "all"
                                     ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
                                     : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
                             }`}
                         >
                             <span>All</span>
-                            <span className={`text-[9px] px-1.5 py-0.2 rounded-[2px] border transition-colors tabular-nums ${
-                                filterMode === "all"
-                                    ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
-                                    : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
+                            <span className={`text-xs tabular-nums font-normal transition-colors ${
+                                filterMode === "all" ? "text-[var(--app-muted)]" : "text-[var(--app-muted)]/70"
                             }`}>
-                                {tasks.length}
+                                ({tasks.length})
                             </span>
                         </button>
                         <button
                             type="button"
                             onClick={() => setFilterMode("my-tasks")}
-                            className={`px-2.5 py-1 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                            className={`h-full px-3 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
                                 filterMode === "my-tasks"
                                     ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
                                     : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
                             }`}
                         >
-                            <User className="w-3 h-3 text-[var(--app-muted)]" />
+                            <User className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                             <span>My Tasks</span>
                             {myTasksCount > 0 && (
-                                <span className={`text-[9px] px-1.5 py-0.2 rounded-[2px] border transition-colors tabular-nums ${
-                                    filterMode === "my-tasks"
-                                        ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
-                                        : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
-                                }`}>
-                                    {myTasksCount}
+                                <span className={`text-xs tabular-nums font-normal transition-colors ${
+                                    filterMode === "my-tasks" ? "text-[var(--app-muted)]" : "text-[var(--app-muted)]/70"
+                                    }`}>
+                                    ({myTasksCount})
                                 </span>
                             )}
                         </button>
                     </div>
-                </div>
 
-                {/* Right: View Switcher, Task Count & Add Main Task Button */}
-                <div className="flex items-center gap-3 flex-wrap">
+                    <div className="w-px h-5 bg-[var(--app-border)] hidden sm:block" />
+
                     {/* View Switcher: Grid vs List */}
-                    <div className="flex items-center bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-[10px] font-medium shrink-0">
-                        <button
-                            type="button"
-                            onClick={() => handleViewModeChange("grid")}
-                            className={`p-1.5 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
-                                viewMode === "grid"
-                                    ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
-                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
-                            }`}
-                            title="Grid View"
-                        >
-                            <LayoutGrid className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleViewModeChange("list")}
-                            className={`p-1.5 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
-                                viewMode === "list"
-                                    ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
-                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
-                            }`}
-                            title="List View"
-                        >
-                            <List className="w-3.5 h-3.5" />
-                        </button>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                        <div className="flex items-center h-[32px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-xs font-medium shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => handleViewModeChange("grid")}
+                                className={`h-full p-2 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
+                                    viewMode === "grid"
+                                        ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                                }`}
+                                title="Grid View"
+                            >
+                                <LayoutGrid className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleViewModeChange("list")}
+                                className={`h-full p-2 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
+                                    viewMode === "list"
+                                        ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                                }`}
+                                title="List View"
+                            >
+                                <List className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+
+                        <span className="text-xs text-[var(--app-muted)] hidden sm:inline select-none">
+                            Showing <span className="font-semibold text-[var(--app-text)] tabular-nums">{filteredTasks.length}</span> {filteredTasks.length === 1 ? "main task" : "main tasks"}
+                        </span>
                     </div>
 
-                    <span className="text-[10px] text-[var(--app-muted)] hidden sm:inline">
-                        Showing <span className="font-semibold text-[var(--app-text)] tabular-nums">{filteredTasks.length}</span> main tasks
-                    </span>
-
+                    {/* Add Main Task Action */}
                     {canManageTasks && (
-                        <button
+                        <Button
                             type="button"
+                            variant="default"
+                            size="sm"
+                            icon={<Plus className="w-3.5 h-3.5" />}
                             onClick={() => setIsCreateTaskModalOpen(true)}
-                            className="relative corner-brackets-4 px-3.5 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] font-medium text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"
                         >
-                            <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
-                            <span>Add Main Task</span>
-                        </button>
+                            Add Main Task
+                        </Button>
                     )}
                 </div>
             </div>
@@ -774,12 +898,12 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         <p className="text-[11px] text-[var(--app-muted)] max-w-sm mb-4">
                             {searchQuery
                                 ? "No tasks matched your search query or filter."
-                                : dateFilterMode === "day"
-                                ? `No tasks are active on ${new Date(selectedDate + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}.`
+                                : dateFilterMode === "range"
+                                ? "No tasks are active within the selected date range."
                                 : "Get started by creating your first main task for this project."}
                         </p>
                         <div className="flex items-center gap-2">
-                            {dateFilterMode === "day" && (
+                            {dateFilterMode === "range" && (
                                 <Button
                                     variant="secondary"
                                     size="sm"
@@ -801,7 +925,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         </div>
                     </div>
                 ) : viewMode === "grid" ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filteredTasks.map((task: any) => (
                             <MainTaskGridCard
                                 key={task.id}

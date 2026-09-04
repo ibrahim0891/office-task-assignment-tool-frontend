@@ -1,47 +1,145 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Plus, ArrowRight, Loader2, Folder, Mail, LayoutGrid, List, FolderKanban, Building2 } from "lucide-react";
+import { 
+    Plus, 
+    ArrowRight, 
+    Folder, 
+    Mail, 
+    LayoutGrid, 
+    List, 
+    FolderKanban, 
+    Building2, 
+    Search, 
+    X, 
+    Calendar, 
+    AlertCircle, 
+    Users, 
+    TrendingUp,
+    CheckCircle2
+} from "lucide-react";
 import { useWorkspace } from "../../context/WorkspaceContext";
-import { api } from "../../api";
 import CreateProjectModal from "./CreateProjectModal";
 import ManageFoldersTray from "../ManageFoldersTray";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import { usePortfolioSummary } from "../../hooks/useProjectSWR";
 import { UserAvatar } from "../ui/UserAvatar";
+import { CustomSelect } from "../ui/CustomSelect";
 import { calculateProjectProgress } from "../../utils/projectProgress";
 
 function getStatusConfig(status: string) {
     switch (status) {
         case "ON_TRACK":
         case "OnTrack":
-            return { label: "On Track", color: "text-[var(--status-on-track,#16A34A)]", bg: "bg-[var(--status-on-track,#16A34A)]/10", border: "border-[var(--status-on-track,#16A34A)]/20", dot: "bg-[var(--status-on-track,#16A34A)]" };
+            return { 
+                label: "On Track", 
+                color: "text-[var(--status-on-track,#16A34A)]", 
+                bg: "bg-[var(--status-on-track,#16A34A)]/10", 
+                border: "border-[var(--status-on-track,#16A34A)]/20", 
+                dot: "bg-[var(--status-on-track,#16A34A)]" 
+            };
         case "AT_RISK":
         case "AtRisk":
-            return { label: "At Risk", color: "text-[var(--status-at-risk,#D97706)]", bg: "bg-[var(--status-at-risk,#D97706)]/10", border: "border-[var(--status-at-risk,#D97706)]/20", dot: "bg-[var(--status-at-risk,#D97706)]" };
+            return { 
+                label: "At Risk", 
+                color: "text-[var(--status-at-risk,#D97706)]", 
+                bg: "bg-[var(--status-at-risk,#D97706)]/10", 
+                border: "border-[var(--status-at-risk,#D97706)]/20", 
+                dot: "bg-[var(--status-at-risk,#D97706)]" 
+            };
         case "ACTIVE":
         case "Active":
-            return { label: "Active", color: "text-[var(--status-active,#0284C7)]", bg: "bg-[var(--status-active,#0284C7)]/10", border: "border-[var(--status-active,#0284C7)]/20", dot: "bg-[var(--status-active,#0284C7)]" };
+            return { 
+                label: "Active", 
+                color: "text-[var(--status-active,#0284C7)]", 
+                bg: "bg-[var(--status-active,#0284C7)]/10", 
+                border: "border-[var(--status-active,#0284C7)]/20", 
+                dot: "bg-[var(--status-active,#0284C7)]" 
+            };
         case "COMPLETED":
         case "Completed":
-            return { label: "Completed", color: "text-[var(--status-completed,#15803D)]", bg: "bg-[var(--status-completed,#15803D)]/10", border: "border-[var(--status-completed,#15803D)]/20", dot: "bg-[var(--status-completed,#15803D)]" };
+            return { 
+                label: "Completed", 
+                color: "text-[var(--status-completed,#15803D)]", 
+                bg: "bg-[var(--status-completed,#15803D)]/10", 
+                border: "border-[var(--status-completed,#15803D)]/20", 
+                dot: "bg-[var(--status-completed,#15803D)]" 
+            };
         case "ARCHIVED":
         case "Archived":
-            return { label: "Archived", color: "text-[var(--status-archived,#6B7280)]", bg: "bg-[var(--status-archived,#6B7280)]/10", border: "border-[var(--status-archived,#6B7280)]/20", dot: "bg-[var(--status-archived,#6B7280)]" };
+            return { 
+                label: "Archived", 
+                color: "text-[var(--status-archived,#6B7280)]", 
+                bg: "bg-[var(--status-archived,#6B7280)]/10", 
+                border: "border-[var(--status-archived,#6B7280)]/20", 
+                dot: "bg-[var(--status-archived,#6B7280)]" 
+            };
         default:
-            return { label: status, color: "text-[var(--status-archived,#6B7280)]", bg: "bg-[var(--status-archived,#6B7280)]/10", border: "border-[var(--status-archived,#6B7280)]/20", dot: "bg-[var(--status-archived,#6B7280)]" };
+            return { 
+                label: status || "Active", 
+                color: "text-[var(--status-active,#0284C7)]", 
+                bg: "bg-[var(--status-active,#0284C7)]/10", 
+                border: "border-[var(--status-active,#0284C7)]/20", 
+                dot: "bg-[var(--status-active,#0284C7)]" 
+            };
     }
 }
 
-function AvatarChip({ name, avatarUrl, size = "sm" }: { name: string; avatarUrl?: string | null; size?: "sm" | "md" }) {
+function formatDate(dateInput: any) {
+    if (!dateInput) return "";
+    try {
+        const d = new Date(dateInput);
+        return d.toISOString().split("T")[0];
+    } catch {
+        return "";
+    }
+}
+
+function ProjectCardSkeleton() {
     return (
-        <UserAvatar
-            name={name}
-            avatarUrl={avatarUrl}
-            size={size === "sm" ? "sm" : "md"}
-            title={name}
-        />
+        <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[4px] p-4.5 flex flex-col gap-3.5 animate-pulse">
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-[4px] bg-[var(--app-border)]/60 shrink-0" />
+                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                        <div className="h-3.5 w-3/4 bg-[var(--app-border)]/70 rounded-[2px]" />
+                        <div className="h-2.5 w-1/3 bg-[var(--app-border)]/40 rounded-[2px]" />
+                    </div>
+                </div>
+                <div className="w-14 h-4 bg-[var(--app-border)]/50 rounded-[2px]" />
+            </div>
+            <div className="h-3 w-full bg-[var(--app-border)]/30 rounded-[2px]" />
+            <div className="h-3 w-4/5 bg-[var(--app-border)]/30 rounded-[2px]" />
+            <div className="h-6 w-full bg-[var(--app-bg)] rounded-[2px] border border-[var(--app-border)]/40" />
+            <div className="h-1.5 w-full bg-[var(--app-border)]/50 rounded-full" />
+            <div className="pt-2 border-t border-[var(--app-border)] flex items-center justify-between">
+                <div className="h-3 w-20 bg-[var(--app-border)]/40 rounded-[2px]" />
+                <div className="h-3 w-12 bg-[var(--app-border)]/40 rounded-[2px]" />
+            </div>
+        </div>
+    );
+}
+
+function ProjectRowSkeleton() {
+    return (
+        <tr className="border-b border-[var(--app-border)] animate-pulse">
+            <td className="py-3.5 px-4">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-[3px] bg-[var(--app-border)]/60 shrink-0" />
+                    <div className="flex flex-col gap-1 flex-1">
+                        <div className="h-3 w-40 bg-[var(--app-border)]/70 rounded-[2px]" />
+                        <div className="h-2 w-24 bg-[var(--app-border)]/40 rounded-[2px]" />
+                    </div>
+                </div>
+            </td>
+            <td className="py-3.5 px-4"><div className="w-16 h-4 bg-[var(--app-border)]/50 rounded-[2px]" /></td>
+            <td className="py-3.5 px-4"><div className="w-24 h-4 bg-[var(--app-border)]/40 rounded-[2px]" /></td>
+            <td className="py-3.5 px-4"><div className="w-28 h-4 bg-[var(--app-border)]/40 rounded-[2px]" /></td>
+            <td className="py-3.5 px-4"><div className="w-32 h-4 bg-[var(--app-border)]/50 rounded-[2px]" /></td>
+            <td className="py-3.5 px-4"><div className="w-16 h-4 bg-[var(--app-border)]/40 rounded-[2px]" /></td>
+            <td className="py-3.5 px-4 text-right"><div className="w-12 h-5 bg-[var(--app-border)]/50 rounded-[2px] ml-auto" /></td>
+        </tr>
     );
 }
 
@@ -52,33 +150,33 @@ function ProjectCard({ project }: { project: any }) {
     const overdueTasks = project.overdueTasks !== undefined ? project.overdueTasks : (project.tasks?.filter((t: any) => t.riskLevel === "OVERDUE" || t.riskLevel === "CRITICAL_SLA" || t.riskLevel === "Overdue" || t.riskLevel === "CriticalSLA").length || 0);
     const leaders = (project.members || []).filter((m: any) => m.role === "Leader" || m.role === "LEADER");
 
-    const formatDate = (dateInput: any) => {
-        if (!dateInput) return "";
-        const d = new Date(dateInput);
-        return d.toISOString().split("T")[0];
-    };
-
     const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
         ? calculateProjectProgress(project.tasks, project.columns)
         : (project.progress !== undefined ? project.progress : 0);
 
     return (
         <Link href={`/projects/${project.id}`} className="block group">
-            <div className="relative bg-[var(--app-card)] border border-[var(--app-border)] corner-brackets p-4 flex flex-col gap-3 hover:border-[var(--app-border-strong)] transition-colors cursor-pointer rounded-[3px]">
-                <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                        {project.emoji ? (
-                            <span className="text-lg emoji-font shrink-0">{project.emoji}</span>
-                        ) : (
-                            <FolderKanban className="w-5 h-5 text-[var(--app-muted)] shrink-0" />
-                        )}
-                        <div className="flex flex-col min-w-0">
-                            <h3 className="text-[13px] font-semibold text-[var(--app-text)] truncate">
+            <div className="relative bg-[var(--app-card)] border border-[var(--app-border)] rounded-[4px] p-4.5 flex flex-col justify-between gap-3.5 hover:border-[var(--app-border-strong)] hover:shadow-subtle transition-all duration-200 cursor-pointer min-h-[220px]">
+                {/* Card Top: Identity & Status */}
+                <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        {/* Emoji / Icon Container */}
+                        <div className="w-9 h-9 rounded-[4px] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-lg shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                            {project.emoji ? (
+                                <span className="emoji-font leading-none">{project.emoji}</span>
+                            ) : (
+                                <FolderKanban className="w-4.5 h-4.5 text-[var(--app-muted)]" />
+                            )}
+                        </div>
+
+                        {/* Title & Owning Team */}
+                        <div className="flex flex-col min-w-0 flex-1">
+                            <h3 className="text-[13.5px] font-semibold text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors truncate" title={project.title}>
                                 {project.title}
                             </h3>
                             {project.team && (
                                 <div className="flex items-center gap-1 mt-0.5">
-                                    <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] flex items-center gap-1 w-fit max-w-full truncate" title={`Owning Team: ${project.team.name}`}>
+                                    <span className="text-[9.5px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] flex items-center gap-1 w-fit max-w-full truncate" title={`Owning Team: ${project.team.name}`}>
                                         {project.team.emoji ? (
                                             <span className="emoji-font text-[9px] shrink-0">{project.team.emoji}</span>
                                         ) : (
@@ -90,77 +188,92 @@ function ProjectCard({ project }: { project: any }) {
                             )}
                         </div>
                     </div>
-                    <span
-                        className={`shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border ${status.color} ${status.bg} ${status.border} flex items-center gap-1`}
-                    >
+
+                    {/* Status Pill */}
+                    <span className={`shrink-0 text-[9px] font-medium px-2 py-0.5 rounded-[2px] border ${status.color} ${status.bg} ${status.border} flex items-center gap-1`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                         {status.label}
                     </span>
                 </div>
 
-                <p className="text-[11px] text-[var(--app-muted)] leading-relaxed line-clamp-2">
-                    {project.description}
+                {/* Description */}
+                <p className="text-[11px] text-[var(--app-muted)] leading-relaxed line-clamp-2 min-h-[32px]">
+                    {project.description || <span className="italic opacity-60">No description provided</span>}
                 </p>
 
-                <div className="flex items-center gap-3 text-[10px]">
-                    {project.manager && (
-                        <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-[var(--app-muted)]">Mgr:</span>
-                            <AvatarChip name={project.manager.name} avatarUrl={project.manager.avatarUrl} />
-                            <span className="text-[var(--app-text)] font-medium truncate max-w-[80px]">
-                                {project.manager.name.split(" ")[0]}
-                            </span>
-                        </div>
-                    )}
-                    {leaders.length > 0 && (
-                        <div className="flex items-center gap-1 min-w-0">
-                            <span className="text-[var(--app-muted)]">Leads:</span>
-                            <div className="flex -space-x-1">
+                {/* Metadata Row: Manager, Leads & Dates */}
+                <div className="flex items-center justify-between gap-2 pt-1 text-[10px] flex-wrap">
+                    {/* People */}
+                    <div className="flex items-center gap-2 min-w-0">
+                        {project.manager && (
+                            <div className="flex items-center gap-1.5 min-w-0 bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px]" title={`Project Manager: ${project.manager.name}`}>
+                                <UserAvatar name={project.manager.name} avatarUrl={project.manager.avatarUrl} size="sm" />
+                                <span className="text-[10px] text-[var(--app-text)] font-medium truncate max-w-[85px]">
+                                    {project.manager.name.split(" ")[0]}
+                                </span>
+                            </div>
+                        )}
+                        {leaders.length > 0 && (
+                            <div className="flex items-center -space-x-1" title={`Leads: ${leaders.map((l: any) => l.user?.name).join(", ")}`}>
                                 {leaders.slice(0, 3).map((m: any) => (
-                                    <AvatarChip key={m.id} name={m.user?.name || ""} avatarUrl={m.user?.avatarUrl} />
+                                    <UserAvatar key={m.id} name={m.user?.name || ""} avatarUrl={m.user?.avatarUrl} size="sm" />
                                 ))}
                             </div>
+                        )}
+                    </div>
+
+                    {/* Timeline Date Badge */}
+                    {(project.startDate || project.endDate) && (
+                        <div className="flex items-center gap-1 text-[9.5px] text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] shrink-0">
+                            <Calendar className="w-2.5 h-2.5 text-[var(--app-muted)]" />
+                            <span>{formatDate(project.startDate) || "—"}</span>
+                            <span>→</span>
+                            <span>{formatDate(project.endDate) || "—"}</span>
                         </div>
                     )}
                 </div>
 
-                {(project.startDate || project.endDate) && (
-                    <div className="flex items-center justify-between text-[9px] text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-1 rounded-[2px] border border-[var(--app-border)]">
-                        <span>{formatDate(project.startDate)}</span>
-                        <span>→</span>
-                        <span>{formatDate(project.endDate)}</span>
-                    </div>
-                )}
-
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-[9px]">
-                        <span className="text-[var(--app-muted)]">Progress</span>
+                {/* Progress Bar Section */}
+                <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-[var(--app-muted)] font-medium">Progress</span>
                         <span className="font-semibold text-[var(--app-text)] tabular-nums">
                             {calculatedProgress}%
                         </span>
                     </div>
-                    <div className="w-full h-1 bg-[var(--app-border)] rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-full overflow-hidden">
                         <div
-                            className="h-full bg-[var(--app-text)] transition-all duration-300"
+                            className="h-full bg-[var(--app-text)] transition-all duration-300 rounded-full"
                             style={{ width: `${calculatedProgress}%` }}
                         />
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-[var(--app-border)] text-[9px]">
+                {/* Card Footer: Tasks, Members & Overdue Tag */}
+                <div className="flex items-center justify-between pt-2.5 border-t border-[var(--app-border)] text-[10px]">
                     <div className="flex items-center gap-3">
                         <span className="text-[var(--app-muted)]">
-                            <span className="font-medium text-[var(--app-text)] tabular-nums">{doneTasks}</span>/{totalTasks} tasks
+                            <span className="font-semibold text-[var(--app-text)] tabular-nums">{doneTasks}</span>
+                            <span className="opacity-70">/{totalTasks}</span> tasks
                         </span>
-                        <span className="text-[var(--app-muted)]">
-                            <span className="font-medium text-[var(--app-text)] tabular-nums">{project.members?.length || 0}</span> members
+                        <span className="text-[var(--app-muted)] flex items-center gap-1">
+                            <Users className="w-3 h-3 text-[var(--app-muted)]" />
+                            <span className="font-medium text-[var(--app-text)] tabular-nums">{project.members?.length || 0}</span>
                         </span>
                     </div>
-                    {overdueTasks > 0 && (
-                        <span className="text-[9px] font-medium text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1.5 py-0.5 rounded-[2px]">
-                            {overdueTasks} overdue
+
+                    <div className="flex items-center gap-2">
+                        {overdueTasks > 0 && (
+                            <span className="text-[9px] font-semibold text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1">
+                                <AlertCircle className="w-2.5 h-2.5" />
+                                <span>{overdueTasks} overdue</span>
+                            </span>
+                        )}
+                        <span className="text-[10px] text-[var(--app-muted)] group-hover:text-[var(--app-text)] flex items-center gap-0.5 font-medium group-hover:translate-x-0.5 transition-all">
+                            <span>Open</span>
+                            <ArrowRight className="w-3 h-3" />
                         </span>
-                    )}
+                    </div>
                 </div>
             </div>
         </Link>
@@ -174,12 +287,6 @@ function ProjectListItem({ project }: { project: any }) {
     const overdueTasks = project.overdueTasks !== undefined ? project.overdueTasks : (project.tasks?.filter((t: any) => t.riskLevel === "OVERDUE" || t.riskLevel === "CRITICAL_SLA" || t.riskLevel === "Overdue" || t.riskLevel === "CriticalSLA").length || 0);
     const leaders = (project.members || []).filter((m: any) => m.role === "Leader" || m.role === "LEADER");
 
-    const formatDate = (dateInput: any) => {
-        if (!dateInput) return "";
-        const d = new Date(dateInput);
-        return d.toISOString().split("T")[0];
-    };
-
     const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
         ? calculateProjectProgress(project.tasks, project.columns)
         : (project.progress !== undefined ? project.progress : 0);
@@ -187,13 +294,15 @@ function ProjectListItem({ project }: { project: any }) {
     return (
         <tr className="group border-b border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] transition-colors text-xs">
             {/* Project & Owning Team */}
-            <td className="py-3.5 px-4 min-w-[240px]">
+            <td className="py-3 px-4 min-w-[240px]">
                 <Link href={`/projects/${project.id}`} className="flex items-center gap-2.5 min-w-0">
-                    {project.emoji ? (
-                        <span className="text-lg emoji-font shrink-0">{project.emoji}</span>
-                    ) : (
-                        <FolderKanban className="w-4 h-4 text-[var(--app-muted)] shrink-0" />
-                    )}
+                    <div className="w-7 h-7 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-sm shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        {project.emoji ? (
+                            <span className="emoji-font leading-none">{project.emoji}</span>
+                        ) : (
+                            <FolderKanban className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                        )}
+                    </div>
                     <div className="flex flex-col min-w-0">
                         <span className="font-semibold text-[13px] text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
                             {project.title}
@@ -210,7 +319,7 @@ function ProjectListItem({ project }: { project: any }) {
                                 </span>
                             )}
                             {project.description && (
-                                <span className="text-[10px] text-[var(--app-muted)] line-clamp-1 max-w-[200px]">
+                                <span className="text-[10px] text-[var(--app-muted)] line-clamp-1 max-w-[180px]">
                                     {project.description}
                                 </span>
                             )}
@@ -220,20 +329,20 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Status */}
-            <td className="py-3.5 px-4 whitespace-nowrap">
-                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border inline-flex items-center gap-1 ${status.color} ${status.bg} ${status.border}`}>
+            <td className="py-3 px-4 whitespace-nowrap">
+                <span className={`text-[9.5px] font-medium px-2 py-0.5 rounded-[2px] border inline-flex items-center gap-1 ${status.color} ${status.bg} ${status.border}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                     {status.label}
                 </span>
             </td>
 
             {/* Manager & Leads */}
-            <td className="py-3.5 px-4 whitespace-nowrap">
+            <td className="py-3 px-4 whitespace-nowrap">
                 <div className="flex items-center gap-2">
                     {project.manager && (
                         <div className="flex items-center gap-1.5 min-w-0" title={`Manager: ${project.manager.name}`}>
-                            <AvatarChip name={project.manager.name} avatarUrl={project.manager.avatarUrl} size="sm" />
-                            <span className="text-[10px] text-[var(--app-text)] font-medium truncate max-w-[80px]">
+                            <UserAvatar name={project.manager.name} avatarUrl={project.manager.avatarUrl} size="sm" />
+                            <span className="text-[10.5px] text-[var(--app-text)] font-medium truncate max-w-[80px]">
                                 {project.manager.name.split(" ")[0]}
                             </span>
                         </div>
@@ -241,7 +350,7 @@ function ProjectListItem({ project }: { project: any }) {
                     {leaders.length > 0 && (
                         <div className="flex -space-x-1" title={leaders.map((l: any) => l.user?.name).join(", ")}>
                             {leaders.slice(0, 2).map((m: any) => (
-                                <AvatarChip key={m.id} name={m.user?.name || ""} avatarUrl={m.user?.avatarUrl} size="sm" />
+                                <UserAvatar key={m.id} name={m.user?.name || ""} avatarUrl={m.user?.avatarUrl} size="sm" />
                             ))}
                         </div>
                     )}
@@ -249,24 +358,26 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Timeline */}
-            <td className="py-3.5 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
+            <td className="py-3 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
                 {(project.startDate || project.endDate) ? (
-                    <div className="flex items-center gap-1">
-                        <span>{formatDate(project.startDate)}</span>
+                    <div className="flex items-center gap-1 bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] w-fit">
+                        <Calendar className="w-2.5 h-2.5 text-[var(--app-muted)]" />
+                        <span>{formatDate(project.startDate) || "—"}</span>
                         <span>→</span>
-                        <span>{formatDate(project.endDate)}</span>
+                        <span>{formatDate(project.endDate) || "—"}</span>
                     </div>
                 ) : (
-                    <span>—</span>
+                    <span className="text-[var(--app-muted)]">—</span>
                 )}
             </td>
 
             {/* Progress & Tasks */}
-            <td className="py-3.5 px-4 min-w-[170px]">
+            <td className="py-3 px-4 min-w-[170px]">
                 <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-[9px]">
+                    <div className="flex items-center justify-between text-[9.5px]">
                         <span className="text-[var(--app-muted)]">
-                            <span className="font-medium text-[var(--app-text)] tabular-nums">{doneTasks}</span>/{totalTasks} tasks
+                            <span className="font-semibold text-[var(--app-text)] tabular-nums">{doneTasks}</span>
+                            <span className="opacity-70">/{totalTasks}</span> tasks
                         </span>
                         <span className="font-semibold text-[var(--app-text)] tabular-nums">
                             {calculatedProgress}%
@@ -282,11 +393,14 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Members / Overdue */}
-            <td className="py-3.5 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
+            <td className="py-3 px-4 whitespace-nowrap text-[10.5px] text-[var(--app-muted)]">
                 <div className="flex items-center gap-2">
-                    <span>{project.members?.length || 0} members</span>
+                    <span className="flex items-center gap-1">
+                        <Users className="w-3 h-3 text-[var(--app-muted)]" />
+                        <span className="font-medium text-[var(--app-text)] tabular-nums">{project.members?.length || 0}</span>
+                    </span>
                     {overdueTasks > 0 && (
-                        <span className="text-[8px] font-medium text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1 py-0.2 rounded-[1px]">
+                        <span className="text-[8.5px] font-semibold text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1.5 py-0.2 rounded-[2px]">
                             {overdueTasks} overdue
                         </span>
                     )}
@@ -294,10 +408,10 @@ function ProjectListItem({ project }: { project: any }) {
             </td>
 
             {/* Action */}
-            <td className="py-3.5 px-4 text-right whitespace-nowrap">
+            <td className="py-3 px-4 text-right whitespace-nowrap">
                 <Link
                     href={`/projects/${project.id}`}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] text-[10px] font-medium rounded-[2px] transition-colors"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-muted)] hover:text-[var(--app-text)] text-[10.5px] font-medium rounded-[2px] transition-colors"
                 >
                     <span>Open</span>
                     <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
@@ -322,11 +436,17 @@ export default function ProjectsPortfolio() {
         isManageInvitationsOpen,
         setIsManageInvitationsOpen 
     } = useWorkspace();
+
     const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-    const { summary } = usePortfolioSummary(currentTeam?.id, currentUser?.id);
+    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const { summary, isLoading: isSummaryLoading } = usePortfolioSummary(currentTeam?.id, currentUser?.id);
+    
+    // Filter & Search states
+    const [searchQuery, setSearchQuery] = useState("");
     const [activeFolderId, setActiveFolderId] = useState<string>("ALL");
     const [selectedTeamFilter, setSelectedTeamFilter] = useState<string>("ALL");
+    const [statusFilter, setStatusFilter] = useState<string>("ALL");
+    const [sortBy, setSortBy] = useState<string>("recent");
 
     // Initialize preferred viewMode from localStorage
     useEffect(() => {
@@ -346,7 +466,7 @@ export default function ProjectsPortfolio() {
     };
 
     // Extract unique teams represented in user assigned projects
-    const uniqueTeams = React.useMemo(() => {
+    const uniqueTeams = useMemo(() => {
         const map = new Map<string, { id: string; name: string; emoji: string }>();
         projects.forEach((p) => {
             if (p.team && !map.has(p.team.id)) {
@@ -362,43 +482,87 @@ export default function ProjectsPortfolio() {
 
     const isLeader = userRole === "LEADER";
 
-    // Filter projects by team and folder
-    const filteredProjects = projects.filter((p) => {
-        if (selectedTeamFilter !== "ALL" && p.teamId !== selectedTeamFilter && p.team?.id !== selectedTeamFilter) {
-            return false;
-        }
-        if (activeFolderId !== "ALL") {
-            return p.folderId === activeFolderId;
-        }
-        return true;
-    });
+    // Filter & Sort projects
+    const filteredProjects = useMemo(() => {
+        return projects
+            .filter((p) => {
+                // Team Filter
+                if (selectedTeamFilter !== "ALL" && p.teamId !== selectedTeamFilter && p.team?.id !== selectedTeamFilter) {
+                    return false;
+                }
+                // Folder Filter
+                if (activeFolderId !== "ALL" && p.folderId !== activeFolderId) {
+                    return false;
+                }
+                // Status Filter
+                if (statusFilter !== "ALL") {
+                    const statusUpper = (p.status || "").toUpperCase();
+                    if (statusFilter === "ACTIVE" && statusUpper !== "ACTIVE") return false;
+                    if (statusFilter === "ON_TRACK" && statusUpper !== "ON_TRACK" && statusUpper !== "ONTRACK") return false;
+                    if (statusFilter === "AT_RISK" && statusUpper !== "AT_RISK" && statusUpper !== "ATRISK") return false;
+                    if (statusFilter === "COMPLETED" && statusUpper !== "COMPLETED") return false;
+                    if (statusFilter === "ARCHIVED" && statusUpper !== "ARCHIVED") return false;
+                }
+                // Search Query Filter (Title, Description, Team, Manager)
+                if (searchQuery.trim()) {
+                    const query = searchQuery.toLowerCase().trim();
+                    const titleMatch = (p.title || "").toLowerCase().includes(query);
+                    const descMatch = (p.description || "").toLowerCase().includes(query);
+                    const teamMatch = (p.team?.name || "").toLowerCase().includes(query);
+                    const managerMatch = (p.manager?.name || "").toLowerCase().includes(query);
+                    if (!titleMatch && !descMatch && !teamMatch && !managerMatch) {
+                        return false;
+                    }
+                }
+                return true;
+            })
+            .sort((a, b) => {
+                if (sortBy === "title") {
+                    return (a.title || "").localeCompare(b.title || "");
+                }
+                if (sortBy === "progress") {
+                    const progA = a.progress || 0;
+                    const progB = b.progress || 0;
+                    return progB - progA;
+                }
+                if (sortBy === "dueDate") {
+                    const dateA = a.endDate ? new Date(a.endDate).getTime() : Infinity;
+                    const dateB = b.endDate ? new Date(b.endDate).getTime() : Infinity;
+                    return dateA - dateB;
+                }
+                // Default: Recent / Created / ID
+                return (b.id || "").localeCompare(a.id || "");
+            });
+    }, [projects, selectedTeamFilter, activeFolderId, statusFilter, searchQuery, sortBy]);
+
+    const hasActiveFilters = searchQuery.trim() !== "" || activeFolderId !== "ALL" || selectedTeamFilter !== "ALL" || statusFilter !== "ALL";
+
+    const handleClearFilters = () => {
+        setSearchQuery("");
+        setActiveFolderId("ALL");
+        setSelectedTeamFilter("ALL");
+        setStatusFilter("ALL");
+        setSortBy("recent");
+    };
 
     return (
         <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-5 bg-[var(--app-bg)] text-[var(--app-text)] flex flex-col gap-5 select-none">
-                {/* Header */}
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 bg-[var(--app-bg)] text-[var(--app-text)] flex flex-col gap-6 select-none">
+                
+                {/* 1. Header & Primary Action Toolbar */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
                     <div>
-                        <h1 className="text-xl font-semibold tracking-tight text-[var(--app-text)]">Projects</h1>
+                        <h1 className="font-heading text-2xl font-bold tracking-tight text-[var(--app-text)]">
+                            Projects
+                        </h1>
                         <p className="text-xs text-[var(--app-muted)] mt-0.5">
-                            Portfolio overview across all assigned projects
+                            Portfolio overview across all assigned workspace projects
                         </p>
                     </div>
+
                     <div className="flex items-center gap-2 flex-wrap">
                         {/* View Switcher: Grid vs List */}
                         <div className="flex items-center bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-[10px] font-medium shrink-0">
-                            <button
-                                type="button"
-                                onClick={() => handleViewModeChange("list")}
-                                className={`p-1.5 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
-                                    viewMode === "list"
-                                        ? "bg-[var(--app-bg)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
-                                }`}
-                                title="List View"
-                            >
-                                <List className="w-3.5 h-3.5" />
-                            </button>
                             <button
                                 type="button"
                                 onClick={() => handleViewModeChange("grid")}
@@ -411,19 +575,29 @@ export default function ProjectsPortfolio() {
                             >
                                 <LayoutGrid className="w-3.5 h-3.5" />
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => handleViewModeChange("list")}
+                                className={`p-1.5 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
+                                    viewMode === "list"
+                                        ? "bg-[var(--app-bg)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                                }`}
+                                title="List View"
+                            >
+                                <List className="w-3.5 h-3.5" />
+                            </button>
                         </div>
 
-                        {/* Invitations Tray Trigger Button (Secondary) */}
+                        {/* Invitations Button */}
                         <button
                             type="button"
-                            onClick={() => {
-                                setIsManageInvitationsOpen(!isManageInvitationsOpen);
-                            }}
-                            className={`bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border ${
+                            onClick={() => setIsManageInvitationsOpen(!isManageInvitationsOpen)}
+                            className={`relative corner-brackets-4 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border ${
                                 isManageInvitationsOpen
                                     ? "border-[var(--app-border-strong)] bg-[var(--app-hover-bg)] text-[var(--app-text)] font-semibold"
                                     : "border-[var(--app-border)] text-[var(--app-text)]"
-                            } text-[11px] font-medium px-3.5 py-1.5 rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0`}
+                            } text-[11px] font-medium px-3 py-1.5 rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs`}
                         >
                             <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                             <span>Invitations</span>
@@ -433,72 +607,76 @@ export default function ProjectsPortfolio() {
                                 </span>
                             )}
                         </button>
+
+                        {/* Manage Folders (Leader Only) */}
+                        {isLeader && !isManageFoldersOpen && (
+                            <button
+                                type="button"
+                                onClick={() => setIsManageFoldersOpen(true)}
+                                className="relative corner-brackets-4 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-[11px] font-medium px-3 py-1.5 rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                            >
+                                <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                <span>Manage Folders</span>
+                            </button>
+                        )}
+
+                        {/* Primary Action Button: New Project */}
                         {isLeader && (
-                            <>
-                                {!isManageFoldersOpen && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsManageFoldersOpen(true);
-                                        }}
-                                        className="bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-[11px] font-medium px-3.5 py-1.5 rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-                                    >
-                                        <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                                        <span>Manage Folders</span>
-                                    </button>
-                                )}
-                                {/* Primary Action: exactly ONE primary button */}
-                                <button
-                                    type="button"
-                                    onClick={() => setIsCreateOpen(true)}
-                                    className="relative corner-brackets-4 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] text-[11px] font-medium px-3.5 py-1.5 rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
-                                >
-                                    <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
-                                    <span>New Project</span>
-                                </button>
-                            </>
+                            <button
+                                type="button"
+                                onClick={() => setIsCreateOpen(true)}
+                                className="relative corner-brackets-4 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] text-[11px] font-semibold px-3.5 py-1.5 rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                            >
+                                <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
+                                <span>New Project</span>
+                            </button>
                         )}
                     </div>
                 </div>
 
-                {/* Subtle Pending Invitations Alert Bar */}
+                {/* 2. Pending Invitations Alert Banner */}
                 {projectInvitations.length > 0 && (
                     <div
-                        onClick={() => {
-                            setIsManageInvitationsOpen(true);
-                        }}
-                        className="border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-bg)] rounded-[3px] p-3 flex items-center justify-between gap-3 cursor-pointer transition-colors"
+                        onClick={() => setIsManageInvitationsOpen(true)}
+                        className="border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)] rounded-[4px] p-3 flex items-center justify-between gap-3 cursor-pointer transition-colors shadow-subtle"
                     >
                         <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="w-7 h-7 rounded-full bg-[var(--app-card)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-text)] shrink-0">
+                            <span className="w-7 h-7 rounded-full bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-text)] shrink-0">
                                 <Mail className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                             </span>
                             <div className="min-w-0">
                                 <p className="text-xs text-[var(--app-text)] font-semibold truncate">
-                                    You have {projectInvitations.length} pending project invitation{projectInvitations.length > 1 ? 's' : ''} awaiting your response
+                                    You have {projectInvitations.length} pending project invitation{projectInvitations.length > 1 ? 's' : ''} awaiting response
                                 </p>
-                                <p className="text-[10px] text-[var(--app-muted)] mt-0.5">
+                                <p className="text-[10.5px] text-[var(--app-muted)] mt-0.5">
                                     Click here to review project details, assigned roles, and accept or decline.
                                 </p>
                             </div>
                         </div>
-                        <span className="text-[11px] text-[var(--app-text)] font-medium flex items-center gap-1 shrink-0 hover:underline">
-                            Open Sidebar →
+                        <span className="text-[11px] text-[var(--app-text)] font-semibold flex items-center gap-1 shrink-0 hover:underline">
+                            Open Invitations →
                         </span>
                     </div>
                 )}
 
-                {/* KPI Stats Row — Semantic Colors */}
-                <div className="corner-brackets grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--app-border)] border border-[var(--app-border)] rounded-[3px] overflow-hidden">
+                {/* 3. Hero KPI Metrics Bar */}
+                <div className="corner-brackets grid grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--app-border)] border border-[var(--app-border)] rounded-[3px] overflow-hidden shadow-2xs">
                     <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
-                        <span className="eyebrow">Active Projects</span>
-                        <span className="text-2xl font-bold tracking-tight text-[var(--app-text)] tabular-nums">
+                        <span className="eyebrow flex items-center justify-between">
+                            <span>Active Projects</span>
+                            <FolderKanban className="w-3.5 h-3.5 text-[var(--app-muted)] opacity-60" />
+                        </span>
+                        <span className="text-2xl lg:text-3xl font-heading font-medium tracking-tight text-[var(--app-text)] tabular-nums">
                             {summary.activeProjects}
                         </span>
                     </div>
+
                     <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
-                        <span className="eyebrow">On-Time Rate</span>
-                        <span className={`text-2xl font-bold tracking-tight tabular-nums ${
+                        <span className="eyebrow flex items-center justify-between">
+                            <span>On-Time Rate</span>
+                            <TrendingUp className="w-3.5 h-3.5 text-[var(--app-muted)] opacity-60" />
+                        </span>
+                        <span className={`text-2xl lg:text-3xl font-heading font-medium tracking-tight tabular-nums ${
                             summary.onTimeRate < 50
                                 ? "text-[var(--color-error)]"
                                 : summary.onTimeRate < 80
@@ -508,35 +686,130 @@ export default function ProjectsPortfolio() {
                             {summary.onTimeRate}%
                         </span>
                     </div>
+
                     <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
-                        <span className="eyebrow">SLA Breaches</span>
-                        <span className={`text-2xl font-bold tracking-tight tabular-nums ${summary.criticalSLABreaches > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"}`}>
+                        <span className="eyebrow flex items-center justify-between">
+                            <span>SLA Breaches</span>
+                            <AlertCircle className="w-3.5 h-3.5 text-[var(--app-muted)] opacity-60" />
+                        </span>
+                        <span className={`text-2xl lg:text-3xl font-heading font-medium tracking-tight tabular-nums ${
+                            summary.criticalSLABreaches > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"
+                        }`}>
                             {summary.criticalSLABreaches}
                         </span>
                     </div>
+
                     <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
-                        <span className="eyebrow">Total Projects</span>
-                        <span className="text-2xl font-bold tracking-tight text-[var(--app-text)] tabular-nums">
+                        <span className="eyebrow flex items-center justify-between">
+                            <span>Total Projects</span>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[var(--app-muted)] opacity-60" />
+                        </span>
+                        <span className="text-2xl lg:text-3xl font-heading font-medium tracking-tight text-[var(--app-text)] tabular-nums">
                             {summary.totalProjects}
                         </span>
                     </div>
                 </div>
 
-                {/* Filters Row: Team Selector & Folder Tabs */}
-                {!isProjectsLoading && (uniqueTeams.length > 1 || foldersWithProjects.length > 0) && (
-                    <div className="shrink-0 border-b border-[var(--app-border)] flex flex-wrap items-center justify-between gap-3 select-none pb-1">
-                        {/* Folder / All Tabs — Clean Normal-Case Typography */}
-                        <div className="flex flex-wrap items-center gap-2">
+                {/* 4. Search, Filter & Navigation Controls */}
+                <div className="flex flex-col gap-3">
+                    {/* Top Row: Search Input + Status Filter + Sort + Team Filter */}
+                    <div className="flex flex-wrap items-center justify-between gap-2.5">
+                        {/* Search Input */}
+                        <div className="relative flex-1 min-w-[220px] max-w-md">
+                            <Search className="w-3.5 h-3.5 text-[var(--app-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search projects by title, description, team..."
+                                className="w-full bg-[var(--app-card)] border border-[var(--app-border)] focus:border-[var(--app-border-strong)] focus:outline-none text-[11.5px] text-[var(--app-text)] placeholder-[var(--app-muted)] pl-8 pr-7 py-1.5 rounded-[2px] transition-colors"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery("")}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Controls Group */}
+                        <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                            {/* Status Filter */}
+                            <CustomSelect
+                                options={[
+                                    { value: "ALL", label: "All Statuses" },
+                                    { value: "ACTIVE", label: "Active" },
+                                    { value: "ON_TRACK", label: "On Track" },
+                                    { value: "AT_RISK", label: "At Risk" },
+                                    { value: "COMPLETED", label: "Completed" },
+                                    { value: "ARCHIVED", label: "Archived" },
+                                ]}
+                                value={statusFilter}
+                                onChange={setStatusFilter}
+                                buttonClassName="corner-brackets-4 text-[10.5px] h-[28px] !py-0 px-2.5 bg-[var(--app-card)]"
+                                className="w-32 h-[28px] shrink-0"
+                            />
+
+                            {/* Sort Selector */}
+                            <CustomSelect
+                                options={[
+                                    { value: "recent", label: "Sort: Recent" },
+                                    { value: "dueDate", label: "Sort: Due Date" },
+                                    { value: "progress", label: "Sort: Progress" },
+                                    { value: "title", label: "Sort: Title" },
+                                ]}
+                                value={sortBy}
+                                onChange={setSortBy}
+                                buttonClassName="corner-brackets-4 text-[10.5px] h-[28px] !py-0 px-2.5 bg-[var(--app-card)]"
+                                className="w-34 h-[28px] shrink-0"
+                            />
+
+                            {/* Cross-Team Filter (if >1 team exists) */}
+                            {uniqueTeams.length > 1 && (
+                                <CustomSelect
+                                    options={[
+                                        { value: "ALL", label: `All Teams (${projects.length})` },
+                                        ...uniqueTeams.map((t) => ({
+                                            value: t.id,
+                                            label: `${t.emoji || "🏢"} ${t.name}`,
+                                            sublabel: `${projects.filter((p) => p.teamId === t.id || p.team?.id === t.id).length}`,
+                                        })),
+                                    ]}
+                                    value={selectedTeamFilter}
+                                    onChange={setSelectedTeamFilter}
+                                    buttonClassName="corner-brackets-4 text-[10.5px] h-[28px] !py-0 px-2.5 bg-[var(--app-card)]"
+                                    className="w-38 h-[28px] shrink-0"
+                                />
+                            )}
+
+                            {/* Reset Filter Button */}
+                            {hasActiveFilters && (
+                                <button
+                                    onClick={handleClearFilters}
+                                    className="text-[10px] text-[var(--app-muted)] hover:text-[var(--app-text)] underline cursor-pointer px-1 py-1"
+                                >
+                                    Reset
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Bottom Row: Folder Tabs */}
+                    <div className="border-b border-[var(--app-border)] flex items-center justify-between gap-3 overflow-x-auto scrollbar-none pb-0.5">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            {/* All Folders Tab */}
                             <button
                                 onClick={() => setActiveFolderId("ALL")}
-                                className={`py-1.5 px-3 flex items-center gap-1.5 text-[12px] font-medium border-b-2 transition-colors cursor-pointer ${
+                                className={`py-1.5 px-3 flex items-center gap-1.5 text-[11.5px] font-medium border-b-2 transition-colors cursor-pointer ${
                                     activeFolderId === "ALL"
                                         ? "border-[var(--app-text)] text-[var(--app-text)] font-semibold"
                                         : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]"
                                 }`}
                             >
                                 <span>All Folders</span>
-                                <span className={`px-1.5 py-0.2 rounded-[2px] text-[10px] tabular-nums border transition-colors ${
+                                <span className={`px-1.5 py-0.2 rounded-[2px] text-[9.5px] tabular-nums border transition-colors ${
                                     activeFolderId === "ALL"
                                         ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
                                         : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
@@ -544,6 +817,8 @@ export default function ProjectsPortfolio() {
                                     {projects.length}
                                 </span>
                             </button>
+
+                            {/* Custom Folder Tabs */}
                             {foldersWithProjects.map((folder) => {
                                 const isSelected = activeFolderId === folder.id;
                                 const folderProjects = projects.filter((p) => p.folderId === folder.id);
@@ -551,7 +826,7 @@ export default function ProjectsPortfolio() {
                                     <button
                                         key={folder.id}
                                         onClick={() => setActiveFolderId(folder.id)}
-                                        className={`py-1.5 px-3 flex items-center gap-1.5 text-[12px] font-medium border-b-2 transition-colors cursor-pointer ${
+                                        className={`py-1.5 px-3 flex items-center gap-1.5 text-[11.5px] font-medium border-b-2 transition-colors cursor-pointer ${
                                             isSelected
                                                 ? "border-[var(--app-text)] text-[var(--app-text)] font-semibold"
                                                 : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]"
@@ -563,7 +838,7 @@ export default function ProjectsPortfolio() {
                                             <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                                         )}
                                         <span>{folder.name}</span>
-                                        <span className={`px-1.5 py-0.2 rounded-[2px] text-[10px] tabular-nums border transition-colors ${
+                                        <span className={`px-1.5 py-0.2 rounded-[2px] text-[9.5px] tabular-nums border transition-colors ${
                                             isSelected
                                                 ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
                                                 : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
@@ -575,78 +850,102 @@ export default function ProjectsPortfolio() {
                             })}
                         </div>
 
-                        {/* Cross-Team Filter */}
-                        {uniqueTeams.length > 1 && (
-                            <div className="flex items-center gap-1.5 text-[11px]">
-                                <span className="text-[var(--app-muted)] text-[10px]">Team:</span>
-                                <select
-                                    value={selectedTeamFilter}
-                                    onChange={(e) => setSelectedTeamFilter(e.target.value)}
-                                    className="px-2 py-1 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-[11px] text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)] cursor-pointer"
-                                >
-                                    <option value="ALL">All Teams ({projects.length})</option>
-                                    {uniqueTeams.map((t) => {
-                                        const count = projects.filter((p) => p.teamId === t.id || p.team?.id === t.id).length;
-                                        return (
-                                            <option key={t.id} value={t.id}>
-                                                {t.emoji || "🏢"} {t.name} ({count})
-                                            </option>
-                                        );
-                                    })}
-                                </select>
-                            </div>
-                        )}
+                        {/* Result Counter */}
+                        <span className="text-[10px] text-[var(--app-muted)] shrink-0 hidden sm:inline">
+                            Showing <span className="font-semibold text-[var(--app-text)]">{filteredProjects.length}</span> of {projects.length} projects
+                        </span>
                     </div>
-                )}
+                </div>
 
-                {/* Project List / Grid View */}
-                <div className="flex flex-col gap-6">
+                {/* 5. Main Content: Grid View or List / Table View */}
+                <div className="flex flex-col gap-4">
                     {isProjectsLoading ? (
-                        <div className="flex justify-center py-12">
-                            <Loader2 className="w-6 h-6 animate-spin text-[var(--app-muted)]" />
-                        </div>
+                        viewMode === "grid" ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {[...Array(6)].map((_, i) => (
+                                    <ProjectCardSkeleton key={i} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="border border-[var(--app-border)] rounded-[3px] bg-[var(--app-card)] overflow-hidden shadow-xs">
+                                <table className="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr className="border-b border-[var(--app-border)] bg-[var(--app-bg)] text-[10px] font-medium text-[var(--app-muted)]">
+                                            <th className="py-2.5 px-4 font-semibold">Project & Team</th>
+                                            <th className="py-2.5 px-4 font-semibold">Status</th>
+                                            <th className="py-2.5 px-4 font-semibold">Manager & Leads</th>
+                                            <th className="py-2.5 px-4 font-semibold">Timeline</th>
+                                            <th className="py-2.5 px-4 font-semibold">Progress</th>
+                                            <th className="py-2.5 px-4 font-semibold">Members</th>
+                                            <th className="py-2.5 px-4 font-semibold text-right">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[...Array(5)].map((_, i) => (
+                                            <ProjectRowSkeleton key={i} />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )
                     ) : filteredProjects.length === 0 ? (
-                        /* Actionable Empty State */
-                        <div className="border border-dashed border-[var(--app-border)] rounded-[4px] py-16 text-center flex flex-col items-center justify-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-[var(--app-card)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)]">
+                        /* Empty State */
+                        <div className="border border-dashed border-[var(--app-border)] rounded-[4px] py-16 text-center flex flex-col items-center justify-center gap-3 bg-[var(--app-card)]/50">
+                            <div className="w-10 h-10 rounded-full bg-[var(--app-card)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shadow-subtle">
                                 <FolderKanban className="w-5 h-5" />
                             </div>
-                            <div>
-                                <p className="text-sm font-medium text-[var(--app-text)]">No projects found</p>
-                                <p className="text-[11px] text-[var(--app-muted)] mt-0.5">
-                                    {activeFolderId !== "ALL" ? "No projects in this folder yet." : "Get started by creating a new project."}
+                            <div className="flex flex-col items-center">
+                                <p className="text-sm font-semibold text-[var(--app-text)]">
+                                    {hasActiveFilters ? "No matching projects found" : "No projects created yet"}
+                                </p>
+                                <p className="text-[11px] text-[var(--app-muted)] mt-0.5 max-w-sm">
+                                    {hasActiveFilters 
+                                        ? "Try adjusting your search query, status, or folder filter to find what you're looking for." 
+                                        : "Get started by creating your first project to organize tasks, assign teammates, and track milestones."}
                                 </p>
                             </div>
-                            {isLeader && (
-                                <button
-                                    onClick={() => setIsCreateOpen(true)}
-                                    className="relative corner-brackets-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer mt-1 shadow-2xs"
-                                >
-                                    <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
-                                    <span>Create Project</span>
-                                </button>
-                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                                {hasActiveFilters && (
+                                    <button
+                                        onClick={handleClearFilters}
+                                        className="relative corner-brackets-4 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer shadow-2xs"
+                                    >
+                                        <X className="w-3 h-3" />
+                                        <span>Reset Filters</span>
+                                    </button>
+                                )}
+                                {isLeader && (
+                                    <button
+                                        onClick={() => setIsCreateOpen(true)}
+                                        className="relative corner-brackets-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] text-[11px] font-semibold rounded-[2px] transition-colors cursor-pointer shadow-2xs"
+                                    >
+                                        <Plus className="w-3.5 h-3.5 text-[var(--app-text)]" />
+                                        <span>Create Project</span>
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ) : viewMode === "grid" ? (
+                        /* Grid View */
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                             {filteredProjects.map((project) => (
                                 <ProjectCard key={project.id} project={project} />
                             ))}
                         </div>
                     ) : (
-                        /* List / Table View — Clean row-based borders & normal-case headers */
+                        /* List / Table View */
                         <div className="border border-[var(--app-border)] rounded-[3px] bg-[var(--app-card)] overflow-hidden shadow-xs">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-xs border-collapse">
                                     <thead>
                                         <tr className="border-b border-[var(--app-border)] bg-[var(--app-bg)] text-[10px] font-medium text-[var(--app-muted)]">
-                                            <th className="py-3 px-4 font-semibold">Project & Team</th>
-                                            <th className="py-3 px-4 font-semibold">Status</th>
-                                            <th className="py-3 px-4 font-semibold">Manager & Leads</th>
-                                            <th className="py-3 px-4 font-semibold">Timeline</th>
-                                            <th className="py-3 px-4 font-semibold">Progress</th>
-                                            <th className="py-3 px-4 font-semibold">Members</th>
-                                            <th className="py-3 px-4 font-semibold text-right">Action</th>
+                                            <th className="py-2.5 px-4 font-semibold">Project & Team</th>
+                                            <th className="py-2.5 px-4 font-semibold">Status</th>
+                                            <th className="py-2.5 px-4 font-semibold">Manager & Leads</th>
+                                            <th className="py-2.5 px-4 font-semibold">Timeline</th>
+                                            <th className="py-2.5 px-4 font-semibold">Progress</th>
+                                            <th className="py-2.5 px-4 font-semibold">Members</th>
+                                            <th className="py-2.5 px-4 font-semibold text-right">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -667,6 +966,7 @@ export default function ProjectsPortfolio() {
                 />
             </div>
 
+            {/* Trays */}
             <ManageFoldersTray
                 isOpen={isManageFoldersOpen}
                 onClose={() => setIsManageFoldersOpen(false)}

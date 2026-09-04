@@ -3,7 +3,11 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, LayoutGrid, Users, Calendar, BarChart2, Loader2, Mail, Settings, Plus, ChevronRight, FolderKanban, Building2 } from "lucide-react";
+import { 
+    ArrowLeft, ArrowRight, LayoutGrid, Users, Calendar, BarChart2, 
+    Loader2, Mail, Settings, ChevronLeft, ChevronRight, FolderKanban, 
+    Building2, Shield, ShieldCheck, User, Eye, Edit2 
+} from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import ProjectBoardView from "./ProjectBoardView";
@@ -12,7 +16,7 @@ import ProjectTimelineView from "./ProjectTimelineView";
 import ProjectAnalyticsView from "./ProjectAnalyticsView";
 import ProjectSettingsView from "./ProjectSettingsView";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
-import CreateProjectTaskModal from "./CreateProjectTaskModal";
+import EditProjectModal from "./EditProjectModal";
 import { useProjectDetail } from "../../hooks/useProjectSWR";
 import ProjectDetailSkeleton from "./ProjectDetailSkeleton";
 import { UserAvatar } from "../ui/UserAvatar";
@@ -58,11 +62,22 @@ export default function ProjectDetail() {
 
     const { project, isLoading, mutate: refreshProject } = useProjectDetail(projectId, currentTeam?.id);
     const [activeTab, setActiveTab] = useState<Tab>("main-board");
-    const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+    const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
 
     const loadProjectDetail = React.useCallback(async () => {
         await refreshProject();
     }, [refreshProject]);
+
+    useEffect(() => {
+        const handleProjectDataUpdated = (e: any) => {
+            const detail = e.detail;
+            if (!detail || !detail.projectId || detail.projectId === projectId) {
+                refreshProject();
+            }
+        };
+        window.addEventListener("project_data_updated", handleProjectDataUpdated);
+        return () => window.removeEventListener("project_data_updated", handleProjectDataUpdated);
+    }, [projectId, refreshProject]);
 
     if (isLoading && !project) {
         return <ProjectDetailSkeleton />;
@@ -102,188 +117,221 @@ export default function ProjectDetail() {
     const permissions = getProjectPermissions(project, currentUser, userRole, currentTeam);
     const canManageTasks = permissions.canManageTasks;
     const canManageInvitations = permissions.canManageInvitations;
-
     const pendingProjectInvitesCount = (project.invitations?.length || 0) + (projectInvitations?.length || 0);
+
+    const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
+        ? calculateProjectProgress(project.tasks, project.columns)
+        : (project.progress !== undefined ? project.progress : 0);
 
     return (
         <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden bg-[var(--app-bg)] text-[var(--app-text)]">
-                {/* Project Header Bar */}
-                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 py-3 flex flex-col gap-2.5 select-none">
-                    {/* Breadcrumbs */}
-                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--app-muted)]">
-                        <Link href="/projects" className="hover:text-[var(--app-text)] transition-colors">
-                            Projects
-                        </Link>
-                        <ChevronRight className="w-3 h-3 text-[var(--app-muted)]" />
-                        <span className="font-medium text-[var(--app-text)] truncate max-w-[280px]">
-                            {project.title}
-                        </span>
-                    </div>
-
-                    {/* Top Row: Back button, Title, Status */}
+                {/* Level 1: Project Identity, Breadcrumbs & Primary Actions */}
+                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 py-3 flex flex-col gap-2 select-none">
+                    {/* Row 1: Primary Project Title + Right Actions */}
                     <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <Link
-                                href="/projects"
-                                className="p-1.5 border border-[var(--app-border)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] rounded-[2px] transition-colors shrink-0"
-                                title="Back to Projects"
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                            </Link>
+                        {/* Left: Project Emoji & Prominent Title */}
+                        <div className="flex items-center gap-2 min-w-0">
                             {project.emoji ? (
                                 <span className="text-lg emoji-font shrink-0">{project.emoji}</span>
                             ) : (
-                                <FolderKanban className="w-5 h-5 text-[var(--app-muted)] shrink-0" />
+                                <FolderKanban className="w-4 h-4 text-[var(--app-muted)] shrink-0" />
                             )}
-                            <h1 className="text-lg font-semibold tracking-tight text-[var(--app-text)] truncate">
+                            <h1
+                                className="font-heading text-lg sm:text-xl font-bold tracking-tight text-[var(--app-text)] truncate max-w-[320px] md:max-w-[500px] lg:max-w-[700px]"
+                                title={project.title}
+                            >
                                 {project.title}
                             </h1>
-                            {project.team && (
-                                <span className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text)] flex items-center gap-1.5" title={`Owning Team: ${project.team.name}`}>
-                                    {project.team.emoji ? (
-                                        <span className="emoji-font text-xs shrink-0">{project.team.emoji}</span>
-                                    ) : (
-                                        <Building2 className="w-2.5 h-2.5 shrink-0 text-[var(--app-muted)]" />
-                                    )}
-                                    <span className="truncate">{project.team.name}</span>
-                                </span>
+                        </div>
+
+                        {/* Right: Project Dates, Edit & Invitations Actions */}
+                        <div className="flex items-center gap-2 shrink-0">
+                            {/* Project Timeline Date Range */}
+                            {(project.startDate || project.endDate) && (
+                                <div
+                                    className="hidden sm:flex items-center gap-1.5 text-[10px] text-[var(--app-muted)] border border-[var(--app-border)] px-2.5 py-1 rounded-[2px] bg-[var(--app-bg)] h-[28px]"
+                                    title="Project Timeline"
+                                >
+                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <span>{formatDate(project.startDate) || "—"}</span>
+                                    <ArrowRight className="w-2.5 h-2.5 text-[var(--app-muted)]" />
+                                    <span>{formatDate(project.endDate) || "—"}</span>
+                                </div>
                             )}
-                            <span
-                                className={`shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border flex items-center gap-1 ${status.color} ${status.bg} ${status.border}`}
+
+                            {/* Edit Project Modal Button */}
+                            {canManageTasks && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditProjectModalOpen(true)}
+                                    className="relative corner-brackets-4 text-[11px] font-medium p-1.5 rounded-[2px] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] transition-colors cursor-pointer flex items-center justify-center shadow-2xs h-[28px] w-[28px]"
+                                    title="Edit Project Configuration"
+                                >
+                                    <Edit2 className="w-3.5 h-3.5 text-[var(--app-muted)] hover:text-[var(--app-text)]" />
+                                </button>
+                            )}
+
+                            {/* Invitations Drawer Toggle - Icon Only */}
+                            {canManageInvitations && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsManageInvitationsOpen(!isManageInvitationsOpen)}
+                                    className={`relative corner-brackets-4 text-[11px] font-medium px-2 py-1 rounded-[2px] border transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-2xs h-[28px] ${
+                                        isManageInvitationsOpen
+                                            ? "bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
+                                            : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
+                                    }`}
+                                    title="Project Invitations"
+                                >
+                                    <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                    {pendingProjectInvitesCount > 0 && (
+                                        <span className="px-1 py-0.2 rounded-[2px] text-[8px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold tabular-nums">
+                                            {pendingProjectInvitesCount}
+                                        </span>
+                                    )}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Row 2: Breadcrumb Navigation (Left) + Roles & Metadata Badges (Right) */}
+                    <div className="flex items-center justify-between gap-3 text-[11px] text-[var(--app-muted)] flex-wrap pt-0.5">
+                        {/* Left: Breadcrumb Navigation in Small Size */}
+                        <div className="flex items-center gap-1.5 min-w-0 text-[11px]">
+                            <Link
+                                href="/projects"
+                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] flex items-center gap-1 font-medium transition-colors shrink-0 group"
+                                title="Back to Projects"
                             >
-                                <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
-                                {status.label}
+                                <ChevronLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+                                <span>Projects</span>
+                            </Link>
+
+                            <span className="text-[var(--app-muted)]/70 text-xs font-medium select-none px-0.5">/</span>
+
+                            <span className="text-[var(--app-text)] font-medium truncate max-w-[220px]" title={project.title}>
+                                {project.title}
                             </span>
                         </div>
 
-                        {/* Progress & Timeline */}
-                        <div className="flex items-center gap-3 shrink-0">
-                            <div className="flex items-center gap-2 text-[10px] text-[var(--app-muted)]">
-                                <span>{formatDate(project.startDate)}</span>
-                                <ArrowRight className="w-3 h-3" />
-                                <span>{formatDate(project.endDate)}</span>
+                        {/* Right: Roles & Metadata Badges */}
+                        <div className="flex items-center gap-3 text-[11px] text-[var(--app-muted)] flex-wrap">
+                            {/* Status indicator (Dot + Neutral Label - No tint) */}
+                            <div className="flex items-center gap-1.5 shrink-0" title={`Project Health: ${status.label}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                                <span className="font-medium text-[var(--app-text)]">{status.label}</span>
                             </div>
-                            {(() => {
-                                const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
-                                    ? calculateProjectProgress(project.tasks, project.columns)
-                                    : (project.progress !== undefined ? project.progress : 0);
-                                return (
-                                    <div className="flex items-center gap-1.5 border border-[var(--app-border)] px-2 py-1 rounded-[2px] bg-[var(--app-bg)]">
-                                        <span className="text-[9px] text-[var(--app-muted)]">Progress</span>
-                                        <span className="text-[11px] font-medium text-[var(--app-text)] tabular-nums">
-                                            {calculatedProgress}%
-                                        </span>
+
+                            {/* Owning Team */}
+                            {project.team && (
+                                <>
+                                    <span className="text-[var(--app-border)] select-none">•</span>
+                                    <div className="flex items-center gap-1.5 shrink-0" title={`Owning Team: ${project.team.name}`}>
+                                        {project.team.emoji ? (
+                                            <span className="emoji-font text-xs shrink-0">{project.team.emoji}</span>
+                                        ) : (
+                                            <Building2 className="w-3 h-3 shrink-0 text-[var(--app-muted)]" />
+                                        )}
+                                        <span>{project.team.name}</span>
                                     </div>
-                                );
-                            })()}
-                        </div>
-                    </div>
+                                </>
+                            )}
 
-                    {/* Bottom Row: Manager, Leaders, Members count */}
-                    <div className="flex items-center gap-4 text-[10px]">
-                        {/* Manager */}
-                        {project.manager && (
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-[var(--app-muted)]">Manager:</span>
-                                <UserAvatar
-                                    name={project.manager.name}
-                                    avatarUrl={project.manager.avatarUrl}
-                                    size="sm"
-                                    title={project.manager.name}
-                                />
-                                <span className="font-medium text-[var(--app-text)]">
-                                    {project.manager.name}
-                                </span>
-                            </div>
-                        )}
+                            {/* User Role (Minimal, untinted) */}
+                            <span className="text-[var(--app-border)] select-none">•</span>
+                            <div className="relative group flex items-center gap-1 shrink-0 cursor-help" title={permissions.userRoleDescription}>
+                                {permissions.userRoleLabel === "Manager" ? (
+                                    <ShieldCheck className="w-3 h-3 text-[var(--app-muted)]" />
+                                ) : permissions.userRoleLabel === "Leader" ? (
+                                    <Shield className="w-3 h-3 text-[var(--app-muted)]" />
+                                ) : permissions.userRoleLabel === "Member" ? (
+                                    <User className="w-3 h-3 text-[var(--app-muted)]" />
+                                ) : (
+                                    <Eye className="w-3 h-3 text-[var(--app-muted)]" />
+                                )}
+                                <span>Role: <strong className="font-medium text-[var(--app-text)]">{permissions.userRoleLabel}</strong></span>
 
-                        {/* Divider */}
-                        {project.manager && <div className="w-px h-4 bg-[var(--app-border)]" />}
-
-                        {/* Leaders */}
-                        {leaders.length > 0 && (
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-[var(--app-muted)]">
-                                    {leaders.length === 1 ? "Lead:" : "Leads:"}
-                                </span>
-                                <div className="flex -space-x-1">
-                                    {leaders.map((l: any) => (
-                                        <UserAvatar
-                                            key={l.userId}
-                                            name={l.user?.name || ""}
-                                            avatarUrl={l.user?.avatarUrl}
-                                            size="sm"
-                                            title={l.user?.name || ""}
-                                        />
-                                    ))}
+                                {/* Role Tooltip */}
+                                <div className="absolute right-0 top-full mt-1.5 hidden group-hover:block z-50 w-56 p-2.5 bg-[var(--app-card)] border border-[var(--app-border-strong)] rounded-[3px] shadow-lg text-[10px] text-[var(--app-muted)] pointer-events-none">
+                                    <div className="font-semibold text-[var(--app-text)] mb-0.5 flex items-center gap-1.5">
+                                        <span>Your Role: {permissions.userRoleLabel}</span>
+                                    </div>
+                                    <p>{permissions.userRoleDescription}</p>
                                 </div>
-                                <span className="font-medium text-[var(--app-text)]">
-                                    {leaders.map((l: any) => l.user?.name?.split(" ")[0]).join(", ")}
-                                </span>
                             </div>
-                        )}
 
-                        {/* Divider */}
-                        {leaders.length > 0 && <div className="w-px h-4 bg-[var(--app-border)]" />}
-
-                        {/* Member Count */}
-                        <span className="text-[var(--app-muted)]">
-                            <span className="font-medium text-[var(--app-text)] tabular-nums">
-                                {project.members?.length || 0}
-                            </span>{" "}
-                            members
-                        </span>
+                            {/* Project Manager */}
+                            {project.manager && (
+                                <>
+                                    <span className="text-[var(--app-border)] select-none">•</span>
+                                    <div className="flex items-center gap-1.5 shrink-0" title={`Project Manager: ${project.manager.name}`}>
+                                        <UserAvatar
+                                            name={project.manager.name}
+                                            avatarUrl={project.manager.avatarUrl}
+                                            size="sm"
+                                        />
+                                        <span>Mgr: <strong className="font-medium text-[var(--app-text)]">{project.manager.name}</strong></span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* Tab Switcher & Invitations Drawer Trigger */}
-                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 flex items-center justify-between select-none">
-                    <div className="flex items-center gap-0">
+                {/* Level 2: Navigation Tabs & Progress Gauge */}
+                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 flex items-center justify-between gap-4 select-none">
+                    {/* View Tabs */}
+                    <div className="flex items-center gap-0 overflow-x-auto no-scrollbar">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
+                            const count =
+                                tab.id === "main-board"
+                                    ? (project.tasks?.length ?? 0)
+                                    : tab.id === "members"
+                                    ? (project.members?.length ?? 0)
+                                    : null;
 
                             return (
                                 <button
                                     key={tab.id}
                                     type="button"
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`relative flex items-center gap-1.5 px-3 py-2.5 text-[11px] font-medium transition-colors cursor-pointer border-b-2 ${
+                                    className={`relative flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-medium transition-colors cursor-pointer border-b-2 whitespace-nowrap ${
                                         isActive
                                             ? "text-[var(--app-text)] border-[var(--app-text)]"
                                             : "text-[var(--app-muted)] border-transparent hover:text-[var(--app-text)] hover:border-[var(--app-border)]"
                                     }`}
                                 >
                                     <Icon className="w-3.5 h-3.5" />
-                                    {tab.label}
+                                    <span>{tab.label}</span>
+                                    {count !== null && count > 0 && (
+                                        <span className={`text-[10px] tabular-nums font-normal transition-colors ${
+                                            isActive
+                                                ? "text-[var(--app-muted)]"
+                                                : "text-[var(--app-muted)]/70"
+                                        }`}>
+                                            ({count})
+                                        </span>
+                                    )}
                                 </button>
                             );
                         })}
                     </div>
 
-                    <div className="flex items-center gap-2 py-1.5">
-                        {/* Right Sidebar Invitations Toggle */}
-                        {canManageInvitations && (
-                            <button
-                                type="button"
-                                onClick={() => setIsManageInvitationsOpen(!isManageInvitationsOpen)}
-                                className={`relative corner-brackets-4 text-[11px] font-medium px-3.5 py-1.5 rounded-[2px] border transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs ${
-                                    isManageInvitationsOpen
-                                        ? "bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
-                                        : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
-                                }`}
-                                title="Toggle Invitations Right Sidebar"
-                            >
-                                <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
-                                <span>Invitations</span>
-                                {pendingProjectInvitesCount > 0 && (
-                                    <span className="px-1.5 py-0.2 rounded-[2px] text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold tabular-nums">
-                                        {pendingProjectInvitesCount}
-                                    </span>
-                                )}
-                            </button>
-                        )}
+                    {/* Progress Gauge (Repositioned to the right of tabs for balanced layout) */}
+                    <div className="hidden sm:flex items-center gap-2.5 text-[11px] shrink-0" title="Project Completion Progress">
+                        <span className="text-[var(--app-muted)]">Progress</span>
+                        <div className="w-28 sm:w-36 h-1.5 bg-[var(--app-border)]/60 rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-[var(--status-completed,#15803D)] rounded-full transition-all duration-300"
+                                style={{ width: `${calculatedProgress}%` }}
+                            />
+                        </div>
+                        <span className="font-semibold text-[var(--app-text)] tabular-nums">
+                            {calculatedProgress}%
+                        </span>
                     </div>
                 </div>
 
@@ -297,19 +345,19 @@ export default function ProjectDetail() {
                 </div>
             </div>
 
+            {/* Edit Project Configuration Modal */}
+            <EditProjectModal
+                isOpen={isEditProjectModalOpen}
+                onClose={() => setIsEditProjectModalOpen(false)}
+                project={project}
+                onSaved={loadProjectDetail}
+            />
+
             {/* Project Invitations Sidebar Tray */}
             <ProjectInvitationsTray
                 isOpen={isManageInvitationsOpen}
                 onClose={() => setIsManageInvitationsOpen(false)}
                 activeProjectId={project.id}
-                onRefresh={loadProjectDetail}
-            />
-
-            {/* Create Project Main Task Modal */}
-            <CreateProjectTaskModal
-                isOpen={isCreateTaskModalOpen}
-                onClose={() => setIsCreateTaskModalOpen(false)}
-                project={project}
                 onRefresh={loadProjectDetail}
             />
         </div>
