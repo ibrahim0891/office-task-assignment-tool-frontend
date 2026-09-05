@@ -153,6 +153,14 @@ function MainTaskGridCard({
     // Clean description HTML tags
     const cleanDescription = stripHtml(task.description || "");
 
+    // Dynamic title typography scaling
+    const titleLength = (task.title || "").length;
+    const titleSizeClass = titleLength <= 24
+        ? "text-[17px] sm:text-[18px]"
+        : titleLength <= 45
+        ? "text-[15.5px] sm:text-[16.5px]"
+        : "text-[14px] sm:text-[15px]";
+
     // Normalize assignees list
     const assigneesList: any[] = [];
     if (Array.isArray(task.assignees)) {
@@ -167,66 +175,59 @@ function MainTaskGridCard({
             className={`group relative bg-[var(--app-card)] border border-[var(--app-border)] ${priorityDetails.accentBorder} hover:border-[var(--app-border-strong)] rounded-[4px] p-4 flex flex-col justify-between gap-3.5 transition-all duration-200 cursor-pointer shadow-subtle hover:shadow-sm min-h-[210px]`}
             onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
         >
-            {/* Top Row: Workflow Stage Chip + Priority & Risk Badges */}
-            <div className="flex items-center justify-between gap-2">
-                {/* Left: Workflow Stage Chip */}
-                <div className="flex items-center gap-1.5 min-w-0">
-                    <span 
-                        className="text-[9.5px] font-semibold text-[var(--app-text)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] flex items-center gap-1 shrink-0" 
-                        title={`Workflow Stage: ${column?.name || 'Backlog'}`}
-                    >
-                        <ListTodo className="w-3 h-3 text-[var(--app-muted)]" />
-                        <span className="truncate max-w-[110px]">{column?.name || "Deliverable"}</span>
-                    </span>
-                    {statusConfig.label && statusConfig.label !== column?.name && (
-                        <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border flex items-center gap-1 shrink-0 ${statusConfig.cls}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
-                            <span>{statusConfig.label}</span>
-                        </span>
-                    )}
-                </div>
-
-                {/* Right: Priority, Risk & Edit Button */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${priorityDetails.badgeCls}`}>
-                        {priorityDetails.label}
-                    </span>
-                    {riskBadge && (
-                        <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${riskBadge.cls}`}>
-                            {riskBadge.label}
-                        </span>
-                    )}
-                    {canManageTasks && (
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onEditTask(task);
-                            }}
-                            title="Edit Main Task"
-                            className="p-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent hover:border-[var(--app-border)] transition-colors cursor-pointer"
-                        >
-                            <Edit2 className="w-3 h-3" />
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Task Content: Title + Description */}
-            <div className="flex flex-col gap-1">
-                <h3 className="text-[13.5px] font-semibold text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-2 leading-snug">
+            {/* Card Header: Title & Edit Button */}
+            <div className="flex items-start justify-between gap-2">
+                <h3 className={`font-heading ${titleSizeClass} font-bold text-[var(--app-text)] tracking-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-2 leading-snug flex-1 min-w-0`} title={task.title}>
                     {task.title}
                 </h3>
-                {cleanDescription ? (
-                    <p className="text-[11px] text-[var(--app-muted)] line-clamp-2 leading-relaxed min-h-[30px]">
-                        {cleanDescription}
-                    </p>
-                ) : (
-                    <p className="text-[11px] text-[var(--app-muted)] italic opacity-50 min-h-[30px]">
-                        No description provided
-                    </p>
+                {canManageTasks && (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onEditTask(task);
+                        }}
+                        title="Edit Main Task"
+                        className="p-1 -mt-0.5 -mr-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent hover:border-[var(--app-border)] transition-colors cursor-pointer shrink-0"
+                    >
+                        <Edit2 className="w-3 h-3" />
+                    </button>
                 )}
             </div>
+
+            {/* Tags & Badges Row (Below Title) */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+                {/* Priority Badge */}
+                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-[2px] border shrink-0 ${priorityDetails.badgeCls}`}>
+                    {priorityDetails.label}
+                </span>
+
+                {/* Risk Badge */}
+                {riskBadge && (
+                    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-[2px] border shrink-0 ${riskBadge.cls}`}>
+                        {riskBadge.label}
+                    </span>
+                )}
+
+                {/* Status Badge */}
+                {statusConfig.label && (
+                    <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border flex items-center gap-1 shrink-0 ${statusConfig.cls}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
+                        <span>{statusConfig.label}</span>
+                    </span>
+                )}
+            </div>
+
+            {/* Description */}
+            {cleanDescription ? (
+                <p className="text-xs text-[var(--app-muted)] line-clamp-2 leading-relaxed min-h-[30px]">
+                    {cleanDescription}
+                </p>
+            ) : (
+                <p className="text-xs text-[var(--app-muted)] italic opacity-50 min-h-[30px]">
+                    No description provided
+                </p>
+            )}
 
             {/* Subtask Breakdown / Checklist Tracker Box */}
             <div className="bg-[var(--app-bg)]/60 border border-[var(--app-border)]/80 rounded-[3px] p-2 flex flex-col gap-1.5">
@@ -363,22 +364,15 @@ function MainTaskListItem({
                 </div>
             </td>
 
-            {/* Task Title & Column */}
+            {/* Task Title & Description */}
             <td className="py-3.5 px-4 min-w-[220px]">
                 <div className="flex flex-col gap-0.5">
                     <span className="font-semibold text-[13px] text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
                         {task.title}
                     </span>
-                    <div className="flex items-center gap-2 text-[10px] text-[var(--app-muted)]">
-                        {column?.name && (
-                            <span className="font-medium text-[var(--app-text)] bg-[var(--app-bg)] px-1 py-0.2 rounded-[2px] border border-[var(--app-border)]">
-                                {column.name}
-                            </span>
-                        )}
-                        {cleanDescription && (
-                            <span className="line-clamp-1 max-w-[280px]">{cleanDescription}</span>
-                        )}
-                    </div>
+                    {cleanDescription && (
+                        <span className="text-[10px] text-[var(--app-muted)] line-clamp-1 max-w-[280px]">{cleanDescription}</span>
+                    )}
                 </div>
             </td>
 
