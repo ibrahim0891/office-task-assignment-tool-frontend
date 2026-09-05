@@ -229,37 +229,20 @@ export default function CreateProjectTaskModal({
                         />
                     </div>
 
-                    {/* Column & Priority Grid */}
-                    <div className="grid grid-cols-2 gap-3">
-                        {/* Column selection */}
-                        <div className="flex flex-col gap-1">
-                            <label className="eyebrow">Board Column</label>
-                            <CustomSelect
-                                options={columns.map((col: any) => ({
-                                    value: col.id,
-                                    label: col.name,
-                                }))}
-                                value={columnId}
-                                onChange={(val) => setColumnId(val)}
-                                className="w-full"
-                            />
-                        </div>
-
-                        {/* Priority selection */}
-                        <div className="flex flex-col gap-1">
-                            <label className="eyebrow">Priority</label>
-                            <CustomSelect
-                                options={[
-                                    { value: "LOW", label: "Low Priority" },
-                                    { value: "MEDIUM", label: "Medium Priority" },
-                                    { value: "HIGH", label: "High Priority" },
-                                    { value: "URGENT", label: "Urgent Priority" },
-                                ]}
-                                value={priority}
-                                onChange={(val) => setPriority(val)}
-                                className="w-full"
-                            />
-                        </div>
+                    {/* Priority selection */}
+                    <div className="flex flex-col gap-1">
+                        <label className="eyebrow">Priority</label>
+                        <CustomSelect
+                            options={[
+                                { value: "LOW", label: "Low Priority" },
+                                { value: "MEDIUM", label: "Medium Priority" },
+                                { value: "HIGH", label: "High Priority" },
+                                { value: "URGENT", label: "Urgent Priority" },
+                            ]}
+                            value={priority}
+                            onChange={(val) => setPriority(val)}
+                            className="w-full"
+                        />
                     </div>
 
                     {/* Start Date & Due Date Grid with Estimated Day Count */}
