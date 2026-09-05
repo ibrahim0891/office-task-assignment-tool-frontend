@@ -21,10 +21,10 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
     return (
         <div className="flex flex-col gap-6">
             {/* ── Email ── */}
-            <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Email</p>
+            <fieldset className="flex flex-col gap-3.5 border-0 p-0 m-0">
+                <p className="eyebrow text-[10px] pb-2 border-b border-[#E5E5E3]">Email</p>
                 <div className="grid grid-cols-1 gap-3">
-                    <ProfileField label="Secondary Email">
+                    <ProfileField label="Secondary / Backup Email">
                         <ProfileInput
                             type="email"
                             value={secondaryEmail}
@@ -36,9 +36,9 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
             </fieldset>
 
             {/* ── Phone Numbers ── */}
-            <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Phone Numbers</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <fieldset className="flex flex-col gap-3.5 border-0 p-0 m-0">
+                <p className="eyebrow text-[10px] pb-2 border-b border-[#E5E5E3]">Phone Numbers</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <ProfileField label="Primary Phone">
                         <ProfileInput
                             type="tel"
@@ -59,8 +59,8 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
             </fieldset>
 
             {/* ── Emergency ── */}
-            <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Emergency</p>
+            <fieldset className="flex flex-col gap-3.5 border-0 p-0 m-0">
+                <p className="eyebrow text-[10px] pb-2 border-b border-[#E5E5E3]">Emergency</p>
                 <div className="grid grid-cols-1 gap-3">
                     <ProfileField label="Emergency Contact">
                         <ProfileInput
