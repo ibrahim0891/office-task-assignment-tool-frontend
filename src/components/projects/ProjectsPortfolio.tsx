@@ -186,6 +186,13 @@ function ProjectCard({ project }: { project: any }) {
         ? calculateProjectProgress(project.tasks, project.columns)
         : (project.progress !== undefined ? project.progress : 0);
 
+    const titleLength = (project.title || "").length;
+    const titleSizeClass = titleLength <= 22
+        ? "text-[20px] sm:text-[22px]"
+        : titleLength <= 42
+        ? "text-[18px] sm:text-[20px]"
+        : "text-[16px] sm:text-[18px]";
+
     return (
         <Link href={`/projects/${project.id}`} className="block group">
             <div className="relative bg-[var(--app-card)] border border-[var(--app-border)] rounded-[6px] p-5 flex flex-col justify-between gap-4 hover:border-[var(--app-border-strong)] hover:shadow-subtle transition-all duration-200 cursor-pointer min-h-[240px]">
@@ -201,32 +208,36 @@ function ProjectCard({ project }: { project: any }) {
                     </div>
 
                     {/* Title */}
-                    <h3 className="font-heading text-lg sm:text-xl font-bold text-[var(--app-text)] tracking-tight group-hover:text-[var(--color-accent)] transition-colors truncate min-w-0 flex-1" title={project.title}>
+                    <h3 className={`font-heading ${titleSizeClass} font-bold text-[var(--app-text)] tracking-tight group-hover:text-[var(--color-accent)] transition-colors truncate min-w-0 flex-1`} title={project.title}>
                         {project.title}
                     </h3>
                 </div>
 
-                {/* Owning Team Badge (Below Title Section) */}
-                {project.team && (
-                    <div className="flex items-center gap-1.5 -mt-1.5">
-                        <span className="text-[11px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[3px] border border-[var(--app-border)] flex items-center gap-1.5 w-fit max-w-full truncate" title={`Owning Team: ${project.team.name}`}>
-                            {project.team.emoji ? (
-                                <span className="emoji-font text-[10px] shrink-0">{project.team.emoji}</span>
-                            ) : (
-                                <Building2 className="w-3 h-3 shrink-0 text-[var(--app-muted)]" />
-                            )}
-                            <span className="truncate">{project.team.name}</span>
-                        </span>
+                {/* Timeline Date (Minimal, No BG, No Border - Swapped to Below Title) */}
+                {(project.startDate || project.endDate) && (
+                    <div
+                        className="flex items-center gap-1.5 text-xs text-[var(--app-muted)] -mt-1.5 font-medium"
+                        title={project.startDate && project.endDate ? `Timeline: ${formatDate(project.startDate)} – ${formatDate(project.endDate)} (${formatDaySpan(calculateDaySpan(project.startDate, project.endDate))})` : undefined}
+                    >
+                        <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                        <span>{formatDate(project.startDate) || "—"}</span>
+                        <span className="text-[var(--app-muted)]/70">→</span>
+                        <span>{formatDate(project.endDate) || "—"}</span>
+                        {project.startDate && project.endDate && (
+                            <span className="ml-0.5">
+                                • {calculateDaySpan(project.startDate, project.endDate)}d
+                            </span>
+                        )}
                     </div>
                 )}
 
-                {/* Metadata Row: Member Avatars Group & Dates (Moved Up) */}
+                {/* Metadata Row: Member Avatars Group & Owning Team Badge */}
                 <div className="flex items-center justify-between gap-3 pt-1 flex-wrap">
-                    {/* Member Group Avatar Stack in decent size */}
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    {/* Member Group Avatar Stack in reduced size */}
+                    <div className="flex items-center gap-2 min-w-0">
                         {allMembers.length > 0 ? (
                             <div className="flex items-center gap-2">
-                                <div className="flex items-center -space-x-2.5 overflow-visible">
+                                <div className="flex items-center -space-x-2 overflow-visible">
                                     {allMembers.slice(0, 4).map((member, idx) => (
                                         <div
                                             key={member.id || idx}
@@ -236,21 +247,21 @@ function ProjectCard({ project }: { project: any }) {
                                             <UserAvatar
                                                 name={member.name}
                                                 avatarUrl={member.avatarUrl}
-                                                size="lg"
+                                                size="md"
                                                 showBorder={false}
                                             />
                                         </div>
                                     ))}
                                     {allMembers.length > 4 && (
                                         <div
-                                            className="w-8 h-8 rounded-full bg-[var(--app-bg)] border-2 border-[var(--app-card)] flex items-center justify-center text-[11px] font-bold text-[var(--app-text)] shadow-xs z-10 shrink-0"
+                                            className="w-6 h-6 rounded-full bg-[var(--app-bg)] border-2 border-[var(--app-card)] flex items-center justify-center text-[9px] font-bold text-[var(--app-text)] shadow-xs z-10 shrink-0"
                                             title={`+${allMembers.length - 4} more members`}
                                         >
                                             +{allMembers.length - 4}
                                         </div>
                                     )}
                                 </div>
-                                <span className="text-xs sm:text-[13px] font-semibold text-[var(--app-text)] truncate max-w-[130px]" title={allMembers.map(m => m.name).join(", ")}>
+                                <span className="text-xs font-semibold text-[var(--app-text)] truncate max-w-[120px]" title={allMembers.map(m => m.name).join(", ")}>
                                     {allMembers.length === 1
                                         ? allMembers[0].name.split(" ")[0]
                                         : `${allMembers.length} members`}
@@ -261,21 +272,17 @@ function ProjectCard({ project }: { project: any }) {
                         )}
                     </div>
 
-                    {/* Timeline Date Badge & Span */}
-                    {(project.startDate || project.endDate) && (
-                        <div
-                            className="flex items-center gap-2 text-xs sm:text-[13px] text-[var(--app-text)] bg-[var(--app-bg)] px-3 py-1.5 rounded-[4px] border border-[var(--app-border)] shrink-0 font-medium shadow-2xs"
-                            title={project.startDate && project.endDate ? `Timeline: ${formatDate(project.startDate)} – ${formatDate(project.endDate)} (${formatDaySpan(calculateDaySpan(project.startDate, project.endDate))})` : undefined}
-                        >
-                            <Calendar className="w-4 h-4 text-[var(--app-muted)] shrink-0" />
-                            <span className="font-mono text-[12.5px] text-[var(--app-text)]">{formatDate(project.startDate) || "—"}</span>
-                            <span className="text-[var(--app-muted)]">→</span>
-                            <span className="font-mono text-[12.5px] text-[var(--app-text)]">{formatDate(project.endDate) || "—"}</span>
-                            {project.startDate && project.endDate && (
-                                <span className="font-bold text-[var(--app-text)] text-[12.5px] bg-[var(--app-card)] px-1.5 py-0.5 rounded-[3px] border border-[var(--app-border)] ml-0.5">
-                                    {calculateDaySpan(project.startDate, project.endDate)}d
-                                </span>
-                            )}
+                    {/* Owning Team Badge (Swapped to Right Side) */}
+                    {project.team && (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[11px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[3px] border border-[var(--app-border)] flex items-center gap-1.5 w-fit max-w-full truncate" title={`Owning Team: ${project.team.name}`}>
+                                {project.team.emoji ? (
+                                    <span className="emoji-font text-[10px] shrink-0">{project.team.emoji}</span>
+                                ) : (
+                                    <Building2 className="w-3 h-3 shrink-0 text-[var(--app-muted)]" />
+                                )}
+                                <span className="truncate max-w-[130px]">{project.team.name}</span>
+                            </span>
                         </div>
                     )}
                 </div>
@@ -477,9 +484,9 @@ function ProjectListItem({ project }: { project: any }) {
                         title={project.startDate && project.endDate ? `Timeline: ${formatDate(project.startDate)} – ${formatDate(project.endDate)} (${formatDaySpan(calculateDaySpan(project.startDate, project.endDate))})` : undefined}
                     >
                         <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                        <span className="font-mono text-xs">{formatDate(project.startDate) || "—"}</span>
+                        <span>{formatDate(project.startDate) || "—"}</span>
                         <span>→</span>
-                        <span className="font-mono text-xs">{formatDate(project.endDate) || "—"}</span>
+                        <span>{formatDate(project.endDate) || "—"}</span>
                         {project.startDate && project.endDate && (
                             <span className="font-bold text-[var(--app-text)] ml-0.5">
                                 • {calculateDaySpan(project.startDate, project.endDate)}d

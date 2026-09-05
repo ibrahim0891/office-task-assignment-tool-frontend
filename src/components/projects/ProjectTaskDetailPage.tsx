@@ -12,6 +12,7 @@ import {
 } from "@hello-pangea/dnd";
 import {
     ArrowLeft,
+    ArrowRight,
     CheckCircle2,
     Calendar,
     CalendarRange,
@@ -751,14 +752,17 @@ export default function ProjectTaskDetailPage() {
 
                         {/* Edit Task Modal Button */}
                         {canManageTasks && (
-                            <button
+                            <Button
                                 type="button"
+                                variant="secondary"
+                                size="sm"
                                 onClick={() => setIsEditMainTaskModalOpen(true)}
-                                className="relative corner-brackets-4 text-xs font-medium p-1.5 rounded-[2px] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] transition-colors cursor-pointer flex items-center justify-center shadow-2xs h-[30px] w-[30px]"
+                                icon={<Edit2 className="w-3.5 h-3.5 text-[var(--app-muted)]" />}
                                 title="Edit Main Task"
+                                className="shadow-2xs text-xs"
                             >
-                                <Edit2 className="w-3.5 h-3.5 text-[var(--app-muted)] hover:text-[var(--app-text)]" />
-                            </button>
+                                Edit
+                            </Button>
                         )}
                     </div>
                 </div>
@@ -772,7 +776,7 @@ export default function ProjectTaskDetailPage() {
                             className="text-[var(--app-muted)] hover:text-[var(--app-text)] flex items-center gap-1 font-medium transition-colors shrink-0 group"
                             title="Back to Projects"
                         >
-                            <ChevronLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+                            <ChevronLeft className="w-3.5 h-3.5 shrink-0 transition-transform group-hover:-translate-x-0.5" />
                             <span>Projects</span>
                         </Link>
 
@@ -799,13 +803,13 @@ export default function ProjectTaskDetailPage() {
                         {/* User Role (Minimal, untinted) */}
                         <div className="relative group flex items-center gap-1 shrink-0 cursor-help" title={permissions.userRoleDescription}>
                             {permissions.userRoleLabel === "Manager" ? (
-                                <ShieldCheck className="w-3 h-3 text-[var(--app-muted)]" />
+                                <ShieldCheck className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                             ) : permissions.userRoleLabel === "Leader" ? (
-                                <Shield className="w-3 h-3 text-[var(--app-muted)]" />
+                                <Shield className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                             ) : permissions.userRoleLabel === "Member" ? (
-                                <User className="w-3 h-3 text-[var(--app-muted)]" />
+                                <User className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                             ) : (
-                                <Eye className="w-3 h-3 text-[var(--app-muted)]" />
+                                <Eye className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                             )}
                             <span>Role: <strong className="font-medium text-[var(--app-text)]">{permissions.userRoleLabel}</strong></span>
 
@@ -834,8 +838,10 @@ export default function ProjectTaskDetailPage() {
                                     className="flex items-center gap-1.5 shrink-0"
                                     title={`Timeline: ${formatDate(task.startDate)} – ${formatDate(task.dueDate)} (${formatDaySpan(calculateDaySpan(task.startDate, task.dueDate))})`}
                                 >
-                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>{formatDate(task.startDate)} → {formatDate(task.dueDate)}</span>
+                                    <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                    <span>{formatDate(task.startDate)}</span>
+                                    <ArrowRight className="w-3.5 h-3.5 text-[var(--app-muted)]/70 shrink-0" />
+                                    <span>{formatDate(task.dueDate)}</span>
                                     <span className="font-semibold text-[var(--app-text)] ml-0.5">
                                         • {calculateDaySpan(task.startDate, task.dueDate)}d
                                     </span>

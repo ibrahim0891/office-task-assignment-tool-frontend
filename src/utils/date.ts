@@ -81,3 +81,49 @@ export function calculateActualDays(
     return calculateDaySpan(createdAtVal, completionDate);
 }
 
+/**
+ * Calculates remaining days until target end date from today.
+ * Positive = days remaining, 0 = due today, negative = days overdue.
+ */
+export function calculateRemainingDays(endDateVal?: string | Date | null): {
+    days: number;
+    label: string;
+    isOverdue: boolean;
+    isToday: boolean;
+} | null {
+    if (!endDateVal) return null;
+    const endStr = extractDateString(endDateVal);
+    if (!endStr) return null;
+    const todayStr = getLocalDateString(new Date());
+
+    const end = parseLocalDate(endStr);
+    const today = parseLocalDate(todayStr);
+    if (isNaN(end.getTime()) || isNaN(today.getTime())) return null;
+
+    const diffDays = Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+        const absDays = Math.abs(diffDays);
+        return {
+            days: diffDays,
+            label: absDays === 1 ? "1d overdue" : `${absDays}d overdue`,
+            isOverdue: true,
+            isToday: false,
+        };
+    } else if (diffDays === 0) {
+        return {
+            days: 0,
+            label: "Due today",
+            isOverdue: false,
+            isToday: true,
+        };
+    } else {
+        return {
+            days: diffDays,
+            label: diffDays === 1 ? "1d remaining" : `${diffDays}d remaining`,
+            isOverdue: false,
+            isToday: false,
+        };
+    }
+}
+
