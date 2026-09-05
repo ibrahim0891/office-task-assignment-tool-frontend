@@ -71,6 +71,7 @@ interface WorkspaceContextType {
 
     // Handlers
     loadTasks: (opts?: { isDateChange?: boolean }) => Promise<void>;
+    loadTeams: () => Promise<void>;
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     loadTeamMetadata: () => Promise<void>;
     loadProjects: () => Promise<void>;
@@ -318,11 +319,36 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
 
 
+    const loadTeams = React.useCallback(async () => {
+        if (!currentUser?.id) return;
+        try {
+            const t = await api.getTeams(currentUser.id);
+            if (Array.isArray(t)) {
+                setTeams(t);
+                setCurrentTeam((prev) => {
+                    if (!prev && t.length > 0) {
+                        const savedTeamId = typeof window !== "undefined" ? localStorage.getItem("selected_team_id") : null;
+                        const matched = t.find((team) => team.id === savedTeamId) || t[0];
+                        return matched;
+                    }
+                    if (prev) {
+                        const updated = t.find((team) => team.id === prev.id);
+                        return updated ? { ...prev, ...updated } : prev;
+                    }
+                    return prev;
+                });
+            }
+        } catch (err) {
+            console.error("Error refreshing teams:", err);
+        }
+    }, [currentUser?.id]);
+
     const loadTeamMetadata = async () => {
         if (!currentTeam) return;
         try {
             const allTeams = await api.getTeams(currentUser?.id);
             if (Array.isArray(allTeams)) {
+                setTeams(allTeams);
                 const match = allTeams.find((t) => t.id === currentTeam.id);
                 if (match && match.members && Array.isArray(match.members)) {
                     setTeamMembers(match.members);
@@ -597,6 +623,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         setCommentUpdateTrigger,
         loadProjects,
         loadProjectInvitations,
+        loadTeams,
     );
 
     useEffect(() => {
@@ -1019,6 +1046,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 setProfileModalUser,
                 openMemberProfile,
                 loadTasks,
+                loadTeams,
                 setTasks,
                 loadTeamMetadata,
                 loadNotifications,

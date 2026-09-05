@@ -85,6 +85,8 @@ export default function GlobalModals() {
                 hasMore={hasMoreNotifications}
                 isLoadingMore={isLoadingMoreNotifications}
                 onLoadMore={loadMoreNotifications}
+                teams={teams}
+                onSelectTeam={setCurrentTeam}
             />
 
             <NotificationToasts

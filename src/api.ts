@@ -178,6 +178,7 @@ export interface Notification {
   archivedAt?: string;
   type: string;
   taskId?: string;
+  teamId?: string;
   createdAt: string;
 }
 

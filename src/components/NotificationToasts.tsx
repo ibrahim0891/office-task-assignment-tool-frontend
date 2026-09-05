@@ -11,6 +11,7 @@ export interface NotificationToast {
         content: string;
         type: string;
         taskId?: string;
+        teamId?: string;
         createdAt: string;
     };
 }
@@ -23,7 +24,7 @@ interface NotificationToastsProps {
 
 export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: NotificationToastsProps) {
     const router = useRouter();
-    const { setIsManageInvitationsOpen, setIsManageFoldersOpen } = useWorkspace();
+    const { setIsManageInvitationsOpen, setIsManageFoldersOpen, teams, setCurrentTeam } = useWorkspace();
 
     const getNotificationType = (n: any) => {
         let type = n.type;
@@ -70,6 +71,13 @@ export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: 
             {toasts.map((toast) => {
                 const type = getNotificationType(toast.notification);
                 const isProjectInvitation = type === "PROJECT_INVITATION";
+                const isTeamNotification =
+                    type === "MEMBER_ADDED" ||
+                    type === "MEMBER_INVITED" ||
+                    (toast.notification.content &&
+                        (toast.notification.content.toLowerCase().includes("added to team workspace") ||
+                         toast.notification.content.toLowerCase().includes("added to workspace") ||
+                         toast.notification.content.toLowerCase().includes("invited and added")));
 
                 return (
                     <div
@@ -79,6 +87,19 @@ export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: 
                                 router.push("/projects");
                                 if (setIsManageFoldersOpen) setIsManageFoldersOpen(false);
                                 if (setIsManageInvitationsOpen) setIsManageInvitationsOpen(true);
+                            } else if (isTeamNotification) {
+                                const targetTeam = teams.find((t) => {
+                                    if (toast.notification.teamId && t.id === toast.notification.teamId) return true;
+                                    if (toast.notification.content) {
+                                        const match = toast.notification.content.match(/["']([^"']+)["']/);
+                                        if (match && t.name.toLowerCase() === match[1].toLowerCase()) return true;
+                                        if (toast.notification.content.toLowerCase().includes(t.name.toLowerCase())) return true;
+                                    }
+                                    return false;
+                                });
+                                if (targetTeam) {
+                                    setCurrentTeam(targetTeam);
+                                }
                             } else if (toast.notification.taskId && onSelectTask) {
                                 onSelectTask(
                                     toast.notification.taskId,
@@ -88,7 +109,7 @@ export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: 
                             onDismiss(toast.id);
                         }}
                         className={`pointer-events-auto w-full bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] px-4 py-3.5 shadow-md flex items-start gap-3 relative select-none corner-brackets animate-slide-in hover:border-[var(--app-border-strong)] transition-colors ${
-                            toast.notification.taskId || isProjectInvitation ? "cursor-pointer" : "cursor-default"
+                            toast.notification.taskId || isProjectInvitation || isTeamNotification ? "cursor-pointer" : "cursor-default"
                         }`}
                         style={{
                             boxShadow: "var(--shadow-float)",
@@ -108,6 +129,11 @@ export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: 
                             {isProjectInvitation && (
                                 <span className="text-[9px] text-[#7C3AED] font-semibold mt-0.5 hover:underline inline-flex items-center gap-1">
                                     → View in Projects Collection
+                                </span>
+                            )}
+                            {isTeamNotification && (
+                                <span className="text-[9px] text-[var(--color-warning)] font-semibold mt-0.5 hover:underline inline-flex items-center gap-1">
+                                    → Switch to Workspace
                                 </span>
                             )}
                         </div>
