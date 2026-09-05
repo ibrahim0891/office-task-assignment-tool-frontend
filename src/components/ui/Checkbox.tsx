@@ -37,18 +37,19 @@ export const Checkbox: React.FC<CheckboxProps> = ({
                 />
                 {/* Custom Box */}
                 <div
-                    className={`w-4 h-4 rounded-[2px] border transition-all duration-150 flex items-center justify-center ${checked
-                        ? "bg-[#1A1A1A] border-[#1A1A1A] dark:bg-[var(--color-accent)] dark:border-[var(--color-accent)] text-white dark:text-[#1A1A1A]"
-                        : "bg-white dark:bg-[var(--app-bg)] border-[#E5E5E3] dark:border-[var(--app-border)] hover:border-[#1A1A1A] dark:hover:border-[var(--color-accent)]"
-                        }`}
+                    className={`w-4 h-4 rounded-[2px] border transition-all duration-150 flex items-center justify-center ${
+                        checked
+                            ? "bg-[var(--app-text)] border-[var(--app-text)] text-[var(--app-card)]"
+                            : "bg-[var(--app-card)] border-[var(--app-border)] hover:border-[var(--app-text)]"
+                    }`}
                 >
                     {checked && (
-                        <Check className="w-3 h-3 text-white dark:text-[#1A1A1A] stroke-[2.5] animate-fade-in" />
+                        <Check className="w-3 h-3 text-[var(--app-card)] stroke-[2.5] animate-fade-in" />
                     )}
                 </div>
             </div>
             {label && (
-                <span className="text-xs text-[#1A1A1A] dark:text-[var(--app-text)] font-medium">
+                <span className="text-xs text-[var(--app-text)] font-medium">
                     {label}
                 </span>
             )}

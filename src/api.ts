@@ -204,30 +204,87 @@ export interface Bookmark {
   createdBy: { id: string; fullName: string; avatarUrl?: string | null };
 }
 
+export interface ReportTaskItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  columnId: string;
+  isComplete: boolean;
+  priority: string;
+  carryCount: number;
+  date: string;
+  dueDate: string | null;
+  assignedTo?: {
+    id: string;
+    fullName: string;
+    email: string;
+    avatarUrl?: string | null;
+    designation?: string | null;
+  };
+  createdBy?: {
+    id: string;
+    fullName: string;
+    avatarUrl?: string | null;
+  };
+  checklist: Array<{
+    id: string;
+    title: string;
+    isCompleted: boolean;
+  }>;
+  checklistStats: {
+    total: number;
+    completed: number;
+  };
+  latestComment?: {
+    id: string;
+    content: string;
+    createdAt: string;
+    user: {
+      id: string;
+      fullName: string;
+      avatarUrl?: string | null;
+    };
+  } | null;
+}
+
+export interface MemberReportSummary {
+  user: User;
+  role: string;
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  needsAttentionTasks: number;
+  staleTasksCount: number;
+  completionRate: number;
+}
+
+export interface DailyGroupReport {
+  date: string;
+  isToday: boolean;
+  isYesterday: boolean;
+  totalCount: number;
+  completedCount: number;
+  tasks: ReportTaskItem[];
+}
+
 export interface ReportData {
   startDate: string;
   endDate: string;
+  todayDate: string;
+  selectedMemberId: string;
+  selectedMember: User | null;
   totalTasks: number;
   completedTasks: number;
+  inProgressTasks: number;
+  needsAttentionTasks: number;
   completionRate: number;
-  averageTimeToDone: number;
   columnsBreakdown: Record<string, number>;
   teamColumns?: Array<{ id: string; name: string; isComplete: boolean; order: number }>;
-  overdueCount: number;
-  totalEstimatedHours: number;
-  totalActualHours: number;
   staleTasksCount: number;
-  tasks: {
-    id: string;
-    title: string;
-    status: string;
-    priority: string;
-    carryCount: number;
-    estimatedTime: number;
-    actualTime: number;
-    date: string;
-    dueDate: string | null;
-  }[];
+  memberBreakdown: MemberReportSummary[];
+  dailyGroups: DailyGroupReport[];
+  tasks: ReportTaskItem[];
 }
 
 // REST Client requests
@@ -678,14 +735,20 @@ export const api = {
     daysFromToday?: number;
     startDate?: string;
     endDate?: string;
+    memberId?: string;
   }): Promise<ReportData> {
     const query = new URLSearchParams();
     query.append('teamId', params.teamId);
-    if (params.daysFromToday) query.append('daysFromToday', String(params.daysFromToday));
+    if (params.daysFromToday !== undefined) query.append('daysFromToday', String(params.daysFromToday));
     if (params.startDate) query.append('startDate', params.startDate);
     if (params.endDate) query.append('endDate', params.endDate);
+    if (params.memberId && params.memberId !== 'all') query.append('memberId', params.memberId);
 
     const res = await fetch(`${API_BASE}/reports?${query.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to fetch report data.');
+    }
     return res.json();
   },
 
@@ -694,12 +757,14 @@ export const api = {
     daysFromToday?: number;
     startDate?: string;
     endDate?: string;
+    memberId?: string;
   }): Promise<void> {
     const query = new URLSearchParams();
     query.append('teamId', params.teamId);
-    if (params.daysFromToday) query.append('daysFromToday', String(params.daysFromToday));
+    if (params.daysFromToday !== undefined) query.append('daysFromToday', String(params.daysFromToday));
     if (params.startDate) query.append('startDate', params.startDate);
     if (params.endDate) query.append('endDate', params.endDate);
+    if (params.memberId && params.memberId !== 'all') query.append('memberId', params.memberId);
 
     const res = await fetch(`${API_BASE}/reports/export?${query.toString()}`);
     if (!res.ok) {
@@ -711,7 +776,7 @@ export const api = {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `report-${params.teamId}.csv`;
+    a.download = `report-${params.teamId}${params.memberId ? `-${params.memberId}` : ''}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
