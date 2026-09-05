@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { 
     ArrowLeft, ArrowRight, LayoutGrid, Users, Calendar, BarChart2, 
     Loader2, Mail, Settings, ChevronLeft, ChevronRight, FolderKanban, 
-    Building2, Shield, ShieldCheck, User, Eye, Edit2, FolderGit2
+    Building2, Shield, ShieldCheck, User, Eye, Edit2, FolderGit2, Clock
 } from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
@@ -21,8 +21,10 @@ import EditProjectModal from "./EditProjectModal";
 import { useProjectDetail } from "../../hooks/useProjectSWR";
 import ProjectDetailSkeleton from "./ProjectDetailSkeleton";
 import { UserAvatar } from "../ui/UserAvatar";
+import { Button } from "../ui/Button";
 import { calculateProjectProgress } from "../../utils/projectProgress";
 import { getProjectPermissions } from "../../utils/projectPermissions";
+import { calculateDaySpan, formatDaySpan, calculateRemainingDays } from "../../utils/date";
 
 function getStatusConfig(status: string) {
     switch (status) {
@@ -126,13 +128,6 @@ export default function ProjectDetail() {
         return d.toISOString().split("T")[0];
     };
 
-    const calculateDaySpan = (start: any, end: any) => {
-        if (!start || !end) return null;
-        const d1 = new Date(start).getTime();
-        const d2 = new Date(end).getTime();
-        const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-        return diff > 0 ? diff : 1;
-    };
 
     const permissions = getProjectPermissions(project, currentUser, userRole, currentTeam);
     const canManageTasks = permissions.canManageTasks;
@@ -142,6 +137,8 @@ export default function ProjectDetail() {
     const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
         ? calculateProjectProgress(project.tasks, project.columns)
         : (project.progress !== undefined ? project.progress : 0);
+
+    const remainingDays = calculateRemainingDays(project.endDate);
 
     return (
         <div className="flex-1 flex overflow-hidden">
@@ -166,57 +163,80 @@ export default function ProjectDetail() {
                         </div>
 
                         {/* Right: Project Dates, Edit & Invitations Actions */}
-                        <div className="flex items-center gap-2 shrink-0">
-                            {/* Project Timeline Date Range */}
+                        <div className="flex items-center gap-3 shrink-0">
+                            {/* Project Timeline Date Range & Remaining Days */}
                             {(project.startDate || project.endDate) && (
                                 <div
-                                    className="hidden sm:flex items-center gap-1.5 text-xs text-[var(--app-muted)] border border-[var(--app-border)] px-2.5 py-1 rounded-[3px] bg-[var(--app-bg)] h-[30px] font-medium"
-                                    title="Project Timeline"
+                                    className="hidden sm:flex items-center gap-1.5 text-xs text-[var(--app-muted)] font-medium"
+                                    title={project.startDate && project.endDate ? `Timeline: ${formatDate(project.startDate)} – ${formatDate(project.endDate)} (${formatDaySpan(calculateDaySpan(project.startDate, project.endDate))})` : "Project Timeline"}
                                 >
                                     <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                                     <span>{formatDate(project.startDate) || "—"}</span>
-                                    <ArrowRight className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <ArrowRight className="w-3.5 h-3.5 text-[var(--app-muted)]/70 shrink-0" />
                                     <span>{formatDate(project.endDate) || "—"}</span>
                                     {project.startDate && project.endDate && (
-                                        <span className="font-bold text-[var(--app-text)] ml-0.5">
+                                        <span className="font-semibold text-[var(--app-text)] ml-0.5">
                                             • {calculateDaySpan(project.startDate, project.endDate)}d
+                                        </span>
+                                    )}
+                                    {remainingDays && (
+                                        <span
+                                            className={`font-semibold ml-0.5 ${
+                                                remainingDays.isOverdue
+                                                    ? "text-[var(--color-error)]"
+                                                    : remainingDays.isToday
+                                                    ? "text-[var(--color-warning)]"
+                                                    : "text-[var(--color-accent)]"
+                                            }`}
+                                            title={`Timeline Schedule: ${remainingDays.label}`}
+                                        >
+                                            • {remainingDays.label}
                                         </span>
                                     )}
                                 </div>
                             )}
 
-                            {/* Edit Project Modal Button */}
-                            {canManageTasks && (
-                                <button
-                                    type="button"
-                                    onClick={() => setIsEditProjectModalOpen(true)}
-                                    className="relative corner-brackets-4 text-[11px] font-medium p-1.5 rounded-[2px] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] transition-colors cursor-pointer flex items-center justify-center shadow-2xs h-[28px] w-[28px]"
-                                    title="Edit Project Configuration"
-                                >
-                                    <Edit2 className="w-3.5 h-3.5 text-[var(--app-muted)] hover:text-[var(--app-text)]" />
-                                </button>
-                            )}
+                            {/* Action Buttons Group */}
+                            <div className="flex items-center gap-2">
+                                {/* Edit Project Modal Button */}
+                                {canManageTasks && (
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => setIsEditProjectModalOpen(true)}
+                                        icon={<Edit2 className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />}
+                                        title="Edit Project Configuration"
+                                        className="shadow-2xs text-xs"
+                                    >
+                                        Edit
+                                    </Button>
+                                )}
 
-                            {/* Invitations Drawer Toggle - Icon Only */}
-                            {canManageInvitations && (
-                                <button
-                                    type="button"
-                                    onClick={() => setIsManageInvitationsOpen(!isManageInvitationsOpen)}
-                                    className={`relative corner-brackets-4 text-[11px] font-medium px-2 py-1 rounded-[2px] border transition-colors cursor-pointer flex items-center justify-center gap-1 shadow-2xs h-[28px] ${
-                                        isManageInvitationsOpen
-                                            ? "bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
-                                            : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
-                                    }`}
-                                    title="Project Invitations"
-                                >
-                                    <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
-                                    {pendingProjectInvitesCount > 0 && (
-                                        <span className="px-1 py-0.2 rounded-[2px] text-[8px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold tabular-nums">
-                                            {pendingProjectInvitesCount}
-                                        </span>
-                                    )}
-                                </button>
-                            )}
+                                {/* Invitations Drawer Toggle */}
+                                {canManageInvitations && (
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => setIsManageInvitationsOpen(!isManageInvitationsOpen)}
+                                        icon={<Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />}
+                                        title="Project Invitations"
+                                        className={`shadow-2xs text-xs ${
+                                            isManageInvitationsOpen
+                                                ? "bg-[var(--app-hover-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
+                                                : ""
+                                        }`}
+                                    >
+                                        Invitations
+                                        {pendingProjectInvitesCount > 0 && (
+                                            <span className="ml-1 px-1.5 py-0.2 rounded-[2px] text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold tabular-nums">
+                                                {pendingProjectInvitesCount}
+                                            </span>
+                                        )}
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -229,7 +249,7 @@ export default function ProjectDetail() {
                                 className="text-[var(--app-muted)] hover:text-[var(--app-text)] flex items-center gap-1 font-medium transition-colors shrink-0 group"
                                 title="Back to Projects"
                             >
-                                <ChevronLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+                                <ChevronLeft className="w-3.5 h-3.5 shrink-0 transition-transform group-hover:-translate-x-0.5" />
                                 <span>Projects</span>
                             </Link>
 
@@ -248,6 +268,25 @@ export default function ProjectDetail() {
                                 <span className="font-medium text-[var(--app-text)]">{status.label}</span>
                             </div>
 
+                            {/* Remaining Days in Metadata Bar (Visible on mobile when top timeline is hidden) */}
+                            {remainingDays && (
+                                <div className="sm:hidden flex items-center gap-3">
+                                    <span className="text-[var(--app-border)] select-none">•</span>
+                                    <div className="flex items-center gap-1 shrink-0" title={`Timeline Schedule: ${remainingDays.label}`}>
+                                        <Clock className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                        <span className={`font-semibold ${
+                                            remainingDays.isOverdue
+                                                ? "text-[var(--color-error)]"
+                                                : remainingDays.isToday
+                                                ? "text-[var(--color-warning)]"
+                                                : "text-[var(--app-text)]"
+                                        }`}>
+                                            {remainingDays.label}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Owning Team */}
                             {project.team && (
                                 <>
@@ -256,7 +295,7 @@ export default function ProjectDetail() {
                                         {project.team.emoji ? (
                                             <span className="emoji-font text-xs shrink-0">{project.team.emoji}</span>
                                         ) : (
-                                            <Building2 className="w-3 h-3 shrink-0 text-[var(--app-muted)]" />
+                                            <Building2 className="w-3.5 h-3.5 shrink-0 text-[var(--app-muted)]" />
                                         )}
                                         <span>{project.team.name}</span>
                                     </div>
@@ -267,13 +306,13 @@ export default function ProjectDetail() {
                             <span className="text-[var(--app-border)] select-none">•</span>
                             <div className="relative group flex items-center gap-1 shrink-0 cursor-help" title={permissions.userRoleDescription}>
                                 {permissions.userRoleLabel === "Manager" ? (
-                                    <ShieldCheck className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <ShieldCheck className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                                 ) : permissions.userRoleLabel === "Leader" ? (
-                                    <Shield className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <Shield className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                                 ) : permissions.userRoleLabel === "Member" ? (
-                                    <User className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <User className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                                 ) : (
-                                    <Eye className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <Eye className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
                                 )}
                                 <span>Role: <strong className="font-medium text-[var(--app-text)]">{permissions.userRoleLabel}</strong></span>
 
