@@ -1054,43 +1054,43 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid #1A1A1A;
 }
 
-/* ─── Pixel-Based Font-Size Overrides for Dynamic Scaling ─── */
-.text-\[7px\] {
-  font-size: calc(7px * var(--font-scale, 1.25)) !important;
-}
-.text-\[8px\] {
-  font-size: calc(8px * var(--font-scale, 1.25)) !important;
-}
-.text-\[9px\] {
-  font-size: calc(9px * var(--font-scale, 1.25)) !important;
-}
-.text-\[10px\] {
-  font-size: calc(10px * var(--font-scale, 1.25)) !important;
-}
-.text-\[11px\] {
-  font-size: calc(11px * var(--font-scale, 1.25)) !important;
-}
-.text-\[12px\] {
-  font-size: calc(12px * var(--font-scale, 1.25)) !important;
-}
-.text-\[13px\] {
-  font-size: calc(13px * var(--font-scale, 1.25)) !important;
-}
-.text-\[14px\] {
-  font-size: calc(14px * var(--font-scale, 1.25)) !important;
-}
-.text-\[15px\] {
-  font-size: calc(15px * var(--font-scale, 1.25)) !important;
-}
-.text-\[16px\] {
-  font-size: calc(16px * var(--font-scale, 1.25)) !important;
-}
-.text-\[18px\] {
-  font-size: calc(18px * var(--font-scale, 1.25)) !important;
-}
-.text-\[20px\] {
-  font-size: calc(20px * var(--font-scale, 1.25)) !important;
-}
+/* ─── Font-Size Overrides for Dynamic Scaling ─── */
+.text-\[7px\] { font-size: calc(7px * var(--font-scale, 1.25)) !important; }
+.text-\[7\.5px\] { font-size: calc(7.5px * var(--font-scale, 1.25)) !important; }
+.text-\[8px\] { font-size: calc(8px * var(--font-scale, 1.25)) !important; }
+.text-\[8\.5px\] { font-size: calc(8.5px * var(--font-scale, 1.25)) !important; }
+.text-\[9px\] { font-size: calc(9px * var(--font-scale, 1.25)) !important; }
+.text-\[9\.5px\] { font-size: calc(9.5px * var(--font-scale, 1.25)) !important; }
+.text-\[10px\] { font-size: calc(10px * var(--font-scale, 1.25)) !important; }
+.text-\[10\.5px\] { font-size: calc(10.5px * var(--font-scale, 1.25)) !important; }
+.text-\[11px\] { font-size: calc(11px * var(--font-scale, 1.25)) !important; }
+.text-\[12px\] { font-size: calc(12px * var(--font-scale, 1.25)) !important; }
+.text-\[13px\] { font-size: calc(13px * var(--font-scale, 1.25)) !important; }
+.text-\[13\.5px\] { font-size: calc(13.5px * var(--font-scale, 1.25)) !important; }
+.text-\[14px\] { font-size: calc(14px * var(--font-scale, 1.25)) !important; }
+.text-\[14\.5px\] { font-size: calc(14.5px * var(--font-scale, 1.25)) !important; }
+.text-\[15px\] { font-size: calc(15px * var(--font-scale, 1.25)) !important; }
+.text-\[15\.5px\] { font-size: calc(15.5px * var(--font-scale, 1.25)) !important; }
+.text-\[16px\] { font-size: calc(16px * var(--font-scale, 1.25)) !important; }
+.text-\[16\.5px\] { font-size: calc(16.5px * var(--font-scale, 1.25)) !important; }
+.text-\[17px\] { font-size: calc(17px * var(--font-scale, 1.25)) !important; }
+.text-\[18px\] { font-size: calc(18px * var(--font-scale, 1.25)) !important; }
+.text-\[19px\] { font-size: calc(19px * var(--font-scale, 1.25)) !important; }
+.text-\[20px\] { font-size: calc(20px * var(--font-scale, 1.25)) !important; }
+.text-\[21px\] { font-size: calc(21px * var(--font-scale, 1.25)) !important; }
+.text-\[22px\] { font-size: calc(22px * var(--font-scale, 1.25)) !important; }
+.text-\[24px\] { font-size: calc(24px * var(--font-scale, 1.25)) !important; }
+.text-\[26px\] { font-size: calc(26px * var(--font-scale, 1.25)) !important; }
+.text-\[28px\] { font-size: calc(28px * var(--font-scale, 1.25)) !important; }
+.text-\[30px\] { font-size: calc(30px * var(--font-scale, 1.25)) !important; }
+
+.text-xs { font-size: calc(12px * var(--font-scale, 1.25)) !important; }
+.text-sm { font-size: calc(14px * var(--font-scale, 1.25)) !important; }
+.text-base { font-size: calc(16px * var(--font-scale, 1.25)) !important; }
+.text-lg { font-size: calc(18px * var(--font-scale, 1.25)) !important; }
+.text-xl { font-size: calc(20px * var(--font-scale, 1.25)) !important; }
+.text-2xl { font-size: calc(24px * var(--font-scale, 1.25)) !important; }
+.text-3xl { font-size: calc(30px * var(--font-scale, 1.25)) !important; }
 
 /* React Flow Controls Theme Overrides */
 .react-flow__controls {

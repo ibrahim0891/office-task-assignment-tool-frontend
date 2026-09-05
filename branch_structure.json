@@ -1,0 +1,33 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "Project-managmen-feature-beta",
+    "dev",
+    "early-release",
+    "landing-page",
+    "main",
+    "origin",
+    "realtime-notification",
+    "redesing"
+  ],
+  "parent": {
+    "Project-managmen-feature-beta": "main",
+    "dev": "main",
+    "early-release": "main",
+    "landing-page": "main",
+    "main": null,
+    "origin": "main",
+    "realtime-notification": "main",
+    "redesing": "main"
+  },
+  "order": [
+    "main",
+    "Project-managmen-feature-beta",
+    "dev",
+    "early-release",
+    "landing-page",
+    "origin",
+    "realtime-notification",
+    "redesing"
+  ]
+}
