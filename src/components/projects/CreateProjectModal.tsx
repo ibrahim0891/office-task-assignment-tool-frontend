@@ -188,7 +188,12 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
                                 value={endDate}
                                 minDate={startDate || undefined}
                                 align="right"
-                                onChange={(val) => setEndDate(val)}
+                                onChange={(val) => {
+                                    setEndDate(val);
+                                    if (startDate && val < startDate) {
+                                        setStartDate(val);
+                                    }
+                                }}
                                 className="w-full"
                             />
                         </div>

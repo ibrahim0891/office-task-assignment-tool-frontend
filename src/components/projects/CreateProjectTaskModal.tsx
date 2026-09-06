@@ -265,7 +265,7 @@ export default function CreateProjectTaskModal({
                                 <CustomDatePicker
                                     value={startDate}
                                     minDate={projMinDate || undefined}
-                                    maxDate={dueDate || projMaxDate || undefined}
+                                    maxDate={dueDate && projMaxDate ? (dueDate < projMaxDate ? dueDate : projMaxDate) : (dueDate || projMaxDate || undefined)}
                                     align="left"
                                     onChange={(val) => {
                                         if (projMinDate && val < projMinDate) {
@@ -288,7 +288,7 @@ export default function CreateProjectTaskModal({
                                 <span className="text-[10px] text-[var(--app-muted)]">Due Date</span>
                                 <CustomDatePicker
                                     value={dueDate}
-                                    minDate={startDate || projMinDate || undefined}
+                                    minDate={startDate && projMinDate ? (startDate > projMinDate ? startDate : projMinDate) : (startDate || projMinDate || undefined)}
                                     maxDate={projMaxDate || undefined}
                                     align="right"
                                     onChange={(val) => {
@@ -301,6 +301,9 @@ export default function CreateProjectTaskModal({
                                             return;
                                         }
                                         setDueDate(val);
+                                        if (startDate && val < startDate) {
+                                            setStartDate(val);
+                                        }
                                     }}
                                     className="w-full"
                                 />

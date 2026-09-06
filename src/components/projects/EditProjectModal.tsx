@@ -162,7 +162,13 @@ export default function EditProjectModal({
                                 <span className="text-[10px] text-[var(--app-muted)]">Start Date</span>
                                 <CustomDatePicker
                                     value={startDate}
-                                    onChange={setStartDate}
+                                    onChange={(val) => {
+                                        setStartDate(val);
+                                        if (endDate && val > endDate) {
+                                            setEndDate(val);
+                                        }
+                                    }}
+                                    maxDate={endDate || undefined}
                                     disabled={isSubmitting}
                                     placeholder="Select start date..."
                                     className="w-full"
@@ -174,10 +180,15 @@ export default function EditProjectModal({
                                 <span className="text-[10px] text-[var(--app-muted)]">Target End Date</span>
                                 <CustomDatePicker
                                     value={endDate}
-                                    onChange={setEndDate}
+                                    onChange={(val) => {
+                                        setEndDate(val);
+                                        if (startDate && val < startDate) {
+                                            setStartDate(val);
+                                        }
+                                    }}
                                     disabled={isSubmitting}
                                     placeholder="Select end date..."
-                                    minDate={startDate}
+                                    minDate={startDate || undefined}
                                     className="w-full"
                                     buttonClassName="h-[36px] text-xs px-3"
                                 />

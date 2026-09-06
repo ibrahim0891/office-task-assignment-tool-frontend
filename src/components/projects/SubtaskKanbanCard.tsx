@@ -257,23 +257,35 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                         </p>
                     )}
 
-                    {/* Section 3: Priority Badge & Reviewer Attribution */}
+                    {/* Section 3: Priority Badge & Estimated Days / Reviewer Attribution */}
                     <div className="flex items-center justify-between gap-2 text-[10px]">
                         <div className="flex items-center gap-1.5 min-w-0">
                             {getPriorityBadge(subtask.priority)}
                         </div>
 
-                        {subtask.reviewer?.name && (
-                            <span
-                                className="text-[9px] text-[var(--app-muted)] truncate max-w-[50%] text-right shrink-0"
-                                title={`Reviewer: ${subtask.reviewer.name}`}
-                            >
-                                rev by <span className="capitalize font-medium">{subtask.reviewer.name}</span>
-                            </span>
-                        )}
+                        <div className="flex items-center gap-2 shrink-0">
+                            {((subtask.estimatedDays > 0) || (subtask.startDate && subtask.dueDate)) && (
+                                <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--app-muted)] tabular-nums"
+                                    title={`Estimated span: ${subtask.estimatedDays || calculateDaySpan(subtask.startDate, subtask.dueDate)} day(s)`}
+                                >
+                                    <Clock className="w-3 h-3 shrink-0" />
+                                    <span>{subtask.estimatedDays || calculateDaySpan(subtask.startDate, subtask.dueDate)}d est</span>
+                                </span>
+                            )}
+
+                            {subtask.reviewer?.name && (
+                                <span
+                                    className="text-[9px] text-[var(--app-muted)] truncate max-w-[110px] text-right"
+                                    title={`Reviewer: ${subtask.reviewer.name}`}
+                                >
+                                    rev by <span className="capitalize font-medium">{subtask.reviewer.name}</span>
+                                </span>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Section 4: Footer (Assignee on Left, Checklist / Comments / Attachments / Est Days / Dates on Right) */}
+                    {/* Section 4: Footer (Assignee on Left, Checklist / Comments / Attachments / Due Date / Actual Days on Right) */}
                     <div className="pt-2 border-t border-[var(--app-border)] flex justify-between items-center gap-2 text-[10px] text-[var(--app-muted)]">
                         {/* Assignee Badge with (You) chip */}
                         <div
@@ -299,7 +311,7 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                             )}
                         </div>
 
-                        {/* Opposite side: Checklist, Comment Count, Attachments, Est Days & Due Date */}
+                        {/* Opposite side: Checklist, Comment Count, Attachments, Due Date & Actual Days */}
                         <div className="flex items-center gap-2 text-[10px] text-[var(--app-muted)] shrink-0">
                             {checklistCount > 0 && (
                                 <div
@@ -337,24 +349,6 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                                 </div>
                             )}
 
-                            {subtask.isCompleted ? (
-                                <span
-                                    className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--color-success,#16A34A)] bg-[var(--color-success,#16A34A)]/10 px-1 py-0.2 rounded-[1px] tabular-nums"
-                                    title={`Completed in ${subtask.actualDays || calculateDaySpan(subtask.createdAt || subtask.startDate, subtask.completedAt || subtask.updatedAt || new Date())} day(s) from creation date`}
-                                >
-                                    <Check className="w-2.5 h-2.5 shrink-0" />
-                                    <span>{subtask.actualDays || calculateDaySpan(subtask.createdAt || subtask.startDate, subtask.completedAt || subtask.updatedAt || new Date())}d actual</span>
-                                </span>
-                            ) : ((subtask.estimatedDays > 0) || (subtask.startDate && subtask.dueDate)) ? (
-                                <span
-                                    className="inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums"
-                                    title={`Estimated days: ${subtask.estimatedDays || calculateDaySpan(subtask.startDate, subtask.dueDate)}d`}
-                                >
-                                    <Clock className="w-3 h-3 shrink-0" />
-                                    <span>{subtask.estimatedDays || calculateDaySpan(subtask.startDate, subtask.dueDate)}d</span>
-                                </span>
-                            ) : null}
-
                             {subtask.dueDate && (
                                 <span
                                     className={`inline-flex items-center gap-1 text-[10px] font-medium tabular-nums px-1 py-0.2 rounded-[1px] ${
@@ -372,6 +366,16 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                                             day: "numeric",
                                         })}
                                     </span>
+                                </span>
+                            )}
+
+                            {subtask.isCompleted && (
+                                <span
+                                    className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--color-success,#16A34A)] bg-[var(--color-success,#16A34A)]/10 px-1 py-0.2 rounded-[1px] tabular-nums"
+                                    title={`Completed in ${subtask.actualDays || calculateDaySpan(subtask.startDate || subtask.createdAt, subtask.completedAt || subtask.updatedAt || new Date())} day(s) from start date`}
+                                >
+                                    <Check className="w-2.5 h-2.5 shrink-0" />
+                                    <span>{subtask.actualDays || calculateDaySpan(subtask.startDate || subtask.createdAt, subtask.completedAt || subtask.updatedAt || new Date())}d actual</span>
                                 </span>
                             )}
                         </div>

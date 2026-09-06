@@ -132,7 +132,7 @@ export default function TaskFilterModal({
                                 }}
                                 placeholder="Start Date"
                                 minDate={minDate}
-                                maxDate={maxDate}
+                                maxDate={rangeEndDate && maxDate ? (rangeEndDate < maxDate ? rangeEndDate : maxDate) : (rangeEndDate || maxDate || undefined)}
                                 buttonClassName="border-0 shadow-none bg-transparent hover:bg-[var(--app-hover-bg)] h-full py-0 px-2 text-xs font-medium"
                                 className="flex-1 h-full flex items-center"
                             />
@@ -144,7 +144,7 @@ export default function TaskFilterModal({
                                     if (rangeStartDate && val < rangeStartDate) onRangeStartDateChange(val);
                                 }}
                                 placeholder="End Date"
-                                minDate={rangeStartDate || minDate}
+                                minDate={rangeStartDate && minDate ? (rangeStartDate > minDate ? rangeStartDate : minDate) : (rangeStartDate || minDate || undefined)}
                                 maxDate={maxDate}
                                 buttonClassName="border-0 shadow-none bg-transparent hover:bg-[var(--app-hover-bg)] h-full py-0 px-2 text-xs font-medium"
                                 className="flex-1 h-full flex items-center"

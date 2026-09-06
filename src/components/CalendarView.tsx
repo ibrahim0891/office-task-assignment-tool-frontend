@@ -80,11 +80,9 @@ export default function CalendarView({
 
     const navigateMonth = (direction: "prev" | "next") => {
         setCurrentMonth((prev) => {
-            const nextDate = new Date(prev);
-            nextDate.setMonth(
-                prev.getMonth() + (direction === "next" ? 1 : -1),
-            );
-            return nextDate;
+            const y = prev.getFullYear();
+            const m = prev.getMonth();
+            return new Date(y, m + (direction === "next" ? 1 : -1), 1);
         });
     };
 
@@ -127,6 +125,16 @@ export default function CalendarView({
         "November",
         "December",
     ];
+
+    const monthOptions = monthNames.map((mName, idx) => ({
+        value: idx.toString(),
+        label: mName,
+    }));
+
+    const yearOptions = Array.from({ length: 16 }, (_, i) => {
+        const y = (2020 + i).toString();
+        return { value: y, label: y };
+    });
 
     const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -198,11 +206,26 @@ export default function CalendarView({
         <div className="flex-1 overflow-y-auto p-5 bg-[#FAFAF9] text-[#1A1A1A] flex flex-col gap-4 select-none">
             {/* Calendar Header */}
             <div className="flex flex-wrap justify-between items-center gap-3 bg-white border border-[#E5E5E3] p-4 corner-brackets">
-                <div>
-                    <h1 className="font-heading text-[16px]">
-                        {monthNames[month]} {year}
-                    </h1>
-                    <p className="text-[11px] text-[#888883] mt-0.5">
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                        <CustomSelect
+                            options={monthOptions}
+                            value={month.toString()}
+                            onChange={(val) =>
+                                setCurrentMonth(new Date(year, parseInt(val), 1))
+                            }
+                            className="w-36"
+                        />
+                        <CustomSelect
+                            options={yearOptions}
+                            value={year.toString()}
+                            onChange={(val) =>
+                                setCurrentMonth(new Date(parseInt(val), month, 1))
+                            }
+                            className="w-24"
+                        />
+                    </div>
+                    <p className="text-[11px] text-[#888883]">
                         Click a task to view details. Click a date to create a task for that day.
                     </p>
                 </div>

@@ -22,7 +22,7 @@ export const PROJECT_KEYS = {
 
 const DEFAULT_SWR_OPTIONS: SWRConfiguration = {
     revalidateOnFocus: false,
-    dedupingInterval: 5000,
+    dedupingInterval: 0,
     keepPreviousData: true,
 };
 

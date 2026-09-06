@@ -6,8 +6,7 @@ import {
     ChevronRight,
     ChevronDown,
 } from "lucide-react";
-import { CustomSelect } from "./CustomSelect";
-import { getLocalDateString, parseLocalDate } from "../../utils/date";
+import { getLocalDateString, parseLocalDate, extractDateString } from "../../utils/date";
 
 interface CustomDatePickerProps {
     value: string; // YYYY-MM-DD
@@ -45,9 +44,12 @@ export function CustomDatePicker({
     const triggerRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
+    const normalizedMinDate = minDate ? extractDateString(minDate) : "";
+    const normalizedMaxDate = maxDate ? extractDateString(maxDate) : "";
+
     const isDateDisabled = (dateStr: string) => {
-        if (minDate && dateStr < minDate) return true;
-        if (maxDate && dateStr > maxDate) return true;
+        if (normalizedMinDate && dateStr < normalizedMinDate) return true;
+        if (normalizedMaxDate && dateStr > normalizedMaxDate) return true;
         return false;
     };
 
@@ -90,8 +92,24 @@ export function CustomDatePicker({
     const todayDate = new Date();
     const todayStr = getLocalDateString(todayDate);
 
-    const initialDate = value ? parseLocalDate(value) : (minDate ? parseLocalDate(minDate) : todayDate);
-    const [viewDate, setViewDate] = useState(initialDate);
+    const getInitialDate = () => {
+        if (value) return parseLocalDate(value);
+        if (normalizedMinDate && normalizedMaxDate) {
+            if (todayStr >= normalizedMinDate && todayStr <= normalizedMaxDate) return todayDate;
+            return parseLocalDate(normalizedMinDate);
+        }
+        if (normalizedMinDate) {
+            if (todayStr >= normalizedMinDate) return todayDate;
+            return parseLocalDate(normalizedMinDate);
+        }
+        if (normalizedMaxDate) {
+            if (todayStr <= normalizedMaxDate) return todayDate;
+            return parseLocalDate(normalizedMaxDate);
+        }
+        return todayDate;
+    };
+
+    const [viewDate, setViewDate] = useState(getInitialDate());
 
     useEffect(() => {
         if (value) {
@@ -276,30 +294,40 @@ export function CustomDatePicker({
                             </button>
                         </div>
 
-                        {/* Quick Month & Year Navigation with CustomSelect */}
+                        {/* Quick Month & Year Navigation with Styled Selects */}
                         <div className="flex items-center justify-between gap-1 mb-2.5">
                             <div className="flex items-center gap-1 flex-1 min-w-0">
-                                <CustomSelect
-                                    options={monthOptions}
+                                <select
                                     value={month.toString()}
-                                    onChange={(val) =>
+                                    onChange={(e) =>
                                         setViewDate(
-                                            new Date(year, parseInt(val), 1)
+                                            new Date(year, parseInt(e.target.value), 1)
                                         )
                                     }
-                                    className="w-28 text-[11px]"
-                                />
+                                    className="bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] hover:border-[var(--color-accent)] rounded-[2px] px-2 py-1 text-[11px] text-[var(--app-text,#1A1A1A)] font-medium focus:outline-none cursor-pointer flex-1 transition-colors"
+                                >
+                                    {monthOptions.map((opt) => (
+                                        <option key={opt.value} value={opt.value} className="bg-[var(--app-card)] text-[var(--app-text)]">
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
 
-                                <CustomSelect
-                                    options={yearOptions}
+                                <select
                                     value={year.toString()}
-                                    onChange={(val) =>
+                                    onChange={(e) =>
                                         setViewDate(
-                                            new Date(parseInt(val), month, 1)
+                                            new Date(parseInt(e.target.value), month, 1)
                                         )
                                     }
-                                    className="w-20 text-[11px]"
-                                />
+                                    className="bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] hover:border-[var(--color-accent)] rounded-[2px] px-2 py-1 text-[11px] text-[var(--app-text,#1A1A1A)] font-medium focus:outline-none cursor-pointer w-20 transition-colors"
+                                >
+                                    {yearOptions.map((opt) => (
+                                        <option key={opt.value} value={opt.value} className="bg-[var(--app-card)] text-[var(--app-text)]">
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="flex items-center gap-1 shrink-0">

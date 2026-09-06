@@ -2362,7 +2362,12 @@ export default function TaskModal({
                                     value={dueDateStr}
                                     minDate={dateStr || undefined}
                                     align="right"
-                                    onChange={(val) => setDueDateStr(val)}
+                                    onChange={(val) => {
+                                        setDueDateStr(val);
+                                        if (dateStr && val < dateStr) {
+                                            setDateStr(val);
+                                        }
+                                    }}
                                     className="w-full"
                                 />
                             </div>

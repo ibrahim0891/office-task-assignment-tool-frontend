@@ -67,18 +67,18 @@ export function formatDaySpan(days: number): string {
 }
 
 /**
- * Calculates actual days from creation date to completion date.
- * E.g., created Aug 1, completed Aug 3 = 3 days.
+ * Calculates actual days from start date to completion (done) date.
+ * E.g., started Aug 1, completed Aug 3 = 3 days.
  * If not completed, returns 0.
  */
 export function calculateActualDays(
-    createdAtVal?: string | Date | null,
+    startDateVal?: string | Date | null,
     completedAtVal?: string | Date | null,
     isCompleted: boolean = true
 ): number {
-    if (!isCompleted || !createdAtVal) return 0;
+    if (!isCompleted || !startDateVal) return 0;
     const completionDate = completedAtVal || new Date();
-    return calculateDaySpan(createdAtVal, completionDate);
+    return calculateDaySpan(startDateVal, completionDate);
 }
 
 /**

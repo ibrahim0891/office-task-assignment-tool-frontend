@@ -743,7 +743,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                                     }}
                                     placeholder="Start Date"
                                     minDate={projectStartDate}
-                                    maxDate={projectEndDate}
+                                    maxDate={rangeEndDate && projectEndDate ? (rangeEndDate < projectEndDate ? rangeEndDate : projectEndDate) : (rangeEndDate || projectEndDate || undefined)}
                                     buttonClassName="border-0 shadow-none bg-transparent hover:bg-[var(--app-hover-bg)] h-full py-0 px-2 text-xs font-medium"
                                     className="w-28 h-full flex items-center"
                                 />
@@ -755,7 +755,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                                         if (rangeStartDate && val < rangeStartDate) setRangeStartDate(val);
                                     }}
                                     placeholder="End Date"
-                                    minDate={rangeStartDate || projectStartDate}
+                                    minDate={rangeStartDate && projectStartDate ? (rangeStartDate > projectStartDate ? rangeStartDate : projectStartDate) : (rangeStartDate || projectStartDate || undefined)}
                                     maxDate={projectEndDate}
                                     buttonClassName="border-0 shadow-none bg-transparent hover:bg-[var(--app-hover-bg)] h-full py-0 px-2 text-xs font-medium"
                                     className="w-28 h-full flex items-center"

@@ -236,7 +236,12 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
                                 value={newDueDate}
                                 minDate={newStartDate || undefined}
                                 align="right"
-                                onChange={(val) => setNewDueDate(val)}
+                                onChange={(val) => {
+                                    setNewDueDate(val);
+                                    if (newStartDate && val < newStartDate) {
+                                        setNewStartDate(val);
+                                    }
+                                }}
                                 className="w-full"
                             />
                         </div>

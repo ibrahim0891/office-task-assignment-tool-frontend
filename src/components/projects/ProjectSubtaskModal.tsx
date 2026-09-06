@@ -321,9 +321,9 @@ export default function ProjectSubtaskModal({
             const isComp = Boolean(subtask.isCompleted);
             setIsCompleted(isComp);
             if (isComp) {
-                const creationDate = subtask.createdAt || subtask.startDate || sDate;
+                const startDateRef = subtask.startDate || sDate || subtask.createdAt;
                 const completionDate = subtask.completedAt || subtask.updatedAt || new Date();
-                setActualDays(Number(subtask.actualDays) || calculateDaySpan(creationDate, completionDate));
+                setActualDays(Number(subtask.actualDays) || calculateDaySpan(startDateRef, completionDate));
             } else {
                 setActualDays(Number(subtask.actualDays) || 0);
             }
@@ -612,8 +612,8 @@ export default function ProjectSubtaskModal({
 
         let finalActualDays = actualDays;
         if (isCompleted && (!finalActualDays || finalActualDays === 0)) {
-            const creationDate = subtask?.createdAt || subtask?.startDate || startDate || new Date();
-            finalActualDays = calculateDaySpan(creationDate, new Date());
+            const startDateRef = startDate || subtask?.startDate || subtask?.createdAt || new Date();
+            finalActualDays = calculateDaySpan(startDateRef, new Date());
         }
 
         const calculatedEstimatedDays = (startDate && dueDate) ? calculateDaySpan(startDate, dueDate) : estimatedDays;
@@ -887,8 +887,8 @@ export default function ProjectSubtaskModal({
         const nextState = !isCompleted;
         setIsCompleted(nextState);
         if (nextState) {
-            const creationDate = subtask?.createdAt || subtask?.startDate || startDate || new Date();
-            const computedActual = calculateDaySpan(creationDate, new Date());
+            const startDateRef = startDate || subtask?.startDate || subtask?.createdAt || new Date();
+            const computedActual = calculateDaySpan(startDateRef, new Date());
             setActualDays(computedActual);
             triggerMicroCelebration({ intensity: "subtle" });
             playFeedback();
@@ -980,8 +980,8 @@ export default function ProjectSubtaskModal({
                                         const selectedCol = columns.find((c) => c.id === newColId);
                                         if (selectedCol?.isComplete) {
                                             setIsCompleted(true);
-                                            const creationDate = subtask?.createdAt || subtask?.startDate || startDate || new Date();
-                                            const computedActual = calculateDaySpan(creationDate, new Date());
+                                            const startDateRef = startDate || subtask?.startDate || subtask?.createdAt || new Date();
+                                            const computedActual = calculateDaySpan(startDateRef, new Date());
                                             setActualDays(computedActual);
                                         } else if (isCompleted && selectedCol && !selectedCol.isComplete) {
                                             setIsCompleted(false);
@@ -1045,19 +1045,17 @@ export default function ProjectSubtaskModal({
                                 </label>
                                 <CustomDatePicker
                                     value={startDate}
+                                    maxDate={dueDate || undefined}
                                     onChange={(val) => {
                                         setStartDate(val);
-                                        if (val && dueDate) {
-                                            if (dueDate < val) {
-                                                setDueDate(val);
-                                                setEstimatedDays(1);
-                                            } else {
-                                                setEstimatedDays(calculateDaySpan(val, dueDate));
-                                            }
+                                        const newDue = (dueDate && val > dueDate) ? val : dueDate;
+                                        if (dueDate && val > dueDate) {
+                                            setDueDate(val);
+                                        }
+                                        if (val && newDue) {
+                                            setEstimatedDays(calculateDaySpan(val, newDue));
                                         }
                                     }}
-                                    maxDate={dueDate || (parentTask?.dueDate ? extractDateString(parentTask.dueDate) : undefined)}
-                                    minDate={parentTask?.startDate ? extractDateString(parentTask.startDate) : undefined}
                                     disabled={!canModifyThisSubtask}
                                     className="w-full text-xs"
                                 />
@@ -1070,19 +1068,17 @@ export default function ProjectSubtaskModal({
                                 </label>
                                 <CustomDatePicker
                                     value={dueDate}
+                                    minDate={startDate || undefined}
                                     onChange={(val) => {
                                         setDueDate(val);
-                                        if (startDate && val) {
-                                            if (val < startDate) {
-                                                setStartDate(val);
-                                                setEstimatedDays(1);
-                                            } else {
-                                                setEstimatedDays(calculateDaySpan(startDate, val));
-                                            }
+                                        const newStart = (startDate && val < startDate) ? val : startDate;
+                                        if (startDate && val < startDate) {
+                                            setStartDate(val);
+                                        }
+                                        if (val && newStart) {
+                                            setEstimatedDays(calculateDaySpan(newStart, val));
                                         }
                                     }}
-                                    minDate={startDate || (parentTask?.startDate ? extractDateString(parentTask.startDate) : undefined)}
-                                    maxDate={parentTask?.dueDate ? extractDateString(parentTask.dueDate) : undefined}
                                     disabled={!canModifyThisSubtask}
                                     className="w-full text-xs"
                                 />
@@ -1135,12 +1131,12 @@ export default function ProjectSubtaskModal({
                                         isCompleted ? "text-[var(--color-success,#16A34A)]" : "text-[var(--app-muted)]"
                                     }`}>
                                         {isCompleted
-                                            ? formatDaySpan(actualDays || calculateDaySpan(subtask?.createdAt || subtask?.startDate || startDate, subtask?.completedAt || new Date()))
+                                            ? formatDaySpan(actualDays || calculateDaySpan(subtask?.startDate || startDate || subtask?.createdAt, subtask?.completedAt || new Date()))
                                             : "—"}
                                     </span>
                                 </div>
-                                <span className="text-[9.5px] text-[var(--app-muted)] mt-0.5 truncate" title={isCompleted ? "Day count from Creation date to Completion date" : "Logged upon completion"}>
-                                    {isCompleted ? "Creation → Done" : "Logged on completion"}
+                                <span className="text-[9.5px] text-[var(--app-muted)] mt-0.5 truncate" title={isCompleted ? "Day count from Start date to Done date" : "Logged upon completion"}>
+                                    {isCompleted ? "Start → Done" : "Logged on completion"}
                                 </span>
                             </div>
                         </div>
