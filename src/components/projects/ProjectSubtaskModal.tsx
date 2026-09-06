@@ -38,7 +38,8 @@ import { TipTapEditor } from "../ui/TipTapEditor";
 import ModalWrapper from "../ui/ModalWrapper";
 import { triggerMicroCelebration } from "../../utils/confetti";
 import { playFeedback } from "../../utils/feedback";
-import { calculateDaySpan, formatDaySpan, calculateActualDays } from "../../utils/date";
+import { calculateDaySpan, formatDaySpan, calculateActualDays, extractDateString, getLocalDateString } from "../../utils/date";
+import { revalidateProjectDetail } from "../../hooks/useProjectSWR";
 
 // 30% Image Compression helper (75% quality with dimension constraining)
 const compressImage30Percent = (file: File): Promise<string> => {
@@ -312,8 +313,8 @@ export default function ProjectSubtaskModal({
             setPriority(subtask.priority || "MEDIUM");
             setAssignedToId(subtask.assignedToId || subtask.assignedTo?.id || "");
             setColumnId(subtask.columnId || columns[0]?.id || "");
-            const sDate = toYMD(subtask.startDate) || toYMD(parentTask?.startDate) || toYMD(new Date());
-            const dDate = toYMD(subtask.dueDate) || toYMD(parentTask?.dueDate) || toYMD(new Date());
+            const sDate = extractDateString(subtask.startDate) || extractDateString(parentTask?.startDate) || getLocalDateString(new Date());
+            const dDate = extractDateString(subtask.dueDate || subtask.endDate) || extractDateString(parentTask?.dueDate || parentTask?.endDate) || getLocalDateString(new Date());
             setStartDate(sDate);
             setDueDate(dDate);
             setEstimatedDays(Number(subtask.estimatedDays) || calculateDaySpan(sDate, dDate));
@@ -385,8 +386,8 @@ export default function ProjectSubtaskModal({
             );
             const targetColId = matchedCol?.id || columns[0]?.id || "";
             setColumnId(targetColId);
-            const sDate = toYMD(parentTask?.startDate) || toYMD(new Date());
-            const dDate = toYMD(parentTask?.dueDate) || toYMD(new Date());
+            const sDate = extractDateString(parentTask?.startDate) || getLocalDateString(new Date());
+            const dDate = extractDateString(parentTask?.dueDate || parentTask?.endDate) || getLocalDateString(new Date());
             setStartDate(sDate);
             setDueDate(dDate);
             setEstimatedDays(calculateDaySpan(sDate, dDate));
@@ -599,6 +600,11 @@ export default function ProjectSubtaskModal({
             return;
         }
 
+        if (startDate && dueDate && startDate > dueDate) {
+            toast.error("Start date cannot be later than due date");
+            return;
+        }
+
         let targetAssigneeId = assignedToId;
         if (!canManageTasks) {
             targetAssigneeId = currentUser?.id || "";
@@ -610,29 +616,41 @@ export default function ProjectSubtaskModal({
             finalActualDays = calculateDaySpan(creationDate, new Date());
         }
 
+        const calculatedEstimatedDays = (startDate && dueDate) ? calculateDaySpan(startDate, dueDate) : estimatedDays;
+
         const subtaskPayload: any = {
             title: title.trim(),
             description: description.trim(),
             priority,
             assignedToId: targetAssigneeId,
             columnId,
-            startDate,
-            dueDate,
-            estimatedDays,
+            startDate: startDate || undefined,
+            dueDate: dueDate || undefined,
+            endDate: dueDate || undefined,
+            estimatedDays: calculatedEstimatedDays,
             actualDays: isCompleted ? finalActualDays : 0,
             isCompleted,
             completedAt: isCompleted ? (subtask?.completedAt || new Date().toISOString()) : null,
             attachments,
         };
 
+        const targetParentTaskId = parentTask?.id || subtask?.parentTaskId;
+        if (!targetParentTaskId) {
+            toast.error("Parent task reference missing.");
+            return;
+        }
+
         try {
             setSubmitting(true);
             if (isEditMode && subtask?.id) {
-                await api.updateProjectSubtask(projectId, parentTask.id, subtask.id, subtaskPayload);
+                await api.updateProjectSubtask(projectId, targetParentTaskId, subtask.id, subtaskPayload);
                 toast.success("Subtask updated successfully!");
             } else {
-                await api.createProjectSubtask(projectId, parentTask.id, subtaskPayload);
+                await api.createProjectSubtask(projectId, targetParentTaskId, subtaskPayload);
                 toast.success("Subtask created successfully!");
+            }
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("project_data_updated", { detail: { projectId } }));
             }
             if (onRefresh) onRefresh();
             onClose();
@@ -1030,9 +1048,16 @@ export default function ProjectSubtaskModal({
                                     onChange={(val) => {
                                         setStartDate(val);
                                         if (val && dueDate) {
-                                            setEstimatedDays(calculateDaySpan(val, dueDate));
+                                            if (dueDate < val) {
+                                                setDueDate(val);
+                                                setEstimatedDays(1);
+                                            } else {
+                                                setEstimatedDays(calculateDaySpan(val, dueDate));
+                                            }
                                         }
                                     }}
+                                    maxDate={dueDate || (parentTask?.dueDate ? extractDateString(parentTask.dueDate) : undefined)}
+                                    minDate={parentTask?.startDate ? extractDateString(parentTask.startDate) : undefined}
                                     disabled={!canModifyThisSubtask}
                                     className="w-full text-xs"
                                 />
@@ -1048,9 +1073,16 @@ export default function ProjectSubtaskModal({
                                     onChange={(val) => {
                                         setDueDate(val);
                                         if (startDate && val) {
-                                            setEstimatedDays(calculateDaySpan(startDate, val));
+                                            if (val < startDate) {
+                                                setStartDate(val);
+                                                setEstimatedDays(1);
+                                            } else {
+                                                setEstimatedDays(calculateDaySpan(startDate, val));
+                                            }
                                         }
                                     }}
+                                    minDate={startDate || (parentTask?.startDate ? extractDateString(parentTask.startDate) : undefined)}
+                                    maxDate={parentTask?.dueDate ? extractDateString(parentTask.dueDate) : undefined}
                                     disabled={!canModifyThisSubtask}
                                     className="w-full text-xs"
                                 />
