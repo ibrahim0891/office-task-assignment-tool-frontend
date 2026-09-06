@@ -46,8 +46,8 @@ interface WorkspaceContextType {
     setSelectedTaskId: (id: string | null) => void;
     directTask: any | null;
     setDirectTask: React.Dispatch<React.SetStateAction<any>>;
-    taskModalTab: "details" | "comments" | "attachments";
-    setTaskModalTab: React.Dispatch<React.SetStateAction<"details" | "comments" | "attachments">>;
+    taskModalTab: "details" | "comments" | "description" | "checklist" | "attachments";
+    setTaskModalTab: React.Dispatch<React.SetStateAction<"details" | "comments" | "description" | "checklist" | "attachments">>;
     selectedMemberFilter: string;
     setSelectedMemberFilter: (memberId: string) => void;
     searchQuery: string;
@@ -226,7 +226,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     );
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const [directTask, setDirectTask] = useState<any>(null);
-    const [taskModalTab, setTaskModalTab] = useState<"details" | "comments" | "attachments">("details");
+    const [taskModalTab, setTaskModalTab] = useState<"details" | "comments" | "description" | "checklist" | "attachments">("details");
     const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>("");
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [commentUpdateTrigger, setCommentUpdateTrigger] = useState<number>(0);

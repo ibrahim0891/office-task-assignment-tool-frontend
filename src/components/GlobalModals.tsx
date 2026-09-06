@@ -59,7 +59,7 @@ export default function GlobalModals() {
     const activeTask = tasks.find((t) => t.id === selectedTaskId);
     const modalTask = directTask?.id === selectedTaskId ? directTask : activeTask;
 
-    const handleSelectTaskFromNotification = async (id: string, initialTab?: "details" | "comments" | "attachments") => {
+    const handleSelectTaskFromNotification = async (id: string, initialTab?: "details" | "comments" | "description" | "checklist" | "attachments") => {
         try {
             const updatedTask = await api.getTask(id, currentTeam?.id);
             setDirectTask(updatedTask);

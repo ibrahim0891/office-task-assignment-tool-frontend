@@ -36,7 +36,6 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
     const [newAssigneeId, setNewAssigneeId] = useState("");
     const [newPriority, setNewPriority] = useState<string>("MEDIUM");
     const [newDueDate, setNewDueDate] = useState("");
-    const [newEstTime, setNewEstTime] = useState("");
     const [newIsRecurring, setNewIsRecurring] = useState(false);
     const [newRecurrence, setNewRecurrence] = useState("WEEKLY");
     const [isCreatingTask, setIsCreatingTask] = useState(false);
@@ -67,10 +66,6 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
                 assignedToId: newAssigneeId || undefined,
                 date: activeDateStr || getLocalDateString(),
                 dueDate: newDueDate || undefined,
-                estimatedTime:
-                    newEstTime !== ""
-                        ? Math.max(0, Number(newEstTime))
-                        : undefined,
                 isRecurring: newIsRecurring,
                 recurrence: newIsRecurring ? newRecurrence : undefined,
             });
@@ -81,7 +76,6 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
             setNewDesc("");
             setNewAssigneeId("");
             setNewDueDate("");
-            setNewEstTime("");
             setNewIsRecurring(false);
             loadTasks();
         } catch (err: any) {
@@ -206,39 +200,13 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                        <div className="flex flex-col gap-1">
-                            <label className="eyebrow">Due Date</label>
-                            <CustomDatePicker
-                                value={newDueDate}
-                                onChange={(val) => setNewDueDate(val)}
-                                className="w-full"
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <label className="eyebrow">
-                                Est. Hours
-                            </label>
-                            <input
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                placeholder="0"
-                                value={newEstTime}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (
-                                        val === "" ||
-                                        (Number(val) >= 0 &&
-                                            !val.includes("-"))
-                                    ) {
-                                        setNewEstTime(val);
-                                    }
-                                }}
-                                className={inputClass}
-                            />
-                        </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="eyebrow">Due Date</label>
+                        <CustomDatePicker
+                            value={newDueDate}
+                            onChange={(val) => setNewDueDate(val)}
+                            className="w-full"
+                        />
                     </div>
 
                     <div className="flex items-center gap-2 pt-1">

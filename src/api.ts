@@ -597,15 +597,31 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title })
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to add checklist item.');
+    }
     return res.json();
   },
 
-  async updateChecklistItem(taskId: string, itemId: string, isCompleted: boolean): Promise<ChecklistItem> {
+  async updateChecklistItem(
+    taskId: string,
+    itemId: string,
+    isCompletedOrData: boolean | { isCompleted?: boolean; title?: string }
+  ): Promise<ChecklistItem> {
+    const payload =
+      typeof isCompletedOrData === "boolean"
+        ? { isCompleted: isCompletedOrData }
+        : isCompletedOrData;
     const res = await fetch(`${API_BASE}/tasks/${taskId}/checklist/${itemId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isCompleted })
+      body: JSON.stringify(payload)
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to update checklist item.');
+    }
     return res.json();
   },
 
@@ -613,6 +629,10 @@ export const api = {
     const res = await fetch(`${API_BASE}/tasks/${taskId}/checklist/${itemId}`, {
       method: 'DELETE'
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to delete checklist item.');
+    }
     return res.json();
   },
 
