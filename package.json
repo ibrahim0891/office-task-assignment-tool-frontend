@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -p 30000"
+    "start": "next start -p 20000"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
