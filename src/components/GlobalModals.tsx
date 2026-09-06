@@ -61,22 +61,7 @@ export default function GlobalModals() {
     const activeTask = tasks.find((t) => t.id === selectedTaskId);
     const modalTask = directTask?.id === selectedTaskId ? directTask : activeTask;
 
-    const handleSelectTaskFromNotification = async (id: string, initialTab?: "details" | "comments" | "attachments") => {
-        if (!id) return;
-        if (id.startsWith("project:")) {
-            const parts = id.split(":");
-            const projectId = parts[1];
-            const taskId = parts[3];
-            const subtaskId = parts[5];
-            if (projectId && taskId) {
-                const url = `/projects/${projectId}/tasks/${taskId}${subtaskId ? `?subtaskId=${subtaskId}&tab=${initialTab === "comments" ? "comments" : "description"}` : `?tab=${initialTab === "comments" ? "comments" : "description"}`}`;
-                router.push(url);
-                return;
-            } else if (projectId) {
-                router.push(`/projects/${projectId}`);
-                return;
-            }
-        }
+    const handleSelectTaskFromNotification = async (id: string, initialTab?: "details" | "comments" | "description" | "checklist" | "attachments") => {
         try {
             const updatedTask = await api.getTask(id, currentTeam?.id);
             setDirectTask(updatedTask);
@@ -102,6 +87,8 @@ export default function GlobalModals() {
                 hasMore={hasMoreNotifications}
                 isLoadingMore={isLoadingMoreNotifications}
                 onLoadMore={loadMoreNotifications}
+                teams={teams}
+                onSelectTeam={setCurrentTeam}
             />
 
             <NotificationToasts

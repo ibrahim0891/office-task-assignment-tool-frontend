@@ -33,10 +33,10 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
     return (
         <div className="flex flex-col gap-6">
             {/* ── Identity ── */}
-            <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Identity</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="md:col-span-2">
+            <fieldset className="flex flex-col gap-3.5 border-0 p-0 m-0">
+                <p className="eyebrow text-[10px] pb-2 border-b border-[#E5E5E3]">Identity</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
                         <ProfileField label="Full Name" required>
                             <ProfileInput
                                 type="text"
@@ -47,7 +47,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                             />
                         </ProfileField>
                     </div>
-                    <div className="md:col-span-2">
+                    <div>
                         <ProfileField label="Designation / Role">
                             <ProfileInput
                                 type="text"
@@ -61,22 +61,24 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
             </fieldset>
 
             {/* ── Health Info ── */}
-            <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">Health Info</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <ProfileField label="Blood Group">
-                        <ProfileSelect
-                            value={bloodGroup}
-                            onChange={(e) => onChange("bloodGroup", e.target.value)}
-                            options={BLOOD_GROUPS}
-                        />
-                    </ProfileField>
+            <fieldset className="flex flex-col gap-3.5 border-0 p-0 m-0">
+                <p className="eyebrow text-[10px] pb-2 border-b border-[#E5E5E3]">Health Info</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <ProfileField label="Blood Group">
+                            <ProfileSelect
+                                value={bloodGroup}
+                                onChange={(e) => onChange("bloodGroup", e.target.value)}
+                                options={BLOOD_GROUPS}
+                            />
+                        </ProfileField>
+                    </div>
                 </div>
             </fieldset>
 
             {/* ── About ── */}
-            <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
-                <p className="eyebrow capitalize   text-[10px] pb-2 border-b border-[#E5E5E3]">About</p>
+            <fieldset className="flex flex-col gap-3.5 border-0 p-0 m-0">
+                <p className="eyebrow text-[10px] pb-2 border-b border-[#E5E5E3]">About</p>
                 <ProfileField label="Bio / About Me">
                     <ProfileTextarea
                         rows={4}

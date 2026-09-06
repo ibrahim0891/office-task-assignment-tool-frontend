@@ -38,13 +38,16 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 break;
             case "danger":
                 variantClasses =
-                    "bg-[var(--app-card)] hover:bg-[#FFF5F5] border border-[var(--app-border)] hover:border-[var(--color-error)] text-[var(--color-error)]";
+                    "bg-[var(--app-card)] hover:bg-[var(--color-error)]/10 border border-[var(--app-border)] hover:border-[var(--color-error)] text-[var(--color-error)]";
                 break;
             case "ghost":
                 variantClasses =
                     "bg-transparent hover:bg-[var(--app-hover-bg)] border border-transparent hover:border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)]";
                 break;
             case "secondary":
+                variantClasses =
+                    "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)]";
+                break;
             default:
                 variantClasses =
                     "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)]";
@@ -54,13 +57,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         let sizeClasses = "";
         switch (size) {
             case "sm":
-                sizeClasses = "h-[30px] px-3.5 text-[10px]";
+                sizeClasses = "h-[32px] px-3.5 text-xs";
                 break;
             case "lg":
                 sizeClasses = "h-[46px] px-5 text-base";
                 break;
             default:
-                sizeClasses = "h-[36px] px-4 text-[11px]";
+                sizeClasses = "h-[36px] px-4 text-xs";
                 break;
         }
 
@@ -68,7 +71,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             <button
                 ref={ref}
                 disabled={disabled || isLoading}
-                className={`relative corner-brackets-4 font-medium rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed ${variantClasses} ${sizeClasses} ${className}`}
+                className={`relative corner-brackets-4 font-medium rounded-[2px] transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap select-none disabled:opacity-40 disabled:cursor-not-allowed ${variantClasses} ${sizeClasses} ${className}`}
                 {...props}
             >
                 {isLoading ? (
@@ -79,10 +82,14 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 ) : (
                     <>
                         {showDot && (
-                            <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block shrink-0" />
+                            <span className="w-1.5 h-1.5 bg-[var(--app-muted)] rounded-[0.5px] inline-block shrink-0" />
                         )}
                         {icon}
-                        {children && <span>{children}</span>}
+                        {children && (
+                            <span className="inline-flex items-center gap-1.5 leading-none">
+                                {children}
+                            </span>
+                        )}
                     </>
                 )}
             </button>

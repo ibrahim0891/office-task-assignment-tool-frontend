@@ -9,17 +9,13 @@ import { PersonalInfoSection } from "@/components/profile/PersonalInfoSection";
 import { ContactInfoSection } from "@/components/profile/ContactInfoSection";
 import { SocialLinksSection } from "@/components/profile/SocialLinksSection";
 import { SkeletonProfile } from "@/components/ui/SkeletonLoader";
-import { Button } from "@/components/ui/Button";
-import { User as UserIcon, Phone, Share2, ChevronLeft } from "lucide-react";
+import { User as UserIcon, Phone, Share2 } from "lucide-react";
 
 export default function ProfilePage() {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState<
-        "personal" | "contact" | "social"
-    >("personal");
 
     // Profile form state
     const [formData, setFormData] = useState({
@@ -290,66 +286,19 @@ export default function ProfilePage() {
         );
     }
 
-    const tabs = [
-        { id: "personal", label: "Personal & Bio", icon: UserIcon },
-        { id: "contact", label: "Contact Details", icon: Phone },
-        { id: "social", label: "Social & Handles", icon: Share2 },
-    ] as const;
 
     return (
-        <div className="flex-1 overflow-y-auto p-5 bg-[#FAFAF9] text-[#1A1A1A]">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 lg:p-8 bg-[#FAFAF9] text-[#1A1A1A]">
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
                     if (isDirty) handleSave();
                 }}
-                className="max-w-3xl mx-auto w-full flex flex-col gap-5 select-none"
+                className="w-full max-w-[1600px] mx-auto flex flex-col gap-6 select-none"
             >
-                <fieldset disabled={isSaving} className="border-0 p-0 m-0 w-full flex flex-col gap-5">
-                    {/* Top Header Toolbar */}
-                    <div className="flex justify-between items-center pb-3 border-b border-[#E5E5E3]">
-                        <div className="flex items-center gap-3">
-                            <Link
-                                href="/task-board"
-                                className="text-[11px] text-[#888883] hover:text-[#1A1A1A] font-medium transition-colors flex items-center gap-1"
-                            >
-                                <ChevronLeft className="w-3.5 h-3.5" />
-                                <span>Workspace</span>
-                            </Link>
-                            <span className="profile-badge text-[11px] font-medium text-[#888883] border border-[#E5E5E3] px-2.5 py-1 rounded-[2px] bg-white">
-                                Profile Settings
-                            </span>
-                        </div>
-
-                        {isDirty && (
-                            <div className="flex items-center gap-2 animate-fade-in">
-                                <Button
-                                    variant="ghost"
-                                    size="md"
-                                    type="button"
-                                    onClick={handleCancel}
-                                    disabled={isSaving}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type="button"
-                                    onClick={handleSave}
-                                    disabled={isSaving}
-                                    isLoading={isSaving}
-                                    loadingText="Saving…"
-                                    showDot={!isSaving}
-                                    size="md"
-                                >
-                                    Save Changes
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Unified Frame Container with Corner Brackets */}
-                    <div className="relative border border-[#E5E5E3] bg-white corner-brackets flex flex-col rounded-[3px]">
-                        {/* Section 1: Profile Header */}
+                <fieldset disabled={isSaving} className="border-0 p-0 m-0 w-full flex flex-col gap-6">
+                    {/* Full-width Profile Hero Card */}
+                    <div className="relative border border-[#E5E5E3] bg-white corner-brackets rounded-[3px] shadow-xs">
                         <ProfileHeader
                             user={{
                                 ...currentUser,
@@ -359,36 +308,32 @@ export default function ProfilePage() {
                                 bloodGroup: formData.bloodGroup,
                             }}
                             isSaving={isSaving}
+                            isDirty={isDirty}
                             onSave={handleSave}
+                            onCancel={handleCancel}
                             onAvatarChange={handleAvatarChange}
                         />
+                    </div>
 
-                        {/* Section 2: Tab Bar switcher */}
-                        <div className="flex items-center gap-6 px-5 border-b border-[#E5E5E3] bg-[#FAFAF9]">
-                            {tabs.map((tab) => {
-                                const Icon = tab.icon;
-                                const isActive = activeTab === tab.id;
-                                return (
-                                    <button
-                                        key={tab.id}
-                                        type="button"
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`flex items-center gap-2 py-3.5 border-b-2 text-[11px] font-semibold tracking-wide uppercase transition-all cursor-pointer ${
-                                            isActive
-                                                ? "border-[#1A1A1A] text-[#1A1A1A]"
-                                                : "border-transparent text-[#888883] hover:text-[#1A1A1A]"
-                                        }`}
-                                    >
-                                        <Icon className="w-3.5 h-3.5" />
-                                        <span>{tab.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                    {/* Main Content Grid: All Info in One View */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        {/* Left Column: Personal Information & Bio */}
+                        <div className="lg:col-span-6 xl:col-span-7 flex flex-col gap-6">
+                            <div className="relative border border-[#E5E5E3] bg-white corner-brackets rounded-[3px] p-5 sm:p-6 select-text flex flex-col gap-5 shadow-xs">
+                                <div className="flex items-center gap-3 pb-3 border-b border-[#E5E5E3]">
+                                    <div className="w-7 h-7 rounded-[2px] bg-[#FAFAF9] border border-[#E5E5E3] flex items-center justify-center text-[#1A1A1A] shrink-0">
+                                        <UserIcon className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-[13px] font-semibold text-[#1A1A1A] font-heading">
+                                            Personal &amp; Identity
+                                        </h2>
+                                        <p className="text-[11px] text-[#888883]">
+                                            Your name, role, bio, and health details
+                                        </p>
+                                    </div>
+                                </div>
 
-                        {/* Section 3: Inner Active tab components */}
-                        <div className="p-5 select-text">
-                            {activeTab === "personal" && (
                                 <PersonalInfoSection
                                     fullName={formData.fullName}
                                     designation={formData.designation}
@@ -397,9 +342,27 @@ export default function ProfilePage() {
                                     bloodGroup={formData.bloodGroup}
                                     onChange={handleChange}
                                 />
-                            )}
+                            </div>
+                        </div>
 
-                            {activeTab === "contact" && (
+                        {/* Right Column: Contact Details & Social Handles */}
+                        <div className="lg:col-span-6 xl:col-span-5 flex flex-col gap-6">
+                            {/* Contact Details Card */}
+                            <div className="relative border border-[#E5E5E3] bg-white corner-brackets rounded-[3px] p-5 sm:p-6 select-text flex flex-col gap-5 shadow-xs">
+                                <div className="flex items-center gap-3 pb-3 border-b border-[#E5E5E3]">
+                                    <div className="w-7 h-7 rounded-[2px] bg-[#FAFAF9] border border-[#E5E5E3] flex items-center justify-center text-[#1A1A1A] shrink-0">
+                                        <Phone className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-[13px] font-semibold text-[#1A1A1A] font-heading">
+                                            Contact Details
+                                        </h2>
+                                        <p className="text-[11px] text-[#888883]">
+                                            Phone numbers, backup email, and emergency contact
+                                        </p>
+                                    </div>
+                                </div>
+
                                 <ContactInfoSection
                                     secondaryEmail={formData.secondaryEmail}
                                     primaryPhone={formData.primaryPhone}
@@ -407,18 +370,61 @@ export default function ProfilePage() {
                                     emergencyContact={formData.emergencyContact}
                                     onChange={handleChange}
                                 />
-                            )}
+                            </div>
 
-                            {activeTab === "social" && (
+                            {/* Social Handles Card */}
+                            <div className="relative border border-[#E5E5E3] bg-white corner-brackets rounded-[3px] p-5 sm:p-6 select-text flex flex-col gap-5 shadow-xs">
+                                <div className="flex items-center gap-3 pb-3 border-b border-[#E5E5E3]">
+                                    <div className="w-7 h-7 rounded-[2px] bg-[#FAFAF9] border border-[#E5E5E3] flex items-center justify-center text-[#1A1A1A] shrink-0">
+                                        <Share2 className="w-3.5 h-3.5" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-[13px] font-semibold text-[#1A1A1A] font-heading">
+                                            Social &amp; Online Handles
+                                        </h2>
+                                        <p className="text-[11px] text-[#888883]">
+                                            Telegram, WhatsApp, and GitHub profiles
+                                        </p>
+                                    </div>
+                                </div>
+
                                 <SocialLinksSection
                                     telegram={formData.telegram}
                                     whatsapp={formData.whatsapp}
                                     github={formData.github}
                                     onChange={handleChange}
                                 />
-                            )}
+                            </div>
                         </div>
                     </div>
+
+                    {/* Bottom Save Bar when Dirty */}
+                    {isDirty && (
+                        <div className="sticky bottom-4 z-20 flex items-center justify-between p-4 bg-[#1A1A1A] text-white rounded-[3px] shadow-lg animate-fade-in">
+                            <div className="flex items-center gap-2 text-[12px]">
+                                <span className="w-2 h-2 rounded-full bg-[#B08800] animate-pulse" />
+                                <span>You have unsaved changes in your profile.</span>
+                            </div>
+                            <div className="flex items-center gap-2.5">
+                                <button
+                                    type="button"
+                                    onClick={handleCancel}
+                                    disabled={isSaving}
+                                    className="px-3 py-1.5 text-[11px] text-[#888883] hover:text-white transition-colors cursor-pointer"
+                                >
+                                    Discard
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                    className="relative corner-brackets-4 px-4 py-1.5 bg-white text-[#1A1A1A] hover:bg-[#FAFAF9] text-[11px] font-semibold rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+                                >
+                                    {isSaving ? "Saving…" : "Save Changes"}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </fieldset>
             </form>
         </div>

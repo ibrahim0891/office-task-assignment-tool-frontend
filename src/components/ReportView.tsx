@@ -1,28 +1,175 @@
-import React, { useState, useEffect } from "react";
-import { api, ReportData } from "../api";
-import { CustomSelect } from "./ui/CustomSelect";
+"use client";
+
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import {
+    api,
+    ReportData,
+    ReportTaskItem,
+    MemberReportSummary,
+    DailyGroupReport,
+} from "../api";
+import { useWorkspace } from "../context/WorkspaceContext";
 import { Button } from "./ui/Button";
+import { SkeletonReport, SkeletonBox } from "./ui/SkeletonLoader";
+import { CustomDatePicker } from "./ui/CustomDatePicker";
+import toast from "react-hot-toast";
+import {
+    Globe,
+    Calendar,
+    ChevronLeft,
+    ChevronRight,
+    ChevronDown,
+    X,
+    Search,
+    CheckCircle2,
+    Clock,
+    AlertCircle,
+    CheckSquare,
+    Copy,
+    Download,
+    Printer,
+    ArrowRight,
+    MessageSquare,
+} from "lucide-react";
+import { getLocalDateString } from "../utils/date";
+
+function PersonAvatar({
+    src,
+    alt,
+    className = "w-5 h-5",
+    initials = "",
+}: {
+    src?: string | null;
+    alt: string;
+    className?: string;
+    initials?: string;
+}) {
+    const [hasError, setHasError] = useState(false);
+
+    useEffect(() => {
+        setHasError(false);
+    }, [src]);
+
+    const displayInitials =
+        initials ||
+        (alt
+            ? alt
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2)
+            : "U");
+
+    const roundedClass = className.includes("rounded") ? "" : "rounded-[2px]";
+    const isLarge = className.includes("w-24") || className.includes("h-24") || className.includes("w-20") || className.includes("h-20");
+    const isMedium = className.includes("w-12") || className.includes("h-12") || className.includes("w-11") || className.includes("h-11") || className.includes("w-10") || className.includes("w-8");
+    const textSize = isLarge ? "text-2xl font-bold tracking-wider" : isMedium ? "text-xs font-bold" : "text-[10px] font-bold";
+
+    if (src && !hasError) {
+        return (
+            <img
+                src={src}
+                alt={alt}
+                onError={() => setHasError(true)}
+                className={`${roundedClass} object-cover border border-[var(--app-border)] shrink-0 ${className}`}
+            />
+        );
+    }
+
+    return (
+        <div
+            className={`${roundedClass} border border-[var(--app-border)] bg-[var(--app-select-bg)] text-[var(--app-text)] flex items-center justify-center shrink-0 ${textSize} ${className}`}
+        >
+            {displayInitials}
+        </div>
+    );
+}
 
 interface ReportViewProps {
-    currentTeam: { id: string; name: string };
+    currentTeam: { id: string; name: string; emoji?: string };
 }
 
 export default function ReportView({ currentTeam }: ReportViewProps) {
-    const [rangePreset, setRangePreset] = useState<string>("30");
+    const { setSelectedTaskId } = useWorkspace();
+
+    // Filters
+    const [selectedMemberId, setSelectedMemberId] = useState<string>("all");
+    const [rangePreset, setRangePreset] = useState<string>("0"); // '0'=today, '1'=yesterday, '7', '14', '30', 'custom'
     const [customStart, setCustomStart] = useState<string>("");
     const [customEnd, setCustomEnd] = useState<string>("");
+    const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "in_progress" | "attention">("all");
+    const [searchQuery, setSearchQuery] = useState<string>("");
+
+    // Custom Date Range Dropdown State
+    const [isCustomDropdownOpen, setIsCustomDropdownOpen] = useState(false);
+    const [tempCustomStart, setTempCustomStart] = useState<string>("");
+    const [tempCustomEnd, setTempCustomEnd] = useState<string>("");
+    const customDropdownRef = useRef<HTMLDivElement>(null);
+
+    // State
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
     const [isExporting, setIsExporting] = useState(false);
+
+    // Member selection with browser history support (system back navigation)
+    const handleMemberSelect = (memberId: string, pushHistory = true) => {
+        setSelectedMemberId(memberId);
+        if (typeof window !== "undefined" && pushHistory) {
+            const url = new URL(window.location.href);
+            if (memberId === "all") {
+                url.searchParams.delete("member");
+            } else {
+                url.searchParams.set("member", memberId);
+            }
+            window.history.pushState({ memberId }, "", url.toString());
+        }
+    };
+
+    // Initialize from URL search params on mount
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const memberParam = params.get("member");
+            if (memberParam) {
+                setSelectedMemberId(memberParam);
+            }
+            // Ensure base history state is set
+            window.history.replaceState(
+                { memberId: memberParam || "all" },
+                "",
+                window.location.href
+            );
+        }
+    }, []);
+
+    // Listen to browser / system back/forward navigation
+    useEffect(() => {
+        const handlePopState = (event: PopStateEvent) => {
+            if (event.state && typeof event.state.memberId === "string") {
+                setSelectedMemberId(event.state.memberId);
+            } else {
+                const params = new URLSearchParams(window.location.search);
+                setSelectedMemberId(params.get("member") || "all");
+            }
+        };
+
+        window.addEventListener("popstate", handlePopState);
+        return () => {
+            window.removeEventListener("popstate", handlePopState);
+        };
+    }, []);
 
     const fetchReport = async () => {
         setIsLoading(true);
         try {
-            const params: any = { teamId: currentTeam.id };
+            const params: any = {
+                teamId: currentTeam.id,
+                memberId: selectedMemberId === "all" ? undefined : selectedMemberId,
+            };
 
             if (rangePreset !== "custom") {
-                params.daysFromToday = parseInt(rangePreset);
+                params.daysFromToday = parseInt(rangePreset, 10);
             } else if (customStart && customEnd) {
                 params.startDate = customStart;
                 params.endDate = customEnd;
@@ -31,34 +178,89 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
             const data = await api.getReports(params);
             setReportData(data);
         } catch (err: any) {
-            alert("Error fetching report: " + err.message);
+            toast.error("Error fetching report: " + err.message);
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchReport();
-    }, [currentTeam.id, rangePreset]);
+        if (rangePreset === "custom") {
+            if (customStart && customEnd) {
+                fetchReport();
+            }
+        } else {
+            fetchReport();
+        }
+    }, [currentTeam.id, rangePreset, selectedMemberId, customStart, customEnd]);
 
-    const handleCustomRangeSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        fetchReport();
+    // Close custom dropdown on click outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                customDropdownRef.current &&
+                !customDropdownRef.current.contains(event.target as Node)
+            ) {
+                setIsCustomDropdownOpen(false);
+            }
+        };
+        if (isCustomDropdownOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isCustomDropdownOpen]);
+
+    const handleApplyCustomRange = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!tempCustomStart || !tempCustomEnd) {
+            toast.error("Please select both start and end dates");
+            return;
+        }
+        if (tempCustomStart > tempCustomEnd) {
+            toast.error("Start date must be before or equal to end date");
+            return;
+        }
+        setCustomStart(tempCustomStart);
+        setCustomEnd(tempCustomEnd);
+        setRangePreset("custom");
+        setIsCustomDropdownOpen(false);
+    };
+
+    // Day Stepper Handler (step 1 day back or forward)
+    const handleStepDay = (direction: -1 | 1) => {
+        let baseDateStr = reportData?.startDate || getLocalDateString();
+        if (rangePreset === "0") {
+            baseDateStr = reportData?.todayDate || getLocalDateString();
+        }
+
+        const [y, m, d] = baseDateStr.split("-").map(Number);
+        const nextDate = new Date(Date.UTC(y, m - 1, d + direction));
+        const nextDateStr = getLocalDateString(nextDate);
+
+        setRangePreset("custom");
+        setCustomStart(nextDateStr);
+        setCustomEnd(nextDateStr);
     };
 
     const handleExportCSV = async () => {
         setIsExporting(true);
         try {
-            const params: any = { teamId: currentTeam.id };
+            const params: any = {
+                teamId: currentTeam.id,
+                memberId: selectedMemberId === "all" ? undefined : selectedMemberId,
+            };
             if (rangePreset !== "custom") {
-                params.daysFromToday = parseInt(rangePreset);
+                params.daysFromToday = parseInt(rangePreset, 10);
             } else if (customStart && customEnd) {
                 params.startDate = customStart;
                 params.endDate = customEnd;
             }
             await api.exportCsv(params);
+            toast.success("CSV export downloaded");
         } catch (err: any) {
-            alert("Error exporting CSV: " + err.message);
+            toast.error("Error exporting CSV: " + err.message);
         } finally {
             setIsExporting(false);
         }
@@ -68,337 +270,804 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
         window.print();
     };
 
+    // 1-Click Copy Standup Summary
+    const handleCopyStandup = () => {
+        if (!reportData) return;
+
+        const memberName = reportData.selectedMember?.fullName || "All Team Members";
+        const periodStr = `${reportData.startDate} to ${reportData.endDate}`;
+
+        const completed = reportData.tasks.filter((t) => t.isComplete);
+        const inProgress = reportData.tasks.filter((t) => {
+            const col = t.status.toLowerCase();
+            return !t.isComplete && (col.includes("progress") || col.includes("doing") || col.includes("review"));
+        });
+        const attention = reportData.tasks.filter((t) => {
+            const col = t.status.toLowerCase();
+            return (!t.isComplete && (col.includes("attention") || col.includes("blocked"))) || t.carryCount >= 2;
+        });
+
+        let summary = `📋 Daily Standup Summary\n`;
+        summary += `👤 Member: ${memberName}\n`;
+        summary += `📅 Period: ${periodStr}\n\n`;
+
+        summary += `✅ Completed Tasks (${completed.length}):\n`;
+        if (completed.length === 0) summary += `  • None\n`;
+        completed.forEach((t) => {
+            const checklistStr = t.checklistStats.total > 0 ? ` (${t.checklistStats.completed}/${t.checklistStats.total} subtasks)` : "";
+            summary += `  • ${t.title}${checklistStr}\n`;
+        });
+
+        summary += `\n⏳ In Progress (${inProgress.length}):\n`;
+        if (inProgress.length === 0) summary += `  • None\n`;
+        inProgress.forEach((t) => {
+            const checklistStr = t.checklistStats.total > 0 ? ` (${t.checklistStats.completed}/${t.checklistStats.total} subtasks)` : "";
+            summary += `  • ${t.title}${checklistStr}\n`;
+        });
+
+        summary += `\n⚠️ Blockers / Carried Tasks (${attention.length}):\n`;
+        if (attention.length === 0) summary += `  • None\n`;
+        attention.forEach((t) => {
+            const carryStr = t.carryCount > 0 ? ` (Carried ${t.carryCount} days)` : "";
+            const noteStr = t.latestComment ? ` — "${t.latestComment.content}"` : "";
+            summary += `  • ${t.title}${carryStr}${noteStr}\n`;
+        });
+
+        navigator.clipboard.writeText(summary);
+        toast.success("Standup summary copied to clipboard!");
+    };
+
+    // Filter tasks by status and search
+    const filteredDailyGroups = useMemo(() => {
+        if (!reportData?.dailyGroups) return [];
+
+        return reportData.dailyGroups
+            .map((group) => {
+                const matchedTasks = group.tasks.filter((t) => {
+                    if (statusFilter === "completed" && !t.isComplete) return false;
+                    if (statusFilter === "in_progress") {
+                        const col = t.status.toLowerCase();
+                        if (t.isComplete || (!col.includes("progress") && !col.includes("doing") && !col.includes("review"))) {
+                            return false;
+                        }
+                    }
+                    if (statusFilter === "attention") {
+                        const col = t.status.toLowerCase();
+                        if (t.isComplete || (!col.includes("attention") && !col.includes("blocked") && t.carryCount < 2)) {
+                            return false;
+                        }
+                    }
+
+                    if (searchQuery.trim()) {
+                        const q = searchQuery.toLowerCase();
+                        const titleMatch = t.title.toLowerCase().includes(q);
+                        const descMatch = (t.description || "").toLowerCase().includes(q);
+                        const assigneeMatch = (t.assignedTo?.fullName || "").toLowerCase().includes(q);
+                        if (!titleMatch && !descMatch && !assigneeMatch) return false;
+                    }
+
+                    return true;
+                });
+
+                return {
+                    ...group,
+                    tasks: matchedTasks,
+                };
+            })
+            .filter((g) => g.tasks.length > 0);
+    }, [reportData, statusFilter, searchQuery]);
+
+    const formatHeaderDate = (dateStr: string, isToday?: boolean, isYesterday?: boolean) => {
+        try {
+            const [y, m, d] = dateStr.split("-").map(Number);
+            const dateObj = new Date(Date.UTC(y, m - 1, d));
+            const formatted = dateObj.toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+            });
+            if (isToday) return `Today • ${formatted}`;
+            if (isYesterday) return `Yesterday • ${formatted}`;
+            return formatted;
+        } catch {
+            return dateStr;
+        }
+    };
+
+    const getPriorityTextColor = (p: string) => {
+        switch (p?.toUpperCase()) {
+            case "URGENT":
+                return "text-[var(--priority-urgent)]";
+            case "HIGH":
+                return "text-[var(--priority-high)]";
+            case "MEDIUM":
+                return "text-[var(--priority-medium)]";
+            case "LOW":
+            default:
+                return "text-[var(--priority-low)]";
+        }
+    };
+
+    const getPriorityBorder = (p: string) => {
+        switch (p?.toUpperCase()) {
+            case "URGENT":
+                return "border-l-2 border-l-[var(--priority-urgent)]";
+            case "HIGH":
+                return "border-l-2 border-l-[var(--priority-high)]";
+            case "MEDIUM":
+                return "border-l-2 border-l-[var(--priority-medium)]";
+            default:
+                return "border-l-2 border-l-[var(--priority-low)]";
+        }
+    };
+
     return (
-        <div className="flex-1 overflow-y-auto p-5 bg-[#FAFAF9] text-[#1A1A1A] flex flex-col gap-4 select-none print:bg-white print:text-black print:p-0">
-            {/* Header */}
-            <div className="flex flex-wrap justify-between items-center gap-3 print:hidden">
-                <div>
-                    <h1 className="font-heading text-xl">
-                        Performance Reports
-                    </h1>
-                    <p className="text-base text-[#888883] mt-0.5">
-                        Completion ratios, time tracking, and overdue analysis.
-                    </p>
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--app-bg)] text-[var(--app-text)] select-none print:bg-white print:text-black print:overflow-visible">
+            {/* ─── FIXED TOP SECTION (Filters & Quick Actions) ─── */}
+            <div className="shrink-0 bg-[var(--app-card)] border-b border-[var(--app-border)] z-10 print:hidden flex flex-col">
+                {/* 1. Header: Title & Quick Actions */}
+                <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--app-border)]">
+                    <div className="flex items-center gap-2.5">
+                        {selectedMemberId !== "all" && (
+                            <button
+                                type="button"
+                                onClick={() => handleMemberSelect("all")}
+                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors cursor-pointer shrink-0 p-0.5"
+                                title="Back to All Team Overview"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                        )}
+                        <div>
+                            <h1 className="font-heading text-lg font-bold text-[var(--app-text)]">
+                                {selectedMemberId !== "all" && reportData?.selectedMember ? (
+                                    `${reportData.selectedMember.fullName}'s Daily Log`
+                                ) : (
+                                    <>
+                                        {currentTeam.emoji ? <span className="mr-1.5 emoji-font">{currentTeam.emoji}</span> : null}
+                                        Performance & Daily Reports
+                                    </>
+                                )}
+                            </h1>
+                            <p className="text-[11px] text-[var(--app-muted)] mt-0.5">
+                                {selectedMemberId !== "all" && reportData?.selectedMember
+                                    ? `Detailed performance stats and task activity stream for ${reportData.selectedMember.fullName}.`
+                                    : "Member daily activity tracking, completion status, and carry-over analysis."}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                            onClick={handleCopyStandup}
+                            variant="secondary"
+                            size="sm"
+                            icon={<Copy className="w-3.5 h-3.5 shrink-0" />}
+                        >
+                            Copy Standup
+                        </Button>
+                        <Button
+                            onClick={handleExportCSV}
+                            variant="secondary"
+                            size="sm"
+                            isLoading={isExporting}
+                            loadingText="Exporting…"
+                            icon={<Download className="w-3.5 h-3.5 shrink-0" />}
+                        >
+                            Export CSV
+                        </Button>
+                        <Button
+                            onClick={handlePrintPDF}
+                            variant="secondary"
+                            size="sm"
+                            icon={<Printer className="w-3.5 h-3.5 shrink-0" />}
+                        >
+                            Print / PDF
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <Button
-                        onClick={handleExportCSV}
-                        variant="secondary"
-                        isLoading={isExporting}
-                        loadingText="Exporting…"
-                    >
-                        Export CSV
-                    </Button>
-                    <Button onClick={handlePrintPDF} variant="default">
-                        Print / PDF
-                    </Button>
+                {/* 2. Controls Bar: Period Tabs + Custom Datepicker + Day Stepper + Status Filters + Search */}
+                <div className="px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 bg-[var(--app-bg)] border-b border-[var(--app-border)]">
+                    {/* Left: Period Selection & Day Stepper */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Period Presets */}
+                        <div className="flex items-center gap-1">
+                            {[
+                                { id: "0", label: "Today" },
+                                { id: "1", label: "Yesterday" },
+                                { id: "7", label: "7d" },
+                                { id: "14", label: "14d" },
+                                { id: "30", label: "30d" },
+                            ].map((preset) => (
+                                <button
+                                    key={preset.id}
+                                    type="button"
+                                    onClick={() => setRangePreset(preset.id)}
+                                    className={`px-2 py-1 text-xs font-medium border rounded-[2px] transition-colors cursor-pointer ${
+                                        rangePreset === preset.id
+                                            ? "bg-[var(--app-select-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
+                                            : "bg-[var(--app-card)] border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                    }`}
+                                >
+                                    {preset.label}
+                                </button>
+                            ))}
+
+                            {/* Custom Date Range Dropdown Popover */}
+                            <div className="relative" ref={customDropdownRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!isCustomDropdownOpen) {
+                                            setTempCustomStart(customStart || reportData?.startDate || getLocalDateString());
+                                            setTempCustomEnd(customEnd || reportData?.endDate || getLocalDateString());
+                                        }
+                                        setIsCustomDropdownOpen((prev) => !prev);
+                                    }}
+                                    className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium border rounded-[2px] transition-colors cursor-pointer ${
+                                        rangePreset === "custom"
+                                            ? "bg-[var(--app-select-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
+                                            : "bg-[var(--app-card)] border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                    }`}
+                                >
+                                    <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                    <span>
+                                        {rangePreset === "custom" && customStart && customEnd
+                                            ? `${customStart} → ${customEnd}`
+                                            : "Custom"}
+                                    </span>
+                                    <ChevronDown className={`w-3 h-3 text-[var(--app-muted)] transition-transform ${isCustomDropdownOpen ? "rotate-180" : ""}`} />
+                                </button>
+
+                                {/* Dropdown Popover */}
+                                {isCustomDropdownOpen && (
+                                    <div className="absolute left-0 top-full mt-1 w-80 sm:w-88 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] corner-brackets shadow-lg p-3.5 z-50 flex flex-col gap-3">
+                                        <div className="flex items-center justify-between pb-1.5 border-b border-[var(--app-border)]">
+                                            <span className="eyebrow font-semibold flex items-center gap-1.5">
+                                                <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                                Custom Date Range
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCustomDropdownOpen(false)}
+                                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] p-0.5 rounded-[2px] transition-colors cursor-pointer"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+
+                                        <form onSubmit={handleApplyCustomRange} className="flex flex-col gap-3">
+                                            <div className="grid grid-cols-2 gap-2.5">
+                                                <div className="flex flex-col gap-1">
+                                                    <label className="text-[9px] font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+                                                        Start Date
+                                                    </label>
+                                                    <CustomDatePicker
+                                                        value={tempCustomStart}
+                                                        onChange={(val) => setTempCustomStart(val)}
+                                                        placeholder="Start date..."
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <label className="text-[9px] font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+                                                        End Date
+                                                    </label>
+                                                    <CustomDatePicker
+                                                        value={tempCustomEnd}
+                                                        onChange={(val) => setTempCustomEnd(val)}
+                                                        placeholder="End date..."
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Quick shortcut presets within the dropdown */}
+                                            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                                                <span className="text-[10px] text-[var(--app-muted)] mr-0.5 font-medium">Presets:</span>
+                                                {[
+                                                    { label: "Past 7d", days: 7 },
+                                                    { label: "Past 14d", days: 14 },
+                                                    { label: "Past 30d", days: 30 },
+                                                ].map((shortcut) => (
+                                                    <button
+                                                        key={shortcut.label}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const end = new Date();
+                                                            const start = new Date();
+                                                            start.setDate(start.getDate() - (shortcut.days - 1));
+                                                            setTempCustomStart(getLocalDateString(start));
+                                                            setTempCustomEnd(getLocalDateString(end));
+                                                        }}
+                                                        className="text-[10px] px-2 py-0.5 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)] transition-colors cursor-pointer"
+                                                    >
+                                                        {shortcut.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--app-border)]">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setIsCustomDropdownOpen(false)}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button type="submit" size="sm">
+                                                    Apply Range
+                                                </Button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Day Stepper */}
+                            <div className="flex items-center gap-0.5 border border-[var(--app-border)] rounded-[2px] px-1 py-0.5 bg-[var(--app-card)] text-xs">
+                                <button
+                                    type="button"
+                                    onClick={() => handleStepDay(-1)}
+                                    className="p-0.5 hover:bg-[var(--app-hover-bg)] rounded-[1px] text-[var(--app-text)] transition-colors cursor-pointer"
+                                    title="Step 1 Day Backward"
+                                >
+                                    <ChevronLeft className="w-3.5 h-3.5" />
+                                </button>
+                                <span className="text-[10px] text-[var(--app-muted)] font-medium px-1">
+                                    Day Step
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => handleStepDay(1)}
+                                    className="p-0.5 hover:bg-[var(--app-hover-bg)] rounded-[1px] text-[var(--app-text)] transition-colors cursor-pointer"
+                                    title="Step 1 Day Forward"
+                                >
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right: Status Filters + Search */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        {[
+                            { id: "all", label: "All" },
+                            { id: "completed", label: "Done" },
+                            { id: "in_progress", label: "In Progress" },
+                            { id: "attention", label: "Needs Attention" },
+                        ].map((st) => (
+                            <button
+                                key={st.id}
+                                type="button"
+                                onClick={() => setStatusFilter(st.id as any)}
+                                className={`px-2 py-1 text-xs font-medium border rounded-[2px] transition-colors cursor-pointer ${
+                                    statusFilter === st.id
+                                        ? "bg-[var(--app-select-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
+                                        : "bg-[var(--app-card)] border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                }`}
+                            >
+                                {st.label}
+                            </button>
+                        ))}
+
+                        {/* Search Input */}
+                        <div className="relative min-w-[140px] ml-0.5">
+                            <Search className="w-3 h-3 text-[var(--app-muted)] absolute left-2 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="text"
+                                placeholder="Search tasks…"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full h-7 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] pl-6.5 pr-2 text-xs text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)]"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Date Filter */}
-            <div className="bg-white border border-[#E5E5E3] p-3.5 flex flex-col gap-3 print:hidden">
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex flex-col gap-1">
-                        <label className="eyebrow">Period</label>
-                        <CustomSelect
-                            options={[
-                                { value: "7", label: "Last 7 Days" },
-                                { value: "14", label: "Last 14 Days" },
-                                { value: "30", label: "Last 30 Days" },
-                                { value: "90", label: "Last 90 Days" },
-                                { value: "custom", label: "Custom Range" },
-                            ]}
-                            value={rangePreset}
-                            onChange={(val) => setRangePreset(val)}
-                            className="w-40"
-                        />
-                    </div>
+            {/* ─── LOWER SECTION: LEFT MEMBER RAIL + RIGHT DATA CONTENT ─── */}
+            <div className="flex-1 flex overflow-hidden">
+                {/* LEFT VERTICAL MEMBER RAIL */}
+                <aside className="w-16 sm:w-18 border-r border-[var(--app-border)] bg-[var(--app-card)] flex flex-col shrink-0 overflow-hidden select-none print:hidden">
+                    {/* Rail Scrollable List */}
+                    <div className="flex-1 overflow-y-auto py-3 px-1.5 flex flex-col items-center gap-3 scrollbar-none">
+                        {/* 1. All Team Bubble */}
+                        {(() => {
+                            const isAllSelected = selectedMemberId === "all";
+                            return (
+                                <button
+                                    type="button"
+                                    onClick={() => handleMemberSelect("all")}
+                                    className={`relative p-1 rounded-[2px] transition-all cursor-pointer group flex items-center justify-center ${
+                                        isAllSelected ? "opacity-100" : "opacity-70 hover:opacity-100"
+                                    }`}
+                                    title={`All Team Overview • ${reportData?.totalTasks ?? 0} tasks`}
+                                >
+                                    {/* Speech Bubble Arrow Pointer */}
+                                    {isAllSelected && (
+                                        <div className="absolute -right-2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
+                                            <div className="relative">
+                                                <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-[var(--app-border-strong)]" />
+                                                <div className="absolute top-[1px] -left-[1px] w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[7px] border-l-[var(--app-card)]" />
+                                            </div>
+                                        </div>
+                                    )}
 
-                    {rangePreset === "custom" && (
-                        <form
-                            onSubmit={handleCustomRangeSubmit}
-                            className="flex flex-wrap items-end gap-2 animate-fade-in"
-                        >
-                            <div className="flex flex-col gap-1">
-                                <label className="eyebrow">Start</label>
-                                <input
-                                    type="date"
-                                    value={customStart}
-                                    onChange={(e) =>
-                                        setCustomStart(e.target.value)
-                                    }
-                                    className="bg-white border border-[#E5E5E3] rounded-[3px] px-2.5 py-1.5 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A]"
-                                    required
-                                />
+                                    <div
+                                        className={`w-11 h-11 rounded-[2px] flex items-center justify-center transition-all duration-150 border border-[var(--app-border)] ${
+                                            isAllSelected
+                                                ? "bg-[var(--app-select-bg)] border-[var(--app-border-strong)] shadow-xs"
+                                                : "bg-[var(--app-card)] group-hover:bg-[var(--app-hover-bg)]"
+                                        }`}
+                                    >
+                                        <span className="emoji-font text-lg select-none">
+                                            {currentTeam.emoji || "👥"}
+                                        </span>
+                                    </div>
+                                </button>
+                            );
+                        })()}
+
+                        <div className="w-6 h-px bg-[var(--app-border)] my-0.5 shrink-0" />
+
+                        {/* Skeleton state if data not yet loaded */}
+                        {!reportData && isLoading && (
+                            <>
+                                {[1, 2, 3, 4].map((i) => (
+                                    <SkeletonBox key={i} className="w-11 h-11 rounded-[2px] shrink-0" />
+                                ))}
+                            </>
+                        )}
+
+                        {/* 2. Member Bubble Cards */}
+                        {reportData?.memberBreakdown?.map((member) => {
+                            const isSelected = selectedMemberId === member.user.id;
+                            return (
+                                <button
+                                    key={member.user.id}
+                                    type="button"
+                                    onClick={() => handleMemberSelect(member.user.id)}
+                                    className={`relative p-1 rounded-[2px] transition-all cursor-pointer group flex items-center justify-center ${
+                                        isSelected ? "opacity-100" : "opacity-70 hover:opacity-100"
+                                    }`}
+                                    title={`${member.user.fullName} (${member.user.designation || member.role}) • ${member.completedTasks}/${member.totalTasks} completed (${member.completionRate}%)`}
+                                >
+                                    {/* Speech Bubble Arrow Pointer */}
+                                    {isSelected && (
+                                        <div className="absolute -right-2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
+                                            <div className="relative">
+                                                <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-[var(--app-border-strong)]" />
+                                                <div className="absolute top-[1px] -left-[1px] w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[7px] border-l-[var(--app-card)]" />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <PersonAvatar
+                                        src={member.user.avatarUrl}
+                                        alt={member.user.fullName}
+                                        className="w-11 h-11 rounded-[2px] shadow-2xs"
+                                    />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </aside>
+
+                {/* RIGHT CONTENT AREA (Metrics Card + Daily Activity Stream) */}
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-[var(--app-bg)] text-[var(--app-text)] flex flex-col gap-3 select-none print:p-0 print:overflow-visible">
+                    {/* Loading State: Shimmer Skeleton */}
+                    {isLoading && !reportData && <SkeletonReport />}
+
+                    {/* Report Data Views */}
+                    {reportData && (
+                        <>
+                            {/* 1. Summary & Performance Metrics Card */}
+                            <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-3 sm:p-3.5 rounded-[2px] corner-brackets flex flex-col gap-3 shadow-xs">
+                                {/* Member / Team Info Header */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                    <div className="flex items-center gap-2.5">
+                                        {reportData.selectedMember ? (
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h2 className="font-heading text-base font-bold text-[var(--app-text)]">
+                                                        {reportData.selectedMember.fullName}
+                                                    </h2>
+                                                    <span className="text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px] text-[var(--app-muted)] font-medium">
+                                                        {reportData.selectedMember.designation || "Team Member"}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[10px] text-[var(--app-muted)]">
+                                                    {reportData.selectedMember.email} • Period: {reportData.startDate} → {reportData.endDate}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <h2 className="font-heading text-base font-bold text-[var(--app-text)]">
+                                                    Team Performance Overview
+                                                </h2>
+                                                <p className="text-[10px] text-[var(--app-muted)]">
+                                                    {reportData.memberBreakdown?.length || 0} members • Period: {reportData.startDate} → {reportData.endDate}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                </div>
+
+                                {/* Top 4 Metric KPI Cards Grid */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-2 rounded-[2px] flex flex-col gap-0.5">
+                                        <span className="eyebrow text-[9px]">Completion Rate</span>
+                                        <div className="flex items-baseline gap-1.5">
+                                            <span className="text-lg sm:text-xl font-heading text-[var(--app-text)] font-bold">
+                                                {reportData.completionRate}%
+                                            </span>
+                                            <span className="text-[10px] text-[var(--app-muted)] font-medium">
+                                                ({reportData.completedTasks}/{reportData.totalTasks})
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-2 rounded-[2px] flex flex-col gap-0.5">
+                                        <span className="eyebrow text-[9px]">In Progress</span>
+                                        <span className="text-lg sm:text-xl font-heading text-[#0284C7] font-bold">
+                                            {reportData.inProgressTasks}
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-2 rounded-[2px] flex flex-col gap-0.5">
+                                        <span className="eyebrow text-[9px] text-[#CB2431]">Needs Attention</span>
+                                        <span className="text-lg sm:text-xl font-heading text-[#CB2431] font-bold">
+                                            {reportData.needsAttentionTasks}
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-2 rounded-[2px] flex flex-col gap-0.5">
+                                        <span className="eyebrow text-[9px] text-[#B08800]">Carried Over (2d+)</span>
+                                        <span className="text-lg sm:text-xl font-heading text-[#B08800] font-bold">
+                                            {reportData.staleTasksCount}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Sleek Progress Bar Ribbon */}
+                                <div className="flex flex-col gap-1.5 pt-1 border-t border-[var(--app-border)]">
+                                    <div className="h-1.5 w-full rounded-[1px] bg-[var(--app-bg)] border border-[var(--app-border)] flex overflow-hidden">
+                                        {reportData.totalTasks === 0 ? (
+                                            <div className="w-full h-full bg-transparent" />
+                                        ) : (
+                                            <>
+                                                {reportData.completedTasks > 0 && (
+                                                    <div
+                                                        style={{ width: `${(reportData.completedTasks / reportData.totalTasks) * 100}%` }}
+                                                        className="bg-[#22863A] transition-all"
+                                                        title={`Done: ${reportData.completedTasks} tasks (${reportData.completionRate}%)`}
+                                                    />
+                                                )}
+                                                {reportData.inProgressTasks > 0 && (
+                                                    <div
+                                                        style={{ width: `${(reportData.inProgressTasks / reportData.totalTasks) * 100}%` }}
+                                                        className="bg-[#0284C7] transition-all"
+                                                        title={`In Progress: ${reportData.inProgressTasks} tasks`}
+                                                    />
+                                                )}
+                                                {reportData.needsAttentionTasks > 0 && (
+                                                    <div
+                                                        style={{ width: `${(reportData.needsAttentionTasks / reportData.totalTasks) * 100}%` }}
+                                                        className="bg-[#CB2431] transition-all"
+                                                        title={`Needs Attention: ${reportData.needsAttentionTasks} tasks`}
+                                                    />
+                                                )}
+                                                {reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks > 0 && (
+                                                    <div
+                                                        style={{
+                                                            width: `${
+                                                                ((reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks) /
+                                                                    reportData.totalTasks) *
+                                                                100
+                                                            }%`,
+                                                        }}
+                                                        className="bg-[var(--app-border)] transition-all"
+                                                        title={`To Do: ${
+                                                            reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks
+                                                        } tasks`}
+                                                    />
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* Legend */}
+                                    <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-[var(--app-muted)]">
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <span className="flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 rounded-[1px] bg-[#22863A] shrink-0" />
+                                                <strong className="text-[var(--app-text)] font-semibold">{reportData.completedTasks}</strong> Done
+                                            </span>
+                                            <span className="flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 rounded-[1px] bg-[#0284C7] shrink-0" />
+                                                <strong className="text-[var(--app-text)] font-semibold">{reportData.inProgressTasks}</strong> In Progress
+                                            </span>
+                                            {reportData.needsAttentionTasks > 0 && (
+                                                <span className="flex items-center gap-1.5">
+                                                    <span className="w-1.5 h-1.5 rounded-[1px] bg-[#CB2431] shrink-0" />
+                                                    <strong className="text-[var(--app-text)] font-semibold">{reportData.needsAttentionTasks}</strong> Needs Attention
+                                                </span>
+                                            )}
+                                            <span className="flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 rounded-[1px] bg-[var(--app-border)] shrink-0" />
+                                                <strong className="text-[var(--app-text)] font-semibold">
+                                                    {Math.max(0, reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks)}
+                                                </strong> To Do
+                                            </span>
+                                        </div>
+
+                                        <span className="text-[11px] text-[var(--app-muted)]">
+                                            Total: <strong className="font-semibold text-[var(--app-text)]">{reportData.totalTasks}</strong> tasks
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex flex-col gap-1">
-                                <label className="eyebrow">End</label>
-                                <input
-                                    type="date"
-                                    value={customEnd}
-                                    onChange={(e) =>
-                                        setCustomEnd(e.target.value)
-                                    }
-                                    className="bg-white border border-[#E5E5E3] rounded-[3px] px-2.5 py-1.5 text-base text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A]"
-                                    required
-                                />
+
+                            {/* 2. Chronological Daily Activity Stream */}
+                            <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 rounded-[2px] corner-brackets flex flex-col gap-3.5 shadow-xs">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        {selectedMemberId !== "all" && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleMemberSelect("all")}
+                                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors cursor-pointer shrink-0 p-0.5"
+                                                title="Back to All Team Overview"
+                                            >
+                                                <ChevronLeft className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        <span className="eyebrow font-semibold">
+                                            {selectedMemberId !== "all" && reportData?.selectedMember
+                                                ? `${reportData.selectedMember.fullName}'s Daily Activity Log`
+                                                : "Daily Activity Stream"}
+                                        </span>
+                                    </div>
+                                    <span className="text-xs text-[var(--app-muted)]">
+                                        {filteredDailyGroups.reduce((acc, g) => acc + g.tasks.length, 0)} tasks across {filteredDailyGroups.length} days
+                                    </span>
+                                </div>
+
+                                {filteredDailyGroups.length === 0 ? (
+                                    <div className="py-12 px-4 text-center text-[var(--app-muted)] flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--app-border)] rounded-[2px] bg-[var(--app-bg)]/40">
+                                        <CheckCircle2 className="w-6 h-6 text-[var(--app-muted)]/50" />
+                                        <span className="text-xs font-semibold text-[var(--app-text)]">No tasks found matching your criteria</span>
+                                        <span className="text-[11px] text-[var(--app-muted)] max-w-sm">
+                                            Try selecting a different date range, member, or status filter to view daily activity.
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-3">
+                                        {filteredDailyGroups.map((group) => (
+                                            <div
+                                                key={group.date}
+                                                className="border border-[var(--app-border)] rounded-[2px] overflow-hidden flex flex-col bg-[var(--app-card)] shadow-2xs"
+                                            >
+                                                {/* Date Group Header */}
+                                                <div className="bg-[var(--app-bg)] px-4 py-2 border-b border-[var(--app-border)] flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar className="w-3.5 h-3.5 text-[var(--app-text)]" />
+                                                        <span className="font-heading text-[13px] font-bold text-[var(--app-text)]">
+                                                            {formatHeaderDate(group.date, group.isToday, group.isYesterday)}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="text-xs text-[var(--app-muted)]">
+                                                        {group.tasks.filter((t) => t.isComplete).length} of {group.tasks.length} Completed
+                                                    </div>
+                                                </div>
+
+                                                {/* Tasks List */}
+                                                <div className="divide-y divide-[var(--app-border)]">
+                                                    {group.tasks.map((task) => {
+                                                        const isDone = task.isComplete;
+                                                        const statusName = task.status.toLowerCase();
+                                                        const isAttention = statusName.includes("attention") || statusName.includes("blocked");
+                                                        const isInProgress = statusName.includes("progress") || statusName.includes("doing");
+
+                                                        const statusColor = isDone
+                                                            ? "bg-[#22863A]"
+                                                            : isAttention
+                                                            ? "bg-[#CB2431]"
+                                                            : isInProgress
+                                                            ? "bg-[#0284C7]"
+                                                            : "bg-[var(--app-muted)]";
+
+                                                        return (
+                                                            <div
+                                                                key={task.id}
+                                                                onClick={() => setSelectedTaskId(task.id)}
+                                                                className={`px-4 py-3 hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer flex flex-col gap-1.5 ${getPriorityBorder(
+                                                                    task.priority,
+                                                                )} ${isDone ? "opacity-70 hover:opacity-100" : ""}`}
+                                                            >
+                                                                <div className="flex items-start justify-between gap-4">
+                                                                    {/* Member Name & Meta on Line 1 -> Task Title on Line 2 Below */}
+                                                                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                                                                        {/* Line 1: Member Name & Status */}
+                                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                                            <span className="text-xs font-semibold text-[var(--app-text)]">
+                                                                                {task.assignedTo ? task.assignedTo.fullName : "Unassigned"}
+                                                                            </span>
+                                                                            <span
+                                                                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusColor}`}
+                                                                                title={task.status}
+                                                                            />
+                                                                            <span className="text-[11px] text-[var(--app-muted)] font-medium">
+                                                                                {task.status}
+                                                                            </span>
+                                                                            <span className="text-[10px] text-[var(--app-muted)] opacity-40">
+                                                                                •
+                                                                            </span>
+                                                                            <span className={`text-[11px] font-semibold tracking-tight ${getPriorityTextColor(task.priority)}`}>
+                                                                                {task.priority}
+                                                                            </span>
+                                                                        </div>
+
+                                                                        {/* Line 2: Task Title (Below the Member Name) */}
+                                                                        <h3
+                                                                            className={`text-[13px] font-medium truncate ${
+                                                                                isDone
+                                                                                    ? "line-through text-[var(--app-muted)]"
+                                                                                    : "text-[var(--app-text)] hover:underline"
+                                                                            }`}
+                                                                        >
+                                                                            {task.title}
+                                                                        </h3>
+                                                                    </div>
+
+                                                                    {/* Right: Subtasks, Carried info */}
+                                                                    <div className="flex items-center gap-3 shrink-0 text-xs pt-1">
+                                                                        {task.checklistStats && task.checklistStats.total > 0 && (
+                                                                            <span className="text-xs text-[var(--app-muted)] flex items-center gap-1">
+                                                                                <CheckSquare className="w-3.5 h-3.5" />
+                                                                                {task.checklistStats.completed}/{task.checklistStats.total}
+                                                                            </span>
+                                                                        )}
+
+                                                                        {task.carryCount > 0 && (
+                                                                            <span className="text-xs font-medium text-[#B08800]">
+                                                                                {task.carryCount}d carried
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Latest Comment Snippet (if available) */}
+                                                                {task.latestComment && (
+                                                                    <div className="flex items-center gap-2 text-[11px] text-[var(--app-muted)] pt-0.5">
+                                                                        <MessageSquare className="w-3 h-3 shrink-0 text-[var(--app-muted)]" />
+                                                                        <span className="italic truncate">
+                                                                            <strong className="not-italic text-[var(--app-text)] font-medium">
+                                                                                {task.latestComment.user.fullName}:
+                                                                            </strong>{" "}
+                                                                            "{task.latestComment.content}"
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                            <Button
-                                 type="submit"
-                                 size="sm"
-                            >
-                                 Apply
-                            </Button>
-                        </form>
+                        </>
                     )}
                 </div>
             </div>
-
-            {isLoading && (
-                <div className="text-center py-16 text-[#888883] text-base">
-                    Loading report…
-                </div>
-            )}
-
-            {/* Report Content */}
-            {reportData && !isLoading && (
-                <div className="flex flex-col gap-4 print:gap-3">
-                    {/* PDF Header */}
-                    <div className="hidden print:block border-b-2 border-[#DADAD6] pb-3 mb-3">
-                        <h1 className="text-xl font-bold">
-                            {currentTeam.name} Performance Report
-                        </h1>
-                        <p className="text-[11px] text-[#888883] mt-1">
-                            Generated on {new Date().toLocaleDateString()} |
-                            Period:{" "}
-                            {new Date(
-                                reportData.startDate,
-                            ).toLocaleDateString()}{" "}
-                            to{" "}
-                            {new Date(reportData.endDate).toLocaleDateString()}
-                        </p>
-                    </div>
-
-                    {/* Merged Unified Container (Top Metrics + Bottom Audit Trail) */}
-                    <div className="relative border border-[#E5E5E3] bg-white corner-brackets flex flex-col">
-                        {/* Top Metric Cards Grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#E5E5E3] print:border-[#DADAD6]">
-                            <div className="bg-white p-4 flex flex-col gap-1 print:bg-white">
-                                <span className="eyebrow">Completion Rate</span>
-                                <span className="text-2xl font-heading text-[#1A1A1A] print:text-black">
-                                    {reportData.completionRate}%
-                                </span>
-                                <span className="text-base text-[#888883]">
-                                    {reportData.completedTasks} /{" "}
-                                    {reportData.totalTasks} tasks
-                                </span>
-                            </div>
-
-                            <div className="bg-white p-4 flex flex-col gap-1">
-                                <span className="eyebrow">Avg Time-to-Done</span>
-                                <span className="text-2xl font-heading text-[#1A1A1A]">
-                                    {reportData.averageTimeToDone}h
-                                </span>
-                                <span className="text-base text-[#888883]">
-                                    average completion duration
-                                </span>
-                            </div>
-
-                            <div className="bg-white p-4 flex flex-col gap-1">
-                                <span className="eyebrow text-[#CB2431]">
-                                    Overdue
-                                </span>
-                                <span
-                                    className={`text-2xl font-heading ${reportData.overdueCount > 0 ? "text-[#CB2431]" : "text-[#888883]"}`}
-                                >
-                                    {reportData.overdueCount}
-                                </span>
-                                <span className="text-base text-[#888883]">
-                                    past due date
-                                </span>
-                            </div>
-
-                            <div className="bg-white p-4 flex flex-col gap-1">
-                                <span className="eyebrow text-[#B08800]">
-                                    Stale Tasks
-                                </span>
-                                <span
-                                    className={`text-2xl font-heading ${reportData.staleTasksCount > 0 ? "text-[#B08800]" : "text-[#888883]"}`}
-                                >
-                                    {reportData.staleTasksCount}
-                                </span>
-                                <span className="text-base text-[#888883]">
-                                    carried 3+ days
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Section Intersection Divider */}
-                        <div className="relative w-full border-t border-[#E5E5E3]">
-                            <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center">
-                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 0V10M5 5H10" stroke="#1A1A1A" strokeWidth="1.5" />
-                                </svg>
-                            </div>
-                            <div className="absolute -right-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center">
-                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 0V10M5 5H0" stroke="#1A1A1A" strokeWidth="1.5" />
-                                </svg>
-                            </div>
-                        </div>
-
-                        {/* Status Breakdown Section (Constant & Dynamic Kanban Columns) */}
-                        <div className="bg-white p-4 flex flex-col gap-3">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-base font-semibold print:text-base print:font-bold">
-                                    ▪ Column & Status Breakdown
-                                </h3>
-                                <span className="text-xs text-[#888883]">
-                                    Total: {reportData.totalTasks} tasks
-                                </span>
-                            </div>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-                                {reportData.columnsBreakdown &&
-                                    Object.entries(reportData.columnsBreakdown).map(([columnName, count]) => {
-                                        const lowerName = columnName.toLowerCase().trim();
-                                        
-                                        let cardClass = "card-default";
-                                        if (lowerName.includes("todo") || lowerName.includes("to do")) {
-                                            cardClass = "card-todo";
-                                        } else if (lowerName.includes("progress")) {
-                                            cardClass = "card-progress";
-                                        } else if (lowerName.includes("attention")) {
-                                            cardClass = "card-attention";
-                                        } else if (lowerName.includes("done") || lowerName.includes("complete")) {
-                                            cardClass = "card-done";
-                                        } else if (lowerName.includes("blocked") || lowerName.includes("cancel")) {
-                                            cardClass = "card-blocked";
-                                        }
-
-                                        const percentage = reportData.totalTasks > 0 
-                                            ? Math.round((count / reportData.totalTasks) * 100) 
-                                            : 0;
-
-                                        return (
-                                            <div
-                                                key={columnName}
-                                                className={`p-2.5 rounded-[2px] border ${cardClass} flex flex-col justify-between gap-2.5`}
-                                            >
-                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                    <span className="w-1.5 h-1.5 rounded-[0.5px] card-dot shrink-0" />
-                                                    <span className="text-[11px] font-semibold truncate card-label">
-                                                        {columnName}
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex items-baseline justify-between mt-auto">
-                                                    <span className="text-2xl font-heading card-value">
-                                                        {count}
-                                                    </span>
-                                                    <span className="text-[10px] text-[#888883] font-medium">
-                                                        {percentage}%
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                            </div>
-                        </div>
-
-                        {/* Section Intersection Divider with T-Shaped Corner Brackets */}
-                        <div className="relative w-full border-t border-[#E5E5E3]">
-                            {/* Left T-Bracket Intersection (├) */}
-                            <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center">
-                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 0V10M5 5H10" stroke="#1A1A1A" strokeWidth="1.5" />
-                                </svg>
-                            </div>
-
-                            {/* Right T-Bracket Intersection (┤) */}
-                            <div className="absolute -right-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center">
-                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M5 0V10M5 5H0" stroke="#1A1A1A" strokeWidth="1.5" />
-                                </svg>
-                            </div>
-                        </div>
-
-                        {/* Bottom Tasks Audit Trail Section */}
-                        <div className="bg-white p-4 flex flex-col gap-3 print:p-0">
-                            <h3 className="text-base font-semibold print:text-base print:font-bold">
-                                ▪ Tasks Audit Trail
-                            </h3>
-
-                            <div className="overflow-x-auto print:overflow-visible">
-                                <table className="w-full text-left text-[11px] border-collapse">
-                                    <thead>
-                                        <tr className="border-b border-[#E5E5E3] text-[9px] font-medium text-[#888883] capitalize   print:border-[#DADAD6] print:text-[#555]">
-                                            <th className="py-2 px-2.5">Title</th>
-                                            <th className="py-2 px-2.5 text-center">
-                                                Status
-                                            </th>
-                                            <th className="py-2 px-2.5 text-center">
-                                                Priority
-                                            </th>
-                                            <th className="py-2 px-2.5 text-right">
-                                                Date
-                                            </th>
-                                            <th className="py-2 px-2.5 text-right">
-                                                Due
-                                            </th>
-                                            <th className="py-2 px-2.5 text-center">
-                                                Carry
-                                            </th>
-                                            <th className="py-2 px-2.5 text-right">
-                                                Est
-                                            </th>
-                                            <th className="py-2 px-2.5 text-right">
-                                                Act
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[#E5E5E3] print:divide-[#eee]">
-                                        {reportData.tasks.map((t) => (
-                                            <tr
-                                                key={t.id}
-                                                className="hover:bg-[#FAFAF9] print:hover:bg-transparent"
-                                            >
-                                                <td className="py-2 px-2.5 font-medium text-[#1A1A1A] print:text-black">
-                                                    {t.title}
-                                                </td>
-                                                <td className="py-2 px-2.5 text-center">
-                                                    <span className="border border-[#E5E5E3] px-1.5 py-0.5 rounded-[2px] text-[9px] print:border-[#ddd]">
-                                                        {t.status}
-                                                    </span>
-                                                </td>
-                                                <td className="py-2 px-2.5 text-center font-medium tabular-nums">
-                                                    {t.priority}
-                                                </td>
-                                                <td className="py-2 px-2.5 text-right text-[#888883] tabular-nums">
-                                                    {t.date}
-                                                </td>
-                                                <td className="py-2 px-2.5 text-right text-[#888883] tabular-nums">
-                                                    {t.dueDate || "—"}
-                                                </td>
-                                                <td className="py-2 px-2.5 text-center font-medium tabular-nums">
-                                                    {t.carryCount}
-                                                </td>
-                                                <td className="py-2 px-2.5 text-right tabular-nums">
-                                                    {t.estimatedTime}
-                                                </td>
-                                                <td className="py-2 px-2.5 text-right tabular-nums">
-                                                    {t.actualTime}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

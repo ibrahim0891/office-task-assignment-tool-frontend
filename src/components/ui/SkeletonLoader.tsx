@@ -94,3 +94,81 @@ export const SkeletonProfile: React.FC = () => (
         </div>
     </div>
 );
+
+export const SkeletonReport = () => (
+    <div className="flex flex-col gap-3.5 animate-pulse">
+        {/* 1. Executive Performance & Progress Card Skeleton */}
+        <div className="border border-[var(--app-border)] bg-[var(--app-card)] rounded-[2px] corner-brackets p-4 flex flex-col gap-4 shadow-xs">
+            {/* Header row: Name */}
+            <div className="flex flex-col gap-1.5">
+                <SkeletonBox className="h-4 w-36" />
+                <SkeletonBox className="h-3 w-48" />
+            </div>
+
+            {/* 4 Metric Stat Boxes Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[1, 2, 3, 4].map((i) => (
+                    <div
+                        key={i}
+                        className="bg-[var(--app-bg)] border border-[var(--app-border)] p-2 rounded-[2px] flex flex-col gap-1"
+                    >
+                        <SkeletonBox className="h-2 w-14" />
+                        <SkeletonBox className="h-5 w-12" />
+                    </div>
+                ))}
+            </div>
+
+            {/* Sleek Progress Bar Ribbon Skeleton */}
+            <div className="flex flex-col gap-1.5 pt-1 border-t border-[var(--app-border)]">
+                <SkeletonBox className="h-1.5 w-full rounded-[1px]" />
+                <div className="flex items-center justify-between pt-0.5">
+                    <div className="flex items-center gap-3">
+                        <SkeletonBox className="h-2.5 w-12" />
+                        <SkeletonBox className="h-2.5 w-14" />
+                        <SkeletonBox className="h-2.5 w-16" />
+                    </div>
+                    <SkeletonBox className="h-2.5 w-20" />
+                </div>
+            </div>
+        </div>
+
+        {/* 2. Daily Activity Stream Card Skeleton */}
+        <div className="border border-[var(--app-border)] bg-[var(--app-card)] rounded-[2px] corner-brackets p-4 flex flex-col gap-3.5 shadow-xs">
+            <div className="flex items-center justify-between">
+                <SkeletonBox className="h-3.5 w-36" />
+                <SkeletonBox className="h-3 w-28" />
+            </div>
+
+            {[1, 2].map((group) => (
+                <div
+                    key={group}
+                    className="border border-[var(--app-border)] rounded-[2px] overflow-hidden flex flex-col bg-[var(--app-card)] shadow-2xs"
+                >
+                    <div className="bg-[var(--app-bg)] px-4 py-2 border-b border-[var(--app-border)] flex items-center justify-between">
+                        <SkeletonBox className="h-3.5 w-32" />
+                        <SkeletonBox className="h-3 w-20" />
+                    </div>
+                    <div className="divide-y divide-[var(--app-border)]">
+                        {[1, 2, 3].map((item) => (
+                            <div
+                                key={item}
+                                className="px-4 py-3 flex items-start justify-between gap-4 border-l-2 border-l-[var(--app-border)]"
+                            >
+                                <div className="flex flex-col gap-1.5 flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <SkeletonBox className="h-3.5 w-20" />
+                                        <SkeletonBox className="w-1.5 h-1.5 rounded-full shrink-0" />
+                                        <SkeletonBox className="h-3 w-16" />
+                                    </div>
+                                    <SkeletonBox className="h-3.5 w-1/2" />
+                                </div>
+                                <SkeletonBox className="h-3 w-16 pt-1" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+

@@ -23,6 +23,7 @@ export function useWorkspaceSockets(
     setCommentUpdateTrigger?: React.Dispatch<React.SetStateAction<number>>,
     loadProjects?: () => Promise<void>,
     loadProjectInvitations?: () => Promise<void>,
+    loadTeams?: () => Promise<void>,
 ) {
     const draggingCardIdRef = useRef<string | null>(null);
     const deferredSocketEventsRef = useRef<Array<{ action: string; taskId: string; columnId?: string; actingUserId?: string; timestamp?: number }>>([]);
@@ -89,6 +90,19 @@ export function useWorkspaceSockets(
             
             if (notification.type === "PROJECT_INVITATION" && loadProjects) {
                 loadProjects();
+            }
+
+            const isTeamNotification =
+                notification.type === "MEMBER_ADDED" ||
+                notification.type === "MEMBER_INVITED" ||
+                notification.type === "ROLE_UPDATED" ||
+                (notification.content &&
+                    (notification.content.toLowerCase().includes("added to team workspace") ||
+                     notification.content.toLowerCase().includes("added to workspace") ||
+                     notification.content.toLowerCase().includes("invited and added")));
+
+            if (isTeamNotification && loadTeams) {
+                loadTeams();
             }
 
             // Avoid showing toast banners/chimes if the details modal for this specific task is already open
@@ -212,6 +226,13 @@ export function useWorkspaceSockets(
             }
         });
 
+        socket.on("team_membership_updated", (data: any) => {
+            console.log("[Socket Client] Received team_membership_updated:", data);
+            if (loadTeams) {
+                loadTeams();
+            }
+        });
+
         socket.on("connect_error", (err) => {
             console.error("[Socket Client] Connection error:", err);
         });
@@ -311,7 +332,7 @@ export function useWorkspaceSockets(
             socket.disconnect();
             socketRef.current = null;
         };
-    }, [currentTeam?.id, loadTasks, setTasks, addNotificationToast, setNotifications, pendingColumnUpdatesRef, moveVersionRef]);
+    }, [currentTeam?.id, loadTasks, setTasks, addNotificationToast, setNotifications, pendingColumnUpdatesRef, moveVersionRef, loadTeams]);
 
     // Register user on socket reconnect/mount
     useEffect(() => {

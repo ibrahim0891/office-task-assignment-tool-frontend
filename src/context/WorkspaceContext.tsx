@@ -47,8 +47,8 @@ interface WorkspaceContextType {
     setSelectedTaskId: (id: string | null) => void;
     directTask: any | null;
     setDirectTask: React.Dispatch<React.SetStateAction<any>>;
-    taskModalTab: "details" | "comments" | "attachments";
-    setTaskModalTab: React.Dispatch<React.SetStateAction<"details" | "comments" | "attachments">>;
+    taskModalTab: "details" | "comments" | "description" | "checklist" | "attachments";
+    setTaskModalTab: React.Dispatch<React.SetStateAction<"details" | "comments" | "description" | "checklist" | "attachments">>;
     selectedMemberFilter: string;
     setSelectedMemberFilter: (memberId: string) => void;
     searchQuery: string;
@@ -72,6 +72,7 @@ interface WorkspaceContextType {
 
     // Handlers
     loadTasks: (opts?: { isDateChange?: boolean }) => Promise<void>;
+    loadTeams: () => Promise<void>;
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     loadTeamMetadata: () => Promise<void>;
     loadProjects: () => Promise<void>;
@@ -224,7 +225,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     );
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const [directTask, setDirectTask] = useState<any>(null);
-    const [taskModalTab, setTaskModalTab] = useState<"details" | "comments" | "attachments">("details");
+    const [taskModalTab, setTaskModalTab] = useState<"details" | "comments" | "description" | "checklist" | "attachments">("details");
     const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>("");
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [commentUpdateTrigger, setCommentUpdateTrigger] = useState<number>(0);
@@ -317,11 +318,36 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
 
 
+    const loadTeams = React.useCallback(async () => {
+        if (!currentUser?.id) return;
+        try {
+            const t = await api.getTeams(currentUser.id);
+            if (Array.isArray(t)) {
+                setTeams(t);
+                setCurrentTeam((prev) => {
+                    if (!prev && t.length > 0) {
+                        const savedTeamId = typeof window !== "undefined" ? localStorage.getItem("selected_team_id") : null;
+                        const matched = t.find((team) => team.id === savedTeamId) || t[0];
+                        return matched;
+                    }
+                    if (prev) {
+                        const updated = t.find((team) => team.id === prev.id);
+                        return updated ? { ...prev, ...updated } : prev;
+                    }
+                    return prev;
+                });
+            }
+        } catch (err) {
+            console.error("Error refreshing teams:", err);
+        }
+    }, [currentUser?.id]);
+
     const loadTeamMetadata = async () => {
         if (!currentTeam) return;
         try {
             const allTeams = await api.getTeams(currentUser?.id);
             if (Array.isArray(allTeams)) {
+                setTeams(allTeams);
                 const match = allTeams.find((t) => t.id === currentTeam.id);
                 if (match && match.members && Array.isArray(match.members)) {
                     setTeamMembers(match.members);
@@ -571,6 +597,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         setCommentUpdateTrigger,
         loadProjects,
         loadProjectInvitations,
+        loadTeams,
     );
 
     useEffect(() => {
@@ -993,6 +1020,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 setProfileModalUser,
                 openMemberProfile,
                 loadTasks,
+                loadTeams,
                 setTasks,
                 loadTeamMetadata,
                 loadNotifications,

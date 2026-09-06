@@ -4,7 +4,7 @@ import { CustomSelect } from "./ui/CustomSelect";
 import { CustomDatePicker } from "./ui/CustomDatePicker";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import { TipTapEditor } from "./ui/TipTapEditor";
-import { Task, TaskColumn, User, Comment, TaskActivity, api } from "../api";
+import { Task, TaskColumn, User, Comment, TaskActivity, ChecklistItem, api } from "../api";
 import { triggerMicroCelebration } from "../utils/confetti";
 import { playFeedback } from "../utils/feedback";
 import { useWorkspace } from "../context/WorkspaceContext";
@@ -22,6 +22,10 @@ import {
     Paperclip,
     ClipboardList,
     ChevronRight,
+    CheckSquare,
+    Plus,
+    Pencil,
+    ListTodo,
 } from "lucide-react";
 
 // 30% Image Compression helper (70% quality)
@@ -51,6 +55,36 @@ const compressImage30Percent = (file: File): Promise<string> => {
     });
 };
 
+const LAST_TASK_TAB_STORAGE_KEY = "last_task_modal_tab";
+
+const getRememberedTab = (): "comments" | "description" | "checklist" | "attachments" => {
+    if (typeof window !== "undefined") {
+        try {
+            const saved = localStorage.getItem(LAST_TASK_TAB_STORAGE_KEY);
+            if (
+                saved === "comments" ||
+                saved === "description" ||
+                saved === "checklist" ||
+                saved === "attachments"
+            ) {
+                return saved;
+            }
+        } catch {}
+    }
+    return "comments";
+};
+
+const sortChecklist = (items: ChecklistItem[] = []): ChecklistItem[] => {
+    return [...items].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeA !== timeB) {
+            return timeA - timeB;
+        }
+        return (a.id || "").localeCompare(b.id || "");
+    });
+};
+
 interface TaskModalProps {
     task: Task;
     isOpen: boolean;
@@ -60,7 +94,7 @@ interface TaskModalProps {
     currentUser: User;
     userRole: string;
     onRefresh: () => void;
-    initialTab?: "details" | "comments" | "description" | "attachments";
+    initialTab?: "details" | "comments" | "description" | "checklist" | "attachments";
 }
 
 export default function TaskModal({
@@ -87,12 +121,6 @@ export default function TaskModal({
     const [dueDateStr, setDueDateStr] = useState(
         task.dueDate ? task.dueDate.split("T")[0] : "",
     );
-    const [estimatedTime, setEstimatedTime] = useState<string | number>(
-        task.estimatedTime ?? "",
-    );
-    const [actualTime, setActualTime] = useState<string | number>(
-        task.actualTime ?? "",
-    );
 
     const [isSaving, setIsSaving] = useState(false);
 
@@ -112,14 +140,35 @@ export default function TaskModal({
 
     // Modal sub-components state
     const [activeTab, setActiveTab] = useState<
-        "details" | "comments" | "description" | "attachments"
-    >("comments");
+        "details" | "comments" | "description" | "checklist" | "attachments"
+    >(() => getRememberedTab());
+
+    const handleTabChange = useCallback(
+        (tab: "comments" | "description" | "checklist" | "attachments") => {
+            setActiveTab(tab);
+            if (typeof window !== "undefined") {
+                try {
+                    localStorage.setItem(LAST_TASK_TAB_STORAGE_KEY, tab);
+                } catch {}
+            }
+        },
+        [],
+    );
+
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [comment, setComment] = useState("");
     const [isPostingComment, setIsPostingComment] = useState(false);
     const [isSendingComment, setIsSendingComment] = useState(false);
     const [hiddenCommentIds, setHiddenCommentIds] = useState<string[]>([]);
+    const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(() =>
+        sortChecklist(task.checklist || []),
+    );
     const [newSubtask, setNewSubtask] = useState("");
+    const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+    const [editingItemId, setEditingItemId] = useState<string | null>(null);
+    const [editingItemTitle, setEditingItemTitle] = useState("");
+    const [isUpdatingItemId, setIsUpdatingItemId] = useState<string | null>(null);
+    const [isDeletingItemId, setIsDeletingItemId] = useState<string | null>(null);
     const [attachmentName, setAttachmentName] = useState("");
     const [attachmentUrl, setAttachmentUrl] = useState("");
     const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -335,19 +384,24 @@ export default function TaskModal({
             setAssignedToId(task.assignedToId || "");
             setDateStr(task.date ? task.date.split("T")[0] : "");
             setDueDateStr(task.dueDate ? task.dueDate.split("T")[0] : "");
-            setEstimatedTime(task.estimatedTime ?? "");
-            setActualTime(task.actualTime ?? "");
+            setChecklistItems(sortChecklist(task.checklist || []));
             setShowUnsavedWarning(false);
 
             let mappedTab:
                 | "details"
                 | "comments"
                 | "description"
-                | "attachments" = "comments";
-            if (initialTab === "attachments") mappedTab = "attachments";
-            else if (initialTab === "comments") mappedTab = "comments";
-            else if (initialTab === "description") mappedTab = "description";
-            else if (initialTab === "details") mappedTab = "comments";
+                | "checklist"
+                | "attachments" = getRememberedTab();
+
+            if (initialTab && initialTab !== "details") {
+                mappedTab = initialTab;
+                if (typeof window !== "undefined") {
+                    try {
+                        localStorage.setItem(LAST_TASK_TAB_STORAGE_KEY, initialTab);
+                    } catch {}
+                }
+            }
             setActiveTab(mappedTab);
             setHiddenCommentIds([]);
             setCommentsList([]);
@@ -382,12 +436,7 @@ export default function TaskModal({
             if (dueDateStr === prevDueDate) {
                 setDueDateStr(task.dueDate ? task.dueDate.split("T")[0] : "");
             }
-            if (estimatedTime === (prevTask.estimatedTime ?? "")) {
-                setEstimatedTime(task.estimatedTime ?? "");
-            }
-            if (actualTime === (prevTask.actualTime ?? "")) {
-                setActualTime(task.actualTime ?? "");
-            }
+            setChecklistItems(sortChecklist(task.checklist || []));
         }
 
         prevTaskIdRef.current = task.id;
@@ -484,9 +533,6 @@ export default function TaskModal({
     const isDateDirty = dateStr !== (task.date ? task.date.split("T")[0] : "");
     const isDueDateDirty =
         dueDateStr !== (task.dueDate ? task.dueDate.split("T")[0] : "");
-    const isEstDirty =
-        String(estimatedTime) !== String(task.estimatedTime ?? "");
-    const isActDirty = String(actualTime) !== String(task.actualTime ?? "");
 
     const isDirty =
         isTitleDirty ||
@@ -495,9 +541,7 @@ export default function TaskModal({
         isPriorityDirty ||
         isAssigneeDirty ||
         isDateDirty ||
-        isDueDateDirty ||
-        isEstDirty ||
-        isActDirty;
+        isDueDateDirty;
 
     // Browser tab / window close warning (beforeunload prompt)
     useEffect(() => {
@@ -550,7 +594,7 @@ export default function TaskModal({
                     );
                     toast.success(`Uploaded clipboard image "${filename}"`);
                     onRefresh();
-                    setActiveTab("attachments");
+                    handleTabChange("attachments");
                 } catch (err: any) {
                     toast.error(err.message || "Failed to upload clipboard image.");
                 } finally {
@@ -614,9 +658,6 @@ export default function TaskModal({
                     assignedToId,
                     date: dateStr,
                     dueDate: dueDateStr || null,
-                    estimatedTime:
-                        estimatedTime !== "" ? Number(estimatedTime) : null,
-                    actualTime: actualTime !== "" ? Number(actualTime) : null,
                 },
                 {
                     userId: currentUser.id,
@@ -823,16 +864,138 @@ export default function TaskModal({
         }
     };
 
-    const handleAddSubtask = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // Helper to resolve Done column
+    const getDoneColumn = () => {
+        return (
+            columns.find((c) => c.isComplete) ||
+            columns.find((c) => {
+                const name = c.name.toLowerCase().trim();
+                return name === "done" || name === "complete" || name === "completed";
+            }) ||
+            columns.find((c) => {
+                const name = c.name.toLowerCase();
+                return name.includes("done") || name.includes("complete");
+            }) ||
+            columns[columns.length - 1]
+        );
+    };
+
+    // Helper to resolve In-Progress column
+    const getInProgressColumn = () => {
+        return (
+            columns.find((c) => {
+                if (c.isComplete) return false;
+                const name = c.name.toLowerCase().trim();
+                return (
+                    name === "in progress" ||
+                    name === "in-progress" ||
+                    name === "doing" ||
+                    name === "progress" ||
+                    name === "wip" ||
+                    name === "in dev" ||
+                    name === "development"
+                );
+            }) ||
+            columns.find((c) => {
+                if (c.isComplete) return false;
+                const name = c.name.toLowerCase();
+                return (
+                    name.includes("progress") ||
+                    name.includes("doing") ||
+                    name.includes("wip") ||
+                    name.includes("dev")
+                );
+            }) ||
+            columns.find((c) => !c.isComplete) ||
+            columns[0]
+        );
+    };
+
+    // Helper to check if a column represents Done / Completed
+    const isColumnDone = (colId: string) => {
+        const col = columns.find((c) => c.id === colId);
+        if (!col) return false;
+        return (
+            col.isComplete ||
+            col.name.toLowerCase().includes("done") ||
+            col.name.toLowerCase().includes("complete")
+        );
+    };
+
+    // Auto-sync task status with checklist completion state
+    const autoSyncTaskStatus = async (items: ChecklistItem[]) => {
+        if (!items || items.length === 0 || !columns || columns.length === 0) return;
+
+        const allChecked = items.every((i) => i.isCompleted);
+        const hasUnchecked = items.some((i) => !i.isCompleted);
+        const isCurrentlyDone = isColumnDone(columnId);
+
+        if (allChecked && !isCurrentlyDone) {
+            const doneCol = getDoneColumn();
+            if (doneCol && doneCol.id !== columnId) {
+                setColumnId(doneCol.id);
+                try {
+                    await api.updateTask(
+                        task.id,
+                        { columnId: doneCol.id },
+                        { userId: currentUser.id, teamId: task.teamId },
+                    );
+                    triggerMicroCelebration({ intensity: "epic" });
+                    playFeedback("complete");
+                    toast.success("All subtasks completed! Task moved to Done.");
+                } catch (err: any) {
+                    console.error("Failed to auto-update task to Done:", err);
+                }
+            }
+        } else if (hasUnchecked && isCurrentlyDone) {
+            const inProgressCol = getInProgressColumn();
+            if (inProgressCol && inProgressCol.id !== columnId) {
+                setColumnId(inProgressCol.id);
+                try {
+                    await api.updateTask(
+                        task.id,
+                        { columnId: inProgressCol.id },
+                        { userId: currentUser.id, teamId: task.teamId },
+                    );
+                    playFeedback("click");
+                    toast("Subtask unchecked. Task moved back to In Progress.");
+                } catch (err: any) {
+                    console.error("Failed to auto-update task to In Progress:", err);
+                }
+            }
+        }
+    };
+
+    const handleAddSubtask = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         if (isObserver) return;
-        if (!newSubtask.trim()) return;
+        const trimmed = newSubtask.trim();
+        if (!trimmed) return;
+
+        setIsAddingSubtask(true);
         try {
-            await api.addChecklistItem(task.id, newSubtask);
+            const newItem = await api.addChecklistItem(task.id, trimmed);
             setNewSubtask("");
+            let updatedList = checklistItems;
+            if (newItem && newItem.id) {
+                setChecklistItems((prev) => {
+                    if (prev.some((item) => item.id === newItem.id)) return prev;
+                    updatedList = [...prev, newItem];
+                    return updatedList;
+                });
+                updatedList = [...checklistItems, newItem];
+            }
+            toast.success("Checklist item added");
+            playFeedback("click");
+
+            // If the task was previously Done, adding an incomplete subtask brings it back to In Progress
+            await autoSyncTaskStatus(updatedList);
+
             onRefresh();
         } catch (err: any) {
-            toast.error(err.message);
+            toast.error(err.message || "Failed to add checklist item");
+        } finally {
+            setIsAddingSubtask(false);
         }
     };
 
@@ -843,35 +1006,111 @@ export default function TaskModal({
             );
             return;
         }
+        setIsUpdatingItemId(itemId);
+        
+        const nextItems = checklistItems.map((item) =>
+            item.id === itemId ? { ...item, isCompleted: checked } : item,
+        );
+
+        // Optimistic update
+        setChecklistItems(nextItems);
+
         try {
             await api.updateChecklistItem(task.id, itemId, checked);
-            if (checked) {
-                const willAllBeCompleted =
-                    task.checklist &&
-                    task.checklist.filter((c) =>
-                        c.id === itemId ? true : c.isCompleted,
-                    ).length === task.checklist.length;
-                triggerMicroCelebration({
-                    intensity: willAllBeCompleted ? "epic" : "subtle",
-                });
-                playFeedback(willAllBeCompleted ? "complete" : "click");
-            } else {
+
+            // Auto-sync status: if all checked -> Done, if one is unchecked after Done -> In Progress
+            await autoSyncTaskStatus(nextItems);
+
+            if (checked && !nextItems.every((i) => i.isCompleted)) {
+                triggerMicroCelebration({ intensity: "subtle" });
+                playFeedback("click");
+            } else if (!checked && !isColumnDone(columnId)) {
                 playFeedback("click");
             }
+
             onRefresh();
         } catch (err: any) {
-            toast.error(err.message);
+            // Revert optimistic update
+            setChecklistItems((prev) =>
+                prev.map((item) =>
+                    item.id === itemId ? { ...item, isCompleted: !checked } : item,
+                ),
+            );
+            toast.error(err.message || "Failed to update checklist item");
+        } finally {
+            setIsUpdatingItemId(null);
+        }
+    };
+
+    const handleSaveEditedTitle = async (itemId: string) => {
+        if (isObserver) return;
+        const trimmed = editingItemTitle.trim();
+        if (!trimmed) {
+            toast.error("Checklist item title cannot be empty");
+            return;
+        }
+
+        const original = checklistItems.find((item) => item.id === itemId)?.title || "";
+        if (trimmed === original) {
+            setEditingItemId(null);
+            setEditingItemTitle("");
+            return;
+        }
+
+        setIsUpdatingItemId(itemId);
+        // Optimistic update
+        setChecklistItems((prev) =>
+            prev.map((item) =>
+                item.id === itemId ? { ...item, title: trimmed } : item,
+            ),
+        );
+        setEditingItemId(null);
+        setEditingItemTitle("");
+
+        try {
+            await api.updateChecklistItem(task.id, itemId, { title: trimmed });
+            toast.success("Checklist item updated");
+            playFeedback("click");
+            onRefresh();
+        } catch (err: any) {
+            // Revert optimistic update
+            setChecklistItems((prev) =>
+                prev.map((item) =>
+                    item.id === itemId ? { ...item, title: original } : item,
+                ),
+            );
+            toast.error(err.message || "Failed to update checklist item");
+        } finally {
+            setIsUpdatingItemId(null);
         }
     };
 
     const handleDeleteSubtask = async (itemId: string) => {
         if (isObserver) return;
+        setIsDeletingItemId(itemId);
+        const removedItem = checklistItems.find((i) => i.id === itemId);
+        const nextItems = checklistItems.filter((item) => item.id !== itemId);
+        // Optimistic delete
+        setChecklistItems(nextItems);
+
         try {
             playFeedback("delete");
             await api.deleteChecklistItem(task.id, itemId);
+            toast.success("Checklist item deleted");
+
+            // If remaining items are now all completed, sync status to Done
+            if (nextItems.length > 0) {
+                await autoSyncTaskStatus(nextItems);
+            }
+
             onRefresh();
         } catch (err: any) {
-            toast.error(err.message);
+            if (removedItem) {
+                setChecklistItems((prev) => sortChecklist([...prev, removedItem]));
+            }
+            toast.error(err.message || "Failed to delete checklist item");
+        } finally {
+            setIsDeletingItemId(null);
         }
     };
 
@@ -1152,7 +1391,7 @@ export default function TaskModal({
                         <div className="flex items-center gap-5 border-b border-[#E5E5E3] pb-0 shrink-0 mb-3.5 text-left px-1">
                             <button
                                 type="button"
-                                onClick={() => setActiveTab("comments")}
+                                onClick={() => handleTabChange("comments")}
                                 className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
                                     activeTab === "comments"
                                         ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
@@ -1165,7 +1404,7 @@ export default function TaskModal({
 
                             <button
                                 type="button"
-                                onClick={() => setActiveTab("description")}
+                                onClick={() => handleTabChange("description")}
                                 className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
                                     activeTab === "description"
                                         ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
@@ -1178,7 +1417,22 @@ export default function TaskModal({
 
                             <button
                                 type="button"
-                                onClick={() => setActiveTab("attachments")}
+                                onClick={() => handleTabChange("checklist")}
+                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
+                                    activeTab === "checklist"
+                                        ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
+                                        : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
+                                }`}
+                            >
+                                <CheckSquare className="w-3.5 h-3.5" />
+                                <span>
+                                    Checklist ({checklistItems.length > 0 ? `${checklistItems.filter((c) => c.isCompleted).length}/${checklistItems.length}` : 0})
+                                </span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleTabChange("attachments")}
                                 className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
                                     activeTab === "attachments"
                                         ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
@@ -1613,7 +1867,219 @@ export default function TaskModal({
                                 );
                             })()}
 
-                        {/* TAB 3: ATTACHMENTS */}
+                        {/* TAB 3: CHECKLIST */}
+                        {activeTab === "checklist" && (() => {
+                            const totalCount = checklistItems.length;
+                            const completedCount = checklistItems.filter((c) => c.isCompleted).length;
+                            const progressPercent = totalCount > 0
+                                ? Math.round((completedCount / totalCount) * 100)
+                                : 0;
+
+                            return (
+                                <div className="relative flex flex-col flex-1 min-h-0 h-full gap-3 animate-fade-in border border-[#E5E5E3] bg-[#FAFAF9] p-3.5 rounded-[3px] corner-brackets">
+                                    {/* Title Bar */}
+                                    <div className="flex flex-col gap-1.5 shrink-0 px-0.5">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <label className="eyebrow">Checklist</label>
+                                                {totalCount > 0 && (
+                                                    <span className="text-[11px] text-[#888883]">
+                                                        ({completedCount} of {totalCount} completed)
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {totalCount > 0 && completedCount < totalCount && (
+                                                <span className="text-[11px] font-medium text-[#888883]">
+                                                    {progressPercent}%
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Minimal Progress Bar - hidden when all tasks are done or none exist */}
+                                        {totalCount > 0 && completedCount < totalCount && (
+                                            <div className="w-full h-1 bg-[#E5E5E3] rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-[#1A1A1A] transition-all duration-300 rounded-full"
+                                                    style={{ width: `${progressPercent}%` }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Add New Checklist Item Input */}
+                                    {!isObserver && (
+                                        <form
+                                            onSubmit={handleAddSubtask}
+                                            className="flex items-center gap-2 shrink-0"
+                                        >
+                                            <input
+                                                type="text"
+                                                placeholder="Add a checklist item... (Press Enter to add)"
+                                                value={newSubtask}
+                                                onChange={(e) => setNewSubtask(e.target.value)}
+                                                disabled={isAddingSubtask}
+                                                className="px-3 py-2 border border-[#E5E5E3] focus:border-[#1A1A1A] focus:outline-none text-[12px] bg-white rounded-[3px] transition-colors flex-1"
+                                                maxLength={300}
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={isAddingSubtask || !newSubtask.trim()}
+                                                className="px-3 py-2 bg-[#1A1A1A] hover:bg-black text-white text-[11px] font-semibold rounded-[3px] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                                            >
+                                                {isAddingSubtask ? (
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                ) : (
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                )}
+                                                <span>Add</span>
+                                            </button>
+                                        </form>
+                                    )}
+
+                                    {/* Checklist Items List */}
+                                    <div className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-0 pr-1">
+                                        {checklistItems.length === 0 ? (
+                                            <div className="p-8 text-center flex flex-col items-center justify-center gap-1 text-[#888883] my-auto bg-white border border-dashed border-[#E5E5E3] rounded-[3px] min-h-[220px]">
+                                                <ListTodo className="w-6 h-6 text-[#DADAD6]" />
+                                                <span className="text-[12px] font-semibold text-[#1A1A1A] mt-1">
+                                                    No checklist items yet
+                                                </span>
+                                                <span className="text-[11px] text-[#888883] max-w-xs">
+                                                    Break this task down into smaller actionable checklist items to track progress.
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col gap-1.5 pb-2">
+                                                {checklistItems.map((item) => {
+                                                    const isEditing = editingItemId === item.id;
+                                                    const isUpdating = isUpdatingItemId === item.id;
+                                                    const isDeleting = isDeletingItemId === item.id;
+
+                                                    return (
+                                                        <div
+                                                            key={item.id}
+                                                            onClick={() => {
+                                                                if (!isEditing && !isObserver && !isUpdating) {
+                                                                    handleToggleSubtask(item.id, !item.isCompleted);
+                                                                }
+                                                            }}
+                                                            className={`group border rounded-[3px] p-2.5 transition-all flex items-center gap-2.5 ${
+                                                                !isEditing && !isObserver ? "cursor-pointer" : ""
+                                                            } ${
+                                                                item.isCompleted
+                                                                    ? "border-[#E5E5E3] bg-[#FAFAF9]"
+                                                                    : "border-[#E5E5E3] bg-white hover:border-[#DADAD6]"
+                                                            } ${isDeleting ? "opacity-40" : ""}`}
+                                                        >
+                                                            {/* Checkbox */}
+                                                            <div
+                                                                className={`w-4 h-4 rounded-[3px] flex items-center justify-center transition-all shrink-0 ${
+                                                                    item.isCompleted
+                                                                        ? "bg-[#1A1A1A] border border-[#1A1A1A] text-white"
+                                                                        : "bg-white border border-[#DADAD6] group-hover:border-[#1A1A1A]"
+                                                                } ${isObserver ? "opacity-60" : ""}`}
+                                                            >
+                                                                {isUpdating ? (
+                                                                    <Loader2 className="w-2.5 h-2.5 animate-spin text-[#888883]" />
+                                                                ) : item.isCompleted ? (
+                                                                    <Check className="w-3 h-3" />
+                                                                ) : null}
+                                                            </div>
+
+                                                            {/* Item Title / Inline Edit */}
+                                                            {isEditing ? (
+                                                                <div
+                                                                    className="flex items-center gap-1.5 flex-1 min-w-0"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
+                                                                    <input
+                                                                        type="text"
+                                                                        autoFocus
+                                                                        value={editingItemTitle}
+                                                                        onChange={(e) => setEditingItemTitle(e.target.value)}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === "Enter") {
+                                                                                e.preventDefault();
+                                                                                handleSaveEditedTitle(item.id);
+                                                                            } else if (e.key === "Escape") {
+                                                                                setEditingItemId(null);
+                                                                            }
+                                                                        }}
+                                                                        className="px-2 py-1 border border-[#1A1A1A] focus:outline-none text-[12px] bg-white rounded-[2px] w-full"
+                                                                        maxLength={300}
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleSaveEditedTitle(item.id)}
+                                                                        className="p-1 text-emerald-700 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
+                                                                        title="Save changes (Enter)"
+                                                                    >
+                                                                        <Check className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setEditingItemId(null)}
+                                                                        className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                                                                        title="Cancel (Esc)"
+                                                                    >
+                                                                        <X className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <span
+                                                                    className={`text-[12px] leading-relaxed break-words flex-1 select-none transition-colors ${
+                                                                        item.isCompleted
+                                                                            ? "line-through text-[#888883]"
+                                                                            : "text-[#1A1A1A] font-medium"
+                                                                    }`}
+                                                                >
+                                                                    {item.title}
+                                                                </span>
+                                                            )}
+
+                                                            {/* Action Buttons (Edit & Delete) */}
+                                                            {!isObserver && !isEditing && (
+                                                                <div
+                                                                    className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setEditingItemId(item.id);
+                                                                            setEditingItemTitle(item.title);
+                                                                        }}
+                                                                        className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] rounded transition-colors cursor-pointer"
+                                                                        title="Edit item title"
+                                                                    >
+                                                                        <Pencil className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteSubtask(item.id)}
+                                                                        disabled={isDeleting}
+                                                                        className="p-1 text-[#888883] hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                                                        title="Delete item"
+                                                                    >
+                                                                        {isDeleting ? (
+                                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                                        ) : (
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        )}
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* TAB 4: ATTACHMENTS */}
                         {activeTab === "attachments" && (
                             <div className="relative flex flex-col flex-1 min-h-0 h-full gap-3 animate-fade-in border border-[#E5E5E3] bg-[#FAFAF9] p-3 rounded-[3px] corner-brackets">
                                 {/* Masonry Attachments Gallery filling available height */}
@@ -1888,51 +2354,6 @@ export default function TaskModal({
                             </div>
                         </div>
 
-                        {/* Time Tracking */}
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="flex flex-col gap-1">
-                                <label className="eyebrow">Est. Hours</label>
-                                <input
-                                    type="number"
-                                    step="0.5"
-                                    min="0"
-                                    disabled={!canEditDetails}
-                                    value={estimatedTime}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (
-                                            val === "" ||
-                                            (Number(val) >= 0 &&
-                                                !val.includes("-"))
-                                        ) {
-                                            setEstimatedTime(val);
-                                        }
-                                    }}
-                                    className={inputClass}
-                                />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                                <label className="eyebrow">Act. Hours</label>
-                                <input
-                                    type="number"
-                                    step="0.5"
-                                    min="0"
-                                    disabled={isObserver}
-                                    value={actualTime}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (
-                                            val === "" ||
-                                            (Number(val) >= 0 &&
-                                                !val.includes("-"))
-                                        ) {
-                                            setActualTime(val);
-                                        }
-                                    }}
-                                    className={inputClass}
-                                />
-                            </div>
-                        </div>
 
                         {/* Activity Log Button — Pushed to the Very End */}
                         <div className="mt-auto pt-3 border-t border-[var(--app-border,#E5E5E3)]">

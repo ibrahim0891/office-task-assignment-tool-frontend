@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Notification } from "../api";
+import { Notification, Team } from "../api";
 import { Archive, Trash2, CheckCircle2, Clock, Loader2, Infinity as InfinityIcon } from "lucide-react";
 import { useWorkspace } from "../context/WorkspaceContext";
 
@@ -17,6 +17,8 @@ interface NotificationsTrayProps {
     hasMore: boolean;
     isLoadingMore: boolean;
     onLoadMore: () => void;
+    onSelectTeam?: (team: Team) => void;
+    teams?: Team[];
 }
 
 export default function NotificationsTray({
@@ -32,6 +34,8 @@ export default function NotificationsTray({
     hasMore,
     isLoadingMore,
     onLoadMore,
+    onSelectTeam,
+    teams = [],
 }: NotificationsTrayProps) {
     const router = useRouter();
     const { setIsManageInvitationsOpen, setIsManageFoldersOpen } = useWorkspace();
@@ -91,6 +95,11 @@ export default function NotificationsTray({
                 return "text-[#CB2431] border-[#CB2431]/20";
             case "COMMENT_MENTION":
                 return "text-[#B08800] border-[#B08800]/20";
+            case "PROJECT_INVITATION":
+                return "text-[#7C3AED] border-[#7C3AED]/20 bg-[#7C3AED]/10";
+            case "MEMBER_ADDED":
+            case "MEMBER_INVITED":
+                return "text-[#D97706] border-[#D97706]/30 bg-[#FEF3C7]/40";
             default:
                 return "text-[#1A1A1A] border-[#E5E5E3]";
         }
@@ -268,79 +277,113 @@ export default function NotificationsTray({
                             </p>
                         </div>
                     ) : (
-                        currentList.map((n) => (
-                            <div
-                                key={n.id}
-                                onClick={() => handleItemClick(n)}
-                                className={`p-3 border transition-colors text-left cursor-pointer relative group ${n.isRead || activeTab === "archived"
-                                    ? "bg-[#FAFAF9] border-[#E5E5E3] text-[#888883]"
-                                    : "bg-white border-[#E5E5E3] hover:border-[#DADAD6] text-[#1A1A1A]"
-                                    }`}
-                            >
-                                <div className="flex items-start justify-between gap-2 mb-1">
-                                    <span
-                                         className={`px-1.5 py-0.5 rounded-[2px] text-[9px] font-medium border ${getTypeBadge(getNotificationType(n))}`}
-                                    >
-                                        {getNotificationType(n).replace("_", " ")}
-                                    </span>
+                        currentList.map((n) => {
+                            const notifType = getNotificationType(n);
+                            const isTeamNotif =
+                                notifType === "MEMBER_ADDED" ||
+                                notifType === "MEMBER_INVITED" ||
+                                (n.content &&
+                                    (n.content.toLowerCase().includes("added to team workspace") ||
+                                     n.content.toLowerCase().includes("added to workspace") ||
+                                     n.content.toLowerCase().includes("invited and added")));
 
-                                    <div className="flex items-center gap-1.5">
-                                        {!n.isRead &&
-                                            activeTab === "active" && (
+                            return (
+                                <div
+                                    key={n.id}
+                                    onClick={() => {
+                                        if (n.taskId) {
+                                            onSelectTask(n.taskId, n.type === "COMMENT_MENTION" ? "comments" : "details");
+                                        } else if (isTeamNotif && onSelectTeam && teams.length > 0) {
+                                            const targetTeam = teams.find((t) => {
+                                                if (n.teamId && t.id === n.teamId) return true;
+                                                if (n.content) {
+                                                    const match = n.content.match(/["']([^"']+)["']/);
+                                                    if (match && t.name.toLowerCase() === match[1].toLowerCase()) return true;
+                                                    if (n.content.toLowerCase().includes(t.name.toLowerCase())) return true;
+                                                }
+                                                return false;
+                                            });
+                                            if (targetTeam) {
+                                                onSelectTeam(targetTeam);
+                                                onClose();
+                                            }
+                                        }
+                                        if (!n.isRead) onMarkRead(n.id);
+                                    }}
+                                    className={`p-3 border transition-colors text-left cursor-pointer relative group ${n.isRead || activeTab === "archived"
+                                        ? "bg-[#FAFAF9] border-[#E5E5E3] text-[#888883]"
+                                        : "bg-white border-[#E5E5E3] hover:border-[#DADAD6] text-[#1A1A1A]"
+                                        }`}
+                                >
+                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                        <span
+                                             className={`px-1.5 py-0.5 rounded-[2px] text-[9px] font-medium border ${getTypeBadge(notifType)}`}
+                                        >
+                                            {notifType.replace("_", " ")}
+                                        </span>
+
+                                        <div className="flex items-center gap-1.5">
+                                            {!n.isRead &&
+                                                activeTab === "active" && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onMarkRead(n.id);
+                                                        }}
+                                                        className="text-[9px] text-[#888883] hover:text-[#1A1A1A] font-medium"
+                                                    >
+                                                        Mark read
+                                                    </button>
+                                                )}
+
+                                            {activeTab === "active" && (
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        onMarkRead(n.id);
+                                                        onArchiveNotification(n.id);
                                                     }}
-                                                    className="text-[9px] text-[#888883] hover:text-[#1A1A1A] font-medium"
+                                                    title="Clear notification (Move to 30d Archive)"
+                                                    className="text-[9px] text-[#888883] hover:text-[#CB2431] font-medium px-1 py-0.5 hover:bg-[#FFF5F5] rounded-[2px] transition-colors"
                                                 >
-                                                    Mark read
+                                                    Archive
                                                 </button>
                                             )}
+                                        </div>
+                                    </div>
 
-                                        {activeTab === "active" && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onArchiveNotification(n.id);
-                                                }}
-                                                title="Clear notification (Move to 30d Archive)"
-                                                className="text-[9px] text-[#888883] hover:text-[#CB2431] font-medium px-1 py-0.5 hover:bg-[#FFF5F5] rounded-[2px] transition-colors"
-                                            >
-                                                Archive
-                                            </button>
-                                        )}
+                                    <p className="text-[11px] leading-relaxed font-medium">
+                                        {n.content}
+                                    </p>
+
+                                    <div className="text-[9px] text-[#888883] mt-1.5 flex justify-between items-center">
+                                        <span>
+                                            {new Date(
+                                                n.createdAt,
+                                            ).toLocaleDateString([], {
+                                                month: "short",
+                                                day: "numeric",
+                                            })}{" "}
+                                            at{" "}
+                                            {new Date(
+                                                n.createdAt,
+                                            ).toLocaleTimeString([], {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            })}
+                                        </span>
+                                        {n.taskId ? (
+                                            <span className="text-[#1A1A1A] hover:underline">
+                                                View task →
+                                            </span>
+                                        ) : isTeamNotif ? (
+                                            <span className="text-[#D97706] font-medium hover:underline">
+                                                Switch to workspace →
+                                            </span>
+                                        ) : null}
                                     </div>
                                 </div>
-
-                                <p className="text-[11px] leading-relaxed font-medium">
-                                    {n.content}
-                                </p>
-
-                                <div className="text-[9px] text-[#888883] mt-1.5 flex justify-between items-center">
-                                    <span>
-                                        {new Date(
-                                            n.createdAt,
-                                        ).toLocaleDateString([], {
-                                            month: "short",
-                                            day: "numeric",
-                                        })}{" "}
-                                        at{" "}
-                                        {new Date(
-                                            n.createdAt,
-                                        ).toLocaleTimeString([], {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })}
-                                    </span>
-                                    {n.taskId && (
-                                        <span className="text-[#1A1A1A] hover:underline">
-                                            View task →
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                     {isLoadingMore && (
                         <div className="py-2 flex justify-center items-center gap-1.5 text-[#888883] border-t border-[#E5E5E3]/30 mt-1">
