@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useLayoutEffect } from "react";
+import React, { useState, useEffect, useCallback, useLayoutEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "./ui/CustomSelect";
 import { CustomDatePicker } from "./ui/CustomDatePicker";
@@ -164,6 +164,7 @@ export default function TaskModal({
         sortChecklist(task.checklist || []),
     );
     const [newSubtask, setNewSubtask] = useState("");
+    const checklistInputRef = useRef<HTMLInputElement>(null);
     const [isAddingSubtask, setIsAddingSubtask] = useState(false);
     const [editingItemId, setEditingItemId] = useState<string | null>(null);
     const [editingItemTitle, setEditingItemTitle] = useState("");
@@ -1001,6 +1002,9 @@ export default function TaskModal({
             toast.error(err.message || "Failed to add checklist item");
         } finally {
             setIsAddingSubtask(false);
+            setTimeout(() => {
+                checklistInputRef.current?.focus();
+            }, 0);
         }
     };
 
@@ -1309,7 +1313,7 @@ export default function TaskModal({
 
             {/* Main Modal Dialog */}
             <div
-                className="relative w-full max-w-5xl bg-white border border-[#E5E5E3] text-[#1A1A1A] flex flex-col h-[90vh] animate-fade-in corner-brackets"
+                className="relative w-full max-w-5xl bg-white border border-[#E5E5E3] text-[#1A1A1A] flex flex-col h-[90vh] animate-fade-in corner-brackets overflow-hidden rounded-[var(--radius-sm,4px)]"
                 style={{ boxShadow: "var(--shadow-float)" }}
             >
                 {/* Modal Top Header Bar */}
@@ -1369,15 +1373,15 @@ export default function TaskModal({
                 </div>
 
                 {/* Content Grid */}
-                <div className="flex-1 overflow-hidden p-3.5 grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0">
+                <div className="flex-1 overflow-hidden p-3.5 grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0 h-full">
                     {/* Left Column (Scrollable without scrollbars) */}
-                    <div className="md:col-span-2 flex flex-col gap-3.5 overflow-y-auto scrollbar-none pr-1 max-h-full text-left">
+                    <div className="md:col-span-2 flex flex-col gap-3.5 overflow-y-auto scrollbar-none pr-1 h-full min-h-0 flex-1 text-left">
                         {/* Title Section (Always visible) */}
                         <div className="flex flex-col gap-1 shrink-0 px-1 mb-2">
                             <label className="eyebrow">Title *</label>
 
                             {!canEditDetails || !isCreator ? (
-                                <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight font-serif pt-1 select-text">
+                                <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight font-heading pt-1 select-text">
                                     {title}
                                 </h2>
                             ) : (
@@ -1482,7 +1486,7 @@ export default function TaskModal({
                                             <span>Loading comments...</span>
                                         </div>
                                     ) : visibleComments.length === 0 ? (
-                                        <div className="p-8 text-center flex flex-col items-center justify-center gap-1 text-[#888883] my-auto">
+                                        <div className="p-8 text-center flex flex-col items-center justify-center gap-1 text-[#888883] flex-1 w-full h-full min-h-[220px]">
                                             <MessageSquare className="w-4 h-4 text-[#DADAD6]" />
                                             <span className="text-[11px] font-medium text-[#1A1A1A] mt-0.5">
                                                 No comments yet
@@ -1855,7 +1859,7 @@ export default function TaskModal({
                                                         true,
                                                     )
                                                 }
-                                                className="relative flex-1 min-h-[250px] border border-dashed border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#F5F5F3] p-8 text-center rounded-[2px] corner-brackets flex flex-col items-center justify-center gap-1 text-[#888883] cursor-pointer transition-colors my-auto"
+                                                className="relative flex-1 min-h-[220px] w-full h-full border border-dashed border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#F5F5F3] p-8 text-center rounded-[2px] corner-brackets flex flex-col items-center justify-center gap-1 text-[#888883] cursor-pointer transition-colors"
                                             >
                                                 <FileText className="w-5 h-5 text-[#DADAD6]" />
                                                 <span className="text-[11px] font-medium text-[#1A1A1A] mt-1">
@@ -1918,6 +1922,7 @@ export default function TaskModal({
                                             className="flex items-center gap-2 shrink-0"
                                         >
                                             <input
+                                                ref={checklistInputRef}
                                                 type="text"
                                                 placeholder="Add a checklist item... (Press Enter to add)"
                                                 value={newSubtask}
@@ -1944,7 +1949,7 @@ export default function TaskModal({
                                     {/* Checklist Items List */}
                                     <div className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-0 pr-1">
                                         {checklistItems.length === 0 ? (
-                                            <div className="p-8 text-center flex flex-col items-center justify-center gap-1 text-[#888883] my-auto bg-white border border-dashed border-[#E5E5E3] rounded-[3px] min-h-[220px]">
+                                            <div className="p-8 text-center flex flex-col items-center justify-center gap-1 text-[#888883] bg-white border border-dashed border-[#E5E5E3] rounded-[3px] flex-1 w-full h-full min-h-[220px]">
                                                 <ListTodo className="w-6 h-6 text-[#DADAD6]" />
                                                 <span className="text-[12px] font-semibold text-[#1A1A1A] mt-1">
                                                     No checklist items yet
@@ -2097,7 +2102,7 @@ export default function TaskModal({
                                                 !isUploadingImage &&
                                                 fileInputRef.current?.click()
                                             }
-                                            className={`border border-dashed border-[#E5E5E3] bg-white p-8 text-center rounded-[3px] flex flex-col items-center justify-center gap-1 text-[#888883] flex-1 min-h-[250px] ${!isObserver && !isUploadingImage ? "cursor-pointer hover:bg-[#FAFAF9] hover:border-[#888883] transition-all" : ""}`}
+                                            className={`border border-dashed border-[#E5E5E3] bg-white p-8 text-center rounded-[3px] flex flex-col items-center justify-center gap-1 text-[#888883] flex-1 w-full h-full min-h-[220px] ${!isObserver && !isUploadingImage ? "cursor-pointer hover:bg-[#FAFAF9] hover:border-[#888883] transition-all" : ""}`}
                                         >
                                             {isUploadingImage ? (
                                                 <Loader2 className="w-5 h-5 text-[#DADAD6] animate-spin" />

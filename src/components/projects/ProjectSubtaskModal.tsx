@@ -1219,7 +1219,7 @@ export default function ProjectSubtaskModal({
                                 }`}
                             >
                                 <History className="w-3.5 h-3.5" />
-                                <span>Activity Log</span>
+                                <span className="text-nowrap">Activity Log</span>
                             </button>
 
                             <button

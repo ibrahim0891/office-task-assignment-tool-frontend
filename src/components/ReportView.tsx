@@ -469,11 +469,11 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                 </div>
 
                 {/* 2. Controls Bar: Period Tabs + Custom Datepicker + Day Stepper + Status Filters + Search */}
-                <div className="px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 bg-[var(--app-bg)] border-b border-[var(--app-border)]">
+                <div className="px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 bg-[var(--app-card)]">
                     {/* Left: Period Selection & Day Stepper */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        {/* Period Presets */}
-                        <div className="flex items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        {/* Period Presets Segmented Tray */}
+                        <div className="inline-flex items-center p-1 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[var(--radius-sm,4px)] gap-1">
                             {[
                                 { id: "0", label: "Today" },
                                 { id: "1", label: "Yesterday" },
@@ -485,10 +485,10 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                     key={preset.id}
                                     type="button"
                                     onClick={() => setRangePreset(preset.id)}
-                                    className={`px-2 py-1 text-xs font-medium border rounded-[2px] transition-colors cursor-pointer ${
+                                    className={`px-3.5 py-1.5 text-[12.5px] sm:text-[13px] font-medium rounded-[var(--radius-xs,3px)] transition-all cursor-pointer ${
                                         rangePreset === preset.id
-                                            ? "bg-[var(--app-select-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
-                                            : "bg-[var(--app-card)] border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                            ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-3xs"
+                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
                                     }`}
                                 >
                                     {preset.label}
@@ -506,42 +506,42 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                         }
                                         setIsCustomDropdownOpen((prev) => !prev);
                                     }}
-                                    className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium border rounded-[2px] transition-colors cursor-pointer ${
+                                    className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[12.5px] sm:text-[13px] font-medium rounded-[var(--radius-xs,3px)] transition-all cursor-pointer ${
                                         rangePreset === "custom"
-                                            ? "bg-[var(--app-select-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
-                                            : "bg-[var(--app-card)] border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                            ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-3xs"
+                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
                                     }`}
                                 >
-                                    <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                    <Calendar className="w-4 h-4 text-[var(--app-muted)]" />
                                     <span>
                                         {rangePreset === "custom" && customStart && customEnd
                                             ? `${customStart} → ${customEnd}`
                                             : "Custom"}
                                     </span>
-                                    <ChevronDown className={`w-3 h-3 text-[var(--app-muted)] transition-transform ${isCustomDropdownOpen ? "rotate-180" : ""}`} />
+                                    <ChevronDown className={`w-3.5 h-3.5 text-[var(--app-muted)] transition-transform ${isCustomDropdownOpen ? "rotate-180" : ""}`} />
                                 </button>
 
                                 {/* Dropdown Popover */}
                                 {isCustomDropdownOpen && (
-                                    <div className="absolute left-0 top-full mt-1 w-80 sm:w-88 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] corner-brackets shadow-lg p-3.5 z-50 flex flex-col gap-3">
+                                    <div className="absolute left-0 top-full mt-1.5 w-80 sm:w-88 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[var(--radius-md,8px)] shadow-xl p-4 z-50 flex flex-col gap-3.5">
                                         <div className="flex items-center justify-between pb-1.5 border-b border-[var(--app-border)]">
                                             <span className="eyebrow font-semibold flex items-center gap-1.5">
-                                                <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                                <Calendar className="w-4 h-4 text-[var(--app-muted)]" />
                                                 Custom Date Range
                                             </span>
                                             <button
                                                 type="button"
                                                 onClick={() => setIsCustomDropdownOpen(false)}
-                                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] p-0.5 rounded-[2px] transition-colors cursor-pointer"
+                                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] p-1 rounded-[var(--radius-xs,3px)] transition-colors cursor-pointer"
                                             >
-                                                <X className="w-3.5 h-3.5" />
+                                                <X className="w-4 h-4" />
                                             </button>
                                         </div>
 
-                                        <form onSubmit={handleApplyCustomRange} className="flex flex-col gap-3">
+                                        <form onSubmit={handleApplyCustomRange} className="flex flex-col gap-3.5">
                                             <div className="grid grid-cols-2 gap-2.5">
                                                 <div className="flex flex-col gap-1">
-                                                    <label className="text-[9px] font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+                                                    <label className="text-[10px] font-semibold text-[var(--app-muted)] uppercase tracking-wider">
                                                         Start Date
                                                     </label>
                                                     <CustomDatePicker
@@ -559,7 +559,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                                     />
                                                 </div>
                                                 <div className="flex flex-col gap-1">
-                                                    <label className="text-[9px] font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+                                                    <label className="text-[10px] font-semibold text-[var(--app-muted)] uppercase tracking-wider">
                                                         End Date
                                                     </label>
                                                     <CustomDatePicker
@@ -575,7 +575,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
 
                                             {/* Quick shortcut presets within the dropdown */}
                                             <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                                                <span className="text-[10px] text-[var(--app-muted)] mr-0.5 font-medium">Presets:</span>
+                                                <span className="text-[11px] text-[var(--app-muted)] mr-0.5 font-medium">Presets:</span>
                                                 {[
                                                     { label: "Past 7d", days: 7 },
                                                     { label: "Past 14d", days: 14 },
@@ -591,7 +591,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                                             setTempCustomStart(getLocalDateString(start));
                                                             setTempCustomEnd(getLocalDateString(end));
                                                         }}
-                                                        className="text-[10px] px-2 py-0.5 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)] transition-colors cursor-pointer"
+                                                        className="text-[11px] px-2.5 py-1 rounded-[var(--radius-xs,3px)] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)] transition-colors cursor-pointer"
                                                     >
                                                         {shortcut.label}
                                                     </button>
@@ -615,63 +615,66 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                     </div>
                                 )}
                             </div>
+                        </div>
 
-                            {/* Day Stepper */}
-                            <div className="flex items-center gap-0.5 border border-[var(--app-border)] rounded-[2px] px-1 py-0.5 bg-[var(--app-card)] text-xs">
-                                <button
-                                    type="button"
-                                    onClick={() => handleStepDay(-1)}
-                                    className="p-0.5 hover:bg-[var(--app-hover-bg)] rounded-[1px] text-[var(--app-text)] transition-colors cursor-pointer"
-                                    title="Step 1 Day Backward"
-                                >
-                                    <ChevronLeft className="w-3.5 h-3.5" />
-                                </button>
-                                <span className="text-[10px] text-[var(--app-muted)] font-medium px-1">
-                                    Day Step
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => handleStepDay(1)}
-                                    className="p-0.5 hover:bg-[var(--app-hover-bg)] rounded-[1px] text-[var(--app-text)] transition-colors cursor-pointer"
-                                    title="Step 1 Day Forward"
-                                >
-                                    <ChevronRight className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
+                        {/* Day Stepper */}
+                        <div className="inline-flex items-center p-1 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[var(--radius-sm,4px)] text-xs gap-0.5">
+                            <button
+                                type="button"
+                                onClick={() => handleStepDay(-1)}
+                                className="p-1.5 hover:bg-[var(--app-card)] text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[var(--radius-xs,3px)] transition-colors cursor-pointer"
+                                title="Step 1 Day Backward"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <span className="text-xs text-[var(--app-muted)] font-semibold px-2 select-none">
+                                Day Step
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => handleStepDay(1)}
+                                className="p-1.5 hover:bg-[var(--app-card)] text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[var(--radius-xs,3px)] transition-colors cursor-pointer"
+                                title="Step 1 Day Forward"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
                         </div>
                     </div>
 
                     {/* Right: Status Filters + Search */}
-                    <div className="flex flex-wrap items-center gap-1.5">
-                        {[
-                            { id: "all", label: "All" },
-                            { id: "completed", label: "Done" },
-                            { id: "in_progress", label: "In Progress" },
-                            { id: "attention", label: "Needs Attention" },
-                        ].map((st) => (
-                            <button
-                                key={st.id}
-                                type="button"
-                                onClick={() => setStatusFilter(st.id as any)}
-                                className={`px-2 py-1 text-xs font-medium border rounded-[2px] transition-colors cursor-pointer ${
-                                    statusFilter === st.id
-                                        ? "bg-[var(--app-select-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
-                                        : "bg-[var(--app-card)] border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
-                                }`}
-                            >
-                                {st.label}
-                            </button>
-                        ))}
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        {/* Status Filters Segmented Control */}
+                        <div className="inline-flex items-center p-1 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[var(--radius-sm,4px)] gap-1">
+                            {[
+                                { id: "all", label: "All" },
+                                { id: "completed", label: "Done" },
+                                { id: "in_progress", label: "In Progress" },
+                                { id: "attention", label: "Needs Attention" },
+                            ].map((st) => (
+                                <button
+                                    key={st.id}
+                                    type="button"
+                                    onClick={() => setStatusFilter(st.id as any)}
+                                    className={`px-3.5 py-1.5 text-[12.5px] sm:text-[13px] font-medium rounded-[var(--radius-xs,3px)] transition-all cursor-pointer ${
+                                        statusFilter === st.id
+                                            ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-3xs"
+                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                    }`}
+                                >
+                                    {st.label}
+                                </button>
+                            ))}
+                        </div>
 
                         {/* Search Input */}
-                        <div className="relative min-w-[140px] ml-0.5">
-                            <Search className="w-3 h-3 text-[var(--app-muted)] absolute left-2 top-1/2 -translate-y-1/2" />
+                        <div className="relative min-w-[160px]">
+                            <Search className="w-4 h-4 text-[var(--app-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                             <input
                                 type="text"
                                 placeholder="Search tasks…"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full h-7 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] pl-6.5 pr-2 text-xs text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)]"
+                                className="w-full h-8.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[var(--radius-sm,4px)] pl-9 pr-3 text-xs sm:text-[13px] text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)] focus:bg-[var(--app-card)] transition-colors"
                             />
                         </div>
                     </div>

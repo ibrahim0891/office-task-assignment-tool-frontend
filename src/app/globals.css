@@ -29,7 +29,7 @@ html {
   /* Typography */
   --font-serif: var(--font-secondary, var(--font-instrument-serif), 'Georgia', serif);
   --font-sans: var(--font-primary, var(--font-inter), 'Inter', -apple-system, system-ui, sans-serif);
-  --font-scale: 1.25;
+  --font-scale: 1.00;
 
   /* Priority theme tokens - visually distinct from status */
   --priority-urgent: #CB2431;
@@ -61,6 +61,14 @@ html {
   /* Selection active backgrounds */
   --app-select-bg: #F5F5F3;
   --app-hover-bg: #F0F0EE;
+
+  /* Geometry / Radius tokens */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
 
   /* Shadow — only for true floating elements */
   --shadow-float: 0 4px 12px rgba(0,0,0,0.08);
@@ -134,11 +142,642 @@ html[data-theme="lws-dark"] {
   --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* ─── MODERN SaaS UI DESIGN SYSTEM ─────────────────────────────────────── */
+/* Activated via html[data-ui="modern"]. Completely isolated from Editorial.  */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Modern Light Palette ─── */
+html[data-ui="modern"] {
+  --color-accent:      #8B5CF6;
+  --app-bg:            color-mix(in srgb, var(--color-accent) 1.2%, #F8F8FA);
+  --app-card:          #FFFFFF;
+  --app-border:        color-mix(in srgb, var(--color-accent) 2.5%, #E6E7EB);
+  --app-border-strong: color-mix(in srgb, var(--color-accent) 5%, #D6D7DC);
+  --app-text:          #1A1A2E;
+  --app-muted:         #6B7280;
+  --app-sidebar:       #FFFFFF;
+  --app-hover-bg:      color-mix(in srgb, var(--color-accent) 2.5%, #F1F2F5);
+  --app-select-bg:     color-mix(in srgb, var(--color-accent) 4.5%, #ECEEF5);
+  --app-column-bg:     color-mix(in srgb, var(--app-bg) 80%, var(--app-card) 20%);
+
+  /* Card & float shadow system */
+  --shadow-card:   0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  --shadow-float:  0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.05);
+  --shadow-subtle: 0 1px 2px rgba(0,0,0,0.04);
+
+  /* Status palette (softer, SaaS-style) */
+  --status-todo:           #6B7280;
+  --status-in-progress:    #7C3AED;
+  --status-active:         #2563EB;
+  --status-completed:      #059669;
+  --status-at-risk:        #DC2626;
+  --status-blocked:        #DC2626;
+  --status-need-attention: #D97706;
+  --status-on-track:       #059669;
+  --status-archived:       #9CA3AF;
+
+  /* Priority */
+  --priority-urgent: #EF4444;
+  --priority-high:   #F97316;
+  --priority-medium: #F59E0B;
+  --priority-low:    #9CA3AF;
+
+  /* Geometry tokens */
+  --radius-xs:     2px;
+  --radius-sm:     4px;
+  --radius-md:     6px;
+  --radius-lg:     8px;
+  --radius-xl:     10px;
+  --radius-card:   4px;
+  --radius-pill:   999px;
+}
+
+/* ─── Modern Warm Dark Palette (not pitch black) ─── */
+html[data-ui="modern"][data-theme="modern-dark"] {
+  --color-accent:      #A78BFA;
+  --app-bg:            color-mix(in srgb, var(--color-accent) 1.8%, #161822);
+  --app-card:          color-mix(in srgb, var(--color-accent) 1.2%, #202330);
+  --app-border:        color-mix(in srgb, var(--color-accent) 3.5%, #303444);
+  --app-border-strong: color-mix(in srgb, var(--color-accent) 6%, #40455A);
+  --app-text:          #E8EAF0;
+  --app-muted:         #8B92B0;
+  --app-sidebar:       color-mix(in srgb, var(--color-accent) 1%, #181A24);
+  --app-hover-bg:      color-mix(in srgb, var(--color-accent) 3.5%, #272A38);
+  --app-select-bg:     color-mix(in srgb, var(--color-accent) 5%, #2C3042);
+  --app-column-bg:     color-mix(in srgb, var(--app-bg) 70%, var(--app-card) 30%);
+
+  --shadow-card:   0 2px 8px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
+  --shadow-float:  0 12px 32px rgba(0,0,0,0.50);
+  --shadow-subtle: 0 1px 3px rgba(0,0,0,0.25);
+
+  /* Dark status variants */
+  --status-todo:           #94A3B8;
+  --status-in-progress:    #C4B5FD;
+  --status-active:         #60A5FA;
+  --status-completed:      #34D399;
+  --status-at-risk:        #F87171;
+  --status-blocked:        #F87171;
+  --status-need-attention: #FCD34D;
+  --status-on-track:       #34D399;
+  --status-archived:       #64748B;
+
+  --priority-urgent: #F87171;
+  --priority-high:   #FB923C;
+  --priority-medium: #FBBF24;
+  --priority-low:    #94A3B8;
+}
+
+/* ─── Modern Component Overrides ─────────────────────────────────────────── */
+/* All rules scoped to html[data-ui="modern"]. Zero leakage to Editorial.     */
+
+/* 1. Suppress corner-bracket pseudo-elements (Editorial-specific flourish) */
+html[data-ui="modern"] .corner-brackets::before,
+html[data-ui="modern"] .corner-brackets::after,
+html[data-ui="modern"] .corner-brackets-thick::before,
+html[data-ui="modern"] .corner-brackets-thick::after,
+html[data-ui="modern"] .corner-brackets-4::before,
+html[data-ui="modern"] .corner-brackets-4::after,
+html[data-ui="modern"] .mono-gradient-border::before,
+html[data-ui="modern"] .mono-gradient-border::after {
+  display: none !important;
+}
+
+/* 2. Global background + text root */
+html[data-ui="modern"] body {
+  background: var(--app-bg) !important;
+  color: var(--app-text) !important;
+}
+
+/* Unified main frame slot */
+html[data-ui="modern"] main > div[class*="corner-brackets"] {
+  background-color: var(--app-bg) !important;
+  border: none !important;
+}
+
+/* 3. Hardcoded color class overrides — covers 95%+ of the codebase usages */
+html[data-ui="modern"] [class*="bg-white"] {
+  background-color: var(--app-card) !important;
+}
+html[data-ui="modern"] [class*="bg-[#FAFAF9]"],
+html[data-ui="modern"] [class*="bg-[#F5F5F3]"],
+html[data-ui="modern"] [class*="bg-[#F8F8F7]"],
+html[data-ui="modern"] [class*="bg-[#F0F0EE]"],
+html[data-ui="modern"] [class*="bg-[#ECECE9]"],
+html[data-ui="modern"] [class*="bg-[#EBEBE8]"],
+html[data-ui="modern"] [class*="bg-[#E5E5E3]"] {
+  background-color: var(--app-bg) !important;
+}
+/* bg-[#1A1A1A] in buttons/spans → accent; in generic divs → app-text */
+html[data-ui="modern"] button[class*="bg-[#1A1A1A]"],
+html[data-ui="modern"] button[class*="bg-[#333]"],
+html[data-ui="modern"] button[class*="bg-[#333333]"],
+html[data-ui="modern"] a[class*="bg-[#1A1A1A]"],
+html[data-ui="modern"] span[class*="bg-[#1A1A1A]"],
+html[data-ui="modern"] span[class*="bg-[#333]"] {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: #fff !important;
+}
+html[data-ui="modern"] div[class*="bg-[#1A1A1A]"],
+html[data-ui="modern"] div[class*="bg-[#333]"],
+html[data-ui="modern"] div[class*="bg-[#333333]"],
+html[data-ui="modern"] [class*="bg-[#1A1A1A]"]:not(button):not(a):not(span) {
+  background-color: var(--app-text) !important;
+}
+html[data-ui="modern"] [class*="text-[#1A1A1A]"] {
+  color: var(--app-text) !important;
+}
+html[data-ui="modern"] [class*="text-[#888883]"],
+html[data-ui="modern"] [class*="text-[#555555]"],
+html[data-ui="modern"] [class*="text-[#BBBBB8]"] {
+  color: var(--app-muted) !important;
+}
+html[data-ui="modern"] [class*="border-[#E5E5E3]"],
+html[data-ui="modern"] [class*="border-[#DADAD6]"],
+html[data-ui="modern"] [class*="border-[#F5F5F4]"],
+html[data-ui="modern"] [class*="border-[#FAFAF9]"] {
+  border-color: var(--app-border) !important;
+}
+html[data-ui="modern"] [class~="border-[#1A1A1A]"]:not(input):not(select):not(textarea) {
+  border-color: var(--app-border-strong) !important;
+}
+
+/* Dividers */
+html[data-ui="modern"] [class*="divide-[#E5E5E3]"] > *,
+html[data-ui="modern"] [class*="divide-[#DADAD6]"] > *,
+html[data-ui="modern"] [class*="divide-y"] > *,
+html[data-ui="modern"] [class*="divide-x"] > * {
+  border-color: var(--app-border) !important;
+}
+
+/* Hover backgrounds */
+html[data-ui="modern"] [class*="hover:bg-[#FAFAF9]"]:hover,
+html[data-ui="modern"] [class*="hover:bg-[#F0F0EE]"]:hover {
+  background-color: var(--app-hover-bg) !important;
+}
+html[data-ui="modern"] [class*="hover:bg-[#FFF5F5]"]:hover {
+  background-color: rgba(239,68,68,0.10) !important;
+}
+
+/* Form inputs — clean light borders, sharp modern corners */
+html[data-ui="modern"] input:not(.bg-transparent),
+html[data-ui="modern"] select,
+html[data-ui="modern"] textarea:not(.bg-transparent) {
+  background-color: var(--app-card) !important;
+  color: var(--app-text) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: var(--radius-sm, 4px) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+html[data-ui="modern"] input:hover:not(:focus):not(.bg-transparent),
+html[data-ui="modern"] select:hover:not(:focus),
+html[data-ui="modern"] textarea:hover:not(:focus):not(.bg-transparent) {
+  border-color: var(--app-border-strong) !important;
+}
+html[data-ui="modern"] input.bg-transparent,
+html[data-ui="modern"] textarea.bg-transparent {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+
+/* 4. Border radius — crisp, precise modern SaaS geometry */
+/* Small badges, pills, and indicators */
+html[data-ui="modern"] span[class*="rounded-[2px]"],
+html[data-ui="modern"] span[class*="rounded-[1px]"],
+html[data-ui="modern"] span[class*="rounded-[1.5px]"],
+html[data-ui="modern"] span[class*="rounded-[2.5px]"],
+html[data-ui="modern"] span[class*="rounded-[3px]"] {
+  border-radius: var(--radius-xs, 2px) !important;
+}
+
+/* Card containers, widgets, directory items & metric cards — follow corner radius preference (capped at max 8px) */
+html[data-ui="modern"] div[class*="corner-brackets"],
+html[data-ui="modern"] div[class*="corner-brackets-thick"],
+html[data-ui="modern"] div[class*="rounded-[1px]"]:not(span):not(button):not(input),
+html[data-ui="modern"] div[class*="rounded-[2px]"]:not(span):not(button):not(input),
+html[data-ui="modern"] div[class*="rounded-[3px]"]:not(span):not(button):not(input),
+html[data-ui="modern"] div[class*="rounded-[4px]"]:not(span):not(button):not(input),
+html[data-ui="modern"] div[class*="rounded-[5px]"]:not(span):not(button):not(input),
+html[data-ui="modern"] div[class*="rounded-[6px]"]:not(span):not(button):not(input),
+html[data-ui="modern"] div[class*="rounded-[8px]"]:not(span):not(button):not(input),
+html[data-ui="modern"] div[class*="rounded-md"]:not(span):not(button):not(input),
+html[data-ui="modern"] .kanban-task-card,
+html[data-ui="modern"] div[class*="bg-[var(--app-card)]"][class*="border"],
+html[data-ui="modern"] div[class*="bg-white"][class*="border"]:not(button):not(input):not(select):not(textarea):not(table):not(header):not(aside) {
+  border-radius: var(--radius-card, 4px) !important;
+}
+
+/* 5. Kanban cards — rounded, elevated, hover lift */
+
+/* ── Button (base component) in Modern mode ── */
+/* Suppress editorial corner brackets */
+html[data-ui="modern"] button.corner-brackets-4::before,
+html[data-ui="modern"] button.corner-brackets-4::after {
+  display: none !important;
+}
+/* Primary variant: accent fill */
+html[data-ui="modern"] button[class*="bg-[var(--app-text)]"] {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: #fff !important;
+}
+html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 85%, black) !important;
+  border-color: color-mix(in srgb, var(--color-accent) 85%, black) !important;
+}
+/* showDot indicator → accent colour */
+html[data-ui="modern"] button span[class*="bg-[var(--app-muted)]"],
+html[data-ui="modern"] button span[class*="w-1.5"][class*="h-1.5"] {
+  background-color: var(--color-accent) !important;
+  border-radius: 50% !important;
+}
+/* Ghost / secondary buttons in modal footer */
+html[data-ui="modern"] button[class*="bg-transparent"],
+html[data-ui="modern"] button[class*="hover:bg-[var(--app-hover-bg)]"] {
+  border-radius: var(--radius-sm) !important;
+}
+html[data-ui="modern"] button:not(.rounded-full):not([class*="rounded-full"]):not([class*="rounded-none"]):not([class*="border-b"]) {
+  border-radius: var(--radius-sm, 4px) !important;
+}
+
+/* Accent swatch grid — suppress corner brackets */
+html[data-ui="modern"] div[class*="corner-brackets-4"]::before,
+html[data-ui="modern"] div[class*="corner-brackets-4"]::after {
+  display: none !important;
+}
+html[data-ui="modern"] div[class*="corner-brackets-4"] {
+  border-radius: var(--radius-card, 4px) !important;
+}
+
+html[data-ui="modern"] .kanban-task-card {
+  background-color: var(--app-card) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: var(--radius-card, 4px) !important;
+  box-shadow: var(--shadow-card);
+}
+html[data-ui="modern"] .kanban-task-card:hover {
+  box-shadow: var(--shadow-float);
+  border-color: var(--app-border-strong) !important;
+}
+
+/* 6. Sidebar */
+html[data-ui="modern"] aside {
+  background-color: var(--app-sidebar) !important;
+  border-color: var(--app-border) !important;
+}
+
+/* Inactive sidebar items */
+html[data-ui="modern"] aside [class*="bg-[#FAFAF9]"] {
+  background-color: transparent !important;
+}
+
+/* ── Active nav link — accent pill ── */
+/* Targets: bg-[var(--app-card)] + border + corner-brackets-4 pattern (the active state) */
+html[data-ui="modern"] aside a[class*="bg-[var(--app-card)]"],
+html[data-ui="modern"] aside a[class*="corner-brackets-4"] {
+  background-color: color-mix(in srgb, var(--color-accent) 12%, transparent) !important;
+  color: var(--color-accent) !important;
+  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent) !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: 600 !important;
+}
+/* Icon inside active nav link */
+html[data-ui="modern"] aside a[class*="bg-[var(--app-card)"] svg,
+html[data-ui="modern"] aside a[class*="corner-brackets-4"] svg {
+  color: var(--color-accent) !important;
+}
+/* Suppress corner brackets on active link */
+html[data-ui="modern"] aside a[class*="corner-brackets-4"]::before,
+html[data-ui="modern"] aside a[class*="corner-brackets-4"]::after {
+  display: none !important;
+}
+
+/* Hover on inactive items */
+html[data-ui="modern"] aside a[class*="hover:bg-[var(--app-hover-bg)]"]:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 6%, transparent) !important;
+  color: var(--color-accent) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+
+/* 7. Header */
+html[data-ui="modern"] header {
+  background-color: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+  box-shadow: var(--shadow-subtle) !important;
+}
+
+/* 8. Modals and floating panels */
+html[data-ui="modern"] div[class*="fixed inset-0"] > div[class*="relative"]:not([class*="bg-black"]):not([class*="backdrop-"]),
+html[data-ui="modern"] div[class*="fixed inset-0"] > div[class*="max-w-"] {
+  background-color: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+  border-radius: var(--radius-sm, 4px) !important;
+  box-shadow: var(--shadow-float) !important;
+}
+html[data-ui="modern"] div[class*="bg-white"][style*="position: fixed"],
+html[data-ui="modern"] div[class*="bg-white"][style*="position: absolute"] {
+  background-color: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+  border-radius: var(--radius-sm, 4px) !important;
+  box-shadow: var(--shadow-float) !important;
+}
+
+/* 9. Buttons — crisp, sharp 4px corners */
+html[data-ui="modern"] button:not([class*="rounded-full"]):not([class*="rounded-pill"]),
+html[data-ui="modern"] a[class*="button"]:not([class*="rounded-full"]),
+html[data-ui="modern"] a[class*="btn"]:not([class*="rounded-full"]) {
+  border-radius: var(--radius-sm, 4px) !important;
+}
+html[data-ui="modern"] button[class*="bg-white"] {
+  background-color: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+html[data-ui="modern"] button[class*="bg-white"]:hover {
+  background-color: var(--app-hover-bg) !important;
+}
+html[data-ui="modern"] button[class*="bg-[#1A1A1A]"],
+html[data-ui="modern"] button[class*="bg-[#333]"] {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+}
+html[data-ui="modern"] button[class*="bg-[#1A1A1A]"]:hover,
+html[data-ui="modern"] button[class*="bg-[#333]"]:hover {
+  opacity: 0.88 !important;
+}
+html[data-ui="modern"] button[class*="hover:bg-[#FAFAF9]"]:hover,
+html[data-ui="modern"] button[class*="hover:bg-[#F0F0EE]"]:hover {
+  background-color: var(--app-hover-bg) !important;
+}
+html[data-ui="modern"] button[class*="hover:bg-[#FFF5F5]"]:hover {
+  background-color: rgba(239,68,68,0.10) !important;
+}
+
+/* 10. Kanban & Subtask column containers — solid non-transparent card background */
+html[data-ui="modern"] div[class*="w-72"],
+html[data-ui="modern"] div[class*="w-80"],
+html[data-ui="modern"] div[class*="sm:w-80"] {
+  background-color: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-subtle) !important;
+}
+
+/* 11. Table overrides — plain white background on table surfaces */
+html[data-ui="modern"] table {
+  background-color: var(--app-card) !important;
+  color: var(--app-text) !important;
+  border-radius: var(--radius-md) !important;
+  overflow: hidden !important;
+}
+/* Scoped table containers only */
+html[data-ui="modern"] div:has(> table) {
+  background-color: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+}
+/* Thead — very subtle distinction from body */
+html[data-ui="modern"] table thead,
+html[data-ui="modern"] table thead tr,
+html[data-ui="modern"] table thead th {
+  background-color: var(--app-card) !important;
+  color: var(--app-muted) !important;
+  border-color: var(--app-border) !important;
+}
+/* Tbody rows — white, not grey */
+html[data-ui="modern"] table tbody tr,
+html[data-ui="modern"] table tbody td {
+  background-color: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+/* Row hover — gentle lift */
+html[data-ui="modern"] table tbody tr:hover,
+html[data-ui="modern"] tr[class*="hover:bg-[#FAFAF9]"]:hover,
+html[data-ui="modern"] tr[class*="hover:bg-[var(--app-hover-bg)]"]:hover {
+  background-color: var(--app-hover-bg) !important;
+}
+/* Dividers between rows */
+html[data-ui="modern"] tbody[class*="divide-y"] > tr,
+html[data-ui="modern"] [class*="divide-y"] > tr {
+  border-color: var(--app-border) !important;
+}
+/* Initials avatar in table rows */
+html[data-ui="modern"] table div[class*="rounded-[3px]"][class*="bg-[#FAFAF9]"],
+html[data-ui="modern"] table div[class*="rounded-[2px]"][class*="bg-[#FAFAF9]"] {
+  background-color: color-mix(in srgb, var(--color-accent) 10%, var(--app-card)) !important;
+  color: var(--color-accent) !important;
+  border-color: color-mix(in srgb, var(--color-accent) 25%, transparent) !important;
+}
+html[data-ui="modern"] table div[class*="rounded-[3px]"][class*="bg-[#FAFAF9]"] span,
+html[data-ui="modern"] table div[class*="rounded-[2px]"][class*="bg-[#FAFAF9]"] span {
+  color: var(--color-accent) !important;
+}
+
+/* 12. Modal headers with bg-[#FAFAF9] */
+html[data-ui="modern"] div[class*="bg-[#FAFAF9]"][class*="border-b"] {
+  background-color: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+}
+
+/* 13. Dropdowns and popovers */
+html[data-ui="modern"] div[class*="shadow-lg"],
+html[data-ui="modern"] div[class*="shadow-md"] {
+  box-shadow: var(--shadow-float) !important;
+  border-radius: var(--radius-md) !important;
+  border-color: var(--app-border) !important;
+  background-color: var(--app-card) !important;
+}
+
+/* 14. Activity / audit log feed cards */
+html[data-ui="modern"] [class*="bg-[#FAFAF9]"][class*="border-[#E5E5E3]"] {
+  background-color: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* 15. Task detail inner panels (comments box, checklist container) */
+html[data-ui="modern"] div[class*="bg-[#FAFAF9]"][class*="border"] {
+  background-color: var(--app-bg) !important;
+  border-color: var(--app-border) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* 16. Search / filter input bar */
+html[data-ui="modern"] div[class*="border-b"][class*="bg-white"] {
+  background-color: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+}
+
+/* 17. Subtask rows inside task modal */
+html[data-ui="modern"] div[class*="border-[#E5E5E3]"][class*="bg-white"] {
+  border-color: var(--app-border) !important;
+}
+
+/* 18. User picker dropdown trigger */
+html[data-ui="modern"] div[class*="border-[#DADAD6]"],
+html[data-ui="modern"] button[class*="border-[#DADAD6]"] {
+  border-color: var(--app-border) !important;
+}
+
+/* 19. Quick-add task bar in kanban */
+html[data-ui="modern"] form input[class*="h-[36px]"] {
+  background-color: var(--app-card) !important;
+  border-color: var(--app-border) !important;
+  border-radius: var(--radius-sm, 4px) !important;
+}
+
+/* 20. Grid stats blocks (dashboard, analytics & portfolio) */
+html[data-ui="modern"] div[class*="gap-px"] {
+  border-radius: var(--radius-md) !important;
+  overflow: hidden !important;
+  background-color: var(--app-border) !important;
+  border-color: var(--app-border) !important;
+}
+
+html[data-ui="modern"] div[class*="gap-px"] > div {
+  background-color: var(--app-card) !important;
+  color: var(--app-text) !important;
+  border-radius: 0 !important;
+}
+
+/* 21. Primary / CTA button hover darkening (fill handled in rule 3 above) */
+html[data-ui="modern"] button[class*="bg-[#1A1A1A]"]:hover,
+html[data-ui="modern"] button[class*="bg-[#333]"]:hover,
+html[data-ui="modern"] a[class*="bg-[#1A1A1A]"]:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 85%, black) !important;
+}
+
+/* 22. Focus states — subtle accented border/outline without heavy rings */
+html[data-ui="modern"] input:focus,
+html[data-ui="modern"] select:focus,
+html[data-ui="modern"] textarea:focus {
+  outline: none !important;
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 35%, transparent) !important;
+}
+
+html[data-ui="modern"] button:focus-visible {
+  outline: 1.5px solid color-mix(in srgb, var(--color-accent) 60%, transparent) !important;
+  outline-offset: 1px !important;
+}
+
+/* 23. Active sidebar nav items */
+html[data-ui="modern"] aside a[class*="bg-white"],
+html[data-ui="modern"] aside div[class*="bg-white"],
+html[data-ui="modern"] aside button[class*="bg-white"] {
+  background-color: color-mix(in srgb, var(--color-accent) 12%, transparent) !important;
+  color: var(--color-accent) !important;
+  border-color: color-mix(in srgb, var(--color-accent) 30%, transparent) !important;
+}
+
+/* 24. Tabs — flat bottom (no curved smile), distinct active vs inactive tabs */
+html[data-ui="modern"] button[class*="border-b"],
+html[data-ui="modern"] a[class*="border-b"],
+html[data-ui="modern"] div[class*="border-b"] > button,
+html[data-ui="modern"] div[class*="border-b"] > a {
+  border-radius: 0 !important;
+}
+
+/* Inactive tabs — muted text, transparent border, no accent coloring */
+html[data-ui="modern"] button[class*="border-transparent"],
+html[data-ui="modern"] a[class*="border-transparent"],
+html[data-ui="modern"] [class*="border-b"][class*="border-transparent"],
+html[data-ui="modern"] [class*="border-b-2"][class*="border-transparent"] {
+  border-bottom-color: transparent !important;
+  border-color: transparent !important;
+  color: var(--app-muted) !important;
+}
+html[data-ui="modern"] button[class*="border-transparent"]:hover,
+html[data-ui="modern"] a[class*="border-transparent"]:hover,
+html[data-ui="modern"] [class*="border-b"][class*="border-transparent"]:hover,
+html[data-ui="modern"] [class*="border-b-2"][class*="border-transparent"]:hover {
+  border-bottom-color: transparent !important;
+  border-color: transparent !important;
+  color: var(--app-text) !important;
+}
+
+/* Active tab ONLY — crisp accent underline and full accent text */
+html[data-ui="modern"] button[class*="border-b"][class~="border-[#1A1A1A]"],
+html[data-ui="modern"] button[class*="border-b"][class~="border-[var(--app-text)]"],
+html[data-ui="modern"] a[class*="border-b"][class~="border-[#1A1A1A]"],
+html[data-ui="modern"] a[class*="border-b"][class~="border-[var(--app-text)]"],
+html[data-ui="modern"] button[class*="border-b-2"][class~="border-[#1A1A1A]"],
+html[data-ui="modern"] button[class*="border-b-2"][class~="border-[var(--app-text)]"],
+html[data-ui="modern"] a[class*="border-b-2"][class~="border-[#1A1A1A]"],
+html[data-ui="modern"] a[class*="border-b-2"][class~="border-[var(--app-text)]"],
+html[data-ui="modern"] [class*="border-b"][class~="text-[#1A1A1A]"]:not([class*="border-transparent"]),
+html[data-ui="modern"] [class*="border-b"][class~="text-[var(--app-text)]"]:not([class*="border-transparent"]) {
+  color: var(--color-accent) !important;
+  border-bottom-color: var(--color-accent) !important;
+}
+
+/* 25. Checkbox / toggle accent */
+html[data-ui="modern"] input[type="checkbox"]:checked,
+html[data-ui="modern"] input[type="radio"]:checked {
+  accent-color: var(--color-accent) !important;
+}
+
+/* 26. Range slider thumb */
+html[data-ui="modern"] input[type="range"] {
+  accent-color: var(--color-accent) !important;
+}
+
+/* 27. Selected text / active option highlight in dropdowns */
+html[data-ui="modern"] [class*="bg-[#1A1A1A]"][class*="text-white"]:not(div) {
+  background-color: var(--color-accent) !important;
+  color: #fff !important;
+}
+
+/* 28. Priority and status dot indicators that use text-[#1A1A1A] as "active" */
+html[data-ui="modern"] span[class*="bg-[#1A1A1A]"] {
+  background-color: var(--color-accent) !important;
+}
+
+/* 29. Kanban "Add Task" and "Add Column" dashed-border buttons */
+html[data-ui="modern"] button[class*="border-dashed"][class*="hover:border-[#1A1A1A]"],
+html[data-ui="modern"] div[class*="border-dashed"][class*="hover:border-[#1A1A1A]"] {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent) !important;
+  color: var(--app-muted) !important;
+}
+html[data-ui="modern"] button[class*="border-dashed"][class*="hover:border-[#1A1A1A]"]:hover,
+html[data-ui="modern"] div[class*="border-dashed"][class*="hover:border-[#1A1A1A]"]:hover {
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+  background-color: color-mix(in srgb, var(--color-accent) 6%, transparent) !important;
+}
+
+/* 30. Avatar / initials badge ring (active user indicator) */
+html[data-ui="modern"] [class*="ring-[#1A1A1A]"],
+html[data-ui="modern"] [class*="ring-offset"][class*="ring-[#1A1A1A]"] {
+  --tw-ring-color: var(--color-accent) !important;
+}
+
+/* 31. Progress bars */
+html[data-ui="modern"] [role="progressbar"] > div,
+html[data-ui="modern"] [class*="bg-[#1A1A1A]"][class*="h-1"],
+html[data-ui="modern"] [class*="bg-[#1A1A1A]"][class*="h-0.5"],
+html[data-ui="modern"] [class*="bg-[#1A1A1A]"][class*="h-2"] {
+  background-color: var(--color-accent) !important;
+}
+
+/* 32. Accent glow on active kanban card (optional flair) */
+html[data-ui="modern"] .kanban-task-card.active,
+html[data-ui="modern"] .kanban-task-card[data-selected="true"] {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent),
+              var(--shadow-float) !important;
+}
+
+/* ─── End Modern SaaS UI Design System ──────────────────────────────────── */
+
 @theme inline {
   --color-background: var(--app-bg);
   --color-foreground: var(--app-text);
-  --font-sans: var(--font-sans);
-  --font-serif: var(--font-serif);
+  --font-sans: var(--font-primary, var(--font-sans));
+  --font-serif: var(--font-secondary, var(--font-serif));
+  --font-heading: var(--font-secondary, var(--font-serif));
 
   --color-app-bg: var(--app-bg);
   --color-app-card: var(--app-card);
@@ -460,11 +1099,18 @@ html[data-theme*="dark"] {
     border-color: var(--app-border) !important;
   }
 
-  div[class*="grid-cols-2"][class*="gap-px"] > div {
+  div[class*="gap-px"] {
+    border-radius: var(--radius-md) !important;
+    overflow: hidden !important;
+  }
+
+  div[class*="gap-px"] > div {
     background-color: var(--app-card) !important;
     color: var(--app-text) !important;
+    border-radius: 0 !important;
 
-    span[class*="text-2xl"] {
+    span[class*="text-2xl"],
+    span[class*="text-3xl"] {
       color: var(--app-text) !important;
     }
   }
@@ -612,11 +1258,19 @@ html[data-theme*="dark"] {
   .card-blocked .card-value { color: var(--app-text) !important; }
 }
 
-/* Serif heading utility */
-.font-heading {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  font-style: normal;
+/* System heading & title typography */
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-secondary, var(--font-serif));
+}
+
+html[data-ui="modern"] h1,
+html[data-ui="modern"] h2,
+html[data-ui="modern"] h3,
+html[data-ui="modern"] h4,
+html[data-ui="modern"] h5,
+html[data-ui="modern"] h6,
+html[data-ui="modern"] .font-heading {
+  font-family: var(--font-secondary, var(--font-primary, var(--font-sans))) !important;
 }
 
 /* ─── Corner bracket flourish ─── */
@@ -1033,25 +1687,40 @@ html[data-theme*="dark"] {
 
 /* ─── Range Slider Theme ─── */
 input[type="range"] {
-  accent-color: #1A1A1A;
+  accent-color: var(--color-accent);
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 2px;
-  background: #1A1A1A;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-accent);
   cursor: pointer;
-  border: 1px solid #1A1A1A;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 input[type="range"]::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 2px;
-  background: #1A1A1A;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-accent);
   cursor: pointer;
-  border: 1px solid #1A1A1A;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+html[data-ui="editorial"] input[type="range"]::-webkit-slider-thumb,
+html:not([data-ui="modern"]) input[type="range"]::-webkit-slider-thumb {
+  border-radius: 2px;
+  border: 1px solid var(--app-text);
+  background: var(--app-text);
+}
+html[data-ui="editorial"] input[type="range"]::-moz-range-thumb,
+html:not([data-ui="modern"]) input[type="range"]::-moz-range-thumb {
+  border-radius: 2px;
+  border: 1px solid var(--app-text);
+  background: var(--app-text);
 }
 
 /* ─── Font-Size Overrides for Dynamic Scaling ─── */
@@ -1064,7 +1733,9 @@ input[type="range"]::-moz-range-thumb {
 .text-\[10px\] { font-size: calc(10px * var(--font-scale, 1.25)) !important; }
 .text-\[10\.5px\] { font-size: calc(10.5px * var(--font-scale, 1.25)) !important; }
 .text-\[11px\] { font-size: calc(11px * var(--font-scale, 1.25)) !important; }
+.text-\[11\.5px\] { font-size: calc(11.5px * var(--font-scale, 1.25)) !important; }
 .text-\[12px\] { font-size: calc(12px * var(--font-scale, 1.25)) !important; }
+.text-\[12\.5px\] { font-size: calc(12.5px * var(--font-scale, 1.25)) !important; }
 .text-\[13px\] { font-size: calc(13px * var(--font-scale, 1.25)) !important; }
 .text-\[13\.5px\] { font-size: calc(13.5px * var(--font-scale, 1.25)) !important; }
 .text-\[14px\] { font-size: calc(14px * var(--font-scale, 1.25)) !important; }
@@ -1083,6 +1754,10 @@ input[type="range"]::-moz-range-thumb {
 .text-\[26px\] { font-size: calc(26px * var(--font-scale, 1.25)) !important; }
 .text-\[28px\] { font-size: calc(28px * var(--font-scale, 1.25)) !important; }
 .text-\[30px\] { font-size: calc(30px * var(--font-scale, 1.25)) !important; }
+.text-\[32px\] { font-size: calc(32px * var(--font-scale, 1.25)) !important; }
+.text-\[36px\] { font-size: calc(36px * var(--font-scale, 1.25)) !important; }
+.text-\[40px\] { font-size: calc(40px * var(--font-scale, 1.25)) !important; }
+.text-\[48px\] { font-size: calc(48px * var(--font-scale, 1.25)) !important; }
 
 .text-xs { font-size: calc(12px * var(--font-scale, 1.25)) !important; }
 .text-sm { font-size: calc(14px * var(--font-scale, 1.25)) !important; }
@@ -1091,6 +1766,9 @@ input[type="range"]::-moz-range-thumb {
 .text-xl { font-size: calc(20px * var(--font-scale, 1.25)) !important; }
 .text-2xl { font-size: calc(24px * var(--font-scale, 1.25)) !important; }
 .text-3xl { font-size: calc(30px * var(--font-scale, 1.25)) !important; }
+.text-4xl { font-size: calc(36px * var(--font-scale, 1.25)) !important; }
+.text-5xl { font-size: calc(48px * var(--font-scale, 1.25)) !important; }
+.text-6xl { font-size: calc(60px * var(--font-scale, 1.25)) !important; }
 
 /* React Flow Controls Theme Overrides */
 .react-flow__controls {

@@ -299,7 +299,7 @@ export default function KnowledgePage() {
                     </div>
 
                     {/* List Section Controls: Count on left, Sort + View Switcher on right */}
-                    <div className="px-3 py-2 border-b border-[#E5E5E3] bg-[#FAFAF9] flex items-center justify-between gap-2">
+                    <div className="px-3 py-2 border-b border-[#E5E5E3] bg-white flex items-center justify-between gap-2">
                         <span className="text-[10px] text-[#888883] font-medium capitalize">
                             {isLoading ? "…" : `${articles.length} article${articles.length !== 1 ? "s" : ""}`}
                         </span>
@@ -390,17 +390,17 @@ export default function KnowledgePage() {
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* ── Top Bar Tab Navigation (Tabs View Mode) ── */}
                 {viewMode === "tabs" && (
-                    <div className="border-b border-[#E5E5E3] bg-[#FAFAF9] px-3 py-2 flex items-center justify-between gap-3 shrink-0">
+                    <div className="border-b border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FFFFFF)] px-4 py-2 flex items-center justify-between gap-3 shrink-0">
                         {/* Horizontal Article Tabs Container */}
-                        <div className="flex-1 flex items-center gap-1 overflow-x-auto scrollbar-none min-w-0">
+                        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto scrollbar-none min-w-0">
                             {paginatedArticles.map((a) => (
                                 <button
                                     key={a.id}
                                     onClick={() => handleSelect(a)}
-                                    className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center cursor-pointer shrink-0 max-w-[170px] truncate ${
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-[var(--radius-sm,4px)] transition-all flex items-center cursor-pointer shrink-0 max-w-[180px] truncate ${
                                         selected?.id === a.id
-                                            ? "bg-white text-[#1A1A1A] border border-[#E5E5E3] corner-brackets-4 shadow-xs font-semibold"
-                                            : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#EBEBE8] border border-transparent"
+                                            ? "bg-[var(--app-select-bg,#EEF0FF)] text-[var(--app-text,#1A1A1A)] font-semibold border border-[var(--app-border-strong,#D4D4DC)] shadow-3xs"
+                                            : "text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-hover-bg,#F0F0F7)] border border-transparent"
                                     }`}
                                 >
                                     <span className="truncate">{a.title || "Untitled Article"}</span>
@@ -409,14 +409,14 @@ export default function KnowledgePage() {
                             <button
                                 onClick={handleNew}
                                 title="New Article"
-                                className="relative corner-brackets-4 p-1.5 border border-[#E5E5E3] rounded-[2px] bg-white text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors cursor-pointer shrink-0 ml-1"
+                                className="h-7 w-7 border border-[var(--app-border,#E5E5E3)] hover:border-[var(--color-accent,#8B5CF6)] rounded-[var(--radius-sm,4px)] bg-[var(--app-card,#FFFFFF)] text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-hover-bg,#F0F0F7)] transition-colors cursor-pointer shrink-0 flex items-center justify-center ml-0.5"
                             >
                                 <Plus className="w-3.5 h-3.5" />
                             </button>
                         </div>
 
                         {/* Controls: Sort Dropdown + View Switcher */}
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-2 shrink-0">
                             <CustomSelect
                                 options={SORT_OPTIONS}
                                 value={sortBy}
@@ -424,13 +424,13 @@ export default function KnowledgePage() {
                                     setSortBy(val as SortOption);
                                     setCurrentPage(1);
                                 }}
-                                className="h-[28px] text-[10px] w-28"
-                                buttonClassName="h-[28px] py-0 text-[10px]"
+                                className="h-7 text-[11px] w-32"
+                                buttonClassName="h-7 py-0 text-[11px] border border-[var(--app-border,#E5E5E3)] rounded-[var(--radius-sm,4px)]"
                             />
                             <button
                                 onClick={toggleViewMode}
                                 title="Switch to Left Sidebar Rail view"
-                                className="h-[28px] w-[28px] relative corner-brackets-4 border border-[#E5E5E3] rounded-[2px] bg-white text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                                className="h-7 w-7 border border-[var(--app-border,#E5E5E3)] hover:border-[var(--app-border-strong,#D4D4DC)] rounded-[var(--radius-sm,4px)] bg-[var(--app-card,#FFFFFF)] text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-hover-bg,#F0F0F7)] transition-colors cursor-pointer flex items-center justify-center shrink-0"
                             >
                                 <PanelLeft className="w-3.5 h-3.5" />
                             </button>
@@ -454,7 +454,7 @@ export default function KnowledgePage() {
                                 className="text-[14px] font-semibold text-[#1A1A1A] bg-transparent border-0 outline-none placeholder-[#BBBBB8] min-w-0 disabled:cursor-not-allowed"
                                 style={{
                                     width: title ? `${Math.max(title.length, 12)}ch` : "14ch",
-                                    fontFamily: titleFont || "var(--font-instrument-serif), 'Times New Roman', Times, serif"
+                                    fontFamily: titleFont || "var(--font-secondary, var(--font-serif))"
                                 }}
                             />
                             {canEditArticle && (

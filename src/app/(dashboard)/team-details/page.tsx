@@ -99,85 +99,102 @@ export default function TeamDetailsPage() {
         return (
             <div 
                 key={user.id}
-                className="bg-[var(--app-card)] border border-[var(--app-border)] p-3.5 flex flex-col justify-between gap-2.5 rounded-[2px]"
+                className="group relative bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] p-4 flex flex-col items-center text-center justify-between gap-3 rounded-[var(--radius-card,4px)] transition-all hover:shadow-subtle"
             >
-                <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                        {user.avatarUrl ? (
-                            <img 
-                                src={user.avatarUrl} 
-                                alt={user.fullName}
-                                className="w-8 h-8 rounded-[3px] object-cover border border-[var(--app-border)] shrink-0"
-                            />
-                        ) : (
-                            <div className="w-8 h-8 bg-[var(--app-select-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-xs rounded-[3px] flex items-center justify-center shrink-0">
-                                {initials}
-                            </div>
-                        )}
-                        
-                        <div className="min-w-0">
-                            <h4 className="text-[12px] font-semibold text-[var(--app-text)] truncate">
-                                {user.fullName}
-                            </h4>
-                            <p className="text-[10px] text-[var(--app-muted)] truncate">
-                                {user.designation || "Team Contributor"}
-                            </p>
-                        </div>
-                    </div>
-
+                {/* Top Bar: Role Badge */}
+                <div className="w-full flex justify-end">
                     <span
-                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-[2px] border shrink-0 ${
+                        className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-[var(--radius-xs,2px)] border tracking-wide uppercase ${
                             role === "LEADER"
-                                ? "text-[#CB2431] bg-[#CB2431]/10 border-[#CB2431]/20"
+                                ? "text-[#CB2431] bg-[#CB2431]/10 border-[#CB2431]/20 dark:text-rose-400 dark:border-rose-400/20"
                                 : role === "OBSERVER"
-                                ? "text-[#B08800] bg-[#B08800]/10 border-[#B08800]/20"
-                                : "text-[#22863A] bg-[#22863A]/10 border-[#22863A]/20"
+                                ? "text-[#B08800] bg-[#B08800]/10 border-[#B08800]/20 dark:text-amber-400 dark:border-amber-400/20"
+                                : "text-[#22863A] bg-[#22863A]/10 border-[#22863A]/20 dark:text-emerald-400 dark:border-emerald-400/20"
                         }`}
                     >
                         {role}
                     </span>
                 </div>
 
-                <div className="border-t border-[var(--app-border)] pt-2 flex flex-col gap-1.5 text-[11px] text-[var(--app-muted)]">
-                    {user.bio && (
-                        <p className="text-[10px] italic text-[var(--app-text)] line-clamp-2">
-                            "{user.bio}"
-                        </p>
-                    )}
-                    
-                    <div className="flex items-center gap-1.5 text-[10px] truncate">
-                        <Mail className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                        <span className="truncate">{user.email}</span>
-                    </div>
-
-                    {(user.telegram || user.github || user.whatsapp) && (
-                        <div className="flex items-center gap-3 pt-1 text-[10px]">
-                            {user.github && (
-                                <a 
-                                    href={`https://github.com/${user.github.replace('@', '')}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="hover:text-[var(--app-text)] flex items-center gap-1 transition-colors"
-                                >
-                                    <GithubIcon className="w-3 h-3" />
-                                    <span>{user.github.replace('@', '')}</span>
-                                </a>
-                            )}
-                            {user.telegram && (
-                                <span className="flex items-center gap-1">
-                                    <MessageSquare className="w-3 h-3 text-sky-500" />
-                                    <span>{user.telegram}</span>
-                                </span>
-                            )}
-                            {user.whatsapp && (
-                                <span className="flex items-center gap-1">
-                                    <Phone className="w-3 h-3 text-emerald-500" />
-                                    <span>{user.whatsapp}</span>
-                                </span>
-                            )}
+                {/* Avatar */}
+                <div className="relative -mt-1 flex items-center justify-center">
+                    {user.avatarUrl ? (
+                        <img 
+                            src={user.avatarUrl} 
+                            alt={user.fullName}
+                            className="w-13 h-13 rounded-[var(--radius-card,6px)] object-cover border border-[var(--app-border)] shadow-3xs group-hover:scale-105 transition-transform"
+                        />
+                    ) : (
+                        <div className="w-13 h-13 bg-[var(--app-select-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-bold text-sm rounded-[var(--radius-card,6px)] flex items-center justify-center shadow-3xs group-hover:scale-105 transition-transform">
+                            {initials}
                         </div>
                     )}
                 </div>
+
+                {/* Name & Email (Secondary Text) */}
+                <div className="flex flex-col items-center w-full min-w-0 px-0.5">
+                    <h4 className="text-[13px] font-semibold text-[var(--app-text)] truncate w-full leading-tight">
+                        {user.fullName}
+                    </h4>
+                    <a 
+                        href={`mailto:${user.email}`}
+                        title={user.email}
+                        className="text-[11px] text-[var(--app-muted)] hover:text-[var(--app-text)] truncate w-full mt-1 transition-colors"
+                    >
+                        {user.email}
+                    </a>
+                    {user.designation && (
+                        <span className="text-[10px] text-[var(--app-muted)] opacity-75 truncate w-full mt-0.5">
+                            {user.designation}
+                        </span>
+                    )}
+                </div>
+
+                {/* Bio snippet if available */}
+                {user.bio && (
+                    <p className="text-[10px] italic text-[var(--app-muted)] line-clamp-2 px-1 leading-snug">
+                        "{user.bio}"
+                    </p>
+                )}
+
+                {/* Contact & Social Links */}
+                {(user.telegram || user.github || user.whatsapp) && (
+                    <div className="flex items-center justify-center gap-2 pt-2.5 mt-auto border-t border-[var(--app-border)] w-full text-[10px]">
+                        {user.github && (
+                            <a 
+                                href={`https://github.com/${user.github.replace('@', '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={`GitHub: ${user.github}`}
+                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] p-1 rounded transition-colors"
+                            >
+                                <GithubIcon className="w-3.5 h-3.5" />
+                            </a>
+                        )}
+                        {user.telegram && (
+                            <a 
+                                href={`https://t.me/${user.telegram.replace('@', '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={`Telegram: ${user.telegram}`}
+                                className="text-[var(--app-muted)] hover:text-sky-500 p-1 rounded transition-colors"
+                            >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                            </a>
+                        )}
+                        {user.whatsapp && (
+                            <a 
+                                href={`https://wa.me/${user.whatsapp.replace(/[^0-9]/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={`WhatsApp: ${user.whatsapp}`}
+                                className="text-[var(--app-muted)] hover:text-emerald-500 p-1 rounded transition-colors"
+                            >
+                                <Phone className="w-3.5 h-3.5" />
+                            </a>
+                        )}
+                    </div>
+                )}
             </div>
         );
     };
@@ -203,28 +220,28 @@ export default function TeamDetailsPage() {
 
             {/* Top Metrics Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-1 corner-brackets rounded-[2px]">
+                <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-1 corner-brackets rounded-[var(--radius-card,4px)]">
                     <span className="eyebrow">Assigned Tasks</span>
                     <span className="text-2xl font-heading text-[var(--app-text)]">
                         {totalTasks}
                     </span>
                 </div>
 
-                <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-1 corner-brackets rounded-[2px]">
+                <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-1 corner-brackets rounded-[var(--radius-card,4px)]">
                     <span className="eyebrow">Completion Rate</span>
                     <span className="text-2xl font-heading text-[var(--app-text)]">
                         {completionRate}%
                     </span>
                 </div>
 
-                <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-1 corner-brackets rounded-[2px]">
+                <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-1 corner-brackets rounded-[var(--radius-card,4px)]">
                     <span className="eyebrow">Active Pending</span>
                     <span className="text-2xl font-heading text-[var(--app-text)]">
                         {pendingCount}
                     </span>
                 </div>
 
-                <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-1 corner-brackets rounded-[2px]">
+                <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-1 corner-brackets rounded-[var(--radius-card,4px)]">
                     <span className="eyebrow">Avg Carry Over</span>
                     <span className="text-2xl font-heading text-[var(--app-text)]">
                         {averageCarryCount}
@@ -239,12 +256,12 @@ export default function TeamDetailsPage() {
                 <div className="lg:col-span-2 flex flex-col gap-5">
                     
                     {/* Leaders Group */}
-                    <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-3 corner-brackets rounded-[2px]">
+                    <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-3 corner-brackets rounded-[var(--radius-card,4px)]">
                         <h2 className="text-[13px] font-semibold text-[var(--app-text)]">
                             ▪ Leaders ({leaders.length})
                         </h2>
                         {leaders.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                                 {leaders.map((m) => renderMemberCard(m))}
                             </div>
                         ) : (
@@ -254,23 +271,23 @@ export default function TeamDetailsPage() {
 
                     {/* Observers Group */}
                     {observers.length > 0 && (
-                        <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-3 corner-brackets rounded-[2px]">
+                        <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-3 corner-brackets rounded-[var(--radius-card,4px)]">
                             <h2 className="text-[13px] font-semibold text-[var(--app-text)]">
                                 ▪ Observers ({observers.length})
                             </h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                                 {observers.map((m) => renderMemberCard(m))}
                             </div>
                         </div>
                     )}
 
                     {/* Members Group */}
-                    <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-3 corner-brackets rounded-[2px]">
+                    <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 flex flex-col gap-3 corner-brackets rounded-[var(--radius-card,4px)]">
                         <h2 className="text-[13px] font-semibold text-[var(--app-text)]">
                             ▪ Team Members ({members.length})
                         </h2>
                         {members.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                                 {members.map((m) => renderMemberCard(m))}
                             </div>
                         ) : (
