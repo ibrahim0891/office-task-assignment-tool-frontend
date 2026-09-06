@@ -35,10 +35,18 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
     const [newDesc, setNewDesc] = useState("");
     const [newAssigneeId, setNewAssigneeId] = useState("");
     const [newPriority, setNewPriority] = useState<string>("MEDIUM");
+    const [newStartDate, setNewStartDate] = useState(activeDateStr || getLocalDateString());
     const [newDueDate, setNewDueDate] = useState("");
     const [newIsRecurring, setNewIsRecurring] = useState(false);
     const [newRecurrence, setNewRecurrence] = useState("WEEKLY");
     const [isCreatingTask, setIsCreatingTask] = useState(false);
+
+    React.useEffect(() => {
+        if (isOpen) {
+            setNewStartDate(activeDateStr || getLocalDateString());
+            setNewDueDate("");
+        }
+    }, [isOpen, activeDateStr]);
 
     if (!isOpen) return null;
 
@@ -54,6 +62,11 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
             return;
         }
 
+        if (newStartDate && newDueDate && newStartDate > newDueDate) {
+            toast.error("Start date cannot be later than due date.");
+            return;
+        }
+
         setIsCreatingTask(true);
         try {
             await api.createTask({
@@ -64,7 +77,7 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
                 teamId: currentTeam.id,
                 createdById: currentUser.id,
                 assignedToId: newAssigneeId || undefined,
-                date: activeDateStr || getLocalDateString(),
+                date: newStartDate || activeDateStr || getLocalDateString(),
                 dueDate: newDueDate || undefined,
                 isRecurring: newIsRecurring,
                 recurrence: newIsRecurring ? newRecurrence : undefined,
@@ -200,13 +213,33 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                        <label className="eyebrow">Due Date</label>
-                        <CustomDatePicker
-                            value={newDueDate}
-                            onChange={(val) => setNewDueDate(val)}
-                            className="w-full"
-                        />
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="flex flex-col gap-1">
+                            <label className="eyebrow">Start Date</label>
+                            <CustomDatePicker
+                                value={newStartDate}
+                                maxDate={newDueDate || undefined}
+                                align="left"
+                                onChange={(val) => {
+                                    setNewStartDate(val);
+                                    if (newDueDate && val > newDueDate) {
+                                        setNewDueDate(val);
+                                    }
+                                }}
+                                className="w-full"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                            <label className="eyebrow">Due Date</label>
+                            <CustomDatePicker
+                                value={newDueDate}
+                                minDate={newStartDate || undefined}
+                                align="right"
+                                onChange={(val) => setNewDueDate(val)}
+                                className="w-full"
+                            />
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-2 pt-1">

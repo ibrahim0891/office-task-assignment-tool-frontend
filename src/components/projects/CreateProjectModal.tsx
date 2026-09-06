@@ -150,7 +150,14 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
                             <label className="eyebrow">Start Date *</label>
                             <CustomDatePicker
                                 value={startDate}
-                                onChange={(val) => setStartDate(val)}
+                                maxDate={endDate || undefined}
+                                align="left"
+                                onChange={(val) => {
+                                    setStartDate(val);
+                                    if (endDate && val > endDate) {
+                                        setEndDate(val);
+                                    }
+                                }}
                                 className="w-full"
                             />
                         </div>
@@ -159,6 +166,8 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
                             <label className="eyebrow">End Date *</label>
                             <CustomDatePicker
                                 value={endDate}
+                                minDate={startDate || undefined}
+                                align="right"
                                 onChange={(val) => setEndDate(val)}
                                 className="w-full"
                             />

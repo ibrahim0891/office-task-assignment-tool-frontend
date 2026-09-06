@@ -533,6 +533,10 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(taskData)
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to create task.');
+    }
     return res.json();
   },
 

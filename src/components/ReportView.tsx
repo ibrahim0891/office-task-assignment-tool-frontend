@@ -546,7 +546,14 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                                     </label>
                                                     <CustomDatePicker
                                                         value={tempCustomStart}
-                                                        onChange={(val) => setTempCustomStart(val)}
+                                                        maxDate={tempCustomEnd || undefined}
+                                                        align="left"
+                                                        onChange={(val) => {
+                                                            setTempCustomStart(val);
+                                                            if (tempCustomEnd && val > tempCustomEnd) {
+                                                                setTempCustomEnd(val);
+                                                            }
+                                                        }}
                                                         placeholder="Start date..."
                                                         className="w-full"
                                                     />
@@ -557,6 +564,8 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                                     </label>
                                                     <CustomDatePicker
                                                         value={tempCustomEnd}
+                                                        minDate={tempCustomStart || undefined}
+                                                        align="right"
                                                         onChange={(val) => setTempCustomEnd(val)}
                                                         placeholder="End date..."
                                                         className="w-full"
