@@ -193,9 +193,15 @@ export default function Sidebar({
                                 <h1 className="font-heading text-base font-bold tracking-tight text-[var(--app-text)] leading-tight">
                                     Office Task
                                 </h1>
-                                <p className="eyebrow text-[9px] text-[var(--app-muted)] leading-none mt-0.5">
-                                    Assignment Core
-                                </p>
+                                {process.env.NEXT_PUBLIC_SHOW_EARLY_RELEASE_TAG === 'true' ? (
+                                    <span className="text-[9px] font-semibold bg-[#CB2431]/10 text-[#CB2431] px-1.5 py-0.5 rounded-[3px] w-fit mt-1 leading-none uppercase tracking-wider">
+                                        Early Release
+                                    </span>
+                                ) : (
+                                    <p className="eyebrow text-[9px] text-[var(--app-muted)] leading-none mt-0.5">
+                                        Assignment Core
+                                    </p>
+                                )}
                             </div>
                         </div>
                     )}
