@@ -372,11 +372,21 @@ export default function ManageTeamsModal({
                                             currentTeam?.id === t.id;
                                         const isEditing =
                                             editingTeamId === t.id;
-                                        const isLeaderOfTeam = t.id === currentTeam?.id
-                                            ? (userRole === "LEADER")
-                                            : t.members?.find((m) => m.user.id === currentUser?.id)?.role === "LEADER";
-                                        const isCreatorOfTeam = t.createdById === currentUser?.id;
-                                        const canRenameTeam = isLeaderOfTeam || isCreatorOfTeam;
+                                        
+                                        // Determine current user's role and leader status for team t
+                                        const memberInThisTeam = t.members?.find((m: any) =>
+                                            (m.user?.id && m.user.id === currentUser?.id) ||
+                                            (m.userId && m.userId === currentUser?.id) ||
+                                            (m.id && m.id === currentUser?.id)
+                                        );
+                                        const roleInThisTeam = isCurrent
+                                            ? (userRole || "MEMBER").toUpperCase()
+                                            : ((memberInThisTeam?.role || "MEMBER") as string).toUpperCase();
+
+                                        const isCreatorOfTeam = Boolean(currentUser?.id && (t as any).createdById === currentUser.id);
+                                        const isLeaderOfTeam = roleInThisTeam === "LEADER" || isCreatorOfTeam;
+                                        const canRenameTeam = isLeaderOfTeam;
+                                        const canDeleteTeam = isLeaderOfTeam;
 
                                         return (
                                             <div
@@ -491,7 +501,7 @@ export default function ManageTeamsModal({
                                                                     <Edit2 className="w-3.5 h-3.5" />
                                                                 </button>
                                                             )}
-                                                            {isLeaderOfTeam ? (
+                                                            {canDeleteTeam ? (
                                                                 <button
                                                                     onClick={() => {
                                                                         setDeletingTeam(

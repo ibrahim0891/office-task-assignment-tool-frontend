@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Notification, Team } from "../api";
 import { Archive, Trash2, CheckCircle2, Clock, Loader2, Infinity as InfinityIcon } from "lucide-react";
+import { useWorkspace } from "../context/WorkspaceContext";
 
 interface NotificationsTrayProps {
     isOpen: boolean;
@@ -35,6 +37,8 @@ export default function NotificationsTray({
     onSelectTeam,
     teams = [],
 }: NotificationsTrayProps) {
+    const router = useRouter();
+    const { setIsManageInvitationsOpen, setIsManageFoldersOpen } = useWorkspace();
     const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
     const [shouldRender, setShouldRender] = useState(isOpen);
     const [isAnimatingOut, setIsAnimatingOut] = useState(false);
@@ -80,19 +84,61 @@ export default function NotificationsTray({
     };
 
     const getTypeBadge = (type: string) => {
+        if (type === "PROJECT_INVITATION" || type === "PROJECT_INVITATION_ACCEPTED") {
+            return "text-[#7C3AED] border-[#7C3AED]/20 bg-[#7C3AED]/10";
+        }
+        if (type.includes("PROJECT") && type.includes("COMMENT")) {
+            return "text-[#7C3AED] border-[#7C3AED]/20 bg-[#7C3AED]/10";
+        }
         switch (type) {
             case "NEED_ATTENTION":
                 return "text-[#CB2431] border-[#CB2431]/20";
             case "COMMENT_MENTION":
                 return "text-[#B08800] border-[#B08800]/20";
-            case "PROJECT_INVITATION":
-                return "text-[#7C3AED] border-[#7C3AED]/20 bg-[#7C3AED]/10";
             case "MEMBER_ADDED":
             case "MEMBER_INVITED":
                 return "text-[#D97706] border-[#D97706]/30 bg-[#FEF3C7]/40";
             default:
                 return "text-[#1A1A1A] border-[#E5E5E3]";
         }
+    };
+
+    const handleItemClick = (n: Notification) => {
+        const type = getNotificationType(n);
+        if (type === "PROJECT_INVITATION" || type === "PROJECT_INVITATION_ACCEPTED") {
+            router.push("/projects");
+            if (setIsManageFoldersOpen) setIsManageFoldersOpen(false);
+            if (setIsManageInvitationsOpen) setIsManageInvitationsOpen(true);
+            onClose();
+            if (!n.isRead) onMarkRead(n.id);
+            return;
+        }
+
+        const rawTaskId = n.taskId || "";
+        if (rawTaskId.startsWith("project:")) {
+            const parts = rawTaskId.split(":");
+            const projectId = parts[1];
+            const taskId = parts[3];
+            const subtaskId = parts[5];
+
+            if (projectId && taskId) {
+                const url = `/projects/${projectId}/tasks/${taskId}${subtaskId ? `?subtaskId=${subtaskId}&tab=comments` : `?tab=comments`}`;
+                router.push(url);
+                onClose();
+                if (!n.isRead) onMarkRead(n.id);
+                return;
+            } else if (projectId) {
+                router.push(`/projects/${projectId}`);
+                onClose();
+                if (!n.isRead) onMarkRead(n.id);
+                return;
+            }
+        }
+
+        if (n.taskId) {
+            onSelectTask(n.taskId, n.type === "COMMENT_MENTION" || n.type.includes("COMMENT") ? "comments" : "details");
+        }
+        if (!n.isRead) onMarkRead(n.id);
     };
 
     const currentList =
@@ -155,29 +201,37 @@ export default function NotificationsTray({
                     </div>
 
                     {/* Tabs */}
-                    <div className="flex border-b border-[#E5E5E3] text-[11px] font-medium">
+                    <div className="flex border-b border-[var(--app-border)] text-[11px] font-medium">
                         <button
                             onClick={() => setActiveTab("active")}
-                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${activeTab === "active"
-                                ? "border-[#1A1A1A] text-[#1A1A1A]"
-                                : "border-transparent text-[#888883] hover:text-[#1A1A1A]"
+                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${activeTab === "active"
+                                ? "border-[var(--app-text)] text-[var(--app-text)] font-semibold"
+                                : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]"
                                 }`}
                         >
-                            Inbox
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[#F5F5F3] border border-[#E5E5E3]">
+                            <span>Inbox</span>
+                            <span className={`px-1.5 py-0.2 rounded-[2px] text-[9px] border transition-colors tabular-nums ${
+                                activeTab === "active"
+                                    ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
+                                    : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
+                            }`}>
                                 {activeNotifications.length}
                             </span>
                         </button>
                         <button
                             onClick={() => setActiveTab("archived")}
-                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${activeTab === "archived"
-                                ? "border-[#1A1A1A] text-[#1A1A1A]"
-                                : "border-transparent text-[#888883] hover:text-[#1A1A1A]"
+                            className={`pb-2 px-3 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${activeTab === "archived"
+                                ? "border-[var(--app-text)] text-[var(--app-text)] font-semibold"
+                                : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]"
                                 }`}
                         >
                             <Archive className="w-3 h-3" />
-                            Archive (30d)
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-[#F5F5F3] border border-[#E5E5E3]">
+                            <span>Archive (30d)</span>
+                            <span className={`px-1.5 py-0.2 rounded-[2px] text-[9px] border transition-colors tabular-nums ${
+                                activeTab === "archived"
+                                    ? "bg-[var(--app-card)] border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold"
+                                    : "bg-[var(--app-bg)] border-[var(--app-border)] text-[var(--app-muted)] font-medium"
+                            }`}>
                                 {archivedNotifications.length}
                             </span>
                         </button>

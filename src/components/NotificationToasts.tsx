@@ -48,10 +48,13 @@ export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: 
     };
 
     const getTypeBadgeClass = (type: string) => {
-        if (type === "PROJECT_INVITATION") {
+        if (type === "PROJECT_INVITATION" || type === "PROJECT_INVITATION_ACCEPTED") {
             return "border-[#7C3AED]/30 text-[#7C3AED] bg-[#7C3AED]/10 font-bold";
         }
-        if (type === "TASK_ASSIGNED" || type === "TASK_REASSIGNED" || type === "TASK_CREATED") {
+        if (type.includes("PROJECT") && type.includes("COMMENT")) {
+            return "border-[#7C3AED]/30 text-[#7C3AED] bg-[#7C3AED]/10 font-bold";
+        }
+        if (type === "TASK_ASSIGNED" || type === "TASK_REASSIGNED" || type === "TASK_CREATED" || type.includes("ASSIGNED")) {
             return "border-[var(--color-success)]/30 text-[var(--color-success)] bg-[var(--color-success)]/10 font-bold";
         }
         if (type === "MEMBER_ADDED" || type === "MEMBER_INVITED" || type === "ROLE_UPDATED") {
@@ -64,6 +67,43 @@ export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: 
             return "border-[var(--color-error)]/30 text-[var(--color-error)] bg-[var(--color-error)]/10 font-bold";
         }
         return "border-[var(--app-border)] text-[var(--app-muted)] bg-[var(--app-bg)]";
+    };
+
+    const handleNotificationClick = (n: any) => {
+        const type = getNotificationType(n);
+        const isProjectInvitation = type === "PROJECT_INVITATION" || type === "PROJECT_INVITATION_ACCEPTED";
+
+        if (isProjectInvitation) {
+            router.push("/projects");
+            if (setIsManageFoldersOpen) setIsManageFoldersOpen(false);
+            if (setIsManageInvitationsOpen) setIsManageInvitationsOpen(true);
+            return;
+        }
+
+        const rawTaskId = n.taskId || "";
+
+        if (rawTaskId.startsWith("project:")) {
+            const parts = rawTaskId.split(":");
+            const projectId = parts[1];
+            const taskId = parts[3];
+            const subtaskId = parts[5];
+
+            if (projectId && taskId) {
+                const url = `/projects/${projectId}/tasks/${taskId}${subtaskId ? `?subtaskId=${subtaskId}&tab=comments` : `?tab=comments`}`;
+                router.push(url);
+                return;
+            } else if (projectId) {
+                router.push(`/projects/${projectId}`);
+                return;
+            }
+        }
+
+        if (n.taskId && onSelectTask) {
+            onSelectTask(
+                n.taskId,
+                n.type === "COMMENT_MENTION" || (n.type && n.type.includes("COMMENT")) ? "comments" : "details"
+            );
+        }
     };
 
     return (
@@ -83,29 +123,7 @@ export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: 
                     <div
                         key={toast.id}
                         onClick={() => {
-                            if (isProjectInvitation) {
-                                router.push("/projects");
-                                if (setIsManageFoldersOpen) setIsManageFoldersOpen(false);
-                                if (setIsManageInvitationsOpen) setIsManageInvitationsOpen(true);
-                            } else if (isTeamNotification) {
-                                const targetTeam = teams.find((t) => {
-                                    if (toast.notification.teamId && t.id === toast.notification.teamId) return true;
-                                    if (toast.notification.content) {
-                                        const match = toast.notification.content.match(/["']([^"']+)["']/);
-                                        if (match && t.name.toLowerCase() === match[1].toLowerCase()) return true;
-                                        if (toast.notification.content.toLowerCase().includes(t.name.toLowerCase())) return true;
-                                    }
-                                    return false;
-                                });
-                                if (targetTeam) {
-                                    setCurrentTeam(targetTeam);
-                                }
-                            } else if (toast.notification.taskId && onSelectTask) {
-                                onSelectTask(
-                                    toast.notification.taskId,
-                                    toast.notification.type === "COMMENT_MENTION" ? "comments" : "details"
-                                );
-                            }
+                            handleNotificationClick(toast.notification);
                             onDismiss(toast.id);
                         }}
                         className={`pointer-events-auto w-full bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] px-4 py-3.5 shadow-md flex items-start gap-3 relative select-none corner-brackets animate-slide-in hover:border-[var(--app-border-strong)] transition-colors ${
@@ -119,7 +137,7 @@ export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: 
                         <div className="flex-1 flex flex-col gap-1 text-left">
                             <div className="flex items-center justify-between">
                                 <span className={`px-1.5 py-0.5 rounded-[2px] text-[9px] font-medium border ${getTypeBadgeClass(type)}`}>
-                                    {type.replace("_", " ")}
+                                    {type.replace(/_/g, " ")}
                                 </span>
                                 <span className="text-[10px] text-[var(--app-muted)]">Just now</span>
                             </div>

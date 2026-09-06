@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, CheckCircle2, Circle, AlertTriangle, User, Calendar, Plus, Clock, ShieldAlert } from "lucide-react";
 import type { MockSuperTask, MockSubtask, MockProject } from "./mockProjectData";
+import { calculateDaySpan, formatDaySpan } from "../../utils/date";
 
 function getInitials(name: string) {
     return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -140,7 +141,7 @@ export default function ProjectTaskModal({ task, project, isOpen, onClose }: Pro
                                 <Clock className="w-3 h-3" /> Estimated Span
                             </span>
                             <span className="font-medium text-[var(--app-text)]">
-                                {task.estimatedDays} days
+                                {formatDaySpan(task.estimatedDays || calculateDaySpan(task.startDate, task.dueDate))}
                             </span>
                         </div>
                         <div className="p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] flex flex-col gap-1 sm:col-span-2">

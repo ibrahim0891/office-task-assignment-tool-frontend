@@ -7,6 +7,7 @@ interface EmojiPickerProps {
     value: string;
     onChange: (emoji: string) => void;
     disabled?: boolean;
+    buttonClassName?: string;
 }
 
 interface FetchedEmoji {
@@ -53,7 +54,12 @@ const formatCategoryName = (name: string) => {
         .join(" ");
 };
 
-export function EmojiPicker({ value = "🧑‍💻", onChange, disabled = false }: EmojiPickerProps) {
+export function EmojiPicker({
+    value = "🧑‍💻",
+    onChange,
+    disabled = false,
+    buttonClassName,
+}: EmojiPickerProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [fetchedCategories, setFetchedCategories] = useState<Record<string, string[]>>({});
@@ -194,7 +200,7 @@ export function EmojiPicker({ value = "🧑‍💻", onChange, disabled = false 
                 type="button"
                 disabled={disabled}
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-[46px] h-[46px] rounded-[2px] border border-[var(--app-border)] bg-[var(--app-card)] hover:border-[var(--color-accent)] hover:bg-[var(--app-hover-bg)] flex items-center justify-center text-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed relative corner-brackets-4 emoji-font"
+                className={`rounded-[2px] border border-[var(--app-border)] bg-[var(--app-card)] hover:border-[var(--color-accent)] hover:bg-[var(--app-hover-bg)] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed relative emoji-font ${buttonClassName || "w-[46px] h-[46px] text-lg corner-brackets-4"}`}
             >
                 {value}
             </button>

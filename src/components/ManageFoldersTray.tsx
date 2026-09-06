@@ -6,6 +6,7 @@ import { Folder, FolderPlus, Trash2, Edit2, Check, X, Loader2 } from "lucide-rea
 import { api } from "../api";
 import toast from "react-hot-toast";
 import { EmojiPicker } from "./ui/EmojiPicker";
+import { CustomSelect } from "./ui/CustomSelect";
 
 interface ManageFoldersTrayProps {
     isOpen: boolean;
@@ -119,7 +120,7 @@ export default function ManageFoldersTray({ isOpen, onClose }: ManageFoldersTray
                 <div className="p-4 border-b border-[var(--app-border)] flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2">
                         <Folder className="w-4 h-4 text-[var(--app-text)] shrink-0" />
-                        <h2 className="font-heading text-xs font-semibold text-[var(--app-text)]">Manage Folders</h2>
+                        <h2 className="text-xs font-semibold text-[var(--app-text)]">Manage Folders</h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -226,7 +227,7 @@ export default function ManageFoldersTray({ isOpen, onClose }: ManageFoldersTray
                                         ) : (
                                             <div className="flex items-center gap-2 min-w-0 flex-1">
                                                 <span className="text-base shrink-0 emoji-font">{folder.emoji || "📁"}</span>
-                                                <span className="font-heading text-xs font-semibold truncate text-[var(--app-text)]">
+                                                <span className="text-xs font-semibold truncate text-[var(--app-text)]">
                                                     {folder.name}
                                                 </span>
                                                 {isDefault && (
@@ -287,32 +288,33 @@ export default function ManageFoldersTray({ isOpen, onClose }: ManageFoldersTray
                                                         </span>
                                                     </div>
 
-                                                    {/* Move Dropdown */}
+                                                    {/* Move Dropdown using CustomSelect */}
                                                     {isLeader && (
                                                         <div className="flex items-center gap-1 shrink-0 relative">
                                                             {movingProjectId === project.id ? (
-                                                                <Loader2 className="w-3 h-3 animate-spin text-[var(--app-muted)]" />
+                                                                <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--app-muted)]" />
                                                             ) : (
-                                                                <select
+                                                                <CustomSelect
+                                                                    options={folders.map((f) => ({
+                                                                        value: f.id,
+                                                                        label: `${f.emoji || "📁"} ${f.name}`,
+                                                                        sublabel: f.id === folder.id ? "Current" : undefined,
+                                                                    }))}
                                                                     value={folder.id}
-                                                                    onChange={(e) =>
-                                                                        handleMoveProject(
-                                                                            project.id,
-                                                                            e.target.value
-                                                                        )
-                                                                    }
-                                                                    className="text-[9px] font-semibold text-[var(--app-muted)] hover:text-[var(--app-text)] bg-transparent border-none outline-none cursor-pointer max-w-[80px] focus:ring-0 select-none"
-                                                                >
-                                                                    {folders.map((f) => (
-                                                                        <option
-                                                                            key={f.id}
-                                                                            value={f.id}
-                                                                            disabled={f.id === folder.id}
-                                                                        >
-                                                                            Move to: {f.name}
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
+                                                                    onChange={(targetFolderId) => {
+                                                                        if (targetFolderId !== folder.id) {
+                                                                            handleMoveProject(project.id, targetFolderId);
+                                                                        }
+                                                                    }}
+                                                                    placeholder="Move to..."
+                                                                    renderSelected={() => (
+                                                                        <span className="text-[10px] font-medium text-[var(--app-muted)] hover:text-[var(--app-text)] truncate max-w-[85px]">
+                                                                            Move: {folder.name}
+                                                                        </span>
+                                                                    )}
+                                                                    buttonClassName="corner-brackets-4 text-[10px] h-[24px] !py-0 px-2 bg-[var(--app-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
+                                                                    className="w-32 h-[24px] shrink-0"
+                                                                />
                                                             )}
                                                         </div>
                                                     )}

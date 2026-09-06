@@ -3,11 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { ArrowRightLeft, CalendarClock, RotateCcw, Loader2 } from "lucide-react";
 import { api } from "../../api";
-
-function getInitials(name: string) {
-    if (!name) return "";
-    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-}
+import { useProjectAnalytics } from "../../hooks/useProjectSWR";
+import { UserAvatar } from "../ui/UserAvatar";
 
 function getUtilizationCell(val: number) {
     if (val <= 0) return { bg: "bg-[var(--app-bg)]", text: "text-[var(--app-muted)]", label: "—" };
@@ -21,27 +18,9 @@ interface ProjectAnalyticsViewProps {
 }
 
 export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewProps) {
-    const [analytics, setAnalytics] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+    const { analytics, isLoading } = useProjectAnalytics(project?.id);
 
-    const loadAnalytics = async () => {
-        if (!project?.id) return;
-        setLoading(true);
-        try {
-            const data = await api.getProjectAnalytics(project.id);
-            setAnalytics(data);
-        } catch (err) {
-            console.error("Failed to load project analytics:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadAnalytics();
-    }, [project?.id]);
-
-    if (loading) {
+    if (isLoading && !analytics) {
         return (
             <div className="flex-1 flex items-center justify-center p-8">
                 <Loader2 className="w-6 h-6 animate-spin text-[var(--app-muted)]" />
@@ -72,10 +51,10 @@ export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewPr
     return (
         <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5 select-none">
             {/* KPI Stats Row */}
-            <div className="corner-brackets grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--app-border)] border border-[var(--app-border)]">
+            <div className="corner-brackets grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--app-border)] border border-[var(--app-border)] rounded-[3px] overflow-hidden">
                 <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
                     <span className="eyebrow">Completion</span>
-                    <span className="text-2xl font-heading text-[var(--app-text)]">
+                    <span className="text-2xl font-bold tracking-tight text-[var(--app-text)] tabular-nums">
                         {completionPct}%
                     </span>
                     <span className="text-[9px] text-[var(--app-muted)]">
@@ -84,7 +63,7 @@ export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewPr
                 </div>
                 <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
                     <span className="eyebrow">Subtask Progress</span>
-                    <span className="text-2xl font-heading text-[var(--app-text)]">
+                    <span className="text-2xl font-bold tracking-tight text-[var(--app-text)] tabular-nums">
                         {totalSubtasks > 0 ? Math.round((doneSubtasks / totalSubtasks) * 100) : 0}%
                     </span>
                     <span className="text-[9px] text-[var(--app-muted)]">
@@ -92,21 +71,21 @@ export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewPr
                     </span>
                 </div>
                 <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
-                    <span className="eyebrow">SLA Incidents</span>
-                    <span className={`text-2xl font-heading ${incidents.length > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"}`}>
+                    <span className="eyebrow">Overdue Alerts</span>
+                    <span className={`text-2xl font-bold tracking-tight tabular-nums ${incidents.length > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"}`}>
                         {incidents.length}
                     </span>
                     <span className="text-[9px] text-[var(--app-muted)]">
-                        active incidents
+                        delayed tasks
                     </span>
                 </div>
                 <div className="bg-[var(--app-card)] p-4 flex flex-col gap-1">
                     <span className="eyebrow">Rework Rate</span>
-                    <span className={`text-2xl font-heading ${reworkRate > 0 ? "text-[var(--color-warning)]" : "text-[var(--app-text)]"}`}>
+                    <span className={`text-2xl font-bold tracking-tight tabular-nums ${reworkRate > 0 ? "text-[var(--color-warning)]" : "text-[var(--app-text)]"}`}>
                         {reworkRate}%
                     </span>
                     <span className="text-[9px] text-[var(--app-muted)]">
-                        {reworkRate}% tasks reworked
+                        carry-over tasks
                     </span>
                 </div>
             </div>
@@ -118,7 +97,7 @@ export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewPr
                         <h2 className="text-[13px] font-semibold text-[var(--app-text)]">
                             ▪ Team Capacity Heatmap
                         </h2>
-                        <p className="text-base text-[var(--app-muted)] mt-0.5">
+                        <p className="text-xs text-[var(--app-muted)] mt-0.5">
                             Daily utilization across the next 7 working days
                         </p>
                     </div>
@@ -141,9 +120,12 @@ export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewPr
                                     <tr key={member.userId} className="border-b border-[var(--app-border)]/50 hover:bg-[var(--app-card)] transition-colors">
                                         <td className="py-2.5 px-3">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[8px] font-semibold">
-                                                    {getInitials(member.user?.name || "")}
-                                                </div>
+                                                <UserAvatar
+                                                    name={member.user?.name || "User"}
+                                                    avatarUrl={member.user?.avatarUrl}
+                                                    size="sm"
+                                                    title={member.user?.name}
+                                                />
                                                 <div>
                                                     <div className="font-semibold text-[var(--app-text)]">{member.user?.name}</div>
                                                     <div className="text-[9px] text-[var(--app-muted)] mt-0.5">{member.role}</div>
@@ -154,7 +136,7 @@ export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewPr
                                             const cell = getUtilizationCell(d.utilization);
                                             return (
                                                 <td key={d.date} className="py-2.5 px-2 text-center">
-                                                    <div className={`py-1 rounded-[2px] font-mono font-medium ${cell.bg} ${cell.text}`}>
+                                                    <div className={`py-1 rounded-[2px] font-medium text-[11px] tabular-nums ${cell.bg} ${cell.text}`}>
                                                         {cell.label}
                                                     </div>
                                                 </td>
@@ -190,10 +172,10 @@ export default function ProjectAnalyticsView({ project }: ProjectAnalyticsViewPr
                 <div className="relative bg-[var(--app-card)] border border-[var(--app-border)] corner-brackets rounded-[2px] p-4 flex flex-col gap-3">
                     <div>
                         <h2 className="text-[13px] font-semibold text-[var(--color-error)]">
-                            ▪ Need Attention — Incidents
+                            ▪ Need Attention — Delayed Tasks
                         </h2>
                         <p className="text-base text-[var(--app-muted)] mt-0.5">
-                            Tasks exceeding SLA thresholds requiring leader action.
+                            Tasks past their deadline requiring leader attention.
                         </p>
                     </div>
 

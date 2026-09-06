@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Search, ChevronDown, Check } from "lucide-react";
+import { UserAvatar } from "./UserAvatar";
 
 export interface SelectOption {
     value: string;
@@ -121,23 +122,13 @@ export function CustomSelect({
             >
                 {selectedOpt ? (
                     <div className="flex items-center gap-1.5 min-w-0">
-                        {selectedOpt.avatarUrl !== undefined &&
-                            (selectedOpt.avatarUrl ? (
-                                <img
-                                    src={selectedOpt.avatarUrl}
-                                    alt={selectedOpt.label}
-                                    className="w-4 h-4 rounded-[2px] object-cover border border-[var(--app-border)] shrink-0"
-                                />
-                            ) : (
-                                <div className="w-4 h-4 rounded-[2px] border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[7px] font-bold text-[var(--app-text)] shrink-0">
-                                    {selectedOpt.label
-                                        .split(" ")
-                                        .map((n) => n[0])
-                                        .join("")
-                                        .toUpperCase()
-                                        .slice(0, 2)}
-                                </div>
-                            ))}
+                        {selectedOpt.avatarUrl !== undefined && (
+                            <UserAvatar
+                                name={selectedOpt.label}
+                                avatarUrl={selectedOpt.avatarUrl}
+                                size="xs"
+                            />
+                        )}
                         {renderSelected ? (
                             renderSelected(selectedOpt)
                         ) : (
@@ -178,7 +169,7 @@ export function CustomSelect({
                                 : "auto",
                             minWidth: `${coords.width}px`,
                             maxWidth: "280px",
-                            zIndex: 99999,
+                            zIndex: 1000000,
                             boxShadow: "var(--shadow-float)",
                         }}
                         className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-1 flex flex-col gap-1 animate-fade-in text-left select-none text-[var(--app-text)] corner-brackets shadow-2xl"
@@ -220,27 +211,13 @@ export function CustomSelect({
                                             }`}
                                         >
                                             <div className="flex items-center gap-1.5 min-w-0">
-                                                {opt.avatarUrl !== undefined &&
-                                                    (opt.avatarUrl ? (
-                                                        <img
-                                                            src={
-                                                                opt.avatarUrl
-                                                            }
-                                                            alt={opt.label}
-                                                            className="w-4 h-4 rounded-[2px] object-cover border border-[var(--app-border)] shrink-0"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-4 h-4 rounded-[2px] border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[7px] font-bold text-[var(--app-text)] shrink-0">
-                                                            {opt.label
-                                                                .split(" ")
-                                                                .map(
-                                                                    (n) => n[0],
-                                                                )
-                                                                .join("")
-                                                                .toUpperCase()
-                                                                .slice(0, 2)}
-                                                        </div>
-                                                    ))}
+                                                {opt.avatarUrl !== undefined && (
+                                                    <UserAvatar
+                                                        name={opt.label}
+                                                        avatarUrl={opt.avatarUrl}
+                                                        size="xs"
+                                                    />
+                                                )}
                                                 <div className="min-w-0">
                                                     <span
                                                         className="block truncate"

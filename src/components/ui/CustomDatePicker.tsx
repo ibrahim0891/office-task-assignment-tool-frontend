@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
     Calendar as CalendarIcon,
     ChevronLeft,
@@ -13,6 +14,7 @@ interface CustomDatePickerProps {
     onChange: (value: string) => void;
     placeholder?: string;
     className?: string;
+    buttonClassName?: string;
     disabled?: boolean;
     minDate?: string;
     maxDate?: string;
@@ -24,24 +26,63 @@ export function CustomDatePicker({
     onChange,
     placeholder = "Select date...",
     className = "",
+    buttonClassName = "",
     disabled = false,
     minDate,
     maxDate,
     align = "right",
 }: CustomDatePickerProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [openUpward, setOpenUpward] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const [coords, setCoords] = useState<{
+        top: number;
+        left: number;
+        openUp: boolean;
+    }>({
+        top: 0,
+        left: 0,
+        openUp: false,
+    });
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const isDateDisabled = (dateStr: string) => {
+        if (minDate && dateStr < minDate) return true;
+        if (maxDate && dateStr > maxDate) return true;
+        return false;
+    };
+
+    const CALENDAR_WIDTH = 288;
+    const CALENDAR_HEIGHT = 330;
+
+    const updateCoords = () => {
+        if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const openUp = spaceBelow < CALENDAR_HEIGHT && rect.top > CALENDAR_HEIGHT;
+
+            // Preferred left alignment with trigger
+            let left = rect.left;
+            // If overflowing the right side of viewport, align to trigger's right edge
+            if (left + CALENDAR_WIDTH > window.innerWidth - 12) {
+                left = rect.right - CALENDAR_WIDTH;
+            }
+            // If left is pushed too far left off-screen, clamp to 12px
+            if (left < 12) {
+                left = 12;
+            }
+
+            setCoords({
+                top: openUp ? rect.top : rect.bottom,
+                left,
+                openUp,
+            });
+        }
+    };
 
     const toggleOpen = () => {
-        if (!isOpen && containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
-            const spaceBelow = window.innerHeight - rect.bottom;
-            if (spaceBelow < 320 && rect.top > 320) {
-                setOpenUpward(true);
-            } else {
-                setOpenUpward(false);
-            }
+        if (disabled) return;
+        if (!isOpen) {
+            updateCoords();
         }
         setIsOpen((prev) => !prev);
     };
@@ -61,16 +102,31 @@ export function CustomDatePicker({
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (
-                containerRef.current &&
-                !containerRef.current.contains(e.target as Node)
+                triggerRef.current &&
+                !triggerRef.current.contains(e.target as Node) &&
+                dropdownRef.current &&
+                !dropdownRef.current.contains(e.target as Node)
             ) {
                 setIsOpen(false);
             }
         };
+
+        const handleScrollOrResize = () => {
+            if (isOpen) {
+                updateCoords();
+            }
+        };
+
         document.addEventListener("mousedown", handleClickOutside);
-        return () =>
+        window.addEventListener("scroll", handleScrollOrResize, true);
+        window.addEventListener("resize", handleScrollOrResize);
+
+        return () => {
             document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+            window.removeEventListener("scroll", handleScrollOrResize, true);
+            window.removeEventListener("resize", handleScrollOrResize);
+        };
+    }, [isOpen]);
 
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
@@ -149,7 +205,7 @@ export function CustomDatePicker({
           })
         : "";
 
-    const isTodayDisabled = Boolean((minDate && todayStr < minDate) || (maxDate && todayStr > maxDate));
+    const isTodayDisabled = isDateDisabled(todayStr);
 
     const handleSelectToday = () => {
         if (isTodayDisabled) return;
@@ -159,11 +215,9 @@ export function CustomDatePicker({
     };
 
     return (
-        <div
-            ref={containerRef}
-            className={`relative inline-block ${className}`}
-        >
+        <div className={`relative inline-block ${className}`}>
             <button
+                ref={triggerRef}
                 type="button"
                 disabled={disabled}
                 onClick={toggleOpen}
@@ -171,7 +225,7 @@ export function CustomDatePicker({
                     disabled
                         ? "opacity-50 cursor-not-allowed"
                         : "cursor-pointer"
-                }`}
+                } ${buttonClassName}`}
             >
                 <span className="truncate">
                     {formattedValue || placeholder}
@@ -179,138 +233,155 @@ export function CustomDatePicker({
                 <ChevronDown className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
             </button>
 
-            {isOpen && !disabled && (
-                <div
-                    className={`absolute ${align === "left" ? "left-0" : "right-0"} bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-3 z-[999999] w-72 text-[var(--app-text)] select-none shadow-2xl corner-brackets ${
-                        openUpward ? "bottom-full mb-1" : "top-full mt-1"
-                    }`}
-                    style={{ boxShadow: "var(--shadow-float)" }}
-                >
-                    {/* Today Button Header */}
-                    <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-[var(--app-border)]">
-                        <button
-                            type="button"
-                            onClick={handleSelectToday}
-                            disabled={isTodayDisabled}
-                            className={`text-[11px] font-medium text-[var(--app-text)] flex items-center gap-1.5 transition-opacity ${
-                                isTodayDisabled
-                                    ? "opacity-40 cursor-not-allowed"
-                                    : "hover:opacity-80 cursor-pointer"
-                            }`}
-                        >
-                            <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] inline-block ring-2 ring-[var(--color-accent)]/30"></span>
-                            <span>Today:{" "}
-                            {todayDate.toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                            })}</span>
-                        </button>
-                    </div>
-
-                    {/* Quick Month & Year Navigation with CustomSelect */}
-                    <div className="flex items-center justify-between gap-1 mb-2.5">
-                        <div className="flex items-center gap-1 flex-1 min-w-0">
-                            <CustomSelect
-                                options={monthOptions}
-                                value={month.toString()}
-                                onChange={(val) =>
-                                    setViewDate(
-                                        new Date(year, parseInt(val), 1),
-                                    )
-                                }
-                                className="w-28 text-[11px]"
-                            />
-
-                            <CustomSelect
-                                options={yearOptions}
-                                value={year.toString()}
-                                onChange={(val) =>
-                                    setViewDate(
-                                        new Date(parseInt(val), month, 1),
-                                    )
-                                }
-                                className="w-20 text-[11px]"
-                            />
-                        </div>
-
-                        <div className="flex items-center gap-1 shrink-0">
+            {isOpen &&
+                !disabled &&
+                typeof window !== "undefined" &&
+                createPortal(
+                    <div
+                        ref={dropdownRef}
+                        style={{
+                            position: "fixed",
+                            left: `${coords.left}px`,
+                            top: coords.openUp ? "auto" : `${coords.top + 4}px`,
+                            bottom: coords.openUp
+                                ? `${window.innerHeight - coords.top + 4}px`
+                                : "auto",
+                            width: "288px",
+                            zIndex: 1000000,
+                            boxShadow: "var(--shadow-float)",
+                        }}
+                        className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-3 text-[var(--app-text)] select-none shadow-2xl corner-brackets animate-fade-in text-left"
+                    >
+                        {/* Today Button Header */}
+                        <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-[var(--app-border)]">
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setViewDate(new Date(year, month - 1, 1))
-                                }
-                                className="p-1.5 border border-[var(--app-border)] bg-[var(--app-card)] rounded-[2px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] cursor-pointer transition-colors"
-                                title="Previous month"
+                                onClick={handleSelectToday}
+                                disabled={isTodayDisabled}
+                                className={`text-[11px] font-medium text-[var(--app-text)] flex items-center gap-1.5 transition-opacity ${
+                                    isTodayDisabled
+                                        ? "opacity-40 cursor-not-allowed"
+                                        : "hover:opacity-80 cursor-pointer"
+                                }`}
                             >
-                                <ChevronLeft className="w-3 h-3" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setViewDate(new Date(year, month + 1, 1))
-                                }
-                                className="p-1.5 border border-[var(--app-border)] bg-[var(--app-card)] rounded-[2px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] cursor-pointer transition-colors"
-                                title="Next month"
-                            >
-                                <ChevronRight className="w-3 h-3" />
+                                <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] inline-block ring-2 ring-[var(--color-accent)]/30"></span>
+                                <span>
+                                    Today:{" "}
+                                    {todayDate.toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                    })}
+                                </span>
                             </button>
                         </div>
-                    </div>
 
-                    {/* Day labels */}
-                    <div className="grid grid-cols-7 text-center mb-1">
-                        {daysOfWeek.map((d) => (
-                            <span
-                                key={d}
-                                className="text-[9px] font-medium text-[var(--app-muted)] capitalize"
-                            >
-                                {d}
-                            </span>
-                        ))}
-                    </div>
+                        {/* Quick Month & Year Navigation with CustomSelect */}
+                        <div className="flex items-center justify-between gap-1 mb-2.5">
+                            <div className="flex items-center gap-1 flex-1 min-w-0">
+                                <CustomSelect
+                                    options={monthOptions}
+                                    value={month.toString()}
+                                    onChange={(val) =>
+                                        setViewDate(
+                                            new Date(year, parseInt(val), 1)
+                                        )
+                                    }
+                                    className="w-28 text-[11px]"
+                                />
 
-                    {/* Grid */}
-                    <div className="grid grid-cols-7 gap-0.5 text-center">
-                        {calendarCells.map((cell, idx) => {
-                            const isSelected = cell.dateStr === value;
-                            const isTodayCell = cell.dateStr === todayStr;
-                            const isBeforeMin = minDate ? cell.dateStr < minDate : false;
-                            const isAfterMax = maxDate ? cell.dateStr > maxDate : false;
-                            const isCellDisabled = isBeforeMin || isAfterMax;
+                                <CustomSelect
+                                    options={yearOptions}
+                                    value={year.toString()}
+                                    onChange={(val) =>
+                                        setViewDate(
+                                            new Date(parseInt(val), month, 1)
+                                        )
+                                    }
+                                    className="w-20 text-[11px]"
+                                />
+                            </div>
 
-                            return (
+                            <div className="flex items-center gap-1 shrink-0">
                                 <button
-                                    key={idx}
                                     type="button"
-                                    disabled={isCellDisabled}
-                                    onClick={() => {
-                                        if (isCellDisabled) return;
-                                        onChange(cell.dateStr);
-                                        setIsOpen(false);
-                                    }}
-                                    className={`h-7 text-[11px] font-medium rounded-[2px] flex items-center justify-center transition-colors relative ${
-                                        isCellDisabled
-                                            ? "opacity-25 cursor-not-allowed text-[var(--app-muted)] line-through"
-                                            : isSelected
-                                            ? "bg-[var(--color-accent)] text-[var(--app-bg)] font-semibold shadow-xs cursor-pointer"
-                                            : isTodayCell
-                                              ? "border-2 border-[var(--color-accent)] text-[var(--color-accent)] font-bold bg-[var(--color-accent)]/15 shadow-xs cursor-pointer"
-                                              : cell.isCurrentMonth
+                                    onClick={() =>
+                                        setViewDate(
+                                            new Date(year, month - 1, 1)
+                                        )
+                                    }
+                                    className="p-1.5 border border-[var(--app-border)] bg-[var(--app-card)] rounded-[2px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] cursor-pointer transition-colors"
+                                    title="Previous month"
+                                >
+                                    <ChevronLeft className="w-3 h-3" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setViewDate(
+                                            new Date(year, month + 1, 1)
+                                        )
+                                    }
+                                    className="p-1.5 border border-[var(--app-border)] bg-[var(--app-card)] rounded-[2px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] cursor-pointer transition-colors"
+                                    title="Next month"
+                                >
+                                    <ChevronRight className="w-3 h-3" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Day labels */}
+                        <div className="grid grid-cols-7 text-center mb-1">
+                            {daysOfWeek.map((d) => (
+                                <span
+                                    key={d}
+                                    className="text-[9px] font-medium text-[var(--app-muted)] capitalize"
+                                >
+                                    {d}
+                                </span>
+                            ))}
+                        </div>
+
+                        {/* Grid */}
+                        <div className="grid grid-cols-7 gap-0.5 text-center">
+                            {calendarCells.map((cell, idx) => {
+                                const isSelected = cell.dateStr === value;
+                                const isTodayCell = cell.dateStr === todayStr;
+                                const isCellDisabled = isDateDisabled(cell.dateStr);
+
+                                return (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        disabled={isCellDisabled}
+                                        onClick={() => {
+                                            if (isCellDisabled) return;
+                                            onChange(cell.dateStr);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`h-7 text-[11px] font-medium rounded-[2px] flex items-center justify-center transition-colors relative ${
+                                            isCellDisabled
+                                                ? "opacity-25 cursor-not-allowed text-[var(--app-muted)] line-through pointer-events-none"
+                                                : isSelected
+                                                ? "bg-[var(--color-accent)] text-[var(--app-bg)] font-semibold shadow-xs cursor-pointer"
+                                                : isTodayCell
+                                                ? "border-2 border-[var(--color-accent)] text-[var(--color-accent)] font-bold bg-[var(--color-accent)]/15 shadow-xs cursor-pointer"
+                                                : cell.isCurrentMonth
                                                 ? "text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] cursor-pointer"
                                                 : "text-[var(--app-muted)]/40 hover:bg-[var(--app-hover-bg)]/40 cursor-pointer"
-                                    }`}
-                                >
-                                    {cell.dayNum}
-                                    {isTodayCell && !isSelected && !isCellDisabled && (
-                                        <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--color-accent)]" />
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
+                                        }`}
+                                    >
+                                        {cell.dayNum}
+                                        {isTodayCell && !isSelected && !isCellDisabled && (
+                                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--color-accent)]" />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>,
+                    document.body
+                )}
         </div>
     );
 }
