@@ -423,7 +423,7 @@ export default function WorkspaceShell({
                 />
 
                 {/* Page Content Slot */}
-                <div className="flex-1 flex flex-col overflow-hidden relative border border-[#E5E5E3] bg-white corner-brackets">
+                <div className="flex-1 flex flex-col overflow-hidden relative border border-[#E5E5E3] bg-white corner-brackets rounded-none">
                     {children}
                 </div>
             </main>

@@ -684,9 +684,9 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
             {/* ─── LOWER SECTION: LEFT MEMBER RAIL + RIGHT DATA CONTENT ─── */}
             <div className="flex-1 flex overflow-hidden">
                 {/* LEFT VERTICAL MEMBER RAIL */}
-                <aside className="w-16 sm:w-18 border-r border-[var(--app-border)] bg-[var(--app-card)] flex flex-col shrink-0 overflow-hidden select-none print:hidden">
+                <aside className="w-16 sm:w-18 border-r border-[var(--app-border)] bg-[var(--app-card)] flex flex-col shrink-0 select-none print:hidden relative z-10">
                     {/* Rail Scrollable List */}
-                    <div className="flex-1 overflow-y-auto py-3 px-1.5 flex flex-col items-center gap-3 scrollbar-none">
+                    <div className="flex-1 overflow-y-auto overflow-x-visible py-3 flex flex-col items-center gap-3 scrollbar-none">
                         {/* 1. All Team Bubble */}
                         {(() => {
                             const isAllSelected = selectedMemberId === "all";
@@ -694,32 +694,33 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                 <button
                                     type="button"
                                     onClick={() => handleMemberSelect("all")}
-                                    className={`relative p-1 rounded-[2px] transition-all cursor-pointer group flex items-center justify-center ${
+                                    className={`w-full py-1 flex items-center justify-center transition-all cursor-pointer group relative ${
                                         isAllSelected ? "opacity-100" : "opacity-70 hover:opacity-100"
                                     }`}
                                     title={`All Team Overview • ${reportData?.totalTasks ?? 0} tasks`}
                                 >
-                                    {/* Speech Bubble Arrow Pointer */}
+                                    <div className="relative inline-flex items-center justify-center">
+                                        <div
+                                            className={`w-11 h-11 rounded-[var(--radius-card,4px)] flex items-center justify-center transition-all duration-150 border ${
+                                                isAllSelected
+                                                    ? "bg-[var(--app-select-bg)] border-[var(--app-border-strong)] shadow-xs ring-1 ring-[var(--app-border-strong)]"
+                                                    : "bg-[var(--app-card)] border-[var(--app-border)] group-hover:bg-[var(--app-hover-bg)]"
+                                            }`}
+                                        >
+                                            <span className="emoji-font text-lg select-none">
+                                                {currentTeam.emoji || "👥"}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Active Arrow Pointer on the right border of the rail */}
                                     {isAllSelected && (
-                                        <div className="absolute -right-2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
-                                            <div className="relative">
-                                                <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-[var(--app-border-strong)]" />
-                                                <div className="absolute top-[1px] -left-[1px] w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[7px] border-l-[var(--app-card)]" />
-                                            </div>
+                                        <div className="absolute -right-px top-1/2 -translate-y-1/2 z-20 pointer-events-none flex items-center translate-x-full">
+                                            <svg className="w-2.5 h-3 overflow-visible" viewBox="0 0 8 12">
+                                                <path d="M 0 0 L 8 6 L 0 12 Z" fill="var(--app-select-bg)" stroke="var(--app-border-strong)" strokeWidth="1.2" strokeLinejoin="round" />
+                                            </svg>
                                         </div>
                                     )}
-
-                                    <div
-                                        className={`w-11 h-11 rounded-[2px] flex items-center justify-center transition-all duration-150 border border-[var(--app-border)] ${
-                                            isAllSelected
-                                                ? "bg-[var(--app-select-bg)] border-[var(--app-border-strong)] shadow-xs"
-                                                : "bg-[var(--app-card)] group-hover:bg-[var(--app-hover-bg)]"
-                                        }`}
-                                    >
-                                        <span className="emoji-font text-lg select-none">
-                                            {currentTeam.emoji || "👥"}
-                                        </span>
-                                    </div>
                                 </button>
                             );
                         })()}
@@ -730,7 +731,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                         {!reportData && isLoading && (
                             <>
                                 {[1, 2, 3, 4].map((i) => (
-                                    <SkeletonBox key={i} className="w-11 h-11 rounded-[2px] shrink-0" />
+                                    <SkeletonBox key={i} className="w-11 h-11 rounded-[var(--radius-card,4px)] shrink-0" />
                                 ))}
                             </>
                         )}
@@ -743,26 +744,29 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                                     key={member.user.id}
                                     type="button"
                                     onClick={() => handleMemberSelect(member.user.id)}
-                                    className={`relative p-1 rounded-[2px] transition-all cursor-pointer group flex items-center justify-center ${
+                                    className={`w-full py-1 flex items-center justify-center transition-all cursor-pointer group relative ${
                                         isSelected ? "opacity-100" : "opacity-70 hover:opacity-100"
                                     }`}
                                     title={`${member.user.fullName} (${member.user.designation || member.role}) • ${member.completedTasks}/${member.totalTasks} completed (${member.completionRate}%)`}
                                 >
-                                    {/* Speech Bubble Arrow Pointer */}
+                                    <div className="relative inline-flex items-center justify-center">
+                                        <PersonAvatar
+                                            src={member.user.avatarUrl}
+                                            alt={member.user.fullName}
+                                            className={`w-11 h-11 rounded-[var(--radius-card,4px)] shadow-2xs border ${
+                                                isSelected ? "border-[var(--app-border-strong)] ring-1 ring-[var(--app-border-strong)]" : "border-[var(--app-border)]"
+                                            }`}
+                                        />
+                                    </div>
+
+                                    {/* Active Arrow Pointer on the right border of the rail */}
                                     {isSelected && (
-                                        <div className="absolute -right-2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
-                                            <div className="relative">
-                                                <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-[var(--app-border-strong)]" />
-                                                <div className="absolute top-[1px] -left-[1px] w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[7px] border-l-[var(--app-card)]" />
-                                            </div>
+                                        <div className="absolute -right-px top-1/2 -translate-y-1/2 z-20 pointer-events-none flex items-center translate-x-full">
+                                            <svg className="w-2.5 h-3 overflow-visible" viewBox="0 0 8 12">
+                                                <path d="M 0 0 L 8 6 L 0 12 Z" fill="var(--app-card)" stroke="var(--app-border-strong)" strokeWidth="1.2" strokeLinejoin="round" />
+                                            </svg>
                                         </div>
                                     )}
-
-                                    <PersonAvatar
-                                        src={member.user.avatarUrl}
-                                        alt={member.user.fullName}
-                                        className="w-11 h-11 rounded-[2px] shadow-2xs"
-                                    />
                                 </button>
                             );
                         })}

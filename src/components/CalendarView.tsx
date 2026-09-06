@@ -317,7 +317,7 @@ export default function CalendarView({
                                     setAddTaskColId(columns[0]?.id || "");
                                     setIsAddTaskOpen(true);
                                 }}
-                                className={`p-2 min-h-24 flex flex-col gap-1.5 transition-colors cursor-pointer relative ${cell.isPadding
+                                className={`p-2 min-h-24 flex flex-col gap-1.5 transition-colors cursor-pointer relative rounded-none ${cell.isPadding
                                     ? "bg-[#FAFAF9] text-[#DADAD6]"
                                     : "bg-white hover:bg-[#FAFAF9] text-[#1A1A1A]"
                                     } ${isActive
@@ -328,8 +328,8 @@ export default function CalendarView({
                                 {/* Date Label */}
                                 <div className="flex justify-between items-center">
                                     <span
-                                        className={`text-[11px] font-medium ${isToday
-                                            ? "bg-[#1A1A1A] text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]"
+                                        className={`text-[11px] font-medium rounded-none ${isToday
+                                            ? "bg-[#1A1A1A] text-white w-5 h-5 rounded-none flex items-center justify-center text-[10px]"
                                             : isActive
                                                 ? "text-[#1A1A1A] font-semibold"
                                                 : "text-[#888883]"

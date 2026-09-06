@@ -532,69 +532,71 @@ export default function SystemPreferenceModal({
                                 </div>
                             </div>
 
-                            {/* ── Corner Roundness / Border Radius ── */}
-                            <div className="flex flex-col gap-1.5 pt-0.5">
-                                <div className="flex items-center justify-between">
-                                    <label className="eyebrow flex items-center gap-1.5">
-                                        <span
-                                            className="w-2 h-2 inline-block border border-[var(--color-accent)] bg-[var(--color-accent)]/20 transition-all"
-                                            style={{ borderRadius: `${Math.min(cornerRadius, 4)}px` }}
-                                        />
-                                        Corner Roundness
-                                    </label>
-                                    <span className="font-mono text-[10px] text-[var(--app-muted)]">
-                                        {cornerRadius}px
-                                    </span>
-                                </div>
+                            {/* ── Corner Roundness / Border Radius (Only in UI Theme 2 / Modern Mode) ── */}
+                            {isModernMode && (
+                                <div className="flex flex-col gap-1.5 pt-0.5">
+                                    <div className="flex items-center justify-between">
+                                        <label className="eyebrow flex items-center gap-1.5">
+                                            <span
+                                                className="w-2 h-2 inline-block border border-[var(--color-accent)] bg-[var(--color-accent)]/20 transition-all"
+                                                style={{ borderRadius: `${Math.min(cornerRadius, 4)}px` }}
+                                            />
+                                            Corner Roundness
+                                        </label>
+                                        <span className="font-mono text-[10px] text-[var(--app-muted)]">
+                                            {cornerRadius}px
+                                        </span>
+                                    </div>
 
-                                {/* 4 Preset Cards */}
-                                <div className="grid grid-cols-4 gap-1.5">
-                                    {RADIUS_PRESETS.map((preset) => {
-                                        const isSelected = cornerRadius === preset.basePx;
-                                        return (
-                                            <button
-                                                key={preset.id}
-                                                type="button"
-                                                onClick={() => handleSelectRadius(preset.basePx)}
-                                                title={preset.description}
-                                                className={`flex flex-col items-center justify-center py-2 px-1 border transition-all cursor-pointer text-center relative ${
-                                                    isSelected
-                                                        ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--app-card))] text-[var(--app-text)] font-semibold shadow-3xs"
-                                                        : "border-[var(--app-border)] hover:border-[var(--color-accent)]/50 bg-[var(--app-card)] text-[var(--app-muted)] hover:text-[var(--app-text)]"
-                                                }`}
-                                                style={{ borderRadius: preset.previewBorderRadius }}
-                                            >
-                                                <div
-                                                    className={`w-4 h-4 border transition-all mb-1.5 ${
+                                    {/* 4 Preset Cards */}
+                                    <div className="grid grid-cols-4 gap-1.5">
+                                        {RADIUS_PRESETS.map((preset) => {
+                                            const isSelected = cornerRadius === preset.basePx;
+                                            return (
+                                                <button
+                                                    key={preset.id}
+                                                    type="button"
+                                                    onClick={() => handleSelectRadius(preset.basePx)}
+                                                    title={preset.description}
+                                                    className={`flex flex-col items-center justify-center py-2 px-1 border transition-all cursor-pointer text-center relative ${
                                                         isSelected
-                                                            ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
-                                                            : "border-[var(--app-border-strong)] bg-[var(--app-hover-bg)]"
+                                                            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--app-card))] text-[var(--app-text)] font-semibold shadow-3xs"
+                                                            : "border-[var(--app-border)] hover:border-[var(--color-accent)]/50 bg-[var(--app-card)] text-[var(--app-muted)] hover:text-[var(--app-text)]"
                                                     }`}
                                                     style={{ borderRadius: preset.previewBorderRadius }}
-                                                />
-                                                <span className={`text-[11px] font-medium tabular-nums ${isSelected ? "text-[var(--app-text)] font-semibold" : "text-[var(--app-muted)]"}`}>
-                                                    {preset.basePx}px
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                                >
+                                                    <div
+                                                        className={`w-4 h-4 border transition-all mb-1.5 ${
+                                                            isSelected
+                                                                ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
+                                                                : "border-[var(--app-border-strong)] bg-[var(--app-hover-bg)]"
+                                                        }`}
+                                                        style={{ borderRadius: preset.previewBorderRadius }}
+                                                    />
+                                                    <span className={`text-[11px] font-medium tabular-nums ${isSelected ? "text-[var(--app-text)] font-semibold" : "text-[var(--app-muted)]"}`}>
+                                                        {preset.basePx}px
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
 
-                                {/* Dynamic Slider for Fine-tuning */}
-                                <div className="flex items-center gap-3 pt-0.5">
-                                    <span className="text-[9px] text-[var(--app-muted)] font-mono">0px</span>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="16"
-                                        step="1"
-                                        value={cornerRadius}
-                                        onChange={(e) => handleSelectRadius(parseInt(e.target.value, 10))}
-                                        className="flex-1 h-1 bg-[var(--app-border,#E5E5E3)] rounded-lg appearance-none cursor-pointer accent-[var(--color-accent,#1A1A1A)]"
-                                    />
-                                    <span className="text-[9px] text-[var(--app-muted)] font-mono">16px</span>
+                                    {/* Dynamic Slider for Fine-tuning */}
+                                    <div className="flex items-center gap-3 pt-0.5">
+                                        <span className="text-[9px] text-[var(--app-muted)] font-mono">0px</span>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="16"
+                                            step="1"
+                                            value={cornerRadius}
+                                            onChange={(e) => handleSelectRadius(parseInt(e.target.value, 10))}
+                                            className="flex-1 h-1 bg-[var(--app-border,#E5E5E3)] rounded-lg appearance-none cursor-pointer accent-[var(--color-accent,#1A1A1A)]"
+                                        />
+                                        <span className="text-[9px] text-[var(--app-muted)] font-mono">16px</span>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Reusable Confetti Switch */}
                             <ToggleSwitch
@@ -752,15 +754,17 @@ export default function SystemPreferenceModal({
                     {/* Sample Preview Box (Visible on both tabs for direct feedback) */}
                     <div
                         className="p-3 border border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FAFAF9)] flex flex-col gap-2 mt-0.5 transition-all"
-                        style={{ borderRadius: `${Math.min(cornerRadius * 1.5, 12)}px` }}
+                        style={{ borderRadius: isModernMode ? `${Math.min(cornerRadius * 1.5, 12)}px` : '0px' }}
                     >
                         <div className="flex items-center justify-between">
                             <span className="eyebrow text-[9px]">
                                 Live Interface & Typography Preview
                             </span>
-                            <span className="text-[9px] font-mono text-[var(--app-muted)]">
-                                radius: {cornerRadius}px
-                            </span>
+                            {isModernMode && (
+                                <span className="text-[9px] font-mono text-[var(--app-muted)]">
+                                    radius: {cornerRadius}px
+                                </span>
+                            )}
                         </div>
                         <div className="flex flex-col gap-0.5">
                             <h4
@@ -779,7 +783,9 @@ export default function SystemPreferenceModal({
                                 }}
                                 className="text-xs text-[var(--app-muted,#888883)] transition-all"
                             >
-                                Configure your team workspace appearance. Corner roundness, typography, and accent colors scale in real time.
+                                {isModernMode
+                                    ? "Configure your team workspace appearance. Corner roundness, typography, and accent colors scale in real time."
+                                    : "Configure your team workspace appearance. Typography and accent colors scale in real time."}
                             </p>
                         </div>
 
@@ -790,7 +796,7 @@ export default function SystemPreferenceModal({
                                 className="px-2.5 py-1 text-[11px] font-semibold text-white transition-all shadow-3xs cursor-pointer flex items-center gap-1"
                                 style={{
                                     backgroundColor: currentSelectedAccent,
-                                    borderRadius: `${cornerRadius}px`,
+                                    borderRadius: isModernMode ? `${cornerRadius}px` : '0px',
                                 }}
                             >
                                 <span>Button</span>
@@ -798,7 +804,7 @@ export default function SystemPreferenceModal({
                             <div
                                 className="px-2.5 py-1 text-[11px] font-medium border border-[var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text)] transition-all"
                                 style={{
-                                    borderRadius: `${cornerRadius}px`,
+                                    borderRadius: isModernMode ? `${cornerRadius}px` : '0px',
                                 }}
                             >
                                 <span>Input Field</span>
@@ -806,7 +812,7 @@ export default function SystemPreferenceModal({
                             <span
                                 className="px-2 py-0.5 text-[10px] font-medium border border-[var(--color-accent)]/30 text-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] transition-all ml-auto"
                                 style={{
-                                    borderRadius: `${Math.max(1, cornerRadius - 2)}px`,
+                                    borderRadius: isModernMode ? `${Math.max(1, cornerRadius - 2)}px` : '0px',
                                 }}
                             >
                                 Badge Tag

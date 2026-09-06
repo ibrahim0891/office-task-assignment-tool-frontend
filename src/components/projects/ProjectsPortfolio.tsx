@@ -669,98 +669,329 @@ export default function ProjectsPortfolio() {
 
     return (
         <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-5 sm:p-6 lg:p-8 bg-[var(--app-bg)] text-[var(--app-text)] select-none">
-                <div className=" w-full mx-auto flex flex-col gap-6">
-                    {/* 1. Header & Primary Action Toolbar */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
+            <div className="flex-1 flex flex-col overflow-hidden bg-[var(--app-bg)] text-[var(--app-text)] select-none">
+                {/* 1. Level 1: Header & Primary Action Toolbar */}
+                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 py-3 flex items-center justify-between gap-4 select-none">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <FolderKanban className="w-5 h-5 text-[var(--app-muted)] shrink-0" />
                         <div>
-                            <h1 className="font-heading text-2xl font-bold tracking-tight text-[var(--app-text)]">
+                            <h1 className="font-heading text-lg sm:text-xl font-bold tracking-tight text-[var(--app-text)] leading-tight">
                                 Projects
                             </h1>
-                            <p className="text-xs text-[var(--app-muted)] mt-0.5">
+                            <p className="text-[11px] text-[var(--app-muted)]">
                                 Portfolio overview across all assigned workspace projects
                             </p>
                         </div>
+                    </div>
 
-                        <div className="flex items-center gap-2 flex-wrap">
-                            {/* View Switcher: Grid vs List */}
-                            <div className="inline-flex items-center bg-[var(--app-card)] border border-[var(--app-border)] rounded-[var(--radius-sm,4px)] p-0.5 text-xs font-medium shrink-0">
-                                <button
-                                    type="button"
-                                    onClick={() => handleViewModeChange("grid")}
-                                    className={`p-1.5 rounded-[3px] transition-all cursor-pointer flex items-center justify-center ${
-                                        viewMode === "grid"
-                                            ? "bg-[var(--app-bg)] text-[var(--app-text)] shadow-3xs font-semibold"
-                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
-                                    }`}
-                                    title="Grid View"
-                                >
-                                    <LayoutGrid className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleViewModeChange("list")}
-                                    className={`p-1.5 rounded-[3px] transition-all cursor-pointer flex items-center justify-center ${
-                                        viewMode === "list"
-                                            ? "bg-[var(--app-bg)] text-[var(--app-text)] shadow-3xs font-semibold"
-                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
-                                    }`}
-                                    title="List View"
-                                >
-                                    <List className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-
-                            {/* Invitations Button */}
+                    <div className="flex items-center gap-2 flex-wrap shrink-0">
+                        {/* View Switcher: Grid vs List */}
+                        <div className="inline-flex items-center bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[var(--radius-sm,4px)] p-0.5 text-xs font-medium shrink-0">
                             <button
                                 type="button"
-                                onClick={() => setIsManageInvitationsOpen(!isManageInvitationsOpen)}
-                                className={`relative bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border ${
-                                    isManageInvitationsOpen
-                                        ? "border-[var(--app-border-strong)] bg-[var(--app-hover-bg)] text-[var(--app-text)] font-semibold"
-                                        : "border-[var(--app-border)] text-[var(--app-text)]"
-                                } text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-3xs`}
+                                onClick={() => handleViewModeChange("grid")}
+                                className={`p-1.5 rounded-[2px] transition-all cursor-pointer flex items-center justify-center ${
+                                    viewMode === "grid"
+                                        ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-3xs font-semibold border border-[var(--app-border)]"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                                }`}
+                                title="Grid View"
                             >
-                                <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
-                                <span>Invitations</span>
-                                {projectInvitations.length > 0 && (
-                                    <span className="px-1.5 py-0.2 rounded-[var(--radius-xs,3px)] text-[10px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold tabular-nums">
-                                        {projectInvitations.length}
-                                    </span>
-                                )}
+                                <LayoutGrid className="w-3.5 h-3.5" />
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => handleViewModeChange("list")}
+                                className={`p-1.5 rounded-[2px] transition-all cursor-pointer flex items-center justify-center ${
+                                    viewMode === "list"
+                                        ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-3xs font-semibold border border-[var(--app-border)]"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                                }`}
+                                title="List View"
+                            >
+                                <List className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
 
-                            {/* Manage Folders (Leader Only) */}
-                            {isLeader && !isManageFoldersOpen && (
-                                <button
-                                    type="button"
-                                    onClick={() => setIsManageFoldersOpen(true)}
-                                    className="relative bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-3xs"
-                                >
-                                    <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                                    <span>Manage Folders</span>
-                                </button>
+                        {/* Invitations Button */}
+                        <button
+                            type="button"
+                            onClick={() => setIsManageInvitationsOpen(!isManageInvitationsOpen)}
+                            className={`relative bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border ${
+                                isManageInvitationsOpen
+                                    ? "border-[var(--app-border-strong)] bg-[var(--app-hover-bg)] text-[var(--app-text)] font-semibold"
+                                    : "border-[var(--app-border)] text-[var(--app-text)]"
+                            } text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-3xs`}
+                        >
+                            <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                            <span>Invitations</span>
+                            {projectInvitations.length > 0 && (
+                                <span className="px-1.5 py-0.2 rounded-[var(--radius-xs,2px)] text-[10px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold tabular-nums">
+                                    {projectInvitations.length}
+                                </span>
                             )}
+                        </button>
 
-                            {/* Primary Action Button: New Project */}
-                            {isLeader && (
+                        {/* Manage Folders (Leader Only) */}
+                        {isLeader && !isManageFoldersOpen && (
+                            <button
+                                type="button"
+                                onClick={() => setIsManageFoldersOpen(true)}
+                                className="relative bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-3xs"
+                            >
+                                <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                <span>Manage Folders</span>
+                            </button>
+                        )}
+
+                        {/* Primary Action Button: New Project */}
+                        {isLeader && (
+                            <button
+                                type="button"
+                                onClick={() => setIsCreateOpen(true)}
+                                className="relative bg-[var(--app-text)] hover:opacity-90 text-[var(--app-bg)] border border-[var(--app-text)] text-xs font-semibold px-3.5 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs"
+                            >
+                                <Plus className="w-3.5 h-3.5 text-[var(--app-bg)]" />
+                                <span>New Project</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* 2. Level 2: Compact KPI Stats Ribbon */}
+                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] select-none">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-[var(--app-border)]">
+                        {/* Active Projects */}
+                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                            <div className="flex flex-col min-w-0">
+                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Active Projects</span>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text)] tabular-nums">
+                                        {summary.activeProjects}
+                                    </span>
+                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">in progress</span>
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <FolderKanban className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+
+                        {/* On-Time Rate */}
+                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                            <div className="flex flex-col min-w-0">
+                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">On-Time Rate</span>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                    <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                        summary.onTimeRate < 50
+                                            ? "text-[var(--color-error)]"
+                                            : summary.onTimeRate < 80
+                                            ? "text-[var(--color-warning)]"
+                                            : "text-[var(--color-success)]"
+                                    }`}>
+                                        {summary.onTimeRate}%
+                                    </span>
+                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">on track</span>
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <TrendingUp className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+
+                        {/* Overdue Tasks */}
+                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                            <div className="flex flex-col min-w-0">
+                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Overdue Tasks</span>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                    <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                        summary.criticalSLABreaches > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"
+                                    }`}>
+                                        {summary.criticalSLABreaches}
+                                    </span>
+                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">overdue</span>
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <AlertCircle className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+
+                        {/* Total Projects */}
+                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                            <div className="flex flex-col min-w-0">
+                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Total Projects</span>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text)] tabular-nums">
+                                        {summary.totalProjects}
+                                    </span>
+                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">in portfolio</span>
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Level 3: Search, Filters & Folder Segmented Tabs Toolbar */}
+                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 py-2 flex flex-wrap items-center justify-between gap-3 select-none">
+                    {/* Left: Search Input + Folder Tabs */}
+                    <div className="flex items-center gap-3 flex-wrap">
+                        {/* Compact Search Input */}
+                        <div className="relative w-52 sm:w-60">
+                            <Search className="w-3.5 h-3.5 text-[var(--app-muted)] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search projects..."
+                                className="w-full bg-[var(--app-bg)] border border-[var(--app-border)] focus:border-[var(--app-border-strong)] focus:outline-none text-xs text-[var(--app-text)] placeholder-[var(--app-muted)] pl-8 pr-7 py-1 rounded-[var(--radius-sm,4px)] transition-colors h-[30px]"
+                            />
+                            {searchQuery && (
                                 <button
                                     type="button"
-                                    onClick={() => setIsCreateOpen(true)}
-                                    className="relative bg-[var(--app-text)] hover:opacity-90 text-[var(--app-bg)] border border-[var(--app-text)] text-xs font-semibold px-3.5 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs"
+                                    onClick={() => setSearchQuery("")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] p-0.5 cursor-pointer"
                                 >
-                                    <Plus className="w-3.5 h-3.5 text-[var(--app-bg)]" />
-                                    <span>New Project</span>
+                                    <X className="w-3 h-3" />
                                 </button>
                             )}
                         </div>
+
+                        {/* Folder Tabs (Segmented Switcher) */}
+                        <div className="inline-flex items-center bg-[var(--app-bg)] border border-[var(--app-border)] p-0.5 rounded-[var(--radius-sm,4px)] gap-0.5 shrink-0">
+                            {/* All Folders Tab */}
+                            <button
+                                type="button"
+                                onClick={() => setActiveFolderId("ALL")}
+                                className={`px-2.5 py-1 flex items-center gap-1.5 text-xs font-medium rounded-[var(--radius-xs,2px)] transition-all cursor-pointer ${
+                                    activeFolderId === "ALL"
+                                        ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-3xs border border-[var(--app-border)]"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-card)]/50 border border-transparent"
+                                }`}
+                            >
+                                <FolderKanban className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
+                                <span>All</span>
+                                <span className={`px-1.5 py-0.2 rounded-[var(--radius-xs,2px)] text-[9px] tabular-nums font-semibold ${
+                                    activeFolderId === "ALL"
+                                        ? "bg-[var(--app-bg)] text-[var(--app-text)]"
+                                        : "bg-[var(--app-border)]/40 text-[var(--app-muted)]"
+                                }`}>
+                                    {projects.length}
+                                </span>
+                            </button>
+
+                            {/* Custom Folders */}
+                            {foldersWithProjects.map((folder) => {
+                                const isSelected = activeFolderId === folder.id;
+                                const folderProjects = projects.filter((p) => p.folderId === folder.id);
+                                return (
+                                    <button
+                                        key={folder.id}
+                                        type="button"
+                                        onClick={() => setActiveFolderId(folder.id)}
+                                        className={`px-2.5 py-1 flex items-center gap-1.5 text-xs font-medium rounded-[var(--radius-xs,2px)] transition-all cursor-pointer ${
+                                            isSelected
+                                                ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-3xs border border-[var(--app-border)]"
+                                                : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-card)]/50 border border-transparent"
+                                        }`}
+                                    >
+                                        {folder.emoji ? (
+                                            <span className="emoji-font text-xs shrink-0">{folder.emoji}</span>
+                                        ) : (
+                                            <Folder className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
+                                        )}
+                                        <span>{folder.name}</span>
+                                        <span className={`px-1.5 py-0.2 rounded-[var(--radius-xs,2px)] text-[9px] tabular-nums font-semibold ${
+                                            isSelected
+                                                ? "bg-[var(--app-bg)] text-[var(--app-text)]"
+                                                : "bg-[var(--app-border)]/40 text-[var(--app-muted)]"
+                                        }`}>
+                                            {folderProjects.length}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
 
-                    {/* 2. Pending Invitations Alert Banner */}
+                    {/* Right: Dropdowns + Reset Button + Count */}
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                        {/* Status Filter */}
+                        <CustomSelect
+                            options={[
+                                { value: "ALL", label: "All Statuses" },
+                                { value: "ACTIVE", label: "Active" },
+                                { value: "ON_TRACK", label: "On Track" },
+                                { value: "AT_RISK", label: "At Risk" },
+                                { value: "COMPLETED", label: "Completed" },
+                                { value: "ARCHIVED", label: "Archived" },
+                            ]}
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                            buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg)] border border-[var(--app-border)]"
+                            className="w-32 h-[30px] shrink-0"
+                        />
+
+                        {/* Sort Selector */}
+                        <CustomSelect
+                            options={[
+                                { value: "recent", label: "Sort: Recent" },
+                                { value: "dueDate", label: "Sort: Due Date" },
+                                { value: "progress", label: "Sort: Progress" },
+                                { value: "title", label: "Sort: Title" },
+                            ]}
+                            value={sortBy}
+                            onChange={setSortBy}
+                            buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg)] border border-[var(--app-border)]"
+                            className="w-34 h-[30px] shrink-0"
+                        />
+
+                        {/* Cross-Team Filter (if >1 team exists) */}
+                        {uniqueTeams.length > 1 && (
+                            <CustomSelect
+                                options={[
+                                    { value: "ALL", label: `All Teams (${projects.length})` },
+                                    ...uniqueTeams.map((t) => ({
+                                        value: t.id,
+                                        label: `${t.emoji || "🏢"} ${t.name}`,
+                                        sublabel: `${projects.filter((p) => p.teamId === t.id || p.team?.id === t.id).length}`,
+                                    })),
+                                ]}
+                                value={selectedTeamFilter}
+                                onChange={setSelectedTeamFilter}
+                                buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg)] border border-[var(--app-border)]"
+                                className="w-38 h-[30px] shrink-0"
+                            />
+                        )}
+
+                        {/* Reset Filter Button */}
+                        {hasActiveFilters && (
+                            <button
+                                type="button"
+                                onClick={handleClearFilters}
+                                className="text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] underline cursor-pointer px-1 py-1"
+                            >
+                                Reset
+                            </button>
+                        )}
+
+                        {/* Result Counter */}
+                        <span className="text-[11px] text-[var(--app-muted)] shrink-0 hidden sm:inline pl-1">
+                            <span className="font-semibold text-[var(--app-text)]">{filteredProjects.length}</span>/{projects.length}
+                        </span>
+                    </div>
+                </div>
+
+                {/* 4. Level 4: Scrollable Content View (Grid or List) */}
+                <div className="flex-1 overflow-y-auto p-5 bg-[var(--app-bg)] flex flex-col gap-4 select-none">
+                    {/* Pending Invitations Alert Banner */}
                     {projectInvitations.length > 0 && (
                         <div
                             onClick={() => setIsManageInvitationsOpen(true)}
-                            className="border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)] rounded-[var(--radius-md,8px)] p-3.5 flex items-center justify-between gap-3 cursor-pointer transition-colors shadow-subtle"
+                            className="border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)] rounded-[var(--radius-md,8px)] p-3 flex items-center justify-between gap-3 cursor-pointer transition-colors shadow-subtle shrink-0"
                         >
                             <div className="flex items-center gap-2.5 min-w-0">
                                 <span className="w-7 h-7 rounded-full bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-text)] shrink-0">
@@ -780,232 +1011,6 @@ export default function ProjectsPortfolio() {
                             </span>
                         </div>
                     )}
-
-                    {/* 3. Hero KPI Metrics Bar (Unified Cards) */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                        <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[var(--radius-md,8px)] p-4 sm:p-4.5 flex flex-col justify-between gap-2.5 shadow-card hover:border-[var(--app-border-strong)] transition-all">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold text-[var(--app-muted)]">Active Projects</span>
-                                <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)]">
-                                    <FolderKanban className="w-3.5 h-3.5" />
-                                </div>
-                            </div>
-                            <div className="flex items-baseline justify-between pt-0.5">
-                                <span className="text-2xl sm:text-3xl font-heading font-bold tracking-tight text-[var(--app-text)] tabular-nums">
-                                    {summary.activeProjects}
-                                </span>
-                                <span className="text-[11px] text-[var(--app-muted)] font-medium">in progress</span>
-                            </div>
-                        </div>
-
-                        <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[var(--radius-md,8px)] p-4 sm:p-4.5 flex flex-col justify-between gap-2.5 shadow-card hover:border-[var(--app-border-strong)] transition-all">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold text-[var(--app-muted)]">On-Time Rate</span>
-                                <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)]">
-                                    <TrendingUp className="w-3.5 h-3.5" />
-                                </div>
-                            </div>
-                            <div className="flex items-baseline justify-between pt-0.5">
-                                <span className={`text-2xl sm:text-3xl font-heading font-bold tracking-tight tabular-nums ${
-                                    summary.onTimeRate < 50
-                                        ? "text-[var(--color-error)]"
-                                        : summary.onTimeRate < 80
-                                        ? "text-[var(--color-warning)]"
-                                        : "text-[var(--color-success)]"
-                                }`}>
-                                    {summary.onTimeRate}%
-                                </span>
-                                <span className="text-[11px] text-[var(--app-muted)] font-medium">on track</span>
-                            </div>
-                        </div>
-
-                        <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[var(--radius-md,8px)] p-4 sm:p-4.5 flex flex-col justify-between gap-2.5 shadow-card hover:border-[var(--app-border-strong)] transition-all">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold text-[var(--app-muted)]">Overdue Tasks</span>
-                                <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)]">
-                                    <AlertCircle className="w-3.5 h-3.5" />
-                                </div>
-                            </div>
-                            <div className="flex items-baseline justify-between pt-0.5">
-                                <span className={`text-2xl sm:text-3xl font-heading font-bold tracking-tight tabular-nums ${
-                                    summary.criticalSLABreaches > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"
-                                }`}>
-                                    {summary.criticalSLABreaches}
-                                </span>
-                                <span className="text-[11px] text-[var(--app-muted)] font-medium">overdue</span>
-                            </div>
-                        </div>
-
-                        <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[var(--radius-md,8px)] p-4 sm:p-4.5 flex flex-col justify-between gap-2.5 shadow-card hover:border-[var(--app-border-strong)] transition-all">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold text-[var(--app-muted)]">Total Projects</span>
-                                <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)]">
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                </div>
-                            </div>
-                            <div className="flex items-baseline justify-between pt-0.5">
-                                <span className="text-2xl sm:text-3xl font-heading font-bold tracking-tight text-[var(--app-text)] tabular-nums">
-                                    {summary.totalProjects}
-                                </span>
-                                <span className="text-[11px] text-[var(--app-muted)] font-medium">in portfolio</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 4. Search, Filter & Navigation Controls */}
-                    <div className="flex flex-col gap-3">
-                        {/* Top Row: Search Input + Status Filter + Sort + Team Filter */}
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            {/* Search Input */}
-                            <div className="relative flex-1 min-w-[220px] max-w-md">
-                                <Search className="w-4 h-4 text-[var(--app-muted)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search projects by title, description, team..."
-                                    className="w-full bg-[var(--app-card)] border border-[var(--app-border)] focus:border-[var(--app-border-strong)] focus:outline-none text-xs text-[var(--app-text)] placeholder-[var(--app-muted)] pl-9 pr-7 py-2 rounded-[var(--radius-sm,4px)] transition-colors"
-                                />
-                                {searchQuery && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setSearchQuery("")}
-                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] p-0.5 cursor-pointer"
-                                    >
-                                        <X className="w-3.5 h-3.5" />
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Controls Group */}
-                            <div className="flex items-center gap-2 flex-wrap text-xs">
-                                {/* Status Filter */}
-                                <CustomSelect
-                                    options={[
-                                        { value: "ALL", label: "All Statuses" },
-                                        { value: "ACTIVE", label: "Active" },
-                                        { value: "ON_TRACK", label: "On Track" },
-                                        { value: "AT_RISK", label: "At Risk" },
-                                        { value: "COMPLETED", label: "Completed" },
-                                        { value: "ARCHIVED", label: "Archived" },
-                                    ]}
-                                    value={statusFilter}
-                                    onChange={setStatusFilter}
-                                    buttonClassName="text-xs h-[34px] !py-0 px-3 bg-[var(--app-card)]"
-                                    className="w-34 h-[34px] shrink-0"
-                                />
-
-                                {/* Sort Selector */}
-                                <CustomSelect
-                                    options={[
-                                        { value: "recent", label: "Sort: Recent" },
-                                        { value: "dueDate", label: "Sort: Due Date" },
-                                        { value: "progress", label: "Sort: Progress" },
-                                        { value: "title", label: "Sort: Title" },
-                                    ]}
-                                    value={sortBy}
-                                    onChange={setSortBy}
-                                    buttonClassName="text-xs h-[34px] !py-0 px-3 bg-[var(--app-card)]"
-                                    className="w-36 h-[34px] shrink-0"
-                                />
-
-                                {/* Cross-Team Filter (if >1 team exists) */}
-                                {uniqueTeams.length > 1 && (
-                                    <CustomSelect
-                                        options={[
-                                            { value: "ALL", label: `All Teams (${projects.length})` },
-                                            ...uniqueTeams.map((t) => ({
-                                                value: t.id,
-                                                label: `${t.emoji || "🏢"} ${t.name}`,
-                                                sublabel: `${projects.filter((p) => p.teamId === t.id || p.team?.id === t.id).length}`,
-                                            })),
-                                        ]}
-                                        value={selectedTeamFilter}
-                                        onChange={setSelectedTeamFilter}
-                                        buttonClassName="text-xs h-[34px] !py-0 px-3 bg-[var(--app-card)]"
-                                        className="w-40 h-[34px] shrink-0"
-                                    />
-                                )}
-
-                                {/* Reset Filter Button */}
-                                {hasActiveFilters && (
-                                    <button
-                                        type="button"
-                                        onClick={handleClearFilters}
-                                        className="text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] underline cursor-pointer px-1 py-1"
-                                    >
-                                        Reset
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Bottom Row: Folder Tabs & Project Count */}
-                        <div className="flex items-center justify-between gap-4 overflow-x-auto scrollbar-none py-1">
-                            <div className="inline-flex items-center bg-[var(--app-card)] border border-[var(--app-border)] p-1 rounded-[var(--radius-card,6px)] gap-1 shrink-0">
-                                {/* All Folders Tab */}
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveFolderId("ALL")}
-                                    className={`px-3 py-1.5 flex items-center gap-2 text-xs font-medium rounded-[var(--radius-sm,4px)] transition-all cursor-pointer ${
-                                        activeFolderId === "ALL"
-                                            ? "bg-[var(--app-bg)] text-[var(--app-text)] font-semibold shadow-3xs border border-[var(--app-border)]"
-                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]/60 border border-transparent"
-                                    }`}
-                                >
-                                    <FolderKanban className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
-                                    <span>All Folders</span>
-                                    <span className={`px-1.5 py-0.2 rounded-[var(--radius-xs,2px)] text-[10px] tabular-nums font-semibold ${
-                                        activeFolderId === "ALL"
-                                            ? "bg-[var(--app-card)] text-[var(--app-text)] border border-[var(--app-border)]"
-                                            : "bg-[var(--app-bg)] text-[var(--app-muted)]"
-                                    }`}>
-                                        {projects.length}
-                                    </span>
-                                </button>
-
-                                {/* Custom Folder Tabs */}
-                                {foldersWithProjects.map((folder) => {
-                                    const isSelected = activeFolderId === folder.id;
-                                    const folderProjects = projects.filter((p) => p.folderId === folder.id);
-                                    return (
-                                        <button
-                                            key={folder.id}
-                                            type="button"
-                                            onClick={() => setActiveFolderId(folder.id)}
-                                            className={`px-3 py-1.5 flex items-center gap-2 text-xs font-medium rounded-[var(--radius-sm,4px)] transition-all cursor-pointer ${
-                                                isSelected
-                                                    ? "bg-[var(--app-bg)] text-[var(--app-text)] font-semibold shadow-3xs border border-[var(--app-border)]"
-                                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]/60 border border-transparent"
-                                            }`}
-                                        >
-                                            {folder.emoji ? (
-                                                <span className="emoji-font text-xs shrink-0">{folder.emoji}</span>
-                                            ) : (
-                                                <Folder className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
-                                            )}
-                                            <span>{folder.name}</span>
-                                            <span className={`px-1.5 py-0.2 rounded-[var(--radius-xs,2px)] text-[10px] tabular-nums font-semibold ${
-                                                isSelected
-                                                    ? "bg-[var(--app-card)] text-[var(--app-text)] border border-[var(--app-border)]"
-                                                    : "bg-[var(--app-bg)] text-[var(--app-muted)]"
-                                            }`}>
-                                                {folderProjects.length}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Result Counter */}
-                            <span className="text-xs text-[var(--app-muted)] shrink-0 hidden sm:inline">
-                                Showing <span className="font-semibold text-[var(--app-text)]">{filteredProjects.length}</span> of {projects.length} projects
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* 5. Main Content: Grid View or List / Table View */}
-                    <div className="flex flex-col gap-4">
                         {isProjectsLoading ? (
                             viewMode === "grid" ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -1102,7 +1107,6 @@ export default function ProjectsPortfolio() {
                                 </table>
                             </div>
                         )}
-                    </div>
                 </div>
             </div>
 

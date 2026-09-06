@@ -387,21 +387,21 @@ export function CustomDatePicker({
                                             onChange(cell.dateStr);
                                             setIsOpen(false);
                                         }}
-                                        className={`h-7 text-[11px] font-medium rounded-[2px] flex items-center justify-center transition-colors relative ${
+                                        className={`h-7 text-[11px] font-medium rounded-none flex items-center justify-center transition-colors relative ${
                                             isCellDisabled
-                                                ? "opacity-25 cursor-not-allowed text-[var(--app-muted)] line-through pointer-events-none"
+                                                ? "opacity-25 cursor-not-allowed text-[var(--app-muted)] line-through pointer-events-none rounded-none"
                                                 : isSelected
-                                                ? "bg-[var(--color-accent)] text-[var(--app-bg)] font-semibold shadow-xs cursor-pointer"
+                                                ? "bg-[var(--color-accent)] text-[var(--app-bg)] font-semibold shadow-xs cursor-pointer rounded-none"
                                                 : isTodayCell
-                                                ? "border-2 border-[var(--color-accent)] text-[var(--color-accent)] font-bold bg-[var(--color-accent)]/15 shadow-xs cursor-pointer"
+                                                ? "border-2 border-[var(--color-accent)] text-[var(--color-accent)] font-bold bg-[var(--color-accent)]/15 shadow-xs cursor-pointer rounded-none"
                                                 : cell.isCurrentMonth
-                                                ? "text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] cursor-pointer"
-                                                : "text-[var(--app-muted)]/40 hover:bg-[var(--app-hover-bg)]/40 cursor-pointer"
+                                                ? "text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] cursor-pointer rounded-none"
+                                                : "text-[var(--app-muted)]/40 hover:bg-[var(--app-hover-bg)]/40 cursor-pointer rounded-none"
                                         }`}
                                     >
                                         {cell.dayNum}
                                         {isTodayCell && !isSelected && !isCellDisabled && (
-                                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--color-accent)]" />
+                                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-none bg-[var(--color-accent)]" />
                                         )}
                                     </button>
                                 );

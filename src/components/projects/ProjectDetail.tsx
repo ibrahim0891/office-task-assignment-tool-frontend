@@ -144,7 +144,7 @@ export default function ProjectDetail() {
         <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden bg-[var(--app-bg)] text-[var(--app-text)]">
                 {/* Level 1: Project Identity, Breadcrumbs & Primary Actions */}
-                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 py-3 flex flex-col gap-2 select-none">
+                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 py-3 flex flex-col gap-2 select-none rounded-none">
                     {/* Row 1: Primary Project Title + Right Actions */}
                     <div className="flex items-center justify-between gap-4">
                         {/* Left: Project Emoji & Prominent Title */}
@@ -344,7 +344,7 @@ export default function ProjectDetail() {
                 </div>
 
                 {/* Level 2: Navigation Tabs & Progress Gauge */}
-                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 flex items-center justify-between gap-4 select-none">
+                <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 flex items-center justify-between gap-4 select-none rounded-none">
                     {/* View Tabs */}
                     <div className="flex items-center gap-0 overflow-x-auto no-scrollbar">
                         {tabs.map((tab) => {
@@ -364,7 +364,7 @@ export default function ProjectDetail() {
                                     key={tab.id}
                                     type="button"
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`relative flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-medium transition-colors cursor-pointer border-b-2 whitespace-nowrap ${
+                                    className={`relative flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-medium transition-colors cursor-pointer border-b-2 whitespace-nowrap rounded-none ${
                                         isActive
                                             ? "text-[var(--app-text)] border-[var(--app-text)]"
                                             : "text-[var(--app-muted)] border-transparent hover:text-[var(--app-text)] hover:border-[var(--app-border)]"

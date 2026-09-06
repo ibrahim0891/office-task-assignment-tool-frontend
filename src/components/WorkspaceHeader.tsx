@@ -121,7 +121,7 @@ export default function WorkspaceHeader({
                     <Settings className="w-4 h-4 shrink-0 text-[#888883]" />
                 </button>
 
-                {userRole !== "OBSERVER" && pathname !== "/profile" && (
+                {userRole !== "OBSERVER" && pathname !== "/profile" && !pathname.startsWith("/projects") && (
                     <button
                         onClick={() => {
                             setAddTaskColId(columns[0]?.id || "");

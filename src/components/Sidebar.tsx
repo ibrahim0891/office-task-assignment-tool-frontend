@@ -234,7 +234,7 @@ export default function Sidebar({
                 {!isCollapsed ? (
                     <div className="flex flex-col gap-2">
                         {currentTeam && (
-                            <div className="text-[12px] font-semibold text-[var(--app-text)] truncate border-b border-dashed border-[var(--app-border)]/40 pb-1.5 mb-1 flex items-center gap-1.5">
+                            <div className="text-[12px] font-semibold text-[var(--app-text)] truncate border-b border-dashed border-[color-mix(in_srgb,var(--app-muted)_18%,transparent)] pb-1.5 mb-1 flex items-center gap-1.5">
                                 <span className="text-sm shrink-0 emoji-font">
                                     {currentTeam.emoji || "🧑‍💻"}
                                 </span>

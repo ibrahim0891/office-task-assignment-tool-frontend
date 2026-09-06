@@ -250,9 +250,11 @@ html[data-ui="modern"] body {
 }
 
 /* Unified main frame slot */
-html[data-ui="modern"] main > div[class*="corner-brackets"] {
+html[data-ui="modern"] main > div[class*="corner-brackets"],
+html[data-ui="modern"] main > div {
   background-color: var(--app-bg) !important;
   border: none !important;
+  border-radius: 0 !important;
 }
 
 /* 3. Hardcoded color class overrides — covers 95%+ of the codebase usages */
@@ -352,20 +354,51 @@ html[data-ui="modern"] span[class*="rounded-[3px]"] {
 }
 
 /* Card containers, widgets, directory items & metric cards — follow corner radius preference (capped at max 8px) */
-html[data-ui="modern"] div[class*="corner-brackets"],
-html[data-ui="modern"] div[class*="corner-brackets-thick"],
-html[data-ui="modern"] div[class*="rounded-[1px]"]:not(span):not(button):not(input),
-html[data-ui="modern"] div[class*="rounded-[2px]"]:not(span):not(button):not(input),
-html[data-ui="modern"] div[class*="rounded-[3px]"]:not(span):not(button):not(input),
-html[data-ui="modern"] div[class*="rounded-[4px]"]:not(span):not(button):not(input),
-html[data-ui="modern"] div[class*="rounded-[5px]"]:not(span):not(button):not(input),
-html[data-ui="modern"] div[class*="rounded-[6px]"]:not(span):not(button):not(input),
-html[data-ui="modern"] div[class*="rounded-[8px]"]:not(span):not(button):not(input),
-html[data-ui="modern"] div[class*="rounded-md"]:not(span):not(button):not(input),
-html[data-ui="modern"] .kanban-task-card,
-html[data-ui="modern"] div[class*="bg-[var(--app-card)]"][class*="border"],
-html[data-ui="modern"] div[class*="bg-white"][class*="border"]:not(button):not(input):not(select):not(textarea):not(table):not(header):not(aside) {
+html[data-ui="modern"] div[class*="corner-brackets"]:not(main):not(main > div):not([class*="flex-1"]):not([class*="h-full"]):not([class*="h-screen"]):not([class*="w-full"][class*="border-b"]):not([class*="shrink-0"]):not([class*="border-r"]):not([class*="border-l"]):not([class*="border-t"]),
+html[data-ui="modern"] div[class*="corner-brackets-thick"]:not(main):not(main > div):not([class*="flex-1"]):not([class*="h-full"]):not([class*="h-screen"]):not([class*="w-full"][class*="border-b"]):not([class*="shrink-0"]):not([class*="border-r"]):not([class*="border-l"]):not([class*="border-t"]),
+html[data-ui="modern"] div[class*="rounded-[1px]"]:not(span):not(button):not(input):not(main):not(main > div):not([class*="border-b"]):not([class*="border-r"]):not([class*="border-t"]):not([class*="border-l"]):not([class*="shrink-0"]),
+html[data-ui="modern"] div[class*="rounded-[2px]"]:not(span):not(button):not(input):not(main):not(main > div):not([class*="border-b"]):not([class*="border-r"]):not([class*="border-t"]):not([class*="border-l"]):not([class*="shrink-0"]),
+html[data-ui="modern"] div[class*="rounded-[3px]"]:not(span):not(button):not(input):not(main):not(main > div):not([class*="border-b"]):not([class*="border-r"]):not([class*="border-t"]):not([class*="border-l"]):not([class*="shrink-0"]),
+html[data-ui="modern"] div[class*="rounded-[4px]"]:not(span):not(button):not(input):not(main):not(main > div):not([class*="border-b"]):not([class*="border-r"]):not([class*="border-t"]):not([class*="border-l"]):not([class*="shrink-0"]),
+html[data-ui="modern"] div[class*="rounded-[5px]"]:not(span):not(button):not(input):not(main):not(main > div):not([class*="border-b"]):not([class*="border-r"]):not([class*="border-t"]):not([class*="border-l"]):not([class*="shrink-0"]),
+html[data-ui="modern"] div[class*="rounded-[6px]"]:not(span):not(button):not(input):not(main):not(main > div):not([class*="border-b"]):not([class*="border-r"]):not([class*="border-t"]):not([class*="border-l"]):not([class*="shrink-0"]),
+html[data-ui="modern"] div[class*="rounded-[8px]"]:not(span):not(button):not(input):not(main):not(main > div):not([class*="border-b"]):not([class*="border-r"]):not([class*="border-t"]):not([class*="border-l"]):not([class*="shrink-0"]),
+html[data-ui="modern"] div[class*="rounded-md"]:not(span):not(button):not(input):not(main):not(main > div):not([class*="border-b"]):not([class*="border-r"]):not([class*="border-t"]):not([class*="border-l"]):not([class*="shrink-0"]),
+html[data-ui="modern"] .kanban-task-card {
   border-radius: var(--radius-card, 4px) !important;
+}
+
+/* 4b. Structural layout panels, headers, toolbars, sidebars, panes, splitters — ALWAYS STRICTLY SHARP (0 radius) */
+main,
+main > div,
+header,
+aside,
+div[class*="border-b"],
+div[class*="border-t"],
+div[class*="border-r"],
+div[class*="border-l"],
+div[class*="shrink-0"][class*="border-b"],
+div[class*="shrink-0"][class*="border-r"],
+div[class*="shrink-0"][class*="border-l"],
+div[class*="shrink-0"][class*="border-t"],
+div[class*="flex-1"][class*="overflow-hidden"],
+html[data-ui="modern"] main,
+html[data-ui="modern"] main > div,
+html[data-ui="modern"] header,
+html[data-ui="modern"] aside,
+html[data-ui="modern"] div[class*="border-b"],
+html[data-ui="modern"] div[class*="border-t"],
+html[data-ui="modern"] div[class*="border-r"],
+html[data-ui="modern"] div[class*="border-l"],
+html[data-ui="modern"] div[class*="shrink-0"][class*="border-b"],
+html[data-ui="modern"] div[class*="shrink-0"][class*="border-r"],
+html[data-ui="modern"] div[class*="shrink-0"][class*="border-l"],
+html[data-ui="modern"] div[class*="shrink-0"][class*="border-t"],
+html[data-ui="modern"] div[class*="flex-1"][class*="overflow-hidden"],
+html[data-ui="modern"] div[class*="w-72"][class*="border-r"],
+html[data-ui="modern"] div[class*="w-80"][class*="border-r"],
+html[data-ui="modern"] div[class*="sm:w-80"][class*="border-r"] {
+  border-radius: 0 !important;
 }
 
 /* 5. Kanban cards — rounded, elevated, hover lift */
@@ -484,10 +517,10 @@ html[data-ui="modern"] div[class*="bg-white"][style*="position: absolute"] {
   box-shadow: var(--shadow-float) !important;
 }
 
-/* 9. Buttons — crisp, sharp 4px corners */
-html[data-ui="modern"] button:not([class*="rounded-full"]):not([class*="rounded-pill"]),
-html[data-ui="modern"] a[class*="button"]:not([class*="rounded-full"]),
-html[data-ui="modern"] a[class*="btn"]:not([class*="rounded-full"]) {
+/* 9. Buttons — crisp, sharp 4px corners (tabs and flat underlines excluded) */
+html[data-ui="modern"] button:not([class*="rounded-full"]):not([class*="rounded-pill"]):not([class*="rounded-none"]):not([class*="border-b"]):not([role="tab"]),
+html[data-ui="modern"] a[class*="button"]:not([class*="rounded-full"]):not([class*="rounded-none"]):not([class*="border-b"]):not([role="tab"]),
+html[data-ui="modern"] a[class*="btn"]:not([class*="rounded-full"]):not([class*="rounded-none"]):not([class*="border-b"]):not([role="tab"]) {
   border-radius: var(--radius-sm, 4px) !important;
 }
 html[data-ui="modern"] button[class*="bg-white"] {
@@ -516,9 +549,9 @@ html[data-ui="modern"] button[class*="hover:bg-[#FFF5F5]"]:hover {
 }
 
 /* 10. Kanban & Subtask column containers — solid non-transparent card background */
-html[data-ui="modern"] div[class*="w-72"],
-html[data-ui="modern"] div[class*="w-80"],
-html[data-ui="modern"] div[class*="sm:w-80"] {
+html[data-ui="modern"] div[class*="w-72"]:not([class*="border-r"]):not([class*="border-l"]):not([class*="border-b"]):not([class*="border-t"]),
+html[data-ui="modern"] div[class*="w-80"]:not([class*="border-r"]):not([class*="border-l"]):not([class*="border-b"]):not([class*="border-t"]),
+html[data-ui="modern"] div[class*="sm:w-80"]:not([class*="border-r"]):not([class*="border-l"]):not([class*="border-b"]):not([class*="border-t"]) {
   background-color: var(--app-card) !important;
   border-color: var(--app-border) !important;
   border-radius: var(--radius-md) !important;
@@ -673,8 +706,19 @@ html[data-ui="modern"] aside button[class*="bg-white"] {
 }
 
 /* 24. Tabs — flat bottom (no curved smile), distinct active vs inactive tabs */
+button[class*="border-b"],
+button[class*="rounded-none"],
+button[role="tab"],
+[role="tablist"] button,
+a[class*="border-b"],
+a[class*="rounded-none"],
 html[data-ui="modern"] button[class*="border-b"],
+html[data-ui="modern"] button[class*="border-b-2"],
+html[data-ui="modern"] button[class*="rounded-none"],
+html[data-ui="modern"] button[role="tab"],
+html[data-ui="modern"] [role="tablist"] button,
 html[data-ui="modern"] a[class*="border-b"],
+html[data-ui="modern"] a[class*="border-b-2"],
 html[data-ui="modern"] div[class*="border-b"] > button,
 html[data-ui="modern"] div[class*="border-b"] > a {
   border-radius: 0 !important;
@@ -1166,11 +1210,19 @@ html[data-theme*="dark"] {
     background-color: var(--app-select-bg) !important;
   }
 
-  /* Calendar View overrides */
+  /* Calendar View overrides — strictly sharp cells and active indicators */
+  div[data-cell],
+  div[data-cell] span,
+  div[data-cell] span[class*="rounded-"],
+  button[class*="h-7"]:has(span) {
+    border-radius: 0 !important;
+  }
+
   div[data-cell] {
     background-color: var(--app-card) !important;
     border-color: var(--app-border) !important;
     color: var(--app-text) !important;
+    border-radius: 0 !important;
 
     &:hover {
       background-color: var(--app-border-strong) !important;
@@ -1191,6 +1243,7 @@ html[data-theme*="dark"] {
     &[class*="bg-[#F5F5F3]"] {
       background-color: var(--app-border-strong) !important;
       border-left-color: var(--color-accent) !important;
+      border-radius: 0 !important;
     }
   }
 
