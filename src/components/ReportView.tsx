@@ -61,20 +61,25 @@ function PersonAvatar({
                   .slice(0, 2)
             : "U");
 
+    const roundedClass = className.includes("rounded") ? "" : "rounded-[2px]";
+    const isLarge = className.includes("w-24") || className.includes("h-24") || className.includes("w-20") || className.includes("h-20");
+    const isMedium = className.includes("w-12") || className.includes("h-12") || className.includes("w-11") || className.includes("h-11") || className.includes("w-10") || className.includes("w-8");
+    const textSize = isLarge ? "text-2xl font-bold tracking-wider" : isMedium ? "text-xs font-bold" : "text-[10px] font-bold";
+
     if (src && !hasError) {
         return (
             <img
                 src={src}
                 alt={alt}
                 onError={() => setHasError(true)}
-                className={`rounded-[2px] object-cover border border-[var(--app-border)] shrink-0 ${className}`}
+                className={`${roundedClass} object-cover border border-[var(--app-border)] shrink-0 ${className}`}
             />
         );
     }
 
     return (
         <div
-            className={`rounded-[2px] border border-[var(--app-border)] bg-[var(--app-select-bg)] text-[var(--app-text)] flex items-center justify-center font-bold text-[8px] shrink-0 ${className}`}
+            className={`${roundedClass} border border-[var(--app-border)] bg-[var(--app-select-bg)] text-[var(--app-text)] flex items-center justify-center shrink-0 ${textSize} ${className}`}
         >
             {displayInitials}
         </div>
@@ -90,7 +95,7 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
 
     // Filters
     const [selectedMemberId, setSelectedMemberId] = useState<string>("all");
-    const [rangePreset, setRangePreset] = useState<string>("7"); // '0'=today, '1'=yesterday, '7', '14', '30', 'custom'
+    const [rangePreset, setRangePreset] = useState<string>("0"); // '0'=today, '1'=yesterday, '7', '14', '30', 'custom'
     const [customStart, setCustomStart] = useState<string>("");
     const [customEnd, setCustomEnd] = useState<string>("");
     const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "in_progress" | "attention">("all");
@@ -106,8 +111,6 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
-
-    const bubbleScrollRef = useRef<HTMLDivElement>(null);
 
     // Member selection with browser history support (system back navigation)
     const handleMemberSelect = (memberId: string, pushHistory = true) => {
@@ -372,37 +375,49 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
         }
     };
 
-    const getPriorityBorder = (p: string) => {
-        switch (p) {
+    const getPriorityTextColor = (p: string) => {
+        switch (p?.toUpperCase()) {
             case "URGENT":
-                return "border-l-2 border-l-[#CB2431]";
+                return "text-[var(--priority-urgent)]";
             case "HIGH":
-                return "border-l-2 border-l-[#B08800]";
+                return "text-[var(--priority-high)]";
             case "MEDIUM":
-                return "border-l-2 border-l-[#1A1A1A]";
+                return "text-[var(--priority-medium)]";
+            case "LOW":
             default:
-                return "border-l-2 border-l-[#DADAD6]";
+                return "text-[var(--priority-low)]";
+        }
+    };
+
+    const getPriorityBorder = (p: string) => {
+        switch (p?.toUpperCase()) {
+            case "URGENT":
+                return "border-l-2 border-l-[var(--priority-urgent)]";
+            case "HIGH":
+                return "border-l-2 border-l-[var(--priority-high)]";
+            case "MEDIUM":
+                return "border-l-2 border-l-[var(--priority-medium)]";
+            default:
+                return "border-l-2 border-l-[var(--priority-low)]";
         }
     };
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--app-bg)] text-[var(--app-text)] select-none print:bg-white print:text-black print:overflow-visible">
-            {/* ─── FIXED TOP SECTION (Filters, Preferences, Member Selection) ─── */}
+            {/* ─── FIXED TOP SECTION (Filters & Quick Actions) ─── */}
             <div className="shrink-0 bg-[var(--app-card)] border-b border-[var(--app-border)] z-10 print:hidden flex flex-col">
                 {/* 1. Header: Title & Quick Actions */}
                 <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--app-border)]">
                     <div className="flex items-center gap-2.5">
                         {selectedMemberId !== "all" && (
-                            <Button
+                            <button
+                                type="button"
                                 onClick={() => handleMemberSelect("all")}
-                                variant="secondary"
-                                size="sm"
-                                icon={<ChevronLeft className="w-3.5 h-3.5" />}
-                                className="h-7 text-xs px-2.5 shrink-0"
-                                title="Return to All Team Overview"
+                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors cursor-pointer shrink-0 p-0.5"
+                                title="Back to All Team Overview"
                             >
-                                All Team
-                            </Button>
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
                         )}
                         <div>
                             <h1 className="font-heading text-lg font-bold text-[var(--app-text)]">
@@ -453,93 +468,10 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                     </div>
                 </div>
 
-                {/* 2. Controls Bar: Member Selector Chips + Period Tabs + Day Stepper + Status Filters + Search */}
+                {/* 2. Controls Bar: Period Tabs + Custom Datepicker + Day Stepper + Status Filters + Search */}
                 <div className="px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 bg-[var(--app-bg)] border-b border-[var(--app-border)]">
-                    {/* Left: Member Chips & Period Selection */}
+                    {/* Left: Period Selection & Day Stepper */}
                     <div className="flex flex-wrap items-center gap-2">
-                        {/* Member Carousel Chips */}
-                        <div className="flex items-center gap-1">
-                            <button
-                                type="button"
-                                onClick={() => bubbleScrollRef.current?.scrollBy({ left: -140, behavior: "smooth" })}
-                                className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
-                                title="Scroll left"
-                            >
-                                <ChevronLeft className="w-3.5 h-3.5" />
-                            </button>
-
-                            <div
-                                ref={bubbleScrollRef}
-                                className="flex items-center gap-1.5 overflow-x-auto py-0.5 px-0.5 scrollbar-none max-w-[320px] sm:max-w-[420px]"
-                            >
-                                {/* Chip #1: All Team */}
-                                <button
-                                    type="button"
-                                    onClick={() => handleMemberSelect("all")}
-                                    className={`flex items-center gap-1.5 px-2 py-1 rounded-[2px] border text-xs transition-colors cursor-pointer shrink-0 ${
-                                        selectedMemberId === "all"
-                                            ? "bg-[var(--app-select-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
-                                            : "bg-[var(--app-card)] border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
-                                    }`}
-                                    title="All Team Members Overview"
-                                >
-                                    <Globe className="w-3 h-3 text-[var(--app-text)] shrink-0" />
-                                    <span className="whitespace-nowrap">All Team</span>
-                                    <span className="text-[10px] px-1 rounded bg-[var(--app-hover-bg)] text-[var(--app-muted)] font-mono">
-                                        {reportData?.totalTasks ?? 0}
-                                    </span>
-                                </button>
-
-                                {!reportData && isLoading ? (
-                                    <>
-                                        {[1, 2, 3].map((i) => (
-                                            <SkeletonBox key={i} className="h-6 w-20 rounded-[2px] shrink-0" />
-                                        ))}
-                                    </>
-                                ) : (
-                                    reportData?.memberBreakdown?.map((member) => {
-                                        const isSelected = selectedMemberId === member.user.id;
-                                        const firstName = member.user.fullName.split(" ")[0];
-
-                                        return (
-                                            <button
-                                                key={member.user.id}
-                                                type="button"
-                                                onClick={() => handleMemberSelect(member.user.id)}
-                                                className={`flex items-center gap-1.5 px-2 py-1 rounded-[2px] border text-xs transition-colors cursor-pointer shrink-0 ${
-                                                    isSelected
-                                                        ? "bg-[var(--app-select-bg)] text-[var(--app-text)] border-[var(--app-border-strong)] font-semibold"
-                                                        : "bg-[var(--app-card)] border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
-                                                }`}
-                                                title={`${member.user.fullName} (${member.user.designation || "Member"}) • ${member.completedTasks}/${member.totalTasks} completed`}
-                                            >
-                                                <PersonAvatar
-                                                    src={member.user.avatarUrl}
-                                                    alt={member.user.fullName}
-                                                    className="w-3.5 h-3.5"
-                                                />
-                                                <span className="whitespace-nowrap max-w-[80px] truncate">{firstName}</span>
-                                                <span className="text-[10px] px-1 rounded bg-[var(--app-hover-bg)] text-[var(--app-muted)] font-mono">
-                                                    {member.completedTasks}/{member.totalTasks}
-                                                </span>
-                                            </button>
-                                        );
-                                    })
-                                )}
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() => bubbleScrollRef.current?.scrollBy({ left: 140, behavior: "smooth" })}
-                                className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
-                                title="Scroll right"
-                            >
-                                <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-
-                        <div className="h-4 w-px bg-[var(--app-border)] shrink-0 hidden sm:block" />
-
                         {/* Period Presets */}
                         <div className="flex items-center gap-1">
                             {[
@@ -737,428 +669,404 @@ export default function ReportView({ currentTeam }: ReportViewProps) {
                 </div>
             </div>
 
-            {/* ─── SCROLLABLE LOWER SECTION (Data & Reports) ─── */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-[var(--app-bg)] text-[var(--app-text)] flex flex-col gap-4 select-none print:p-0 print:overflow-visible">
-                {/* Loading State: Shimmer Skeleton */}
-                {isLoading && <SkeletonReport />}
+            {/* ─── LOWER SECTION: LEFT MEMBER RAIL + RIGHT DATA CONTENT ─── */}
+            <div className="flex-1 flex overflow-hidden">
+                {/* LEFT VERTICAL MEMBER RAIL */}
+                <aside className="w-16 sm:w-18 border-r border-[var(--app-border)] bg-[var(--app-card)] flex flex-col shrink-0 overflow-hidden select-none print:hidden">
+                    {/* Rail Scrollable List */}
+                    <div className="flex-1 overflow-y-auto py-3 px-1.5 flex flex-col items-center gap-3 scrollbar-none">
+                        {/* 1. All Team Bubble */}
+                        {(() => {
+                            const isAllSelected = selectedMemberId === "all";
+                            return (
+                                <button
+                                    type="button"
+                                    onClick={() => handleMemberSelect("all")}
+                                    className={`relative p-1 rounded-[2px] transition-all cursor-pointer group flex items-center justify-center ${
+                                        isAllSelected ? "opacity-100" : "opacity-70 hover:opacity-100"
+                                    }`}
+                                    title={`All Team Overview • ${reportData?.totalTasks ?? 0} tasks`}
+                                >
+                                    {/* Speech Bubble Arrow Pointer */}
+                                    {isAllSelected && (
+                                        <div className="absolute -right-2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
+                                            <div className="relative">
+                                                <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-[var(--app-border-strong)]" />
+                                                <div className="absolute top-[1px] -left-[1px] w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[7px] border-l-[var(--app-card)]" />
+                                            </div>
+                                        </div>
+                                    )}
 
-                {/* Report Data Views */}
-                {reportData && !isLoading && (
-                    <>
-                        {/* 1. Summary & Performance Metrics Card */}
-                        <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 rounded-[2px] corner-brackets flex flex-col gap-4 shadow-xs">
-                            {/* Member / Team Info Header */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div className="flex items-center gap-3">
-                                    {reportData.selectedMember ? (
-                                        <>
-                                            <PersonAvatar
-                                                src={reportData.selectedMember.avatarUrl}
-                                                alt={reportData.selectedMember.fullName}
-                                                className="w-9 h-9"
-                                            />
+                                    <div
+                                        className={`w-11 h-11 rounded-[2px] flex items-center justify-center transition-all duration-150 border border-[var(--app-border)] ${
+                                            isAllSelected
+                                                ? "bg-[var(--app-select-bg)] border-[var(--app-border-strong)] shadow-xs"
+                                                : "bg-[var(--app-card)] group-hover:bg-[var(--app-hover-bg)]"
+                                        }`}
+                                    >
+                                        <span className="emoji-font text-lg select-none">
+                                            {currentTeam.emoji || "👥"}
+                                        </span>
+                                    </div>
+                                </button>
+                            );
+                        })()}
+
+                        <div className="w-6 h-px bg-[var(--app-border)] my-0.5 shrink-0" />
+
+                        {/* Skeleton state if data not yet loaded */}
+                        {!reportData && isLoading && (
+                            <>
+                                {[1, 2, 3, 4].map((i) => (
+                                    <SkeletonBox key={i} className="w-11 h-11 rounded-[2px] shrink-0" />
+                                ))}
+                            </>
+                        )}
+
+                        {/* 2. Member Bubble Cards */}
+                        {reportData?.memberBreakdown?.map((member) => {
+                            const isSelected = selectedMemberId === member.user.id;
+                            return (
+                                <button
+                                    key={member.user.id}
+                                    type="button"
+                                    onClick={() => handleMemberSelect(member.user.id)}
+                                    className={`relative p-1 rounded-[2px] transition-all cursor-pointer group flex items-center justify-center ${
+                                        isSelected ? "opacity-100" : "opacity-70 hover:opacity-100"
+                                    }`}
+                                    title={`${member.user.fullName} (${member.user.designation || member.role}) • ${member.completedTasks}/${member.totalTasks} completed (${member.completionRate}%)`}
+                                >
+                                    {/* Speech Bubble Arrow Pointer */}
+                                    {isSelected && (
+                                        <div className="absolute -right-2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
+                                            <div className="relative">
+                                                <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-[var(--app-border-strong)]" />
+                                                <div className="absolute top-[1px] -left-[1px] w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[7px] border-l-[var(--app-card)]" />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <PersonAvatar
+                                        src={member.user.avatarUrl}
+                                        alt={member.user.fullName}
+                                        className="w-11 h-11 rounded-[2px] shadow-2xs"
+                                    />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </aside>
+
+                {/* RIGHT CONTENT AREA (Metrics Card + Daily Activity Stream) */}
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-[var(--app-bg)] text-[var(--app-text)] flex flex-col gap-3 select-none print:p-0 print:overflow-visible">
+                    {/* Loading State: Shimmer Skeleton */}
+                    {isLoading && !reportData && <SkeletonReport />}
+
+                    {/* Report Data Views */}
+                    {reportData && (
+                        <>
+                            {/* 1. Summary & Performance Metrics Card */}
+                            <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-3 sm:p-3.5 rounded-[2px] corner-brackets flex flex-col gap-3 shadow-xs">
+                                {/* Member / Team Info Header */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                    <div className="flex items-center gap-2.5">
+                                        {reportData.selectedMember ? (
                                             <div>
                                                 <div className="flex items-center gap-2">
-                                                    <h2 className="font-heading text-lg font-bold text-[var(--app-text)]">
+                                                    <h2 className="font-heading text-base font-bold text-[var(--app-text)]">
                                                         {reportData.selectedMember.fullName}
                                                     </h2>
-                                                    <span className="text-[10px] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px] text-[var(--app-muted)] font-medium">
+                                                    <span className="text-[9px] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px] text-[var(--app-muted)] font-medium">
                                                         {reportData.selectedMember.designation || "Team Member"}
                                                     </span>
                                                 </div>
-                                                <p className="text-[11px] text-[var(--app-muted)] mt-0.5">
+                                                <p className="text-[10px] text-[var(--app-muted)]">
                                                     {reportData.selectedMember.email} • Period: {reportData.startDate} → {reportData.endDate}
                                                 </p>
                                             </div>
-                                        </>
-                                    ) : (
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-[2px] bg-[var(--app-select-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-text)]">
-                                                <Globe className="w-5 h-5 text-[var(--app-text)]" />
-                                            </div>
+                                        ) : (
                                             <div>
-                                                <h2 className="font-heading text-lg font-bold text-[var(--app-text)]">
+                                                <h2 className="font-heading text-base font-bold text-[var(--app-text)]">
                                                     Team Performance Overview
                                                 </h2>
-                                                <p className="text-[11px] text-[var(--app-muted)] mt-0.5">
-                                                    Consolidated updates across {reportData.memberBreakdown?.length || 0} members • Period: {reportData.startDate} → {reportData.endDate}
+                                                <p className="text-[10px] text-[var(--app-muted)]">
+                                                    {reportData.memberBreakdown?.length || 0} members • Period: {reportData.startDate} → {reportData.endDate}
                                                 </p>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {selectedMemberId !== "all" && (
-                                    <Button
-                                        onClick={() => handleMemberSelect("all")}
-                                        variant="secondary"
-                                        size="sm"
-                                        icon={<ChevronLeft className="w-3.5 h-3.5" />}
-                                        className="self-start sm:self-auto"
-                                    >
-                                        Back to Team Overview
-                                    </Button>
-                                )}
-                            </div>
-
-                            {/* Top 4 Metric KPI Cards Grid */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                                <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-3 rounded-[2px] flex flex-col gap-1">
-                                    <span className="eyebrow">Completion Rate</span>
-                                    <div className="flex items-baseline gap-1.5">
-                                        <span className="text-2xl font-heading text-[var(--app-text)]">
-                                            {reportData.completionRate}%
-                                        </span>
-                                        <span className="text-[10px] text-[var(--app-muted)] font-mono">
-                                            ({reportData.completedTasks}/{reportData.totalTasks})
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-3 rounded-[2px] flex flex-col gap-1">
-                                    <span className="eyebrow">In Progress</span>
-                                    <span className="text-2xl font-heading text-[#0284C7]">
-                                        {reportData.inProgressTasks}
-                                    </span>
-                                </div>
-
-                                <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-3 rounded-[2px] flex flex-col gap-1">
-                                    <span className="eyebrow text-[#CB2431]">Needs Attention</span>
-                                    <span className="text-2xl font-heading text-[#CB2431]">
-                                        {reportData.needsAttentionTasks}
-                                    </span>
-                                </div>
-
-                                <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-3 rounded-[2px] flex flex-col gap-1">
-                                    <span className="eyebrow text-[#B08800]">Carried Over (2d+)</span>
-                                    <span className="text-2xl font-heading text-[#B08800]">
-                                        {reportData.staleTasksCount}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Sleek Progress Bar Ribbon */}
-                            <div className="flex flex-col gap-2 pt-1 border-t border-[var(--app-border)]">
-                                <div className="h-2 w-full rounded-[2px] bg-[var(--app-bg)] border border-[var(--app-border)] flex overflow-hidden">
-                                    {reportData.totalTasks === 0 ? (
-                                        <div className="w-full h-full bg-transparent" />
-                                    ) : (
-                                        <>
-                                            {reportData.completedTasks > 0 && (
-                                                <div
-                                                    style={{ width: `${(reportData.completedTasks / reportData.totalTasks) * 100}%` }}
-                                                    className="bg-[#22863A] transition-all"
-                                                    title={`Done: ${reportData.completedTasks} tasks (${reportData.completionRate}%)`}
-                                                />
-                                            )}
-                                            {reportData.inProgressTasks > 0 && (
-                                                <div
-                                                    style={{ width: `${(reportData.inProgressTasks / reportData.totalTasks) * 100}%` }}
-                                                    className="bg-[#0284C7] transition-all"
-                                                    title={`In Progress: ${reportData.inProgressTasks} tasks`}
-                                                />
-                                            )}
-                                            {reportData.needsAttentionTasks > 0 && (
-                                                <div
-                                                    style={{ width: `${(reportData.needsAttentionTasks / reportData.totalTasks) * 100}%` }}
-                                                    className="bg-[#CB2431] transition-all"
-                                                    title={`Needs Attention: ${reportData.needsAttentionTasks} tasks`}
-                                                />
-                                            )}
-                                            {reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks > 0 && (
-                                                <div
-                                                    style={{
-                                                        width: `${
-                                                            ((reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks) /
-                                                                reportData.totalTasks) *
-                                                            100
-                                                        }%`,
-                                                    }}
-                                                    className="bg-[var(--app-border)] transition-all"
-                                                    title={`To Do: ${
-                                                        reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks
-                                                    } tasks`}
-                                                />
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-
-                                {/* Legend */}
-                                <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-[var(--app-muted)] pt-0.5">
-                                    <div className="flex flex-wrap items-center gap-4">
-                                        <span className="flex items-center gap-1.5">
-                                            <span className="w-2 h-2 rounded-[1px] bg-[#22863A] shrink-0" />
-                                            <strong className="text-[var(--app-text)] font-semibold">{reportData.completedTasks}</strong> Done
-                                        </span>
-                                        <span className="flex items-center gap-1.5">
-                                            <span className="w-2 h-2 rounded-[1px] bg-[#0284C7] shrink-0" />
-                                            <strong className="text-[var(--app-text)] font-semibold">{reportData.inProgressTasks}</strong> In Progress
-                                        </span>
-                                        {reportData.needsAttentionTasks > 0 && (
-                                            <span className="flex items-center gap-1.5">
-                                                <span className="w-2 h-2 rounded-[1px] bg-[#CB2431] shrink-0" />
-                                                <strong className="text-[var(--app-text)] font-semibold">{reportData.needsAttentionTasks}</strong> Needs Attention
-                                            </span>
                                         )}
-                                        <span className="flex items-center gap-1.5">
-                                            <span className="w-2 h-2 rounded-[1px] bg-[var(--app-border)] shrink-0" />
-                                            <strong className="text-[var(--app-text)] font-semibold">
-                                                {Math.max(0, reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks)}
-                                            </strong> To Do
+                                    </div>
+
+                                </div>
+
+                                {/* Top 4 Metric KPI Cards Grid */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-2 rounded-[2px] flex flex-col gap-0.5">
+                                        <span className="eyebrow text-[9px]">Completion Rate</span>
+                                        <div className="flex items-baseline gap-1.5">
+                                            <span className="text-lg sm:text-xl font-heading text-[var(--app-text)] font-bold">
+                                                {reportData.completionRate}%
+                                            </span>
+                                            <span className="text-[10px] text-[var(--app-muted)] font-medium">
+                                                ({reportData.completedTasks}/{reportData.totalTasks})
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-2 rounded-[2px] flex flex-col gap-0.5">
+                                        <span className="eyebrow text-[9px]">In Progress</span>
+                                        <span className="text-lg sm:text-xl font-heading text-[#0284C7] font-bold">
+                                            {reportData.inProgressTasks}
                                         </span>
                                     </div>
 
-                                    <span className="text-[11px] text-[var(--app-muted)] font-mono">
-                                        Total: {reportData.totalTasks} tasks
-                                    </span>
+                                    <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-2 rounded-[2px] flex flex-col gap-0.5">
+                                        <span className="eyebrow text-[9px] text-[#CB2431]">Needs Attention</span>
+                                        <span className="text-lg sm:text-xl font-heading text-[#CB2431] font-bold">
+                                            {reportData.needsAttentionTasks}
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-[var(--app-bg)] border border-[var(--app-border)] p-2 rounded-[2px] flex flex-col gap-0.5">
+                                        <span className="eyebrow text-[9px] text-[#B08800]">Carried Over (2d+)</span>
+                                        <span className="text-lg sm:text-xl font-heading text-[#B08800] font-bold">
+                                            {reportData.staleTasksCount}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Sleek Progress Bar Ribbon */}
+                                <div className="flex flex-col gap-1.5 pt-1 border-t border-[var(--app-border)]">
+                                    <div className="h-1.5 w-full rounded-[1px] bg-[var(--app-bg)] border border-[var(--app-border)] flex overflow-hidden">
+                                        {reportData.totalTasks === 0 ? (
+                                            <div className="w-full h-full bg-transparent" />
+                                        ) : (
+                                            <>
+                                                {reportData.completedTasks > 0 && (
+                                                    <div
+                                                        style={{ width: `${(reportData.completedTasks / reportData.totalTasks) * 100}%` }}
+                                                        className="bg-[#22863A] transition-all"
+                                                        title={`Done: ${reportData.completedTasks} tasks (${reportData.completionRate}%)`}
+                                                    />
+                                                )}
+                                                {reportData.inProgressTasks > 0 && (
+                                                    <div
+                                                        style={{ width: `${(reportData.inProgressTasks / reportData.totalTasks) * 100}%` }}
+                                                        className="bg-[#0284C7] transition-all"
+                                                        title={`In Progress: ${reportData.inProgressTasks} tasks`}
+                                                    />
+                                                )}
+                                                {reportData.needsAttentionTasks > 0 && (
+                                                    <div
+                                                        style={{ width: `${(reportData.needsAttentionTasks / reportData.totalTasks) * 100}%` }}
+                                                        className="bg-[#CB2431] transition-all"
+                                                        title={`Needs Attention: ${reportData.needsAttentionTasks} tasks`}
+                                                    />
+                                                )}
+                                                {reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks > 0 && (
+                                                    <div
+                                                        style={{
+                                                            width: `${
+                                                                ((reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks) /
+                                                                    reportData.totalTasks) *
+                                                                100
+                                                            }%`,
+                                                        }}
+                                                        className="bg-[var(--app-border)] transition-all"
+                                                        title={`To Do: ${
+                                                            reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks
+                                                        } tasks`}
+                                                    />
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* Legend */}
+                                    <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-[var(--app-muted)]">
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <span className="flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 rounded-[1px] bg-[#22863A] shrink-0" />
+                                                <strong className="text-[var(--app-text)] font-semibold">{reportData.completedTasks}</strong> Done
+                                            </span>
+                                            <span className="flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 rounded-[1px] bg-[#0284C7] shrink-0" />
+                                                <strong className="text-[var(--app-text)] font-semibold">{reportData.inProgressTasks}</strong> In Progress
+                                            </span>
+                                            {reportData.needsAttentionTasks > 0 && (
+                                                <span className="flex items-center gap-1.5">
+                                                    <span className="w-1.5 h-1.5 rounded-[1px] bg-[#CB2431] shrink-0" />
+                                                    <strong className="text-[var(--app-text)] font-semibold">{reportData.needsAttentionTasks}</strong> Needs Attention
+                                                </span>
+                                            )}
+                                            <span className="flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 rounded-[1px] bg-[var(--app-border)] shrink-0" />
+                                                <strong className="text-[var(--app-text)] font-semibold">
+                                                    {Math.max(0, reportData.totalTasks - reportData.completedTasks - reportData.inProgressTasks - reportData.needsAttentionTasks)}
+                                                </strong> To Do
+                                            </span>
+                                        </div>
+
+                                        <span className="text-[11px] text-[var(--app-muted)]">
+                                            Total: <strong className="font-semibold text-[var(--app-text)]">{reportData.totalTasks}</strong> tasks
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* 2. Team Member Workload & Performance Cards (When All Team selected) */}
-                        {selectedMemberId === "all" && reportData?.memberBreakdown && reportData.memberBreakdown.length > 0 && (
-                            <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 rounded-[2px] corner-brackets flex flex-col gap-3 shadow-xs">
+                            {/* 2. Chronological Daily Activity Stream */}
+                            <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 rounded-[2px] corner-brackets flex flex-col gap-3.5 shadow-xs">
                                 <div className="flex items-center justify-between">
-                                    <span className="eyebrow font-semibold">
-                                        Team Member Workload & Performance
-                                    </span>
-                                    <span className="text-[11px] text-[var(--app-muted)]">
-                                        Select a member to inspect daily logs
+                                    <div className="flex items-center gap-2">
+                                        {selectedMemberId !== "all" && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleMemberSelect("all")}
+                                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors cursor-pointer shrink-0 p-0.5"
+                                                title="Back to All Team Overview"
+                                            >
+                                                <ChevronLeft className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        <span className="eyebrow font-semibold">
+                                            {selectedMemberId !== "all" && reportData?.selectedMember
+                                                ? `${reportData.selectedMember.fullName}'s Daily Activity Log`
+                                                : "Daily Activity Stream"}
+                                        </span>
+                                    </div>
+                                    <span className="text-xs text-[var(--app-muted)]">
+                                        {filteredDailyGroups.reduce((acc, g) => acc + g.tasks.length, 0)} tasks across {filteredDailyGroups.length} days
                                     </span>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    {reportData.memberBreakdown.map((mb) => (
-                                        <div
-                                            key={mb.user.id}
-                                            onClick={() => handleMemberSelect(mb.user.id)}
-                                            className="border border-[var(--app-border)] hover:border-[var(--app-border-strong)] p-3.5 rounded-[2px] bg-[var(--app-bg)]/60 hover:bg-[var(--app-card)] transition-all cursor-pointer flex flex-col justify-between gap-3 group"
-                                        >
-                                            {/* Top: Avatar, Name, Role, and Tasks Done Counter */}
-                                            <div className="flex items-start justify-between gap-2">
-                                                <div className="flex items-center gap-2.5 min-w-0">
-                                                    <PersonAvatar
-                                                        src={mb.user.avatarUrl}
-                                                        alt={mb.user.fullName}
-                                                        className="w-7 h-7"
-                                                    />
-                                                    <div className="min-w-0">
-                                                        <h4 className="text-[13px] font-semibold text-[var(--app-text)] group-hover:underline truncate">
-                                                            {mb.user.fullName}
-                                                        </h4>
-                                                        <p className="text-[10px] text-[var(--app-muted)] truncate">
-                                                            {mb.user.designation || mb.role}
-                                                        </p>
+                                {filteredDailyGroups.length === 0 ? (
+                                    <div className="py-12 px-4 text-center text-[var(--app-muted)] flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--app-border)] rounded-[2px] bg-[var(--app-bg)]/40">
+                                        <CheckCircle2 className="w-6 h-6 text-[var(--app-muted)]/50" />
+                                        <span className="text-xs font-semibold text-[var(--app-text)]">No tasks found matching your criteria</span>
+                                        <span className="text-[11px] text-[var(--app-muted)] max-w-sm">
+                                            Try selecting a different date range, member, or status filter to view daily activity.
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-3">
+                                        {filteredDailyGroups.map((group) => (
+                                            <div
+                                                key={group.date}
+                                                className="border border-[var(--app-border)] rounded-[2px] overflow-hidden flex flex-col bg-[var(--app-card)] shadow-2xs"
+                                            >
+                                                {/* Date Group Header */}
+                                                <div className="bg-[var(--app-bg)] px-4 py-2 border-b border-[var(--app-border)] flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar className="w-3.5 h-3.5 text-[var(--app-text)]" />
+                                                        <span className="font-heading text-[13px] font-bold text-[var(--app-text)]">
+                                                            {formatHeaderDate(group.date, group.isToday, group.isYesterday)}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="text-xs text-[var(--app-muted)]">
+                                                        {group.tasks.filter((t) => t.isComplete).length} of {group.tasks.length} Completed
                                                     </div>
                                                 </div>
 
-                                                <div className="text-right shrink-0">
-                                                    <span className="text-xs font-mono font-medium text-[var(--app-text)]">
-                                                        {mb.completedTasks}/{mb.totalTasks}
-                                                    </span>
-                                                    <p className="text-[10px] text-[var(--app-muted)]">done</p>
-                                                </div>
-                                            </div>
+                                                {/* Tasks List */}
+                                                <div className="divide-y divide-[var(--app-border)]">
+                                                    {group.tasks.map((task) => {
+                                                        const isDone = task.isComplete;
+                                                        const statusName = task.status.toLowerCase();
+                                                        const isAttention = statusName.includes("attention") || statusName.includes("blocked");
+                                                        const isInProgress = statusName.includes("progress") || statusName.includes("doing");
 
-                                            {/* Middle: Workload Progress Bar */}
-                                            <div className="flex flex-col gap-1.5">
-                                                <div className="h-1.5 w-full rounded-[1px] bg-[var(--app-border)] overflow-hidden flex">
-                                                    {mb.totalTasks > 0 ? (
-                                                        <>
+                                                        const statusColor = isDone
+                                                            ? "bg-[#22863A]"
+                                                            : isAttention
+                                                            ? "bg-[#CB2431]"
+                                                            : isInProgress
+                                                            ? "bg-[#0284C7]"
+                                                            : "bg-[var(--app-muted)]";
+
+                                                        return (
                                                             <div
-                                                                style={{ width: `${(mb.completedTasks / mb.totalTasks) * 100}%` }}
-                                                                className="bg-[#22863A]"
-                                                            />
-                                                            <div
-                                                                style={{ width: `${(mb.inProgressTasks / mb.totalTasks) * 100}%` }}
-                                                                className="bg-[#0284C7]"
-                                                            />
-                                                            <div
-                                                                style={{ width: `${(mb.needsAttentionTasks / mb.totalTasks) * 100}%` }}
-                                                                className="bg-[#CB2431]"
-                                                            />
-                                                        </>
-                                                    ) : (
-                                                        <div className="w-full h-full bg-transparent" />
-                                                    )}
-                                                </div>
-
-                                                <div className="flex items-center justify-between text-[11px]">
-                                                    <span className="text-[var(--app-muted)]">
-                                                        {mb.completionRate}% completion
-                                                    </span>
-                                                    {mb.staleTasksCount > 0 ? (
-                                                        <span className="text-[#B08800] font-medium font-mono text-[10px]">
-                                                            {mb.staleTasksCount} carried
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-[var(--app-muted)] text-[10px] group-hover:text-[var(--app-text)] flex items-center gap-0.5">
-                                                            Daily Log <ArrowRight className="w-2.5 h-2.5" />
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* 3. Chronological Daily Activity Stream */}
-                        <div className="bg-[var(--app-card)] border border-[var(--app-border)] p-4 rounded-[2px] corner-brackets flex flex-col gap-3.5 shadow-xs">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    {selectedMemberId !== "all" && (
-                                        <button
-                                            type="button"
-                                            onClick={() => handleMemberSelect("all")}
-                                            className="p-1 hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer border border-[var(--app-border)]"
-                                            title="Back to All Team Overview"
-                                        >
-                                            <ChevronLeft className="w-3.5 h-3.5" />
-                                        </button>
-                                    )}
-                                    <span className="eyebrow font-semibold">
-                                        {selectedMemberId !== "all" && reportData?.selectedMember
-                                            ? `${reportData.selectedMember.fullName}'s Daily Activity Log`
-                                            : "Daily Activity Stream"}
-                                    </span>
-                                </div>
-                                <span className="text-[11px] text-[var(--app-muted)] font-mono">
-                                    {filteredDailyGroups.reduce((acc, g) => acc + g.tasks.length, 0)} tasks across {filteredDailyGroups.length} days
-                                </span>
-                            </div>
-
-                            {filteredDailyGroups.length === 0 ? (
-                                <div className="py-12 px-4 text-center text-[var(--app-muted)] flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--app-border)] rounded-[2px] bg-[var(--app-bg)]/40">
-                                    <CheckCircle2 className="w-6 h-6 text-[var(--app-muted)]/50" />
-                                    <span className="text-xs font-semibold text-[var(--app-text)]">No tasks found matching your criteria</span>
-                                    <span className="text-[11px] text-[var(--app-muted)] max-w-sm">
-                                        Try selecting a different date range, member, or status filter to view daily activity.
-                                    </span>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-3">
-                                    {filteredDailyGroups.map((group) => (
-                                        <div
-                                            key={group.date}
-                                            className="border border-[var(--app-border)] rounded-[2px] overflow-hidden flex flex-col bg-[var(--app-card)] shadow-2xs"
-                                        >
-                                            {/* Date Group Header */}
-                                            <div className="bg-[var(--app-bg)] px-4 py-2 border-b border-[var(--app-border)] flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="w-3.5 h-3.5 text-[var(--app-text)]" />
-                                                    <span className="font-heading text-[13px] font-bold text-[var(--app-text)]">
-                                                        {formatHeaderDate(group.date, group.isToday, group.isYesterday)}
-                                                    </span>
-                                                </div>
-
-                                                <div className="text-[11px] text-[var(--app-muted)] tabular-nums font-mono">
-                                                    {group.tasks.filter((t) => t.isComplete).length} of {group.tasks.length} Completed
-                                                </div>
-                                            </div>
-
-                                            {/* Tasks List */}
-                                            <div className="divide-y divide-[var(--app-border)]">
-                                                {group.tasks.map((task) => {
-                                                    const isDone = task.isComplete;
-                                                    const statusName = task.status.toLowerCase();
-                                                    const isAttention = statusName.includes("attention") || statusName.includes("blocked");
-                                                    const isInProgress = statusName.includes("progress") || statusName.includes("doing");
-
-                                                    const statusColor = isDone
-                                                        ? "bg-[#22863A]"
-                                                        : isAttention
-                                                        ? "bg-[#CB2431]"
-                                                        : isInProgress
-                                                        ? "bg-[#0284C7]"
-                                                        : "bg-[var(--app-muted)]";
-
-                                                    return (
-                                                        <div
-                                                            key={task.id}
-                                                            onClick={() => setSelectedTaskId(task.id)}
-                                                            className={`px-4 py-3 hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer flex flex-col gap-1.5 ${getPriorityBorder(
-                                                                task.priority,
-                                                            )} ${isDone ? "opacity-70 hover:opacity-100" : ""}`}
-                                                        >
-                                                            <div className="flex items-center justify-between gap-4">
-                                                                {/* Left: Status Dot + Title + Status Text */}
-                                                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                                                    <span
-                                                                        className={`w-2 h-2 rounded-full shrink-0 ${statusColor}`}
-                                                                        title={task.status}
-                                                                    />
-
-                                                                    <h3
-                                                                        className={`text-[13px] font-medium truncate ${
-                                                                            isDone
-                                                                                ? "line-through text-[var(--app-muted)]"
-                                                                                : "text-[var(--app-text)] hover:underline"
-                                                                        }`}
-                                                                    >
-                                                                        {task.title}
-                                                                    </h3>
-
-                                                                    <span className="text-[11px] text-[var(--app-muted)] shrink-0 hidden sm:inline">
-                                                                        • {task.status}
-                                                                    </span>
-                                                                </div>
-
-                                                                {/* Right: Subtasks, Carried info, Assignee */}
-                                                                <div className="flex items-center gap-3 shrink-0 text-xs">
-                                                                    {task.checklistStats && task.checklistStats.total > 0 && (
-                                                                        <span className="text-[11px] text-[var(--app-muted)] flex items-center gap-1 font-mono">
-                                                                            <CheckSquare className="w-3 h-3" />
-                                                                            {task.checklistStats.completed}/{task.checklistStats.total}
-                                                                        </span>
-                                                                    )}
-
-                                                                    {task.carryCount > 0 && (
-                                                                        <span className="text-[11px] font-mono text-[#B08800]">
-                                                                            {task.carryCount}d carried
-                                                                        </span>
-                                                                    )}
-
-                                                                    {selectedMemberId === "all" && task.assignedTo && (
-                                                                        <div className="flex items-center gap-1.5 text-xs text-[var(--app-muted)]">
-                                                                            <PersonAvatar
-                                                                                src={task.assignedTo.avatarUrl}
-                                                                                alt={task.assignedTo.fullName}
-                                                                                className="w-4.5 h-4.5"
+                                                                key={task.id}
+                                                                onClick={() => setSelectedTaskId(task.id)}
+                                                                className={`px-4 py-3 hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer flex flex-col gap-1.5 ${getPriorityBorder(
+                                                                    task.priority,
+                                                                )} ${isDone ? "opacity-70 hover:opacity-100" : ""}`}
+                                                            >
+                                                                <div className="flex items-start justify-between gap-4">
+                                                                    {/* Member Name & Meta on Line 1 -> Task Title on Line 2 Below */}
+                                                                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                                                                        {/* Line 1: Member Name & Status */}
+                                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                                            <span className="text-xs font-semibold text-[var(--app-text)]">
+                                                                                {task.assignedTo ? task.assignedTo.fullName : "Unassigned"}
+                                                                            </span>
+                                                                            <span
+                                                                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusColor}`}
+                                                                                title={task.status}
                                                                             />
-                                                                            <span className="hidden md:inline max-w-[100px] truncate text-[var(--app-text)] font-medium">
-                                                                                {task.assignedTo.fullName}
+                                                                            <span className="text-[11px] text-[var(--app-muted)] font-medium">
+                                                                                {task.status}
+                                                                            </span>
+                                                                            <span className="text-[10px] text-[var(--app-muted)] opacity-40">
+                                                                                •
+                                                                            </span>
+                                                                            <span className={`text-[11px] font-semibold tracking-tight ${getPriorityTextColor(task.priority)}`}>
+                                                                                {task.priority}
                                                                             </span>
                                                                         </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
 
-                                                            {/* Latest Comment Snippet (if available) */}
-                                                            {task.latestComment && (
-                                                                <div className="flex items-center gap-2 text-[11px] text-[var(--app-muted)] pl-4.5">
-                                                                    <MessageSquare className="w-3 h-3 shrink-0 text-[var(--app-muted)]" />
-                                                                    <span className="italic truncate">
-                                                                        <strong className="not-italic text-[var(--app-text)] font-medium">
-                                                                            {task.latestComment.user.fullName}:
-                                                                        </strong>{" "}
-                                                                        "{task.latestComment.content}"
-                                                                    </span>
+                                                                        {/* Line 2: Task Title (Below the Member Name) */}
+                                                                        <h3
+                                                                            className={`text-[13px] font-medium truncate ${
+                                                                                isDone
+                                                                                    ? "line-through text-[var(--app-muted)]"
+                                                                                    : "text-[var(--app-text)] hover:underline"
+                                                                            }`}
+                                                                        >
+                                                                            {task.title}
+                                                                        </h3>
+                                                                    </div>
+
+                                                                    {/* Right: Subtasks, Carried info */}
+                                                                    <div className="flex items-center gap-3 shrink-0 text-xs pt-1">
+                                                                        {task.checklistStats && task.checklistStats.total > 0 && (
+                                                                            <span className="text-xs text-[var(--app-muted)] flex items-center gap-1">
+                                                                                <CheckSquare className="w-3.5 h-3.5" />
+                                                                                {task.checklistStats.completed}/{task.checklistStats.total}
+                                                                            </span>
+                                                                        )}
+
+                                                                        {task.carryCount > 0 && (
+                                                                            <span className="text-xs font-medium text-[#B08800]">
+                                                                                {task.carryCount}d carried
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
+
+                                                                {/* Latest Comment Snippet (if available) */}
+                                                                {task.latestComment && (
+                                                                    <div className="flex items-center gap-2 text-[11px] text-[var(--app-muted)] pt-0.5">
+                                                                        <MessageSquare className="w-3 h-3 shrink-0 text-[var(--app-muted)]" />
+                                                                        <span className="italic truncate">
+                                                                            <strong className="not-italic text-[var(--app-text)] font-medium">
+                                                                                {task.latestComment.user.fullName}:
+                                                                            </strong>{" "}
+                                                                            "{task.latestComment.content}"
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </>
-                )}
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

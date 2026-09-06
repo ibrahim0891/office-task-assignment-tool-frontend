@@ -864,6 +864,108 @@ export default function TaskModal({
         }
     };
 
+    // Helper to resolve Done column
+    const getDoneColumn = () => {
+        return (
+            columns.find((c) => c.isComplete) ||
+            columns.find((c) => {
+                const name = c.name.toLowerCase().trim();
+                return name === "done" || name === "complete" || name === "completed";
+            }) ||
+            columns.find((c) => {
+                const name = c.name.toLowerCase();
+                return name.includes("done") || name.includes("complete");
+            }) ||
+            columns[columns.length - 1]
+        );
+    };
+
+    // Helper to resolve In-Progress column
+    const getInProgressColumn = () => {
+        return (
+            columns.find((c) => {
+                if (c.isComplete) return false;
+                const name = c.name.toLowerCase().trim();
+                return (
+                    name === "in progress" ||
+                    name === "in-progress" ||
+                    name === "doing" ||
+                    name === "progress" ||
+                    name === "wip" ||
+                    name === "in dev" ||
+                    name === "development"
+                );
+            }) ||
+            columns.find((c) => {
+                if (c.isComplete) return false;
+                const name = c.name.toLowerCase();
+                return (
+                    name.includes("progress") ||
+                    name.includes("doing") ||
+                    name.includes("wip") ||
+                    name.includes("dev")
+                );
+            }) ||
+            columns.find((c) => !c.isComplete) ||
+            columns[0]
+        );
+    };
+
+    // Helper to check if a column represents Done / Completed
+    const isColumnDone = (colId: string) => {
+        const col = columns.find((c) => c.id === colId);
+        if (!col) return false;
+        return (
+            col.isComplete ||
+            col.name.toLowerCase().includes("done") ||
+            col.name.toLowerCase().includes("complete")
+        );
+    };
+
+    // Auto-sync task status with checklist completion state
+    const autoSyncTaskStatus = async (items: ChecklistItem[]) => {
+        if (!items || items.length === 0 || !columns || columns.length === 0) return;
+
+        const allChecked = items.every((i) => i.isCompleted);
+        const hasUnchecked = items.some((i) => !i.isCompleted);
+        const isCurrentlyDone = isColumnDone(columnId);
+
+        if (allChecked && !isCurrentlyDone) {
+            const doneCol = getDoneColumn();
+            if (doneCol && doneCol.id !== columnId) {
+                setColumnId(doneCol.id);
+                try {
+                    await api.updateTask(
+                        task.id,
+                        { columnId: doneCol.id },
+                        { userId: currentUser.id, teamId: task.teamId },
+                    );
+                    triggerMicroCelebration({ intensity: "epic" });
+                    playFeedback("complete");
+                    toast.success("All subtasks completed! Task moved to Done.");
+                } catch (err: any) {
+                    console.error("Failed to auto-update task to Done:", err);
+                }
+            }
+        } else if (hasUnchecked && isCurrentlyDone) {
+            const inProgressCol = getInProgressColumn();
+            if (inProgressCol && inProgressCol.id !== columnId) {
+                setColumnId(inProgressCol.id);
+                try {
+                    await api.updateTask(
+                        task.id,
+                        { columnId: inProgressCol.id },
+                        { userId: currentUser.id, teamId: task.teamId },
+                    );
+                    playFeedback("click");
+                    toast("Subtask unchecked. Task moved back to In Progress.");
+                } catch (err: any) {
+                    console.error("Failed to auto-update task to In Progress:", err);
+                }
+            }
+        }
+    };
+
     const handleAddSubtask = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         if (isObserver) return;
@@ -874,14 +976,21 @@ export default function TaskModal({
         try {
             const newItem = await api.addChecklistItem(task.id, trimmed);
             setNewSubtask("");
+            let updatedList = checklistItems;
             if (newItem && newItem.id) {
                 setChecklistItems((prev) => {
                     if (prev.some((item) => item.id === newItem.id)) return prev;
-                    return [...prev, newItem];
+                    updatedList = [...prev, newItem];
+                    return updatedList;
                 });
+                updatedList = [...checklistItems, newItem];
             }
             toast.success("Checklist item added");
             playFeedback("click");
+
+            // If the task was previously Done, adding an incomplete subtask brings it back to In Progress
+            await autoSyncTaskStatus(updatedList);
+
             onRefresh();
         } catch (err: any) {
             toast.error(err.message || "Failed to add checklist item");
@@ -898,28 +1007,27 @@ export default function TaskModal({
             return;
         }
         setIsUpdatingItemId(itemId);
-        // Optimistic update
-        setChecklistItems((prev) =>
-            prev.map((item) =>
-                item.id === itemId ? { ...item, isCompleted: checked } : item,
-            ),
+        
+        const nextItems = checklistItems.map((item) =>
+            item.id === itemId ? { ...item, isCompleted: checked } : item,
         );
+
+        // Optimistic update
+        setChecklistItems(nextItems);
 
         try {
             await api.updateChecklistItem(task.id, itemId, checked);
-            if (checked) {
-                const willAllBeCompleted =
-                    checklistItems.length > 0 &&
-                    checklistItems.filter((c) =>
-                        c.id === itemId ? true : c.isCompleted,
-                    ).length === checklistItems.length;
-                triggerMicroCelebration({
-                    intensity: willAllBeCompleted ? "epic" : "subtle",
-                });
-                playFeedback(willAllBeCompleted ? "complete" : "click");
-            } else {
+
+            // Auto-sync status: if all checked -> Done, if one is unchecked after Done -> In Progress
+            await autoSyncTaskStatus(nextItems);
+
+            if (checked && !nextItems.every((i) => i.isCompleted)) {
+                triggerMicroCelebration({ intensity: "subtle" });
+                playFeedback("click");
+            } else if (!checked && !isColumnDone(columnId)) {
                 playFeedback("click");
             }
+
             onRefresh();
         } catch (err: any) {
             // Revert optimistic update
@@ -981,13 +1089,20 @@ export default function TaskModal({
         if (isObserver) return;
         setIsDeletingItemId(itemId);
         const removedItem = checklistItems.find((i) => i.id === itemId);
+        const nextItems = checklistItems.filter((item) => item.id !== itemId);
         // Optimistic delete
-        setChecklistItems((prev) => prev.filter((item) => item.id !== itemId));
+        setChecklistItems(nextItems);
 
         try {
             playFeedback("delete");
             await api.deleteChecklistItem(task.id, itemId);
             toast.success("Checklist item deleted");
+
+            // If remaining items are now all completed, sync status to Done
+            if (nextItems.length > 0) {
+                await autoSyncTaskStatus(nextItems);
+            }
+
             onRefresh();
         } catch (err: any) {
             if (removedItem) {
