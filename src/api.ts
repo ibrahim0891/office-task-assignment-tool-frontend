@@ -104,6 +104,8 @@ export interface ChecklistItem {
   taskId: string;
   title: string;
   isCompleted: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Comment {
@@ -228,11 +230,7 @@ export interface ReportTaskItem {
     fullName: string;
     avatarUrl?: string | null;
   };
-  checklist: Array<{
-    id: string;
-    title: string;
-    isCompleted: boolean;
-  }>;
+  checklist: ChecklistItem[];
   checklistStats: {
     total: number;
     completed: number;

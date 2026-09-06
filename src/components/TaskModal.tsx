@@ -26,7 +26,6 @@ import {
     Plus,
     Pencil,
     ListTodo,
-    CheckCircle2,
 } from "lucide-react";
 
 // 30% Image Compression helper (70% quality)
@@ -73,6 +72,17 @@ const getRememberedTab = (): "comments" | "description" | "checklist" | "attachm
         } catch {}
     }
     return "comments";
+};
+
+const sortChecklist = (items: ChecklistItem[] = []): ChecklistItem[] => {
+    return [...items].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeA !== timeB) {
+            return timeA - timeB;
+        }
+        return (a.id || "").localeCompare(b.id || "");
+    });
 };
 
 interface TaskModalProps {
@@ -150,8 +160,8 @@ export default function TaskModal({
     const [isPostingComment, setIsPostingComment] = useState(false);
     const [isSendingComment, setIsSendingComment] = useState(false);
     const [hiddenCommentIds, setHiddenCommentIds] = useState<string[]>([]);
-    const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(
-        task.checklist || [],
+    const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(() =>
+        sortChecklist(task.checklist || []),
     );
     const [newSubtask, setNewSubtask] = useState("");
     const [isAddingSubtask, setIsAddingSubtask] = useState(false);
@@ -374,7 +384,7 @@ export default function TaskModal({
             setAssignedToId(task.assignedToId || "");
             setDateStr(task.date ? task.date.split("T")[0] : "");
             setDueDateStr(task.dueDate ? task.dueDate.split("T")[0] : "");
-            setChecklistItems(task.checklist || []);
+            setChecklistItems(sortChecklist(task.checklist || []));
             setShowUnsavedWarning(false);
 
             let mappedTab:
@@ -426,7 +436,7 @@ export default function TaskModal({
             if (dueDateStr === prevDueDate) {
                 setDueDateStr(task.dueDate ? task.dueDate.split("T")[0] : "");
             }
-            setChecklistItems(task.checklist || []);
+            setChecklistItems(sortChecklist(task.checklist || []));
         }
 
         prevTaskIdRef.current = task.id;
@@ -981,7 +991,7 @@ export default function TaskModal({
             onRefresh();
         } catch (err: any) {
             if (removedItem) {
-                setChecklistItems((prev) => [...prev, removedItem]);
+                setChecklistItems((prev) => sortChecklist([...prev, removedItem]));
             }
             toast.error(err.message || "Failed to delete checklist item");
         } finally {
@@ -1752,41 +1762,33 @@ export default function TaskModal({
 
                             return (
                                 <div className="relative flex flex-col flex-1 min-h-0 h-full gap-3 animate-fade-in border border-[#E5E5E3] bg-[#FAFAF9] p-3.5 rounded-[3px] corner-brackets">
-                                    {/* Progress Header */}
-                                    <div className="flex flex-col gap-2 p-3 bg-white border border-[#E5E5E3] rounded-[3px] shrink-0">
-                                        <div className="flex items-center justify-between text-[11px]">
+                                    {/* Title Bar */}
+                                    <div className="flex flex-col gap-1.5 shrink-0 px-0.5">
+                                        <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-semibold text-[#1A1A1A]">
-                                                    Checklist Progress
-                                                </span>
-                                                <span className="text-[#888883]">
-                                                    ({completedCount} of {totalCount} completed)
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                {totalCount > 0 && completedCount === totalCount && (
-                                                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1">
-                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                                        All done
+                                                <label className="eyebrow">Checklist</label>
+                                                {totalCount > 0 && (
+                                                    <span className="text-[11px] text-[#888883]">
+                                                        ({completedCount} of {totalCount} completed)
                                                     </span>
                                                 )}
-                                                <span className="font-semibold text-[#1A1A1A]">
+                                            </div>
+                                            {totalCount > 0 && completedCount < totalCount && (
+                                                <span className="text-[11px] font-medium text-[#888883]">
                                                     {progressPercent}%
                                                 </span>
-                                            </div>
+                                            )}
                                         </div>
 
-                                        {/* Progress Meter */}
-                                        <div className="w-full h-1.5 bg-[#E5E5E3] rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full transition-all duration-300 rounded-full ${
-                                                    totalCount > 0 && completedCount === totalCount
-                                                        ? "bg-emerald-600"
-                                                        : "bg-[#1A1A1A]"
-                                                }`}
-                                                style={{ width: `${progressPercent}%` }}
-                                            />
-                                        </div>
+                                        {/* Minimal Progress Bar - hidden when all tasks are done or none exist */}
+                                        {totalCount > 0 && completedCount < totalCount && (
+                                            <div className="w-full h-1 bg-[#E5E5E3] rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-[#1A1A1A] transition-all duration-300 rounded-full"
+                                                    style={{ width: `${progressPercent}%` }}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Add New Checklist Item Input */}
@@ -1841,38 +1843,40 @@ export default function TaskModal({
                                                     return (
                                                         <div
                                                             key={item.id}
+                                                            onClick={() => {
+                                                                if (!isEditing && !isObserver && !isUpdating) {
+                                                                    handleToggleSubtask(item.id, !item.isCompleted);
+                                                                }
+                                                            }}
                                                             className={`group border rounded-[3px] p-2.5 transition-all flex items-center gap-2.5 ${
+                                                                !isEditing && !isObserver ? "cursor-pointer" : ""
+                                                            } ${
                                                                 item.isCompleted
                                                                     ? "border-[#E5E5E3] bg-[#FAFAF9]"
                                                                     : "border-[#E5E5E3] bg-white hover:border-[#DADAD6]"
                                                             } ${isDeleting ? "opacity-40" : ""}`}
                                                         >
                                                             {/* Checkbox */}
-                                                            <button
-                                                                type="button"
-                                                                disabled={isObserver || isUpdating}
-                                                                onClick={() => handleToggleSubtask(item.id, !item.isCompleted)}
-                                                                className={`w-4 h-4 rounded-[3px] flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+                                                            <div
+                                                                className={`w-4 h-4 rounded-[3px] flex items-center justify-center transition-all shrink-0 ${
                                                                     item.isCompleted
                                                                         ? "bg-[#1A1A1A] border border-[#1A1A1A] text-white"
-                                                                        : "bg-white border border-[#DADAD6] hover:border-[#1A1A1A]"
-                                                                } ${isObserver ? "cursor-not-allowed opacity-60" : ""}`}
-                                                                title={
-                                                                    item.isCompleted
-                                                                        ? "Mark as incomplete"
-                                                                        : "Mark as completed"
-                                                                }
+                                                                        : "bg-white border border-[#DADAD6] group-hover:border-[#1A1A1A]"
+                                                                } ${isObserver ? "opacity-60" : ""}`}
                                                             >
                                                                 {isUpdating ? (
                                                                     <Loader2 className="w-2.5 h-2.5 animate-spin text-[#888883]" />
                                                                 ) : item.isCompleted ? (
                                                                     <Check className="w-3 h-3" />
                                                                 ) : null}
-                                                            </button>
+                                                            </div>
 
                                                             {/* Item Title / Inline Edit */}
                                                             {isEditing ? (
-                                                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                                                <div
+                                                                    className="flex items-center gap-1.5 flex-1 min-w-0"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
                                                                     <input
                                                                         type="text"
                                                                         autoFocus
@@ -1908,18 +1912,11 @@ export default function TaskModal({
                                                                 </div>
                                                             ) : (
                                                                 <span
-                                                                    onDoubleClick={() => {
-                                                                        if (!isObserver) {
-                                                                            setEditingItemId(item.id);
-                                                                            setEditingItemTitle(item.title);
-                                                                        }
-                                                                    }}
-                                                                    className={`text-[12px] leading-relaxed break-words flex-1 cursor-pointer select-text transition-colors ${
+                                                                    className={`text-[12px] leading-relaxed break-words flex-1 select-none transition-colors ${
                                                                         item.isCompleted
                                                                             ? "line-through text-[#888883]"
                                                                             : "text-[#1A1A1A] font-medium"
                                                                     }`}
-                                                                    title={!isObserver ? "Double click to edit" : undefined}
                                                                 >
                                                                     {item.title}
                                                                 </span>
@@ -1927,7 +1924,10 @@ export default function TaskModal({
 
                                                             {/* Action Buttons (Edit & Delete) */}
                                                             {!isObserver && !isEditing && (
-                                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                                                <div
+                                                                    className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => {
