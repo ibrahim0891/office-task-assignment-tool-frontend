@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ReportView from "@/components/ReportView";
 import { useWorkspace } from "@/context/WorkspaceContext";
-import { SkeletonList } from "@/components/ui/SkeletonLoader";
+import { SkeletonReport } from "@/components/ui/SkeletonLoader";
 
 export default function ReportsPage() {
     const { currentTeam, userRole } = useWorkspace();
@@ -17,11 +17,19 @@ export default function ReportsPage() {
     }, [currentTeam, userRole, router]);
 
     if (!currentTeam) {
-        return <SkeletonList />;
+        return (
+            <div className="p-3 sm:p-4">
+                <SkeletonReport />
+            </div>
+        );
     }
 
     if (userRole !== "LEADER") {
-        return <SkeletonList />;
+        return (
+            <div className="p-3 sm:p-4">
+                <SkeletonReport />
+            </div>
+        );
     }
 
     return <ReportView currentTeam={currentTeam} />;
