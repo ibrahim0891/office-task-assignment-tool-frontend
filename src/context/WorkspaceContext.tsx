@@ -291,15 +291,21 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                         }
 
                         // Load initial columns, tasks and folders for the active workspace before finishing initialization
+                        const initialView = getViewFromPath(pathname || "/");
+                        const initialTaskParams: any = { teamId: matched.id };
+                        if (
+                            initialView === "kanban" ||
+                            initialView === "list" ||
+                            initialView === "myday" ||
+                            initialView === "dashboard" ||
+                            initialView === "map"
+                        ) {
+                            initialTaskParams.date = activeDateStr || getLocalDateString();
+                        }
+
                         const [cols, initialTasks, initialFolders] = await Promise.all([
                             api.getColumns(matched.id).catch(() => []),
-                            api.getTasks(
-                                {
-                                    teamId: matched.id,
-                                    date: activeDateStr || getLocalDateString(),
-                                },
-                                userObj.id,
-                            ).catch(() => []),
+                            api.getTasks(initialTaskParams, userObj.id).catch(() => []),
                             api.getFolders(matched.id).catch(() => []),
                         ]);
 
@@ -641,13 +647,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     isSwitchingTeamRef.current = isSwitchingTeam;
 
     const prevDateRef = useRef<string>(activeDateStr);
+    const prevViewRef = useRef<string>(currentView);
 
     useEffect(() => {
         if (isSwitchingTeamRef.current) return;
         const isDateChange = prevDateRef.current !== activeDateStr;
+        const isViewChange = prevViewRef.current !== currentView;
         prevDateRef.current = activeDateStr;
-        loadTasks({ isDateChange });
-    }, [loadTasks, activeDateStr]);
+        prevViewRef.current = currentView;
+        loadTasks({ isDateChange: isDateChange || isViewChange });
+    }, [loadTasks, activeDateStr, currentView]);
 
     // Parse URL search parameters on load/redirect to automatically open task modal (e.g., from desktop notifications)
     useEffect(() => {

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Task } from "../api";
 import { useWorkspace } from "../context/WorkspaceContext";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { CustomSelect } from "./ui/CustomSelect";
 
 interface CalendarViewProps {
     tasks: Task[];
@@ -16,7 +17,15 @@ export default function CalendarView({
     activeDateStr,
     setActiveDateStr,
 }: CalendarViewProps) {
-    const { setIsAddTaskOpen, setAddTaskColId, columns } = useWorkspace();
+    const {
+        setIsAddTaskOpen,
+        setAddTaskColId,
+        columns,
+        teamMembers,
+        currentUser,
+        selectedMemberFilter,
+        setSelectedMemberFilter,
+    } = useWorkspace();
     const [currentMonth, setCurrentMonth] = useState(new Date());
     // popover: { dateStr, rect } | null
     const [popover, setPopover] = useState<{
@@ -27,6 +36,9 @@ export default function CalendarView({
     const popoverRef = useRef<HTMLDivElement>(null);
 
     const activeTasks = tasks.filter((t) => !t.isSoftDeleted && !t.isArchived);
+    const filteredTasks = selectedMemberFilter
+        ? activeTasks.filter((t) => t.assignedToId === selectedMemberFilter)
+        : activeTasks;
 
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -85,7 +97,7 @@ export default function CalendarView({
 
     const getTasksForDate = (date: Date) => {
         const compareStr = getLocalDateString(date);
-        return activeTasks.filter((t) => t.date.split("T")[0] === compareStr);
+        return filteredTasks.filter((t) => t.date.split("T")[0] === compareStr);
     };
 
     const getPriorityColor = (priority: string) => {
@@ -159,24 +171,71 @@ export default function CalendarView({
 
     // Tasks shown in the popover
     const popoverTasks = popover
-        ? activeTasks.filter((t) => t.date.split("T")[0] === popover.dateStr)
+        ? filteredTasks.filter((t) => t.date.split("T")[0] === popover.dateStr)
         : [];
+
+    const memberOptions = [
+        { value: "", label: "All Team Members" },
+        ...(currentUser
+            ? [
+                  {
+                      value: currentUser.id,
+                      label: `${currentUser.fullName} (You)`,
+                      avatarUrl: currentUser.avatarUrl || null,
+                  },
+              ]
+            : []),
+        ...teamMembers
+            .filter(({ user }) => user.id !== currentUser?.id)
+            .map(({ user }) => ({
+                value: user.id,
+                label: user.fullName,
+                avatarUrl: user.avatarUrl || null,
+            })),
+    ];
 
     return (
         <div className="flex-1 overflow-y-auto p-5 bg-[#FAFAF9] text-[#1A1A1A] flex flex-col gap-4 select-none">
             {/* Calendar Header */}
-            <div className="flex justify-between items-center bg-white border border-[#E5E5E3] p-4 corner-brackets">
+            <div className="flex flex-wrap justify-between items-center gap-3 bg-white border border-[#E5E5E3] p-4 corner-brackets">
                 <div>
                     <h1 className="font-heading text-[16px]">
                         {monthNames[month]} {year}
                     </h1>
                     <p className="text-[11px] text-[#888883] mt-0.5">
-                        Click a task to view details. Click a date to set the
-                        active filter.
+                        Click a task to view details. Click a date to create a task for that day.
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    {/* Member Filter */}
+                    {teamMembers && teamMembers.length > 0 && (
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-[#888883] font-medium hidden sm:inline">
+                                Member:
+                            </span>
+                            <CustomSelect
+                                options={memberOptions}
+                                value={selectedMemberFilter}
+                                onChange={(val) => setSelectedMemberFilter(val)}
+                                className="w-48"
+                                searchable
+                            />
+                            {selectedMemberFilter && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedMemberFilter("")}
+                                    className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/50 rounded-[2px] transition-colors cursor-pointer"
+                                    title="Show all members"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="h-4 w-[1px] bg-[#E5E5E3] hidden sm:block" />
+
                     <button
                         onClick={() => setCurrentMonth(new Date())}
                         className="px-3 py-1.5 border border-[#E5E5E3] rounded-[3px] bg-white text-[11px] font-medium text-[#1A1A1A] hover:bg-[#FAFAF9] transition-colors cursor-pointer"
