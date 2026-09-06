@@ -1089,53 +1089,48 @@ export default function ProjectSubtaskModal({
                             </div>
                         </div>
 
-                        {/* Computed Duration Metrics (View-Only / Read-Only) */}
-                        <div className="grid grid-cols-2 gap-2.5">
+                        {/* Computed Duration Metrics */}
+                        <div className="grid grid-cols-2 gap-2">
                             {/* Estimated Duration Card */}
-                            <div className="flex flex-col gap-1 p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px]">
-                                <div className="flex items-center justify-between text-[10.5px]">
-                                    <span className="text-[var(--app-muted)] flex items-center gap-1 font-medium">
-                                        <Clock className="w-3 h-3 text-[var(--app-muted)]" />
-                                        <span>Est. Duration</span>
-                                    </span>
-                                    <span className="text-[8.5px] font-mono uppercase tracking-wider text-[var(--app-muted)] bg-[var(--app-card)] px-1 py-0.2 rounded-[1px] border border-[var(--app-border)]">
-                                        Calculated
-                                    </span>
+                            <div className="flex flex-col p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] min-w-0">
+                                <div className="flex items-center gap-1.5 text-[10px] text-[var(--app-muted)] font-medium">
+                                    <Clock className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
+                                    <span className="truncate">Est. Duration</span>
                                 </div>
-                                <div className="flex items-baseline gap-1 mt-0.5">
-                                    <span className="text-sm font-bold text-[var(--app-text)] tabular-nums">
-                                        {formatDaySpan(calculateDaySpan(startDate, dueDate))}
-                                    </span>
+                                <div className="text-sm font-bold text-[var(--app-text)] tabular-nums mt-1">
+                                    {formatDaySpan(calculateDaySpan(startDate, dueDate))}
                                 </div>
-                                <span className="text-[9px] text-[var(--app-muted)] truncate" title="Calendar day count from Start Date to Due Date">
-                                    Start → Due date span
+                                <span className="text-[9.5px] text-[var(--app-muted)] mt-0.5 truncate" title="Calendar day count from Start Date to Due Date">
+                                    Start → Due span
                                 </span>
                             </div>
 
                             {/* Actual Duration Card */}
-                            <div className={`flex flex-col gap-1 p-2.5 rounded-[2px] border ${
+                            <div className={`flex flex-col p-2.5 rounded-[2px] border min-w-0 ${
                                 isCompleted
-                                    ? "bg-[var(--color-success,#16A34A)]/5 border-[var(--color-success,#16A34A)]/20"
+                                    ? "bg-[var(--color-success,#16A34A)]/5 border-[var(--color-success,#16A34A)]/25"
                                     : "bg-[var(--app-bg)] border-[var(--app-border)]"
                             }`}>
-                                <div className="flex items-center justify-between text-[10.5px]">
-                                    <span className="text-[var(--app-muted)] flex items-center gap-1 font-medium">
+                                <div className="flex items-center justify-between gap-1 text-[10px]">
+                                    <span className="text-[var(--app-muted)] flex items-center gap-1 font-medium truncate">
                                         {isCompleted ? (
-                                            <CheckCircle2 className="w-3 h-3 text-[var(--color-success,#16A34A)]" />
+                                            <CheckCircle2 className="w-3 h-3 text-[var(--color-success,#16A34A)] shrink-0" />
                                         ) : (
-                                            <Clock className="w-3 h-3 text-[var(--app-muted)]" />
+                                            <Clock className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
                                         )}
-                                        <span>Actual Duration</span>
+                                        <span className="truncate">Actual Time</span>
                                     </span>
-                                    <span className={`text-[8.5px] font-mono uppercase tracking-wider px-1 py-0.2 rounded-[1px] font-medium border ${
-                                        isCompleted
-                                            ? "bg-[var(--color-success,#16A34A)]/10 text-[var(--color-success,#16A34A)] border-[var(--color-success,#16A34A)]/20"
-                                            : "bg-[var(--app-card)] text-[var(--app-muted)] border-[var(--app-border)]"
-                                    }`}>
-                                        {isCompleted ? "Completed" : "In Progress"}
-                                    </span>
+                                    {isCompleted ? (
+                                        <span className="text-[8px] font-semibold text-[var(--color-success,#16A34A)] bg-[var(--color-success,#16A34A)]/10 px-1 py-0.2 rounded-[1px] leading-none shrink-0 border border-[var(--color-success,#16A34A)]/20">
+                                            Done
+                                        </span>
+                                    ) : (
+                                        <span className="text-[8px] font-medium text-[var(--app-muted)] bg-[var(--app-card)] px-1 py-0.2 rounded-[1px] leading-none shrink-0 border border-[var(--app-border)]">
+                                            Open
+                                        </span>
+                                    )}
                                 </div>
-                                <div className="flex items-baseline gap-1 mt-0.5">
+                                <div className="mt-1">
                                     <span className={`text-sm font-bold tabular-nums ${
                                         isCompleted ? "text-[var(--color-success,#16A34A)]" : "text-[var(--app-muted)]"
                                     }`}>
@@ -1144,8 +1139,8 @@ export default function ProjectSubtaskModal({
                                             : "—"}
                                     </span>
                                 </div>
-                                <span className="text-[9px] text-[var(--app-muted)] truncate" title="Day count from Creation date to Completion date">
-                                    {isCompleted ? "Creation → Completion" : "Logged upon completion"}
+                                <span className="text-[9.5px] text-[var(--app-muted)] mt-0.5 truncate" title={isCompleted ? "Day count from Creation date to Completion date" : "Logged upon completion"}>
+                                    {isCompleted ? "Creation → Done" : "Logged on completion"}
                                 </span>
                             </div>
                         </div>
