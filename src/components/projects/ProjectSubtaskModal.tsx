@@ -87,6 +87,7 @@ interface ProjectSubtaskModalProps {
     onClose: () => void;
     projectId: string;
     parentTask: any;
+    project?: any;
     subtask?: any | null; // If null, creates a new subtask. If provided, updates existing subtask.
     columns?: any[];
     initialColumnStatus?: string;
@@ -102,6 +103,7 @@ export default function ProjectSubtaskModal({
     onClose,
     projectId,
     parentTask,
+    project,
     subtask,
     columns = [],
     initialColumnStatus = "Backlog",
@@ -116,6 +118,9 @@ export default function ProjectSubtaskModal({
         subtask?.assignedToId === currentUser?.id ||
         subtask?.assignedTo?.id === currentUser?.id;
     const canModifyThisSubtask = !isEditMode || canManageTasks || isMySubtask;
+
+    const projectStartDate = extractDateString(project?.startDate) || extractDateString(parentTask?.project?.startDate);
+    const projectEndDate = extractDateString(project?.endDate) || extractDateString(parentTask?.project?.endDate);
 
     // Form fields
     const [title, setTitle] = useState("");
@@ -347,8 +352,14 @@ export default function ProjectSubtaskModal({
             setPriority(subtask.priority || "MEDIUM");
             setAssignedToId(subtask.assignedToId || subtask.assignedTo?.id || "");
             setColumnId(subtask.columnId || columns[0]?.id || "");
-            const sDate = extractDateString(subtask.startDate) || extractDateString(parentTask?.startDate) || getLocalDateString(new Date());
-            const dDate = extractDateString(subtask.dueDate || subtask.endDate) || extractDateString(parentTask?.dueDate || parentTask?.endDate) || getLocalDateString(new Date());
+            let sDate = extractDateString(subtask.startDate) || extractDateString(parentTask?.startDate) || projectStartDate || getLocalDateString(new Date());
+            let dDate = extractDateString(subtask.dueDate || subtask.endDate) || extractDateString(parentTask?.dueDate || parentTask?.endDate) || projectEndDate || getLocalDateString(new Date());
+            if (projectEndDate && dDate > projectEndDate) {
+                dDate = projectEndDate;
+            }
+            if (projectStartDate && sDate < projectStartDate) {
+                sDate = projectStartDate;
+            }
             setStartDate(sDate);
             setDueDate(dDate);
             setEstimatedDays(Number(subtask.estimatedDays) || calculateDaySpan(sDate, dDate));
@@ -420,8 +431,14 @@ export default function ProjectSubtaskModal({
             );
             const targetColId = matchedCol?.id || columns[0]?.id || "";
             setColumnId(targetColId);
-            const sDate = extractDateString(parentTask?.startDate) || getLocalDateString(new Date());
-            const dDate = extractDateString(parentTask?.dueDate || parentTask?.endDate) || getLocalDateString(new Date());
+            let sDate = extractDateString(parentTask?.startDate) || projectStartDate || getLocalDateString(new Date());
+            let dDate = extractDateString(parentTask?.dueDate || parentTask?.endDate) || projectEndDate || getLocalDateString(new Date());
+            if (projectEndDate && dDate > projectEndDate) {
+                dDate = projectEndDate;
+            }
+            if (projectStartDate && sDate < projectStartDate) {
+                sDate = projectStartDate;
+            }
             setStartDate(sDate);
             setDueDate(dDate);
             setEstimatedDays(calculateDaySpan(sDate, dDate));
@@ -438,7 +455,7 @@ export default function ProjectSubtaskModal({
         if (isOpen) {
             setActiveTab(initialTab || "description");
         }
-    }, [isOpen, subtask?.id, initialTab]);
+    }, [isOpen, subtask?.id, initialTab, projectStartDate, projectEndDate]);
 
     const mapCommentData = (c: any) => ({
         id: c.id,
@@ -636,6 +653,16 @@ export default function ProjectSubtaskModal({
 
         if (startDate && dueDate && startDate > dueDate) {
             toast.error("Start date cannot be later than due date");
+            return;
+        }
+
+        if (projectEndDate && dueDate && dueDate > projectEndDate) {
+            toast.error(`Due date cannot exceed project end date (${projectEndDate})`);
+            return;
+        }
+
+        if (projectStartDate && startDate && startDate < projectStartDate) {
+            toast.error(`Start date cannot precede project start date (${projectStartDate})`);
             return;
         }
 
@@ -1657,15 +1684,25 @@ export default function ProjectSubtaskModal({
                                 </label>
                                 <CustomDatePicker
                                     value={startDate}
-                                    maxDate={dueDate || undefined}
+                                    minDate={projectStartDate || undefined}
+                                    maxDate={dueDate || projectEndDate || undefined}
                                     onChange={(val) => {
-                                        setStartDate(val);
-                                        const newDue = (dueDate && val > dueDate) ? val : dueDate;
-                                        if (dueDate && val > dueDate) {
-                                            setDueDate(val);
+                                        let finalVal = val;
+                                        if (projectStartDate && finalVal && finalVal < projectStartDate) {
+                                            finalVal = projectStartDate;
+                                            toast.error(`Start date cannot precede project start date (${projectStartDate})`);
                                         }
-                                        if (val && newDue) {
-                                            setEstimatedDays(calculateDaySpan(val, newDue));
+                                        if (projectEndDate && finalVal && finalVal > projectEndDate) {
+                                            finalVal = projectEndDate;
+                                            toast.error(`Start date cannot exceed project end date (${projectEndDate})`);
+                                        }
+                                        setStartDate(finalVal);
+                                        const newDue = (dueDate && finalVal > dueDate) ? finalVal : dueDate;
+                                        if (dueDate && finalVal > dueDate) {
+                                            setDueDate(finalVal);
+                                        }
+                                        if (finalVal && newDue) {
+                                            setEstimatedDays(calculateDaySpan(finalVal, newDue));
                                         }
                                     }}
                                     disabled={!canModifyThisSubtask}
@@ -1680,21 +1717,40 @@ export default function ProjectSubtaskModal({
                                 </label>
                                 <CustomDatePicker
                                     value={dueDate}
-                                    minDate={startDate || undefined}
+                                    minDate={startDate || projectStartDate || undefined}
+                                    maxDate={projectEndDate || undefined}
                                     onChange={(val) => {
-                                        setDueDate(val);
-                                        const newStart = (startDate && val < startDate) ? val : startDate;
-                                        if (startDate && val < startDate) {
-                                            setStartDate(val);
+                                        let finalVal = val;
+                                        if (projectEndDate && finalVal && finalVal > projectEndDate) {
+                                            finalVal = projectEndDate;
+                                            toast.error(`Due date cannot exceed project end date (${projectEndDate})`);
                                         }
-                                        if (val && newStart) {
-                                            setEstimatedDays(calculateDaySpan(newStart, val));
+                                        if (projectStartDate && finalVal && finalVal < projectStartDate) {
+                                            finalVal = projectStartDate;
+                                            toast.error(`Due date cannot precede project start date (${projectStartDate})`);
+                                        }
+                                        setDueDate(finalVal);
+                                        const newStart = (startDate && finalVal < startDate) ? finalVal : startDate;
+                                        if (startDate && finalVal < startDate) {
+                                            setStartDate(finalVal);
+                                        }
+                                        if (finalVal && newStart) {
+                                            setEstimatedDays(calculateDaySpan(newStart, finalVal));
                                         }
                                     }}
                                     disabled={!canModifyThisSubtask}
                                     className="w-full text-xs"
                                 />
                             </div>
+
+                            {(projectStartDate || projectEndDate) && (
+                                <div className="col-span-2 text-[10px] text-[var(--app-muted)] flex items-center justify-between px-0.5 -mt-1">
+                                    <span>Project timeline bounds:</span>
+                                    <span className="font-mono font-medium text-[var(--app-text)]">
+                                        {projectStartDate || "Start"} → {projectEndDate || "End"}
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Computed Duration Metrics */}
