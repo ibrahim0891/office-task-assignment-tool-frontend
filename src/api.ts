@@ -582,15 +582,20 @@ export const api = {
     return res.json();
   },
 
-  async permanentlyDeleteTask(taskId: string): Promise<any> {
+  async permanentlyDeleteTask(taskId: string, userId?: string): Promise<any> {
+    const headers: Record<string, string> = {};
+    if (userId) {
+      headers['x-user-id'] = userId;
+    }
     const res = await fetch(`${API_BASE}/tasks/${taskId}/permanent`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
     });
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Failed to delete task permanently.');
     }
-    return res.json();
+    return res.json().catch(() => ({ success: true }));
   },
 
   async addChecklistItem(taskId: string, title: string): Promise<ChecklistItem> {

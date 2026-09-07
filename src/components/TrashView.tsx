@@ -66,7 +66,7 @@ export default function TrashView({
         if (!taskToDelete) return;
         setActionLoading(true);
         try {
-            await api.permanentlyDeleteTask(taskToDelete.id);
+            await api.permanentlyDeleteTask(taskToDelete.id, currentUser?.id);
             toast.success(`Permanently deleted "${taskToDelete.title}"`);
             setTaskToDelete(null);
             loadTrashTasks();
@@ -83,7 +83,7 @@ export default function TrashView({
         setActionLoading(true);
         try {
             for (const task of trashTasks) {
-                await api.permanentlyDeleteTask(task.id);
+                await api.permanentlyDeleteTask(task.id, currentUser?.id);
             }
             toast.success("Trash emptied successfully");
             setIsEmptyTrashConfirmOpen(false);

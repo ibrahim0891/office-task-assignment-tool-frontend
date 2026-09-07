@@ -18,6 +18,7 @@ import PWAInstallModal from "./PWAInstallModal";
 
 import { toggleThemeWithCircularReveal } from "../utils/themeTransition";
 import { applyAccentColor } from "../config/accentConfig";
+import { applyCornerRadius, DEFAULT_RADIUS_PX } from "../config/radiusConfig";
 
 export default function WorkspaceShell({
     children,
@@ -78,13 +79,13 @@ export default function WorkspaceShell({
     );
     const [primaryFont, setPrimaryFont] = useState("Outfit");
     const [secondaryFont, setSecondaryFont] = useState("Lora");
-    const [fontScale, setFontScale] = useState(1.25);
+    const [fontScale, setFontScale] = useState(1.00);
 
     const scaleOptions = [
         { value: "0.85", label: "85% (Very Small)" },
-        { value: "1.00", label: "100% (Normal)" },
+        { value: "1.00", label: "100% (Normal - Default)" },
         { value: "1.15", label: "115% (Large)" },
-        { value: "1.25", label: "125% (Extra Large - Default)" },
+        { value: "1.25", label: "125% (Extra Large)" },
         { value: "1.40", label: "140% (Double XL)" },
         { value: "1.50", label: "150% (Huge)" },
     ];
@@ -94,19 +95,21 @@ export default function WorkspaceShell({
             Math.abs(parseFloat(prev.value) - fontScale)
             ? curr
             : prev;
-    }, scaleOptions[3]);
+    }, scaleOptions[1]);
 
     // Reset settings handler
     const handleResetSettings = () => {
         setPrimaryFont("Outfit");
         setSecondaryFont("Lora");
-        setFontScale(1.25);
+        setFontScale(1.00);
         localStorage.setItem("sys_primary_font", "Outfit");
         localStorage.setItem("sys_secondary_font", "Lora");
-        localStorage.setItem("sys_font_scale", "1.25");
+        localStorage.setItem("sys_font_scale", "1.00");
+        localStorage.removeItem("sys_corner_radius");
+        applyCornerRadius(DEFAULT_RADIUS_PX);
         const root = document.documentElement;
         root.style.zoom = "100%";
-        root.style.setProperty("--font-scale", "1.25");
+        root.style.setProperty("--font-scale", "1.00");
         toast.success("Settings reset to Outfit & Lora");
     };
 
@@ -116,43 +119,105 @@ export default function WorkspaceShell({
         const savedPrimary = localStorage.getItem("sys_primary_font");
         const savedSecondary = localStorage.getItem("sys_secondary_font");
         const savedScale = localStorage.getItem("sys_font_scale");
+        const savedRadius = localStorage.getItem("sys_corner_radius");
         if (savedPrimary) setPrimaryFont(savedPrimary);
         if (savedSecondary) setSecondaryFont(savedSecondary);
         if (savedScale) {
             setFontScale(parseFloat(savedScale));
         } else {
-            setFontScale(1.25);
+            setFontScale(1.00);
         }
+        applyCornerRadius(savedRadius !== null ? parseFloat(savedRadius) : DEFAULT_RADIUS_PX);
     }, []);
 
     const [theme, setTheme] = useState<
-        "light" | "nord-dark" | "amoled-dark" | "lws-dark"
+        "light" | "nord-dark" | "amoled-dark" | "lws-dark" | "modern-dark"
     >("light");
 
-    // Load saved theme preference on mount
+    // UI Design Mode state — 'editorial' (default) or 'modern'
+    const [uiMode, setUiModeState] = useState<"editorial" | "modern">("editorial");
+    const [modernTheme, setModernTheme] = useState<"modern-light" | "modern-dark">("modern-light");
+
+    const setUiMode = (mode: "editorial" | "modern") => {
+        setUiModeState(mode);
+        document.documentElement.setAttribute("data-ui", mode);
+        localStorage.setItem("sys_ui_mode", mode);
+        if (mode === "modern") {
+            // Switch to modern's own sub-theme; clear editorial data-theme
+            const savedModernTheme = (localStorage.getItem("sys_modern_theme") || "modern-light") as "modern-light" | "modern-dark";
+            setModernTheme(savedModernTheme);
+            if (savedModernTheme === "modern-dark") {
+                document.documentElement.setAttribute("data-theme", "modern-dark");
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+            }
+            // Apply the user's saved Modern accent immediately
+            applyAccentColor(savedModernTheme);
+        } else {
+            // Restore editorial theme
+            const savedEditorialTheme = (localStorage.getItem("sys_theme") || "light") as "light" | "nord-dark" | "amoled-dark" | "lws-dark";
+            setTheme(savedEditorialTheme);
+            document.documentElement.setAttribute("data-theme", savedEditorialTheme);
+            applyAccentColor(savedEditorialTheme);
+        }
+    };
+
+    // Load saved theme + ui mode preferences on mount
     React.useEffect(() => {
         if (typeof window === "undefined") return;
-        const savedTheme = localStorage.getItem("sys_theme") as any;
-        if (savedTheme) {
-            setTheme(savedTheme);
-            document.documentElement.setAttribute("data-theme", savedTheme);
-            applyAccentColor(savedTheme);
+        const savedUiMode = (localStorage.getItem("sys_ui_mode") || "editorial") as "editorial" | "modern";
+        setUiModeState(savedUiMode);
+        if (savedUiMode === "modern") {
+            const savedModernTheme = (localStorage.getItem("sys_modern_theme") || "modern-light") as "modern-light" | "modern-dark";
+            setModernTheme(savedModernTheme);
+            if (savedModernTheme === "modern-dark") {
+                document.documentElement.setAttribute("data-theme", "modern-dark");
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+            }
+            // Restore user's chosen Modern accent
+            applyAccentColor(savedModernTheme);
         } else {
-            applyAccentColor("light");
+            const savedTheme = localStorage.getItem("sys_theme") as any;
+            if (savedTheme) {
+                setTheme(savedTheme);
+                document.documentElement.setAttribute("data-theme", savedTheme);
+                applyAccentColor(savedTheme);
+            } else {
+                applyAccentColor("light");
+            }
         }
     }, []);
 
     const handleToggleTheme = (e?: React.MouseEvent) => {
-        const nextTheme = theme === "light" ? "lws-dark" : "light";
-        toggleThemeWithCircularReveal(e, () => {
-            setTheme(nextTheme);
-            document.documentElement.setAttribute("data-theme", nextTheme);
-            localStorage.setItem("sys_theme", nextTheme);
-            applyAccentColor(nextTheme);
-        });
-        toast.success(
-            `Switched to ${nextTheme === "lws-dark" ? "LWS Dark Mode" : "Light Mode"}`,
-        );
+        if (uiMode === "modern") {
+            // Modern mode: toggle between modern-light and modern-dark
+            const nextModernTheme = modernTheme === "modern-light" ? "modern-dark" : "modern-light";
+            toggleThemeWithCircularReveal(e, () => {
+                setModernTheme(nextModernTheme);
+                localStorage.setItem("sys_modern_theme", nextModernTheme);
+                if (nextModernTheme === "modern-dark") {
+                    document.documentElement.setAttribute("data-theme", "modern-dark");
+                } else {
+                    document.documentElement.removeAttribute("data-theme");
+                }
+                // Apply the user's saved accent for the new sub-theme
+                applyAccentColor(nextModernTheme);
+            });
+            toast.success(`Switched to Modern ${nextModernTheme === "modern-dark" ? "Dark" : "Light"}`);
+        } else {
+            // Editorial mode: existing behavior (light ↔ lws-dark)
+            const nextTheme = theme === "light" ? "lws-dark" : "light";
+            toggleThemeWithCircularReveal(e, () => {
+                setTheme(nextTheme);
+                document.documentElement.setAttribute("data-theme", nextTheme);
+                localStorage.setItem("sys_theme", nextTheme);
+                applyAccentColor(nextTheme);
+            });
+            toast.success(
+                `Switched to ${nextTheme === "lws-dark" ? "LWS Dark Mode" : "Light Mode"}`,
+            );
+        }
     };
 
     // Keyboard shortcuts: Cmd+K (Spotlight), Ctrl +/- (font scale)
@@ -358,7 +423,7 @@ export default function WorkspaceShell({
                 />
 
                 {/* Page Content Slot */}
-                <div className="flex-1 flex flex-col overflow-hidden relative border border-[#E5E5E3] bg-white corner-brackets">
+                <div className="flex-1 flex flex-col overflow-hidden relative border border-[#E5E5E3] bg-white corner-brackets rounded-none">
                     {children}
                 </div>
             </main>
@@ -429,6 +494,20 @@ export default function WorkspaceShell({
                 onClose={() => setIsSystemSettingsOpen(false)}
                 theme={theme}
                 setTheme={setTheme}
+                uiMode={uiMode}
+                setUiMode={setUiMode}
+                modernTheme={modernTheme}
+                setModernTheme={(mt) => {
+                    setModernTheme(mt);
+                    localStorage.setItem("sys_modern_theme", mt);
+                    if (mt === "modern-dark") {
+                        document.documentElement.setAttribute("data-theme", "modern-dark");
+                    } else {
+                        document.documentElement.removeAttribute("data-theme");
+                    }
+                    // Apply accent for the new sub-theme immediately
+                    applyAccentColor(mt);
+                }}
                 primaryFont={primaryFont}
                 setPrimaryFont={setPrimaryFont}
                 secondaryFont={secondaryFont}

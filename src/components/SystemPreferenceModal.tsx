@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import toast from "react-hot-toast";
-import { Palette, Type, RotateCcw, Sparkles, Check, Pipette } from "lucide-react";
+import { Palette, Type, RotateCcw, Sparkles, Check, Pipette, Sun, Moon } from "lucide-react";
 import { Button } from "./ui/Button";
 import { CustomSelect } from "./ui/CustomSelect";
 import { Checkbox } from "./ui/Checkbox";
@@ -11,16 +11,27 @@ import { fontMap, FONT_OPTIONS, FONT_PRESETS } from "../config/fontConfig";
 import {
     LIGHT_ACCENT_OPTIONS,
     DARK_ACCENT_OPTIONS,
+    MODERN_LIGHT_ACCENT_OPTIONS,
+    MODERN_DARK_ACCENT_OPTIONS,
     applyAccentColor,
 } from "../config/accentConfig";
+import {
+    RADIUS_PRESETS,
+    DEFAULT_RADIUS_PX,
+    applyCornerRadius,
+} from "../config/radiusConfig";
 
 import { playFeedback } from "../utils/feedback";
 
 interface SystemPreferenceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    theme: "light" | "nord-dark" | "amoled-dark" | "lws-dark";
-    setTheme: (theme: "light" | "nord-dark" | "amoled-dark" | "lws-dark") => void;
+    theme: "light" | "nord-dark" | "amoled-dark" | "lws-dark" | "modern-dark";
+    setTheme: (theme: "light" | "nord-dark" | "amoled-dark" | "lws-dark" | "modern-dark") => void;
+    uiMode: "editorial" | "modern";
+    setUiMode: (mode: "editorial" | "modern") => void;
+    modernTheme: "modern-light" | "modern-dark";
+    setModernTheme: (theme: "modern-light" | "modern-dark") => void;
     primaryFont: string;
     setPrimaryFont: (font: string) => void;
     secondaryFont: string;
@@ -35,6 +46,10 @@ export default function SystemPreferenceModal({
     onClose,
     theme,
     setTheme,
+    uiMode,
+    setUiMode,
+    modernTheme,
+    setModernTheme,
     primaryFont,
     setPrimaryFont,
     secondaryFont,
@@ -69,13 +84,50 @@ export default function SystemPreferenceModal({
         );
     });
 
+    // Modern-mode specific accent state
+    const [modernLightAccent, setModernLightAccent] = useState<string>(() => {
+        if (typeof window === "undefined") return MODERN_LIGHT_ACCENT_OPTIONS[0].value;
+        return (
+            localStorage.getItem("sys_accent_modern_light") ||
+            MODERN_LIGHT_ACCENT_OPTIONS[0].value
+        );
+    });
+
+    const [modernDarkAccent, setModernDarkAccent] = useState<string>(() => {
+        if (typeof window === "undefined") return MODERN_DARK_ACCENT_OPTIONS[0].value;
+        return (
+            localStorage.getItem("sys_accent_modern_dark") ||
+            MODERN_DARK_ACCENT_OPTIONS[0].value
+        );
+    });
+
+    const [cornerRadius, setCornerRadius] = useState<number>(() => {
+        if (typeof window === "undefined") return DEFAULT_RADIUS_PX;
+        const saved = localStorage.getItem("sys_corner_radius");
+        return saved !== null ? parseFloat(saved) : DEFAULT_RADIUS_PX;
+    });
+
+    const handleSelectRadius = (px: number) => {
+        setCornerRadius(px);
+        localStorage.setItem("sys_corner_radius", String(px));
+        applyCornerRadius(px);
+    };
+
     const colorInputRef = useRef<HTMLInputElement>(null);
 
-    const isDarkMode = theme !== "light";
-    const currentAccentList = isDarkMode
-        ? DARK_ACCENT_OPTIONS
-        : LIGHT_ACCENT_OPTIONS;
-    const currentSelectedAccent = isDarkMode ? darkAccent : lightAccent;
+    // Derive current accent context from mode
+    const isModernMode = uiMode === "modern";
+    const isModernDark = modernTheme === "modern-dark";
+    const isDarkMode = isModernMode ? isModernDark : theme !== "light";
+
+    const currentAccentList = isModernMode
+        ? (isModernDark ? MODERN_DARK_ACCENT_OPTIONS : MODERN_LIGHT_ACCENT_OPTIONS)
+        : (isDarkMode ? DARK_ACCENT_OPTIONS : LIGHT_ACCENT_OPTIONS);
+
+    const currentSelectedAccent = isModernMode
+        ? (isModernDark ? modernDarkAccent : modernLightAccent)
+        : (isDarkMode ? darkAccent : lightAccent);
+
     const matchedOption = currentAccentList.find(
         (c) =>
             c.value.toLowerCase() === currentSelectedAccent.toLowerCase(),
@@ -83,7 +135,17 @@ export default function SystemPreferenceModal({
     const isCustomActive = !matchedOption;
 
     const handleSelectAccent = (colorValue: string) => {
-        if (isDarkMode) {
+        if (isModernMode) {
+            if (isModernDark) {
+                setModernDarkAccent(colorValue);
+                localStorage.setItem("sys_accent_modern_dark", colorValue);
+                applyAccentColor("modern-dark", undefined, colorValue);
+            } else {
+                setModernLightAccent(colorValue);
+                localStorage.setItem("sys_accent_modern_light", colorValue);
+                applyAccentColor("light", colorValue, undefined);
+            }
+        } else if (isDarkMode) {
             setDarkAccent(colorValue);
             localStorage.setItem("sys_accent_dark", colorValue);
             applyAccentColor(theme, undefined, colorValue);
@@ -93,6 +155,7 @@ export default function SystemPreferenceModal({
             applyAccentColor(theme, colorValue, undefined);
         }
     };
+
 
     if (!isOpen) return null;
 
@@ -122,10 +185,21 @@ export default function SystemPreferenceModal({
         localStorage.setItem("sys_enable_sound", "true");
         localStorage.removeItem("sys_accent_light");
         localStorage.removeItem("sys_accent_dark");
+        localStorage.removeItem("sys_accent_modern_light");
+        localStorage.removeItem("sys_accent_modern_dark");
+        localStorage.removeItem("sys_corner_radius");
+        localStorage.removeItem("sys_ui_mode");
+        localStorage.removeItem("sys_modern_theme");
         setLightAccent(LIGHT_ACCENT_OPTIONS[0].value);
         setDarkAccent(DARK_ACCENT_OPTIONS[0].value);
+        setModernLightAccent(MODERN_LIGHT_ACCENT_OPTIONS[0].value);
+        setModernDarkAccent(MODERN_DARK_ACCENT_OPTIONS[0].value);
+        setCornerRadius(DEFAULT_RADIUS_PX);
+        applyCornerRadius(DEFAULT_RADIUS_PX);
         setEnableConfetti(true);
         setEnableSound(true);
+        // Reset to Editorial mode
+        setUiMode("editorial");
         applyAccentColor(
             theme,
             LIGHT_ACCENT_OPTIONS[0].value,
@@ -136,9 +210,9 @@ export default function SystemPreferenceModal({
 
     const scaleOptions = [
         { value: "0.85", label: "85% (Very Small)" },
-        { value: "1.00", label: "100% (Normal)" },
+        { value: "1.00", label: "100% (Normal - Default)" },
         { value: "1.15", label: "115% (Large)" },
-        { value: "1.25", label: "125% (Extra Large - Default)" },
+        { value: "1.25", label: "125% (Extra Large)" },
         { value: "1.40", label: "140% (Double XL)" },
         { value: "1.50", label: "150% (Huge)" },
     ];
@@ -148,7 +222,7 @@ export default function SystemPreferenceModal({
             Math.abs(parseFloat(prev.value) - fontScale)
             ? curr
             : prev;
-    }, scaleOptions[3]);
+    }, scaleOptions[1]);
 
     const styledFontOptions = FONT_OPTIONS.map((opt) => ({
         ...opt,
@@ -162,11 +236,11 @@ export default function SystemPreferenceModal({
                 onClick={onClose}
             />
             <div
-                className="relative bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] p-5 w-full max-w-md flex flex-col gap-4 animate-fade-in text-left rounded-[3px] corner-brackets shadow-xl"
+                className="relative bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] p-6 w-full max-w-2xl sm:max-w-3xl flex flex-col gap-4.5 animate-fade-in text-left rounded-[3px] corner-brackets shadow-xl"
                 style={{ boxShadow: "var(--shadow-float)" }}
             >
                 <div className="flex items-center justify-between pb-1">
-                    <h2 className="font-heading text-base text-[var(--app-text,#1A1A1A)]">
+                    <h2 className="font-heading text-lg font-bold text-[var(--app-text,#1A1A1A)]">
                         System Preferences
                     </h2>
                     <button
@@ -179,57 +253,142 @@ export default function SystemPreferenceModal({
                 </div>
 
                 {/* Settings Tabs */}
-                <div className="bg-[var(--app-hover-bg,#FAFAF9)] px-2 py-1.5 flex items-center gap-1 rounded-[2px]">
+                <div className="bg-[var(--app-hover-bg,#FAFAF9)] px-2 py-1.5 flex items-center gap-1.5 rounded-[2px]">
                     <button
                         type="button"
                         onClick={() => setSettingsTab("theme")}
-                        className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
+                        className={`relative px-3.5 py-1.5 text-xs font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
                             settingsTab === "theme"
                                 ? "bg-[var(--app-card,#FFFFFF)] text-[var(--app-text,#1A1A1A)] border border-[var(--app-border,#E5E5E3)] corner-brackets-4 shadow-sm"
                                 : "text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-hover-bg,#F0F0EE)]"
                         }`}
                     >
-                        <Palette className="w-3 h-3 shrink-0" />
+                        <Palette className="w-3.5 h-3.5 shrink-0" />
                         <span>Theme & Color</span>
                     </button>
                     <button
                         type="button"
                         onClick={() => setSettingsTab("typography")}
-                        className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
+                        className={`relative px-3.5 py-1.5 text-xs font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
                             settingsTab === "typography"
                                 ? "bg-[var(--app-card,#FFFFFF)] text-[var(--app-text,#1A1A1A)] border border-[var(--app-border,#E5E5E3)] corner-brackets-4 shadow-sm"
                                 : "text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-hover-bg,#F0F0EE)]"
                         }`}
                     >
-                        <Type className="w-3 h-3 shrink-0" />
+                        <Type className="w-3.5 h-3.5 shrink-0" />
                         <span>Typography & Fonts</span>
                     </button>
                 </div>
 
                 {/* Section Divider 1 */}
-                <div className="relative w-full border-t border-[var(--app-border,#E5E5E3)]">
-                    {/* Left T-Bracket ├ */}
-                    <div className="absolute -left-[5px] -top-[5px] w-[10px] h-[10px] pointer-events-none z-20 flex items-center justify-center text-[var(--app-text,#1A1A1A)]">
-                        <svg
-                            width="10"
-                            height="10"
-                            viewBox="0 0 10 10"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                d="M5 0V10M5 5H10"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                            />
-                        </svg>
-                    </div>
-                </div>
+                <div className="w-full border-t border-[var(--app-border,#E5E5E3)]" />
 
-                <div className="flex flex-col gap-4 max-h-[55vh] overflow-y-auto pr-0.5">
+                <div className="flex flex-col gap-4.5 max-h-[70vh] overflow-y-auto pr-1">
                     {settingsTab === "theme" ? (
                         <div className="flex flex-col gap-3.5">
-                            {/* Color Theme Selector */}
+
+                            {/* ── UI Design Language Selector ── */}
+                            <div className="flex flex-col gap-1.5">
+                                <label className="eyebrow">UI Design Language</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {/* UI Theme 1 Card */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setUiMode("editorial");
+                                            toast.success("UI Theme 1 activated");
+                                        }}
+                                        className={`relative flex flex-col gap-1 p-3 border rounded-[3px] text-left cursor-pointer transition-all ${
+                                            uiMode === "editorial"
+                                                ? "border-[var(--app-text)] bg-[var(--app-select-bg,#F5F5F3)]"
+                                                : "border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)]"
+                                        }`}
+                                    >
+                                        {uiMode === "editorial" && (
+                                            <span className="absolute top-2 right-2">
+                                                <Check className="w-3.5 h-3.5 text-[var(--app-text)]" />
+                                            </span>
+                                        )}
+                                        <span className="text-[12px] font-semibold text-[var(--app-text)]">
+                                            UI Theme 1
+                                        </span>
+                                        <span className="text-[10px] text-[var(--app-muted)] leading-tight">
+                                            Sharp corners · Monochrome · Technical
+                                        </span>
+                                    </button>
+
+                                    {/* UI Theme 2 Card */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setUiMode("modern");
+                                            toast.success("UI Theme 2 activated");
+                                        }}
+                                        className={`relative flex flex-col gap-1 p-3 border rounded-[3px] text-left cursor-pointer transition-all ${
+                                            uiMode === "modern"
+                                                ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--app-card))]"
+                                                : "border-[var(--app-border)] hover:border-[var(--color-accent)]/50 bg-[var(--app-card)]"
+                                        }`}
+                                    >
+                                        {uiMode === "modern" && (
+                                            <span className="absolute top-2 right-2">
+                                                <Check className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                                            </span>
+                                        )}
+                                        <span className="text-[12px] font-semibold text-[var(--app-text)]">
+                                            UI Theme 2
+                                        </span>
+                                        <span className="text-[10px] text-[var(--app-muted)] leading-tight">
+                                            Rounded · Colorful · Elevated
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* ── Modern: Light / Dark sub-toggle ── */}
+                            {uiMode === "modern" && (
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="eyebrow">Modern Appearance</label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setModernTheme("modern-light");
+                                                toast.success("Modern Light activated");
+                                            }}
+                                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-medium border rounded-[3px] transition-all cursor-pointer ${
+                                                modernTheme === "modern-light"
+                                                    ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--app-card))] text-[var(--color-accent)] font-semibold"
+                                                    : "border-[var(--app-border)] bg-[var(--app-card)] text-[var(--app-muted)] hover:border-[var(--color-accent)]/40"
+                                            }`}
+                                        >
+                                            <Sun className="w-3 h-3" />
+                                            Light
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setModernTheme("modern-dark");
+                                                toast.success("Modern Dark activated");
+                                            }}
+                                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-medium border rounded-[3px] transition-all cursor-pointer ${
+                                                modernTheme === "modern-dark"
+                                                    ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_16%,var(--app-card))] text-[var(--color-accent)] font-semibold"
+                                                    : "border-[var(--app-border)] bg-[var(--app-card)] text-[var(--app-muted)] hover:border-[var(--color-accent)]/40"
+                                            }`}
+                                        >
+                                            <Moon className="w-3 h-3" />
+                                            Dark
+                                        </button>
+                                    </div>
+                                    <p className="text-[9px] text-[var(--app-muted)] leading-relaxed">
+                                        Dark is warm navy — not pitch black.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* ── Editorial: Color Palette Selector (hidden in Modern mode) ── */}
+                            {uiMode === "editorial" && (
                             <div className="flex flex-col gap-1.5">
                                 <label className="eyebrow">
                                     Select Workspace Color Palette
@@ -270,6 +429,7 @@ export default function SystemPreferenceModal({
                                     className="w-full"
                                 />
                             </div>
+                            )}
 
                             {/* Accent Color 1-Row Square Grid with Custom Dropper */}
                             <div className="flex flex-col gap-1">
@@ -371,6 +531,72 @@ export default function SystemPreferenceModal({
                                     </div>
                                 </div>
                             </div>
+
+                            {/* ── Corner Roundness / Border Radius (Only in UI Theme 2 / Modern Mode) ── */}
+                            {isModernMode && (
+                                <div className="flex flex-col gap-1.5 pt-0.5">
+                                    <div className="flex items-center justify-between">
+                                        <label className="eyebrow flex items-center gap-1.5">
+                                            <span
+                                                className="w-2 h-2 inline-block border border-[var(--color-accent)] bg-[var(--color-accent)]/20 transition-all"
+                                                style={{ borderRadius: `${Math.min(cornerRadius, 4)}px` }}
+                                            />
+                                            Corner Roundness
+                                        </label>
+                                        <span className="font-mono text-[10px] text-[var(--app-muted)]">
+                                            {cornerRadius}px
+                                        </span>
+                                    </div>
+
+                                    {/* 4 Preset Cards */}
+                                    <div className="grid grid-cols-4 gap-1.5">
+                                        {RADIUS_PRESETS.map((preset) => {
+                                            const isSelected = cornerRadius === preset.basePx;
+                                            return (
+                                                <button
+                                                    key={preset.id}
+                                                    type="button"
+                                                    onClick={() => handleSelectRadius(preset.basePx)}
+                                                    title={preset.description}
+                                                    className={`flex flex-col items-center justify-center py-2 px-1 border transition-all cursor-pointer text-center relative ${
+                                                        isSelected
+                                                            ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,var(--app-card))] text-[var(--app-text)] font-semibold shadow-3xs"
+                                                            : "border-[var(--app-border)] hover:border-[var(--color-accent)]/50 bg-[var(--app-card)] text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                                                    }`}
+                                                    style={{ borderRadius: preset.previewBorderRadius }}
+                                                >
+                                                    <div
+                                                        className={`w-4 h-4 border transition-all mb-1.5 ${
+                                                            isSelected
+                                                                ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
+                                                                : "border-[var(--app-border-strong)] bg-[var(--app-hover-bg)]"
+                                                        }`}
+                                                        style={{ borderRadius: preset.previewBorderRadius }}
+                                                    />
+                                                    <span className={`text-[11px] font-medium tabular-nums ${isSelected ? "text-[var(--app-text)] font-semibold" : "text-[var(--app-muted)]"}`}>
+                                                        {preset.basePx}px
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Dynamic Slider for Fine-tuning */}
+                                    <div className="flex items-center gap-3 pt-0.5">
+                                        <span className="text-[9px] text-[var(--app-muted)] font-mono">0px</span>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="16"
+                                            step="1"
+                                            value={cornerRadius}
+                                            onChange={(e) => handleSelectRadius(parseInt(e.target.value, 10))}
+                                            className="flex-1 h-1 bg-[var(--app-border,#E5E5E3)] rounded-lg appearance-none cursor-pointer accent-[var(--color-accent,#1A1A1A)]"
+                                        />
+                                        <span className="text-[9px] text-[var(--app-muted)] font-mono">16px</span>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Reusable Confetti Switch */}
                             <ToggleSwitch
@@ -526,30 +752,72 @@ export default function SystemPreferenceModal({
                     )}
 
                     {/* Sample Preview Box (Visible on both tabs for direct feedback) */}
-                    <div className="p-3 border border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FAFAF9)] rounded-[2px] flex flex-col gap-1 mt-0.5">
-                        <span className="eyebrow text-[9px]">
-                            Live Typography Preview
-                        </span>
-                        <h4
-                            style={{
-                                fontFamily:
-                                    fontMap[secondaryFont] || "inherit",
-                            }}
-                            className="text-base font-semibold text-[var(--app-text,#1A1A1A)] transition-all"
-                        >
-                            Workspace & Task Assignment System
-                        </h4>
-                        <p
-                            style={{
-                                fontFamily:
-                                    fontMap[primaryFont] || "inherit",
-                            }}
-                            className="text-xs text-[var(--app-muted,#888883)] transition-all"
-                        >
-                            Configure your team workspace appearance.
-                            Settings automatically scale typography and
-                            UI components in real time.
-                        </p>
+                    <div
+                        className="p-3 border border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FAFAF9)] flex flex-col gap-2 mt-0.5 transition-all"
+                        style={{ borderRadius: isModernMode ? `${Math.min(cornerRadius * 1.5, 12)}px` : '0px' }}
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="eyebrow text-[9px]">
+                                Live Interface & Typography Preview
+                            </span>
+                            {isModernMode && (
+                                <span className="text-[9px] font-mono text-[var(--app-muted)]">
+                                    radius: {cornerRadius}px
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                            <h4
+                                style={{
+                                    fontFamily:
+                                        fontMap[secondaryFont] || "inherit",
+                                }}
+                                className="text-sm font-semibold text-[var(--app-text,#1A1A1A)] transition-all"
+                            >
+                                Workspace & Task Assignment System
+                            </h4>
+                            <p
+                                style={{
+                                    fontFamily:
+                                        fontMap[primaryFont] || "inherit",
+                                }}
+                                className="text-xs text-[var(--app-muted,#888883)] transition-all"
+                            >
+                                {isModernMode
+                                    ? "Configure your team workspace appearance. Corner roundness, typography, and accent colors scale in real time."
+                                    : "Configure your team workspace appearance. Typography and accent colors scale in real time."}
+                            </p>
+                        </div>
+
+                        {/* Interactive UI component preview snippets */}
+                        <div className="flex items-center gap-2 pt-1 border-t border-[var(--app-border)]/60">
+                            <button
+                                type="button"
+                                className="px-2.5 py-1 text-[11px] font-semibold text-white transition-all shadow-3xs cursor-pointer flex items-center gap-1"
+                                style={{
+                                    backgroundColor: currentSelectedAccent,
+                                    borderRadius: isModernMode ? `${cornerRadius}px` : '0px',
+                                }}
+                            >
+                                <span>Button</span>
+                            </button>
+                            <div
+                                className="px-2.5 py-1 text-[11px] font-medium border border-[var(--app-border)] bg-[var(--app-bg)] text-[var(--app-text)] transition-all"
+                                style={{
+                                    borderRadius: isModernMode ? `${cornerRadius}px` : '0px',
+                                }}
+                            >
+                                <span>Input Field</span>
+                            </div>
+                            <span
+                                className="px-2 py-0.5 text-[10px] font-medium border border-[var(--color-accent)]/30 text-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] transition-all ml-auto"
+                                style={{
+                                    borderRadius: isModernMode ? `${Math.max(1, cornerRadius - 2)}px` : '0px',
+                                }}
+                            >
+                                Badge Tag
+                            </span>
+                        </div>
                     </div>
                 </div>
 

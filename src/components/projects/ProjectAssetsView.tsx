@@ -660,13 +660,13 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
             {/* ========================================================================= */}
             {/* LEFT PANEL: DOCUMENT & RESOURCE EXPLORER TREE                             */}
             {/* ========================================================================= */}
-            <div className="w-72 sm:w-80 border-r border-[var(--app-border)] bg-[var(--app-card)] flex flex-col shrink-0 min-h-0">
+            <div className="w-72 sm:w-80 border-r border-[var(--app-border)] bg-[var(--app-card)] flex flex-col shrink-0 min-h-0 rounded-none">
                 {/* ── TAB SWITCHER ── */}
-                <div className="flex items-stretch border-b border-[var(--app-border)] bg-[var(--app-bg)]/40 shrink-0">
+                <div className="flex items-stretch border-b border-[var(--app-border)] bg-[var(--app-bg)]/40 shrink-0 rounded-none">
                     <button
                         type="button"
                         onClick={() => setSidebarTab('docs')}
-                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold transition-all border-b-2 ${
+                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold transition-all border-b-2 rounded-none ${
                             sidebarTab === 'docs'
                                 ? 'border-[var(--color-accent,#4F46E5)] text-[var(--color-accent,#4F46E5)] bg-[var(--app-card)]'
                                 : 'border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-card)]/50'
@@ -684,7 +684,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                     <button
                         type="button"
                         onClick={() => setSidebarTab('links')}
-                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold transition-all border-b-2 ${
+                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold transition-all border-b-2 rounded-none ${
                             sidebarTab === 'links'
                                 ? 'border-[#2563EB] text-[#2563EB] bg-[var(--app-card)]'
                                 : 'border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-card)]/50'

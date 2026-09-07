@@ -54,13 +54,10 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                     onClick={() => onSelectTask(task.id)}
                     style={{
                         ...dragProvided.draggableProps.style,
-                        ...(dragSnapshot.isDragging
+                        ...(dragSnapshot.isDragging && !dragSnapshot.isDropAnimating
                             ? {
-                                  transform: `${dragProvided.draggableProps.style?.transform || ""} rotateZ(${dragTilt.rotateZ}deg) rotateX(${dragTilt.rotateX}deg) scale(1.035)`,
-                                  transition:
-                                      "transform 0.08s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s ease",
                                   boxShadow:
-                                      "0 18px 32px -4px rgba(0,0,0,0.18), 0 8px 12px -6px rgba(0,0,0,0.1)",
+                                      "0 20px 35px -5px rgba(0,0,0,0.2), 0 10px 15px -5px rgba(0,0,0,0.1)",
                                   zIndex: 99999,
                               }
                             : {}),

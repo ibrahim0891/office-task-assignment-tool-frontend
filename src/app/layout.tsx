@@ -52,13 +52,34 @@ export default function RootLayout({
                                         document.documentElement.setAttribute('data-theme', theme);
                                     }
 
-                                    // Apply Accent Color
+                                    // Apply UI Design Mode (editorial | modern) — must run before paint
+                                    var uiMode = localStorage.getItem('sys_ui_mode') || 'editorial';
+                                    document.documentElement.setAttribute('data-ui', uiMode);
+                                    // For Modern mode: restore its own dark/light sub-theme
+                                    if (uiMode === 'modern') {
+                                        var modernTheme = localStorage.getItem('sys_modern_theme') || 'modern-light';
+                                        if (modernTheme === 'modern-dark') {
+                                            document.documentElement.setAttribute('data-theme', 'modern-dark');
+                                        } else {
+                                            document.documentElement.removeAttribute('data-theme');
+                                        }
+                                    }
+
+                                    // Apply Accent Color — mode-aware, runs before paint
                                     var isDark = theme && theme !== 'light';
-                                    var accent = isDark
-                                        ? (localStorage.getItem('sys_accent_dark') || '#00D26A')
-                                        : (localStorage.getItem('sys_accent_light') || '#1A1A1A');
-                                    if (accent) {
-                                        document.documentElement.style.setProperty('--color-accent', accent);
+                                    if (uiMode === 'modern') {
+                                        var modernDark = (typeof modernTheme !== 'undefined' && modernTheme === 'modern-dark');
+                                        var modernAccent = modernDark
+                                            ? (localStorage.getItem('sys_accent_modern_dark') || '#A78BFA')
+                                            : (localStorage.getItem('sys_accent_modern_light') || '#8B5CF6');
+                                        document.documentElement.style.setProperty('--color-accent', modernAccent);
+                                    } else {
+                                        var accent = isDark
+                                            ? (localStorage.getItem('sys_accent_dark') || '#00D26A')
+                                            : (localStorage.getItem('sys_accent_light') || '#1A1A1A');
+                                        if (accent) {
+                                            document.documentElement.style.setProperty('--color-accent', accent);
+                                        }
                                     }
 
                                     // Apply Fonts & Scale

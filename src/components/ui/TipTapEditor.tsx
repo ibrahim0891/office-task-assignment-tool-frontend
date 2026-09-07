@@ -114,7 +114,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         } ${className}`}>
             {/* Toolbar */}
             {!disabled && (
-                <div className="border-b border-[var(--app-border)] bg-[var(--app-bg)] p-1.5 flex flex-wrap items-center gap-1 shrink-0 select-none">
+                <div className="border-b border-[var(--app-border)] bg-[var(--app-card)] p-1.5 flex flex-wrap items-center gap-1 shrink-0 select-none">
                     {/* Paragraph & Headings H1, H2, H3 */}
                     <button
                         type="button"
