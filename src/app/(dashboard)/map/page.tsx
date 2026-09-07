@@ -13,6 +13,8 @@ export default function TeamMapRoute() {
         userRole,
         teamMembers,
         tasks,
+        columns,
+        projects,
         setSelectedTaskId,
         openMemberProfile,
     } = useWorkspace();
@@ -43,6 +45,8 @@ export default function TeamMapRoute() {
             userRole={userRole}
             teamMembers={teamMembers}
             tasks={tasks}
+            columns={columns}
+            projects={projects}
             onSelectTask={setSelectedTaskId}
             onSelectMember={openMemberProfile}
         />

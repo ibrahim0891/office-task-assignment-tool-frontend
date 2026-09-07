@@ -236,11 +236,11 @@ export default function SystemPreferenceModal({
                 onClick={onClose}
             />
             <div
-                className="relative bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] p-5 w-full max-w-md flex flex-col gap-4 animate-fade-in text-left rounded-[3px] corner-brackets shadow-xl"
+                className="relative bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] p-6 w-full max-w-2xl sm:max-w-3xl flex flex-col gap-4.5 animate-fade-in text-left rounded-[3px] corner-brackets shadow-xl"
                 style={{ boxShadow: "var(--shadow-float)" }}
             >
                 <div className="flex items-center justify-between pb-1">
-                    <h2 className="font-heading text-base text-[var(--app-text,#1A1A1A)]">
+                    <h2 className="font-heading text-lg font-bold text-[var(--app-text,#1A1A1A)]">
                         System Preferences
                     </h2>
                     <button
@@ -253,29 +253,29 @@ export default function SystemPreferenceModal({
                 </div>
 
                 {/* Settings Tabs */}
-                <div className="bg-[var(--app-hover-bg,#FAFAF9)] px-2 py-1.5 flex items-center gap-1 rounded-[2px]">
+                <div className="bg-[var(--app-hover-bg,#FAFAF9)] px-2 py-1.5 flex items-center gap-1.5 rounded-[2px]">
                     <button
                         type="button"
                         onClick={() => setSettingsTab("theme")}
-                        className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
+                        className={`relative px-3.5 py-1.5 text-xs font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
                             settingsTab === "theme"
                                 ? "bg-[var(--app-card,#FFFFFF)] text-[var(--app-text,#1A1A1A)] border border-[var(--app-border,#E5E5E3)] corner-brackets-4 shadow-sm"
                                 : "text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-hover-bg,#F0F0EE)]"
                         }`}
                     >
-                        <Palette className="w-3 h-3 shrink-0" />
+                        <Palette className="w-3.5 h-3.5 shrink-0" />
                         <span>Theme & Color</span>
                     </button>
                     <button
                         type="button"
                         onClick={() => setSettingsTab("typography")}
-                        className={`relative px-3 py-1.5 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
+                        className={`relative px-3.5 py-1.5 text-xs font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
                             settingsTab === "typography"
                                 ? "bg-[var(--app-card,#FFFFFF)] text-[var(--app-text,#1A1A1A)] border border-[var(--app-border,#E5E5E3)] corner-brackets-4 shadow-sm"
                                 : "text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-hover-bg,#F0F0EE)]"
                         }`}
                     >
-                        <Type className="w-3 h-3 shrink-0" />
+                        <Type className="w-3.5 h-3.5 shrink-0" />
                         <span>Typography & Fonts</span>
                     </button>
                 </div>
@@ -283,7 +283,7 @@ export default function SystemPreferenceModal({
                 {/* Section Divider 1 */}
                 <div className="w-full border-t border-[var(--app-border,#E5E5E3)]" />
 
-                <div className="flex flex-col gap-4 max-h-[55vh] overflow-y-auto pr-0.5">
+                <div className="flex flex-col gap-4.5 max-h-[70vh] overflow-y-auto pr-1">
                     {settingsTab === "theme" ? (
                         <div className="flex flex-col gap-3.5">
 
