@@ -81,6 +81,35 @@ export default function WorkspaceShell({
     const [secondaryFont, setSecondaryFont] = useState("Lora");
     const [fontScale, setFontScale] = useState(1.00);
 
+    const handlePrimaryFontChange = (font: string) => {
+        setPrimaryFont(font);
+        localStorage.setItem("sys_primary_font", font);
+        if (fontMap[font]) {
+            document.documentElement.style.setProperty("--font-primary", fontMap[font]);
+            document.documentElement.style.setProperty("--font-sans", fontMap[font]);
+            document.body.style.fontFamily = fontMap[font];
+        }
+    };
+
+    const handleSecondaryFontChange = (font: string) => {
+        setSecondaryFont(font);
+        localStorage.setItem("sys_secondary_font", font);
+        if (fontMap[font]) {
+            document.documentElement.style.setProperty("--font-secondary", fontMap[font]);
+            document.documentElement.style.setProperty("--font-serif", fontMap[font]);
+            document.documentElement.style.setProperty("--font-instrument-serif", fontMap[font]);
+        }
+    };
+
+    const handleFontScaleChange = (scale: React.SetStateAction<number>) => {
+        setFontScale((prev) => {
+            const next = typeof scale === "function" ? scale(prev) : scale;
+            localStorage.setItem("sys_font_scale", String(next));
+            document.documentElement.style.setProperty("--font-scale", String(next));
+            return next;
+        });
+    };
+
     const scaleOptions = [
         { value: "0.85", label: "85% (Very Small)" },
         { value: "1.00", label: "100% (Normal - Default)" },
@@ -99,13 +128,14 @@ export default function WorkspaceShell({
 
     // Reset settings handler
     const handleResetSettings = () => {
-        setPrimaryFont("Outfit");
-        setSecondaryFont("Lora");
-        setFontScale(1.00);
-        localStorage.setItem("sys_primary_font", "Outfit");
-        localStorage.setItem("sys_secondary_font", "Lora");
-        localStorage.setItem("sys_font_scale", "1.00");
+        handlePrimaryFontChange("Outfit");
+        handleSecondaryFontChange("Lora");
+        handleFontScaleChange(1.00);
         localStorage.removeItem("sys_corner_radius");
+        localStorage.removeItem("sys_accent_modern_light");
+        localStorage.removeItem("sys_accent_modern_dark");
+        localStorage.removeItem("sys_ui_mode");
+        localStorage.removeItem("sys_modern_theme");
         applyCornerRadius(DEFAULT_RADIUS_PX);
         const root = document.documentElement;
         root.style.zoom = "100%";
@@ -120,10 +150,26 @@ export default function WorkspaceShell({
         const savedSecondary = localStorage.getItem("sys_secondary_font");
         const savedScale = localStorage.getItem("sys_font_scale");
         const savedRadius = localStorage.getItem("sys_corner_radius");
-        if (savedPrimary) setPrimaryFont(savedPrimary);
-        if (savedSecondary) setSecondaryFont(savedSecondary);
+        if (savedPrimary) {
+            setPrimaryFont(savedPrimary);
+            if (fontMap[savedPrimary]) {
+                document.documentElement.style.setProperty("--font-primary", fontMap[savedPrimary]);
+                document.documentElement.style.setProperty("--font-sans", fontMap[savedPrimary]);
+                document.body.style.fontFamily = fontMap[savedPrimary];
+            }
+        }
+        if (savedSecondary) {
+            setSecondaryFont(savedSecondary);
+            if (fontMap[savedSecondary]) {
+                document.documentElement.style.setProperty("--font-secondary", fontMap[savedSecondary]);
+                document.documentElement.style.setProperty("--font-serif", fontMap[savedSecondary]);
+                document.documentElement.style.setProperty("--font-instrument-serif", fontMap[savedSecondary]);
+            }
+        }
         if (savedScale) {
-            setFontScale(parseFloat(savedScale));
+            const parsed = parseFloat(savedScale);
+            setFontScale(parsed);
+            document.documentElement.style.setProperty("--font-scale", String(parsed));
         } else {
             setFontScale(1.00);
         }
@@ -509,11 +555,11 @@ export default function WorkspaceShell({
                     applyAccentColor(mt);
                 }}
                 primaryFont={primaryFont}
-                setPrimaryFont={setPrimaryFont}
+                setPrimaryFont={handlePrimaryFontChange}
                 secondaryFont={secondaryFont}
-                setSecondaryFont={setSecondaryFont}
+                setSecondaryFont={handleSecondaryFontChange}
                 fontScale={fontScale}
-                setFontScale={setFontScale}
+                setFontScale={handleFontScaleChange}
                 onReset={handleResetSettings}
             />
 

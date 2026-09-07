@@ -20,6 +20,7 @@ interface CustomSelectProps {
     buttonClassName?: string;
     disabled?: boolean;
     searchable?: boolean;
+    align?: "left" | "right";
     renderSelected?: (selected: SelectOption) => React.ReactNode;
 }
 
@@ -32,6 +33,7 @@ export function CustomSelect({
     buttonClassName = "",
     disabled = false,
     searchable = false,
+    align,
     renderSelected,
 }: CustomSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
@@ -61,10 +63,30 @@ export function CustomSelect({
             const rect = triggerRef.current.getBoundingClientRect();
             const spaceBelow = window.innerHeight - rect.bottom;
             const openUp = spaceBelow < 220 && rect.top > 220;
+            const width = Math.max(rect.width, 120);
+
+            // Determine horizontal placement (align right if explicitly set or if near right edge)
+            let left = rect.left;
+            const shouldAlignRight =
+                align === "right" ||
+                (align === undefined && rect.right > window.innerWidth - 120);
+
+            if (shouldAlignRight) {
+                left = rect.right - width;
+            }
+
+            // Viewport clamping
+            if (left + width > window.innerWidth - 12) {
+                left = Math.max(12, window.innerWidth - width - 12);
+            }
+            if (left < 12) {
+                left = 12;
+            }
+
             setCoords({
                 top: openUp ? rect.top : rect.bottom,
-                left: rect.left,
-                width: Math.max(rect.width, 120),
+                left,
+                width,
                 openUp,
             });
         }
@@ -167,8 +189,9 @@ export function CustomSelect({
                             bottom: coords.openUp
                                 ? `${window.innerHeight - coords.top + 4}px`
                                 : "auto",
+                            width: `${coords.width}px`,
                             minWidth: `${coords.width}px`,
-                            maxWidth: "280px",
+                            maxWidth: "480px",
                             zIndex: 1000000,
                             boxShadow: "var(--shadow-float)",
                         }}

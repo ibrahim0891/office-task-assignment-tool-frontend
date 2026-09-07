@@ -2362,3 +2362,30 @@ html[data-theme*="dark"] .skeleton-shimmer {
     rgba(255, 255, 255, 0) 100%
   );
 }
+
+/* ─── Custom react-colorful Color Picker ─── */
+.custom-color-picker .react-colorful {
+  width: 100% !important;
+  height: 140px !important;
+  border-radius: var(--radius-sm, 3px);
+  border: 1px solid var(--app-border, #E5E5E3);
+  overflow: hidden;
+  user-select: none;
+}
+
+.custom-color-picker .react-colorful__saturation {
+  border-bottom: 8px solid #000;
+  border-radius: 0;
+}
+
+.custom-color-picker .react-colorful__hue {
+  height: 12px;
+  border-radius: 0;
+}
+
+.custom-color-picker .react-colorful__pointer {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}

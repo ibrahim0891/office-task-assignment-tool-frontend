@@ -126,8 +126,18 @@ export default function RootLayout({
                                         root.style.setProperty('--font-serif', fontMap[secondary]);
                                         root.style.setProperty('--font-instrument-serif', fontMap[secondary]);
                                     }
-                                    if (scale) {
-                                        root.style.setProperty('--font-scale', scale);
+                                    // Apply Corner Radius
+                                    var radius = localStorage.getItem('sys_corner_radius');
+                                    var basePx = radius !== null ? parseFloat(radius) : (uiMode === 'modern' ? 4 : 0);
+                                    if (!isNaN(basePx)) {
+                                        var clamped = Math.max(0, Math.min(16, basePx));
+                                        var cardPx = clamped === 0 ? 0 : Math.min(clamped, 8);
+                                        root.style.setProperty('--radius-xs', clamped === 0 ? '0px' : Math.max(1, Math.min(cardPx, 3)) + 'px');
+                                        root.style.setProperty('--radius-sm', clamped + 'px');
+                                        root.style.setProperty('--radius-md', clamped === 0 ? '0px' : Math.round(clamped * 1.35) + 'px');
+                                        root.style.setProperty('--radius-lg', clamped === 0 ? '0px' : Math.round(clamped * 1.6) + 'px');
+                                        root.style.setProperty('--radius-xl', clamped === 0 ? '0px' : Math.round(clamped * 1.8) + 'px');
+                                        root.style.setProperty('--radius-card', cardPx + 'px');
                                     }
                                 } catch (e) {}
                             })();
