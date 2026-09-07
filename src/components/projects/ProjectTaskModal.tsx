@@ -90,15 +90,23 @@ export default function ProjectTaskModal({ task, project, isOpen, onClose }: Pro
                             <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border ${getPriorityBadge(task.priority)}`}>
                                 {task.priority} Priority
                             </span>
-                            {task.riskLevel === "AtRisk" && (
-                                <span className="text-[9px] text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1">
-                                    <AlertTriangle className="w-2.5 h-2.5" /> At Risk
+                            {(task as any).isCompleted || task.status === "Done" || task.status === "Completed" ? (
+                                <span className="text-[9px] text-[var(--status-completed,#15803D)] bg-[var(--status-completed,#15803D)]/10 border border-[var(--status-completed,#15803D)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1 font-medium">
+                                    <CheckCircle2 className="w-2.5 h-2.5" /> Completed
                                 </span>
-                            )}
-                            {task.riskLevel === "Overdue" && (
-                                <span className="text-[9px] text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1">
-                                    <ShieldAlert className="w-2.5 h-2.5" /> Overdue
-                                </span>
+                            ) : (
+                                <>
+                                    {task.riskLevel === "AtRisk" && (
+                                        <span className="text-[9px] text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1 font-medium">
+                                            <AlertTriangle className="w-2.5 h-2.5" /> At Risk
+                                        </span>
+                                    )}
+                                    {task.riskLevel === "Overdue" && (
+                                        <span className="text-[9px] text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1.5 py-0.5 rounded-[2px] flex items-center gap-1 font-medium">
+                                            <ShieldAlert className="w-2.5 h-2.5" /> Overdue
+                                        </span>
+                                    )}
+                                </>
                             )}
                         </div>
                         <h2 className="text-[14px] font-semibold text-[var(--app-text)] leading-snug mt-1">
@@ -120,9 +128,10 @@ export default function ProjectTaskModal({ task, project, isOpen, onClose }: Pro
                     {task.description && (
                         <div>
                             <span className="eyebrow block mb-1">Description</span>
-                            <p className="text-[11px] text-[var(--app-text)] leading-relaxed bg-[var(--app-bg)] p-3 border border-[var(--app-border)] rounded-[2px]">
-                                {task.description}
-                            </p>
+                            <div
+                                className="text-[11px] text-[var(--app-text)] leading-relaxed bg-[var(--app-bg)] p-3 border border-[var(--app-border)] rounded-[2px] max-h-36 overflow-y-auto pr-2 prose prose-xs dark:prose-invert max-w-none"
+                                dangerouslySetInnerHTML={{ __html: task.description }}
+                            />
                         </div>
                     )}
 
