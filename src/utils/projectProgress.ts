@@ -8,6 +8,8 @@
  * 4. Completed (100%)
  */
 
+import { calculateRemainingDays, calculateDaySpan } from "./date";
+
 export const STAGE_TAG_OPTIONS = [
     {
         id: "TODO",
@@ -180,4 +182,140 @@ export function calculateProjectProgress(tasks: any[] = [], columns: any[] = [])
     });
 
     return Math.round(sum / tasks.length);
+}
+
+export type ProjectHealthStatusKey = "ARCHIVED" | "COMPLETED" | "AT_RISK" | "ON_TRACK" | "ACTIVE";
+
+export interface ProjectHealthResult {
+    status: ProjectHealthStatusKey;
+    label: "Archived" | "Completed" | "At Risk" | "On Track" | "Active";
+    color: string;
+    bg: string;
+    border: string;
+    dot: string;
+    description: string;
+}
+
+/**
+ * Automatically computes live project health and status based on:
+ * - Archive state
+ * - Total vs Completed tasks & progress percentage
+ * - Target end dates & SLA overdue status
+ * - Schedule pacing relative to timeline duration
+ */
+export function calculateProjectHealth(project: any): ProjectHealthResult {
+    if (!project) {
+        return {
+            status: "ACTIVE",
+            label: "Active",
+            color: "text-[var(--status-active,#0284C7)]",
+            bg: "bg-[var(--status-active,#0284C7)]/10",
+            border: "border-[var(--status-active,#0284C7)]/20",
+            dot: "bg-[var(--status-active,#0284C7)]",
+            description: "Active project",
+        };
+    }
+
+    // 1. Explicitly Archived
+    const isArchived = project.isArchived || (project.status && String(project.status).toUpperCase() === "ARCHIVED");
+    if (isArchived) {
+        return {
+            status: "ARCHIVED",
+            label: "Archived",
+            color: "text-[var(--status-archived,#6B7280)]",
+            bg: "bg-[var(--status-archived,#6B7280)]/10",
+            border: "border-[var(--status-archived,#6B7280)]/20",
+            dot: "bg-[var(--status-archived,#6B7280)]",
+            description: "Project is archived",
+        };
+    }
+
+    const tasks = Array.isArray(project.tasks) ? project.tasks : [];
+    const totalTasks = project.totalTasks !== undefined ? project.totalTasks : tasks.length;
+    const doneTasks = project.doneTasks !== undefined
+        ? project.doneTasks
+        : (project.completedTasks !== undefined ? project.completedTasks : tasks.filter((t: any) => t.column?.isComplete || t.isCompleted || (t.status || "").toLowerCase() === "completed" || (t.status || "").toLowerCase() === "done").length);
+
+    const progress = Array.isArray(project.tasks) && project.tasks.length > 0
+        ? calculateProjectProgress(project.tasks, project.columns)
+        : (project.progress !== undefined ? project.progress : (totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0));
+
+    // 2. Completed: All tasks are done, progress is 100%, or explicitly set to completed
+    if ((totalTasks > 0 && doneTasks >= totalTasks) || progress >= 100 || (project.status && String(project.status).toUpperCase() === "COMPLETED")) {
+        return {
+            status: "COMPLETED",
+            label: "Completed",
+            color: "text-[var(--status-completed,#15803D)]",
+            bg: "bg-[var(--status-completed,#15803D)]/10",
+            border: "border-[var(--status-completed,#15803D)]/20",
+            dot: "bg-[var(--status-completed,#15803D)]",
+            description: "All milestones and tasks completed (100%)",
+        };
+    }
+
+    // 3. Check Overdue & Risk Conditions
+    const remainingDays = calculateRemainingDays(project.endDate);
+    const hasOverdueTasks = (project.overdueTasks !== undefined ? project.overdueTasks > 0 : false) ||
+        tasks.some((t: any) => {
+            if (t.column?.isComplete || t.isCompleted) return false;
+            if (t.riskLevel === "OVERDUE" || t.riskLevel === "CRITICAL_SLA" || t.riskLevel === "Overdue" || t.riskLevel === "CriticalSLA") return true;
+            if (t.dueDate) {
+                const rem = calculateRemainingDays(t.dueDate);
+                if (rem && rem.isOverdue) return true;
+            }
+            return false;
+        });
+
+    const isProjectDeadlineOverdue = remainingDays ? remainingDays.isOverdue : false;
+
+    // Check if timeline schedule is severely behind (e.g. >70% duration elapsed, but <25% progress)
+    let isScheduleDelayed = false;
+    if (project.startDate && project.endDate) {
+        const totalDuration = calculateDaySpan(project.startDate, project.endDate);
+        const elapsedDays = calculateDaySpan(project.startDate, new Date());
+        if (totalDuration > 1 && elapsedDays > 0) {
+            const timeElapsedRatio = Math.min(1, elapsedDays / totalDuration);
+            if (timeElapsedRatio >= 0.7 && progress < 25) {
+                isScheduleDelayed = true;
+            }
+        }
+    }
+
+    if (isProjectDeadlineOverdue || hasOverdueTasks || isScheduleDelayed) {
+        return {
+            status: "AT_RISK",
+            label: "At Risk",
+            color: isProjectDeadlineOverdue ? "text-[var(--color-error)]" : "text-[var(--status-at-risk,#D97706)]",
+            bg: isProjectDeadlineOverdue ? "bg-[var(--color-error)]/10" : "bg-[var(--status-at-risk,#D97706)]/10",
+            border: isProjectDeadlineOverdue ? "border-[var(--color-error)]/20" : "border-[var(--status-at-risk,#D97706)]/20",
+            dot: isProjectDeadlineOverdue ? "bg-[var(--color-error)]" : "bg-[var(--status-at-risk,#D97706)]",
+            description: isProjectDeadlineOverdue
+                ? "Project deadline passed"
+                : (hasOverdueTasks ? "Contains overdue tasks" : "Schedule delayed relative to target timeline"),
+        };
+    }
+
+    // 4. On Track: Progress is actively advancing within timeline schedule
+    if (progress > 0) {
+        return {
+            status: "ON_TRACK",
+            label: "On Track",
+            color: "text-[var(--status-on-track,#16A34A)]",
+            bg: "bg-[var(--status-on-track,#16A34A)]/10",
+            border: "border-[var(--status-on-track,#16A34A)]/20",
+            dot: "bg-[var(--status-on-track,#16A34A)]",
+            description: `On schedule with ${progress}% completion`,
+        };
+    }
+
+    // 5. Active: Default active state for freshly created/active backlog projects
+    return {
+        status: "ACTIVE",
+        label: "Active",
+        color: "text-[var(--status-active,#0284C7)]",
+        bg: "bg-[var(--status-active,#0284C7)]/10",
+        border: "border-[var(--status-active,#0284C7)]/20",
+        dot: "bg-[var(--status-active,#0284C7)]",
+        description: "Active project in progress",
+    };
 }

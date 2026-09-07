@@ -145,9 +145,10 @@ function MainTaskGridCard({
     const totalSubtasks = subtasks.length;
     const progressPercent = calculateTaskProgress(task, columnMap);
 
+    const isCompleted = progressPercent === 100 || Boolean(task.isCompleted || task.status === "Completed" || task.status === "Done");
     const priorityDetails = getPriorityDetails(task.priority);
     const statusConfig = getDerivedStatus(task, columnMap);
-    const riskBadge = getRiskBadge(task.riskLevel);
+    const riskBadge = isCompleted ? null : getRiskBadge(task.riskLevel);
     const column = columnMap[task.columnId];
 
     // Clean description HTML tags
@@ -195,26 +196,35 @@ function MainTaskGridCard({
                 )}
             </div>
 
-            {/* Tags & Badges Row (Below Title) */}
+            {/* Tags & Badges Row (Below Title): Show ONLY the necessary badge(s) */}
             <div className="flex items-center gap-1.5 flex-wrap">
-                {/* Priority Badge */}
-                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-[2px] border shrink-0 ${priorityDetails.badgeCls}`}>
-                    {priorityDetails.label}
-                </span>
-
-                {/* Risk Badge */}
-                {riskBadge && (
-                    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-[2px] border shrink-0 ${riskBadge.cls}`}>
-                        {riskBadge.label}
-                    </span>
-                )}
-
-                {/* Status Badge */}
-                {statusConfig.label && (
+                {isCompleted ? (
+                    /* When Completed: show ONLY the Completed status badge */
                     <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border flex items-center gap-1 shrink-0 ${statusConfig.cls}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
                         <span>{statusConfig.label}</span>
                     </span>
+                ) : (
+                    <>
+                        {/* Priority Badge */}
+                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-[2px] border shrink-0 ${priorityDetails.badgeCls}`}>
+                            {priorityDetails.label}
+                        </span>
+
+                        {/* Risk Badge (Overdue / At Risk) OR Status Badge */}
+                        {riskBadge ? (
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-[2px] border shrink-0 ${riskBadge.cls}`}>
+                                {riskBadge.label}
+                            </span>
+                        ) : (
+                            statusConfig.label && (
+                                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border flex items-center gap-1 shrink-0 ${statusConfig.cls}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
+                                    <span>{statusConfig.label}</span>
+                                </span>
+                            )
+                        )}
+                    </>
                 )}
             </div>
 
@@ -334,9 +344,10 @@ function MainTaskListItem({
     const totalSubtasks = subtasks.length;
     const progressPercent = calculateTaskProgress(task, columnMap);
 
+    const isCompleted = progressPercent === 100 || Boolean(task.isCompleted || task.status === "Completed" || task.status === "Done");
     const priorityDetails = getPriorityDetails(task.priority);
     const statusConfig = getDerivedStatus(task, columnMap);
-    const riskBadge = getRiskBadge(task.riskLevel);
+    const riskBadge = isCompleted ? null : getRiskBadge(task.riskLevel);
     const column = columnMap[task.columnId];
     const cleanDescription = stripHtml(task.description || "");
 
@@ -379,13 +390,19 @@ function MainTaskListItem({
             {/* Priority & Risk */}
             <td className="py-3 px-4 whitespace-nowrap">
                 <div className="flex items-center gap-1.5">
-                    <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${priorityDetails.badgeCls}`}>
-                        {priorityDetails.label}
-                    </span>
-                    {riskBadge && (
-                        <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${riskBadge.cls}`}>
-                            {riskBadge.label}
-                        </span>
+                    {!isCompleted ? (
+                        <>
+                            <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${priorityDetails.badgeCls}`}>
+                                {priorityDetails.label}
+                            </span>
+                            {riskBadge && (
+                                <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${riskBadge.cls}`}>
+                                    {riskBadge.label}
+                                </span>
+                            )}
+                        </>
+                    ) : (
+                        <span className="text-[10px] text-[var(--status-completed,#15803D)] font-semibold">Done</span>
                     )}
                 </div>
             </td>
@@ -681,10 +698,65 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
         <div className="flex-1 flex flex-col min-h-0 bg-[var(--app-bg)]">
             {/* Header Toolbar */}
             <div className="shrink-0 px-5 py-2.5 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-wrap items-center justify-between gap-3 select-none">
-                {/* Group 1: Task Filters (Search, Priority, Date Range Filter) */}
-                <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                {/* Left Side: Scope Segmented Toggle (All Tasks vs My Tasks) + Add Main Task Button */}
+                <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                    {/* Scope Segmented Toggle */}
+                    <div className="flex items-center h-[32px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-xs font-medium shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => setFilterMode("all")}
+                            className={`h-full px-3 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                filterMode === "all"
+                                    ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
+                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                            }`}
+                        >
+                            <span>All Tasks</span>
+                            <span className={`text-xs tabular-nums font-normal transition-colors ${
+                                filterMode === "all" ? "text-[var(--app-muted)]" : "text-[var(--app-muted)]/70"
+                            }`}>
+                                ({tasks.length})
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setFilterMode("my-tasks")}
+                            className={`h-full px-3 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                filterMode === "my-tasks"
+                                    ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
+                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                            }`}
+                        >
+                            <User className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                            <span>My Tasks</span>
+                            {myTasksCount > 0 && (
+                                <span className={`text-xs tabular-nums font-normal transition-colors ${
+                                    filterMode === "my-tasks" ? "text-[var(--app-muted)]" : "text-[var(--app-muted)]/70"
+                                }`}>
+                                    ({myTasksCount})
+                                </span>
+                            )}
+                        </button>
+                    </div>
+
+                    {/* Add Main Task Action Button */}
+                    {canManageTasks && (
+                        <Button
+                            type="button"
+                            variant="default"
+                            size="sm"
+                            icon={<Plus className="w-3.5 h-3.5" />}
+                            onClick={() => setIsCreateTaskModalOpen(true)}
+                        >
+                            Add Main Task
+                        </Button>
+                    )}
+                </div>
+
+                {/* Right Side: Search, Priority & Date Filters + View Switcher (Far Right) */}
+                <div className="flex items-center gap-2.5 flex-wrap min-w-0 justify-end ml-auto">
                     {/* Search */}
-                    <div className="relative w-48 sm:w-60 h-[32px] shrink-0">
+                    <div className="relative w-44 sm:w-56 h-[32px] shrink-0">
                         <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--app-muted)] pointer-events-none" />
                         <input
                             type="text"
@@ -701,7 +773,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         value={selectedPriority}
                         onChange={setSelectedPriority}
                         buttonClassName="corner-brackets-4 text-xs h-[32px] !py-0 px-3 bg-[var(--app-card)]"
-                        className="w-36 h-[32px] shrink-0"
+                        className="w-32 sm:w-36 h-[32px] shrink-0"
                     />
 
                     {/* Date Filter: All Dates vs Date Range */}
@@ -709,7 +781,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         <button
                             type="button"
                             onClick={() => setDateFilterMode("all")}
-                            className={`h-full px-3 rounded-[1px] transition-all cursor-pointer flex items-center justify-center ${
+                            className={`h-full px-2.5 rounded-[1px] transition-all cursor-pointer flex items-center justify-center ${
                                 dateFilterMode === "all"
                                     ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border)]"
                                     : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
@@ -720,7 +792,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         <button
                             type="button"
                             onClick={() => setDateFilterMode("range")}
-                            className={`h-full px-3 rounded-[1px] transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                            className={`h-full px-2.5 rounded-[1px] transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                                 dateFilterMode === "range"
                                     ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border)]"
                                     : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
@@ -762,7 +834,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                                 />
                             </div>
 
-                            <div className="hidden sm:flex items-center gap-1.5">
+                            <div className="hidden lg:flex items-center gap-1.5">
                                 <button
                                     type="button"
                                     onClick={() => handleSetRangePreset("month")}
@@ -799,103 +871,42 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                             size="sm"
                             icon={<X className="w-3.5 h-3.5" />}
                             onClick={handleClearAllFilters}
-                            className="text-[var(--color-error)] hover:bg-[var(--color-error)]/10 animate-fade-in shrink-0"
+                            className="text-[var(--color-error)] hover:bg-[var(--color-error)]/10 animate-fade-in shrink-0 h-[32px]"
                             title="Reset all search, date, priority, and assignment filters"
                         >
                             Reset ({activeFilterCount})
                         </Button>
                     )}
-                </div>
-
-                {/* Right: Group 2 (Scope) + Group 3 (View Mode & Count) + Primary Action */}
-                <div className="flex items-center gap-3 shrink-0 flex-wrap">
-                    {/* Scope Segmented Toggle (All Tasks vs Assigned to Me) */}
-                    <div className="flex items-center h-[32px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-xs font-medium shrink-0">
-                        <button
-                            type="button"
-                            onClick={() => setFilterMode("all")}
-                            className={`h-full px-3 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
-                                filterMode === "all"
-                                    ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
-                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
-                            }`}
-                        >
-                            <span>All</span>
-                            <span className={`text-xs tabular-nums font-normal transition-colors ${
-                                filterMode === "all" ? "text-[var(--app-muted)]" : "text-[var(--app-muted)]/70"
-                            }`}>
-                                ({tasks.length})
-                            </span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setFilterMode("my-tasks")}
-                            className={`h-full px-3 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
-                                filterMode === "my-tasks"
-                                    ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
-                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
-                            }`}
-                        >
-                            <User className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                            <span>My Tasks</span>
-                            {myTasksCount > 0 && (
-                                <span className={`text-xs tabular-nums font-normal transition-colors ${
-                                    filterMode === "my-tasks" ? "text-[var(--app-muted)]" : "text-[var(--app-muted)]/70"
-                                    }`}>
-                                    ({myTasksCount})
-                                </span>
-                            )}
-                        </button>
-                    </div>
 
                     <div className="w-px h-5 bg-[var(--app-border)] hidden sm:block" />
 
-                    {/* View Switcher: Grid vs List */}
-                    <div className="flex items-center gap-2.5 shrink-0">
-                        <div className="flex items-center h-[32px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-xs font-medium shrink-0">
-                            <button
-                                type="button"
-                                onClick={() => handleViewModeChange("grid")}
-                                className={`h-full p-2 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
-                                    viewMode === "grid"
-                                        ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
-                                }`}
-                                title="Grid View"
-                            >
-                                <LayoutGrid className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleViewModeChange("list")}
-                                className={`h-full p-2 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
-                                    viewMode === "list"
-                                        ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
-                                }`}
-                                title="List View"
-                            >
-                                <List className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-
-                        <span className="text-xs text-[var(--app-muted)] hidden sm:inline select-none">
-                            Showing <span className="font-semibold text-[var(--app-text)] tabular-nums">{filteredTasks.length}</span> {filteredTasks.length === 1 ? "main task" : "main tasks"}
-                        </span>
-                    </div>
-
-                    {/* Add Main Task Action */}
-                    {canManageTasks && (
-                        <Button
+                    {/* View Switcher: Far Right */}
+                    <div className="flex items-center h-[32px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-xs font-medium shrink-0">
+                        <button
                             type="button"
-                            variant="default"
-                            size="sm"
-                            icon={<Plus className="w-3.5 h-3.5" />}
-                            onClick={() => setIsCreateTaskModalOpen(true)}
+                            onClick={() => handleViewModeChange("grid")}
+                            className={`h-full p-2 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
+                                viewMode === "grid"
+                                    ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
+                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                            }`}
+                            title="Grid View"
                         >
-                            Add Main Task
-                        </Button>
-                    )}
+                            <LayoutGrid className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleViewModeChange("list")}
+                            className={`h-full p-2 rounded-[1px] transition-colors cursor-pointer flex items-center justify-center ${
+                                viewMode === "list"
+                                    ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border-strong)]"
+                                    : "text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent"
+                            }`}
+                            title="List View"
+                        >
+                            <List className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
