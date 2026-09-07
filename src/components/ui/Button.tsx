@@ -45,9 +45,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                     "bg-transparent hover:bg-[var(--app-hover-bg)] border border-transparent hover:border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)]";
                 break;
             case "secondary":
-                variantClasses =
-                    "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)]";
-                break;
             default:
                 variantClasses =
                     "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)]";

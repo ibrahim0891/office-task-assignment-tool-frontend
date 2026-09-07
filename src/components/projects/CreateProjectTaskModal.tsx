@@ -264,6 +264,9 @@ export default function CreateProjectTaskModal({
                                 <span className="text-[10px] text-[var(--app-muted)]">Start Date</span>
                                 <CustomDatePicker
                                     value={startDate}
+                                    minDate={projMinDate || undefined}
+                                    maxDate={dueDate && projMaxDate ? (dueDate < projMaxDate ? dueDate : projMaxDate) : (dueDate || projMaxDate || undefined)}
+                                    align="left"
                                     onChange={(val) => {
                                         if (projMinDate && val < projMinDate) {
                                             toast.error(`Start date cannot be earlier than project start (${projMinDate})`);
@@ -274,6 +277,9 @@ export default function CreateProjectTaskModal({
                                             return;
                                         }
                                         setStartDate(val);
+                                        if (dueDate && val > dueDate) {
+                                            setDueDate(val);
+                                        }
                                     }}
                                     className="w-full"
                                 />
@@ -282,6 +288,9 @@ export default function CreateProjectTaskModal({
                                 <span className="text-[10px] text-[var(--app-muted)]">Due Date</span>
                                 <CustomDatePicker
                                     value={dueDate}
+                                    minDate={startDate && projMinDate ? (startDate > projMinDate ? startDate : projMinDate) : (startDate || projMinDate || undefined)}
+                                    maxDate={projMaxDate || undefined}
+                                    align="right"
                                     onChange={(val) => {
                                         if (projMinDate && val < projMinDate) {
                                             toast.error(`Due date cannot be earlier than project start (${projMinDate})`);
@@ -292,6 +301,9 @@ export default function CreateProjectTaskModal({
                                             return;
                                         }
                                         setDueDate(val);
+                                        if (startDate && val < startDate) {
+                                            setStartDate(val);
+                                        }
                                     }}
                                     className="w-full"
                                 />

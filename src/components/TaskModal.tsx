@@ -646,6 +646,11 @@ export default function TaskModal({
             return;
         }
 
+        if (dateStr && dueDateStr && dateStr > dueDateStr) {
+            toast.error("Start date cannot be later than due date.");
+            return;
+        }
+
         setIsSaving(true);
         try {
             await api.updateTask(
@@ -2339,7 +2344,14 @@ export default function TaskModal({
                                 <CustomDatePicker
                                     disabled={!canEditDetails}
                                     value={dateStr}
-                                    onChange={(val) => setDateStr(val)}
+                                    maxDate={dueDateStr || undefined}
+                                    align="left"
+                                    onChange={(val) => {
+                                        setDateStr(val);
+                                        if (dueDateStr && val > dueDateStr) {
+                                            setDueDateStr(val);
+                                        }
+                                    }}
                                     className="w-full"
                                 />
                             </div>
@@ -2348,7 +2360,14 @@ export default function TaskModal({
                                 <CustomDatePicker
                                     disabled={!canEditDetails}
                                     value={dueDateStr}
-                                    onChange={(val) => setDueDateStr(val)}
+                                    minDate={dateStr || undefined}
+                                    align="right"
+                                    onChange={(val) => {
+                                        setDueDateStr(val);
+                                        if (dateStr && val < dateStr) {
+                                            setDateStr(val);
+                                        }
+                                    }}
                                     className="w-full"
                                 />
                             </div>

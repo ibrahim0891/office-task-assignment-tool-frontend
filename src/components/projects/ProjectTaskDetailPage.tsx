@@ -358,19 +358,30 @@ export default function ProjectTaskDetailPage() {
     };
 
     const loadProjectDetail = React.useCallback(async () => {
-        await refreshProject();
-    }, [refreshProject]);
+        try {
+            const freshProject = await api.getProjectDetail(projectId, currentTeam?.id);
+            if (freshProject) {
+                refreshProject(freshProject, false);
+                const freshTask = (freshProject.tasks || []).find((t: any) => t.id === taskId);
+                if (freshTask?.subtasks) {
+                    setSubtasks(freshTask.subtasks);
+                }
+            }
+        } catch {
+            await refreshProject();
+        }
+    }, [projectId, currentTeam?.id, taskId, refreshProject]);
 
     useEffect(() => {
-        const handleProjectDataUpdated = (e: any) => {
+        const handleProjectDataUpdated = async (e: any) => {
             const detail = e.detail;
             if (!detail || !detail.projectId || detail.projectId === projectId) {
-                refreshProject();
+                await loadProjectDetail();
             }
         };
         window.addEventListener("project_data_updated", handleProjectDataUpdated);
         return () => window.removeEventListener("project_data_updated", handleProjectDataUpdated);
-    }, [projectId, refreshProject]);
+    }, [projectId, loadProjectDetail]);
 
     const [localColumns, setLocalColumns] = useState<ColumnDef[]>([]);
 
@@ -543,8 +554,8 @@ export default function ProjectTaskDetailPage() {
         const draggedSubtask = subtasks.find((s) => s.id === draggableId);
         let actualDaysPayload = undefined;
         if (isTargetComplete) {
-            const creationDate = draggedSubtask?.createdAt || draggedSubtask?.startDate || new Date();
-            actualDaysPayload = calculateDaySpan(creationDate, new Date());
+            const startDateRef = draggedSubtask?.startDate || draggedSubtask?.createdAt || new Date();
+            actualDaysPayload = calculateDaySpan(startDateRef, new Date());
         } else if (draggedSubtask?.isCompleted && !isTargetComplete) {
             actualDaysPayload = 0;
         }
@@ -567,8 +578,8 @@ export default function ProjectTaskDetailPage() {
     // Toggle completion directly from card checkbox
     const handleToggleComplete = async (st: any) => {
         const nextComplete = !st.isCompleted;
-        const creationDate = st.createdAt || st.startDate || new Date();
-        const calculatedActual = nextComplete ? calculateDaySpan(creationDate, new Date()) : 0;
+        const startDateRef = st.startDate || st.createdAt || new Date();
+        const calculatedActual = nextComplete ? calculateDaySpan(startDateRef, new Date()) : 0;
 
         setSubtasks((prev) =>
             prev.map((s) => (s.id === st.id ? { ...s, isCompleted: nextComplete, actualDays: calculatedActual } : s))

@@ -171,7 +171,14 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
                             <span className="text-[10px] text-[var(--app-muted)]">Start Date</span>
                             <CustomDatePicker
                                 value={startDate}
-                                onChange={(val) => setStartDate(val)}
+                                maxDate={endDate || undefined}
+                                align="left"
+                                onChange={(val) => {
+                                    setStartDate(val);
+                                    if (endDate && val > endDate) {
+                                        setEndDate(val);
+                                    }
+                                }}
                                 className="w-full"
                             />
                         </div>
@@ -179,7 +186,14 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
                             <span className="text-[10px] text-[var(--app-muted)]">End Date</span>
                             <CustomDatePicker
                                 value={endDate}
-                                onChange={(val) => setEndDate(val)}
+                                minDate={startDate || undefined}
+                                align="right"
+                                onChange={(val) => {
+                                    setEndDate(val);
+                                    if (startDate && val < startDate) {
+                                        setStartDate(val);
+                                    }
+                                }}
                                 className="w-full"
                             />
                         </div>

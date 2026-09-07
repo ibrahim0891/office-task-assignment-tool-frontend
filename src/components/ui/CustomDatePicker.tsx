@@ -6,8 +6,7 @@ import {
     ChevronRight,
     ChevronDown,
 } from "lucide-react";
-import { CustomSelect } from "./CustomSelect";
-import { getLocalDateString, parseLocalDate } from "../../utils/date";
+import { getLocalDateString, parseLocalDate, extractDateString } from "../../utils/date";
 
 interface CustomDatePickerProps {
     value: string; // YYYY-MM-DD
@@ -18,6 +17,7 @@ interface CustomDatePickerProps {
     disabled?: boolean;
     minDate?: string;
     maxDate?: string;
+    align?: "left" | "right";
 }
 
 export function CustomDatePicker({
@@ -29,6 +29,7 @@ export function CustomDatePicker({
     disabled = false,
     minDate,
     maxDate,
+    align = "right",
 }: CustomDatePickerProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [coords, setCoords] = useState<{
@@ -43,9 +44,12 @@ export function CustomDatePicker({
     const triggerRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
+    const normalizedMinDate = minDate ? extractDateString(minDate) : "";
+    const normalizedMaxDate = maxDate ? extractDateString(maxDate) : "";
+
     const isDateDisabled = (dateStr: string) => {
-        if (minDate && dateStr < minDate) return true;
-        if (maxDate && dateStr > maxDate) return true;
+        if (normalizedMinDate && dateStr < normalizedMinDate) return true;
+        if (normalizedMaxDate && dateStr > normalizedMaxDate) return true;
         return false;
     };
 
@@ -88,8 +92,24 @@ export function CustomDatePicker({
     const todayDate = new Date();
     const todayStr = getLocalDateString(todayDate);
 
-    const initialDate = value ? parseLocalDate(value) : todayDate;
-    const [viewDate, setViewDate] = useState(initialDate);
+    const getInitialDate = () => {
+        if (value) return parseLocalDate(value);
+        if (normalizedMinDate && normalizedMaxDate) {
+            if (todayStr >= normalizedMinDate && todayStr <= normalizedMaxDate) return todayDate;
+            return parseLocalDate(normalizedMinDate);
+        }
+        if (normalizedMinDate) {
+            if (todayStr >= normalizedMinDate) return todayDate;
+            return parseLocalDate(normalizedMinDate);
+        }
+        if (normalizedMaxDate) {
+            if (todayStr <= normalizedMaxDate) return todayDate;
+            return parseLocalDate(normalizedMaxDate);
+        }
+        return todayDate;
+    };
+
+    const [viewDate, setViewDate] = useState(getInitialDate());
 
     useEffect(() => {
         if (value) {
@@ -204,6 +224,7 @@ export function CustomDatePicker({
         : "";
 
     const isTodayDisabled = isDateDisabled(todayStr);
+
     const handleSelectToday = () => {
         if (isTodayDisabled) return;
         onChange(todayStr);
@@ -243,11 +264,11 @@ export function CustomDatePicker({
                             bottom: coords.openUp
                                 ? `${window.innerHeight - coords.top + 4}px`
                                 : "auto",
-                            width: `${CALENDAR_WIDTH}px`,
-                            zIndex: 999999,
+                            width: "288px",
+                            zIndex: 1000000,
                             boxShadow: "var(--shadow-float)",
                         }}
-                        className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-3 text-[var(--app-text)] select-none shadow-2xl corner-brackets animate-fade-in"
+                        className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-3 text-[var(--app-text)] select-none shadow-2xl corner-brackets animate-fade-in text-left"
                     >
                         {/* Today Button Header */}
                         <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-[var(--app-border)]">
@@ -255,10 +276,10 @@ export function CustomDatePicker({
                                 type="button"
                                 onClick={handleSelectToday}
                                 disabled={isTodayDisabled}
-                                className={`text-[11px] font-medium flex items-center gap-1.5 transition-opacity ${
+                                className={`text-[11px] font-medium text-[var(--app-text)] flex items-center gap-1.5 transition-opacity ${
                                     isTodayDisabled
-                                        ? "text-[var(--app-muted)] opacity-40 cursor-not-allowed"
-                                        : "text-[var(--app-text)] hover:opacity-80 cursor-pointer"
+                                        ? "opacity-40 cursor-not-allowed"
+                                        : "hover:opacity-80 cursor-pointer"
                                 }`}
                             >
                                 <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] inline-block ring-2 ring-[var(--color-accent)]/30"></span>
@@ -273,30 +294,40 @@ export function CustomDatePicker({
                             </button>
                         </div>
 
-                        {/* Quick Month & Year Navigation with CustomSelect */}
+                        {/* Quick Month & Year Navigation with Styled Selects */}
                         <div className="flex items-center justify-between gap-1 mb-2.5">
                             <div className="flex items-center gap-1 flex-1 min-w-0">
-                                <CustomSelect
-                                    options={monthOptions}
+                                <select
                                     value={month.toString()}
-                                    onChange={(val) =>
+                                    onChange={(e) =>
                                         setViewDate(
-                                            new Date(year, parseInt(val), 1)
+                                            new Date(year, parseInt(e.target.value), 1)
                                         )
                                     }
-                                    className="w-28 text-[11px]"
-                                />
+                                    className="bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] hover:border-[var(--color-accent)] rounded-[2px] px-2 py-1 text-[11px] text-[var(--app-text,#1A1A1A)] font-medium focus:outline-none cursor-pointer flex-1 transition-colors"
+                                >
+                                    {monthOptions.map((opt) => (
+                                        <option key={opt.value} value={opt.value} className="bg-[var(--app-card)] text-[var(--app-text)]">
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
 
-                                <CustomSelect
-                                    options={yearOptions}
+                                <select
                                     value={year.toString()}
-                                    onChange={(val) =>
+                                    onChange={(e) =>
                                         setViewDate(
-                                            new Date(parseInt(val), month, 1)
+                                            new Date(parseInt(e.target.value), month, 1)
                                         )
                                     }
-                                    className="w-20 text-[11px]"
-                                />
+                                    className="bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] hover:border-[var(--color-accent)] rounded-[2px] px-2 py-1 text-[11px] text-[var(--app-text,#1A1A1A)] font-medium focus:outline-none cursor-pointer w-20 transition-colors"
+                                >
+                                    {yearOptions.map((opt) => (
+                                        <option key={opt.value} value={opt.value} className="bg-[var(--app-card)] text-[var(--app-text)]">
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="flex items-center gap-1 shrink-0">
@@ -344,9 +375,7 @@ export function CustomDatePicker({
                             {calendarCells.map((cell, idx) => {
                                 const isSelected = cell.dateStr === value;
                                 const isTodayCell = cell.dateStr === todayStr;
-                                const isCellDisabled = isDateDisabled(
-                                    cell.dateStr
-                                );
+                                const isCellDisabled = isDateDisabled(cell.dateStr);
 
                                 return (
                                     <button
@@ -360,7 +389,7 @@ export function CustomDatePicker({
                                         }}
                                         className={`h-7 text-[11px] font-medium rounded-[2px] flex items-center justify-center transition-colors relative ${
                                             isCellDisabled
-                                                ? "opacity-20 cursor-not-allowed text-[var(--app-muted)] pointer-events-none"
+                                                ? "opacity-25 cursor-not-allowed text-[var(--app-muted)] line-through pointer-events-none"
                                                 : isSelected
                                                 ? "bg-[var(--color-accent)] text-[var(--app-bg)] font-semibold shadow-xs cursor-pointer"
                                                 : isTodayCell
@@ -371,11 +400,9 @@ export function CustomDatePicker({
                                         }`}
                                     >
                                         {cell.dayNum}
-                                        {isTodayCell &&
-                                            !isSelected &&
-                                            !isCellDisabled && (
-                                                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--color-accent)]" />
-                                            )}
+                                        {isTodayCell && !isSelected && !isCellDisabled && (
+                                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--color-accent)]" />
+                                        )}
                                     </button>
                                 );
                             })}

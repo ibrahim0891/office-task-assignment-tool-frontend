@@ -80,6 +80,29 @@ export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: 
             return;
         }
 
+        const isTeamNotification =
+            type === "MEMBER_ADDED" ||
+            type === "MEMBER_INVITED" ||
+            (n.content &&
+                (n.content.toLowerCase().includes("added to team workspace") ||
+                 n.content.toLowerCase().includes("added to workspace") ||
+                 n.content.toLowerCase().includes("invited and added")));
+
+        if (isTeamNotification) {
+            const targetTeam = teams.find((t) => {
+                if (n.teamId && t.id === n.teamId) return true;
+                if (n.content) {
+                    const match = n.content.match(/["']([^"']+)["']/);
+                    if (match && t.name.toLowerCase() === match[1].toLowerCase()) return true;
+                    if (n.content.toLowerCase().includes(t.name.toLowerCase())) return true;
+                }
+                return false;
+            });
+            if (targetTeam) {
+                setCurrentTeam(targetTeam);
+            }
+        }
+
         const rawTaskId = n.taskId || "";
 
         if (rawTaskId.startsWith("project:")) {
@@ -123,29 +146,7 @@ export default function NotificationToasts({ toasts, onDismiss, onSelectTask }: 
                     <div
                         key={toast.id}
                         onClick={() => {
-                            if (isProjectInvitation) {
-                                router.push("/projects");
-                                if (setIsManageFoldersOpen) setIsManageFoldersOpen(false);
-                                if (setIsManageInvitationsOpen) setIsManageInvitationsOpen(true);
-                            } else if (isTeamNotification) {
-                                const targetTeam = teams.find((t) => {
-                                    if (toast.notification.teamId && t.id === toast.notification.teamId) return true;
-                                    if (toast.notification.content) {
-                                        const match = toast.notification.content.match(/["']([^"']+)["']/);
-                                        if (match && t.name.toLowerCase() === match[1].toLowerCase()) return true;
-                                        if (toast.notification.content.toLowerCase().includes(t.name.toLowerCase())) return true;
-                                    }
-                                    return false;
-                                });
-                                if (targetTeam) {
-                                    setCurrentTeam(targetTeam);
-                                }
-                            } else if (toast.notification.taskId && onSelectTask) {
-                                onSelectTask(
-                                    toast.notification.taskId,
-                                    toast.notification.type === "COMMENT_MENTION" ? "comments" : "details"
-                                );
-                            }
+                            handleNotificationClick(toast.notification);
                             onDismiss(toast.id);
                         }}
                         className={`pointer-events-auto w-full bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] px-4 py-3.5 shadow-md flex items-start gap-3 relative select-none corner-brackets animate-slide-in hover:border-[var(--app-border-strong)] transition-colors ${

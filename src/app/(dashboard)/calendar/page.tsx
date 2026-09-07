@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import CalendarView from "@/components/CalendarView";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { SkeletonList } from "@/components/ui/SkeletonLoader";
@@ -12,7 +12,14 @@ export default function CalendarPage() {
         activeDateStr,
         setActiveDateStr,
         currentTeam,
+        loadTasks,
     } = useWorkspace();
+
+    useEffect(() => {
+        if (currentTeam?.id) {
+            loadTasks();
+        }
+    }, [currentTeam?.id, loadTasks]);
 
     if (!currentTeam) {
         return <SkeletonList />;

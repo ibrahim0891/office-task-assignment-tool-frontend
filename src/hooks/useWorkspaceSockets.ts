@@ -198,6 +198,13 @@ export function useWorkspaceSockets(
             }
         });
 
+        socket.on("team_membership_updated", (data: any) => {
+            console.log("[Socket Client] Received team_membership_updated:", data);
+            if (loadTeams) {
+                loadTeams();
+            }
+        });
+
         socket.on("project_task_comment_created", (data: any) => {
             console.log("[Socket Client] Received project_task_comment_created:", data);
             if (typeof window !== "undefined") {
@@ -223,13 +230,6 @@ export function useWorkspaceSockets(
             console.log("[Socket Client] Received project_task_comment_deleted:", data);
             if (typeof window !== "undefined") {
                 window.dispatchEvent(new CustomEvent("project_task_comment_deleted", { detail: data }));
-            }
-        });
-
-        socket.on("team_membership_updated", (data: any) => {
-            console.log("[Socket Client] Received team_membership_updated:", data);
-            if (loadTeams) {
-                loadTeams();
             }
         });
 
