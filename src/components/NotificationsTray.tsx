@@ -98,6 +98,7 @@ export default function NotificationsTray({
             case "PROJECT_INVITATION":
                 return "text-[#7C3AED] border-[#7C3AED]/20 bg-[#7C3AED]/10";
             case "MEMBER_ADDED":
+                
             case "MEMBER_INVITED":
                 return "text-[#D97706] border-[#D97706]/30 bg-[#FEF3C7]/40";
             default:
@@ -114,6 +115,32 @@ export default function NotificationsTray({
             onClose();
             if (!n.isRead) onMarkRead(n.id);
             return;
+        }
+
+        const isTeamNotification =
+            type === "MEMBER_ADDED" ||
+            type === "MEMBER_INVITED" ||
+            (n.content &&
+                (n.content.toLowerCase().includes("added to team workspace") ||
+                 n.content.toLowerCase().includes("added to workspace") ||
+                 n.content.toLowerCase().includes("invited and added")));
+
+        if (isTeamNotification && onSelectTeam && teams.length > 0) {
+            const targetTeam = teams.find((t) => {
+                if (n.teamId && t.id === n.teamId) return true;
+                if (n.content) {
+                    const match = n.content.match(/["']([^"']+)["']/);
+                    if (match && t.name.toLowerCase() === match[1].toLowerCase()) return true;
+                    if (n.content.toLowerCase().includes(t.name.toLowerCase())) return true;
+                }
+                return false;
+            });
+            if (targetTeam) {
+                onSelectTeam(targetTeam);
+                onClose();
+                if (!n.isRead) onMarkRead(n.id);
+                return;
+            }
         }
 
         const rawTaskId = n.taskId || "";
