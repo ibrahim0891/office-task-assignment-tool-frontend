@@ -13,6 +13,9 @@ import {
     Upload,
     Trash2,
     Maximize2,
+    Minimize2,
+    AppWindow,
+    Sidebar,
     ExternalLink,
     X,
     Loader2,
@@ -27,6 +30,8 @@ import {
     Pencil,
     ListTodo,
 } from "lucide-react";
+import SideSheetWrapper from "./ui/SideSheetWrapper";
+import ModalWrapper from "./ui/ModalWrapper";
 
 // 30% Image Compression helper (70% quality)
 const compressImage30Percent = (file: File): Promise<string> => {
@@ -137,6 +142,35 @@ export default function TaskModal({
         name: string;
     } | null>(null);
     const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [viewMode, setViewMode] = useState<"side_sheet" | "modal">("side_sheet");
+
+    // Load saved team task view mode from localStorage (defaults to side_sheet)
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem("team_task_view_mode");
+            if (saved === "modal" || saved === "side_sheet") {
+                setViewMode(saved);
+            }
+        } catch {
+            // Ignore
+        }
+    }, []);
+
+    const toggleViewMode = () => {
+        const nextMode = viewMode === "side_sheet" ? "modal" : "side_sheet";
+        setViewMode(nextMode);
+        try {
+            localStorage.setItem("team_task_view_mode", nextMode);
+            toast.success(
+                nextMode === "modal" ? "Switched to Center Modal view" : "Switched to Side Sheet view",
+                { duration: 2000, id: "team-task-view-mode" }
+            );
+        } catch {
+            // Ignore
+        }
+    };
 
     // Modal sub-components state
     const [activeTab, setActiveTab] = useState<
@@ -1303,74 +1337,98 @@ export default function TaskModal({
     const inputClass =
         "w-full bg-white border border-[#E5E5E3] rounded-[3px] px-2.5 py-1.5 text-[11px] text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
-    return (
-        <div className="fixed inset-0 z-50 overflow-hidden flex justify-center items-center select-none p-4">
-            {/* Backdrop */}
-            <div
-                className="absolute inset-0 bg-black/40 transition-opacity"
-                onClick={handleAttemptClose}
-            />
-
-            {/* Main Modal Dialog */}
-            <div
-                className="relative w-full max-w-5xl bg-white border border-[#E5E5E3] text-[#1A1A1A] flex flex-col h-[90vh] animate-fade-in corner-brackets overflow-hidden rounded-[var(--radius-sm,4px)]"
-                style={{ boxShadow: "var(--shadow-float)" }}
-            >
-                {/* Modal Top Header Bar */}
-                <div className="p-4 border-b border-[#E5E5E3] flex justify-between items-center bg-[#FAFAF9]">
-                    <div className="flex items-center gap-3">
-                        <p className="text-[11px] text-[#888883]">
-                            Created by{" "}
-                            <span className="text-[#1A1A1A] font-medium">
-                                {task.createdBy?.fullName}
-                            </span>{" "}
-                            on {new Date(task.createdAt).toLocaleDateString()}
-                        </p>
-                        {isDirty && (
-                            <span className="text-base text-[#B08800] bg-[#B08800]/10 px-2 py-0.5 rounded font-medium  ">
-                                Unsaved Changes
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                        {/* Archive — always visible when permitted */}
-                        {canDeleteTask && (
-                            <button
-                                onClick={handleDeleteTask}
-                                className="border border-[#E5E5E3] hover:border-[#CB2431]/30 hover:bg-[#CB2431]/5 text-[#888883] hover:text-[#CB2431] text-[11px] px-2.5 py-1 rounded-[2px] font-medium transition-colors cursor-pointer"
-                            >
-                                Archive
-                            </button>
-                        )}
-
-                        {/* Save Changes — only rendered when there are unsaved changes */}
-                        {!isObserver && isDirty && (
-                            <button
-                                onClick={() => handleSaveChanges(true)}
-                                disabled={isSaving}
-                                className="relative corner-brackets-4 px-3 py-1 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isSaving ? (
-                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                ) : (
-                                    <span className="w-1.5 h-1.5 rounded-[0.5px] inline-block bg-[#555555]" />
-                                )}
-                                <span>
-                                    {isSaving ? "Saving…" : "Save Changes"}
-                                </span>
-                            </button>
-                        )}
-
-                        <button
-                            onClick={handleAttemptClose}
-                            className="text-[#888883] hover:text-[#1A1A1A] transition-colors text-[14px] px-1.5 font-bold"
-                            title="Close modal"
-                        >
-                            ✕
-                        </button>
-                    </div>
+    const modalInner = (
+        <div className="w-full h-full flex flex-col min-h-0 overflow-hidden bg-white text-[#1A1A1A] select-none">
+            {/* Modal Top Header Bar */}
+            <div className="p-4 border-b border-[#E5E5E3] flex justify-between items-center bg-[#FAFAF9] shrink-0">
+                <div className="flex items-center gap-3">
+                    <p className="text-[11px] text-[#888883]">
+                        Created by{" "}
+                        <span className="text-[#1A1A1A] font-medium">
+                            {task.createdBy?.fullName}
+                        </span>{" "}
+                        on {new Date(task.createdAt).toLocaleDateString()}
+                    </p>
+                    {isDirty && (
+                        <span className="text-base text-[#B08800] bg-[#B08800]/10 px-2 py-0.5 rounded font-medium  ">
+                            Unsaved Changes
+                        </span>
+                    )}
                 </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                    {/* View Mode Toggle (Center Modal vs Side Sheet) */}
+                    <button
+                        type="button"
+                        onClick={toggleViewMode}
+                        className="p-1.5 text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/50 rounded-[2px] transition-colors cursor-pointer"
+                        title={
+                            viewMode === "side_sheet"
+                                ? "Switch to Center Modal view (remembered)"
+                                : "Switch to Side Sheet view (remembered)"
+                        }
+                    >
+                        {viewMode === "side_sheet" ? (
+                            <AppWindow className="w-4 h-4" />
+                        ) : (
+                            <Sidebar className="w-4 h-4" />
+                        )}
+                    </button>
+
+                    {/* Expand / Minimize Full Width Toggle */}
+                    <button
+                        type="button"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="p-1.5 text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/50 rounded-[2px] transition-colors cursor-pointer"
+                        title={isExpanded ? "Collapse to default width" : "Expand to full width"}
+                    >
+                        {isExpanded ? (
+                            <Minimize2 className="w-4 h-4" />
+                        ) : (
+                            <Maximize2 className="w-4 h-4" />
+                        )}
+                    </button>
+
+                    {/* Archive — always visible when permitted */}
+                    {canDeleteTask && (
+                        <button
+                            type="button"
+                            onClick={handleDeleteTask}
+                            className="border border-[#E5E5E3] hover:border-[#CB2431]/30 hover:bg-[#CB2431]/5 text-[#888883] hover:text-[#CB2431] text-[11px] px-2.5 py-1 rounded-[2px] font-medium transition-colors cursor-pointer"
+                        >
+                            Archive
+                        </button>
+                    )}
+
+                    {/* Save Changes — only rendered when there are unsaved changes */}
+                    {!isObserver && isDirty && (
+                        <button
+                            type="button"
+                            onClick={() => handleSaveChanges(true)}
+                            disabled={isSaving}
+                            className="relative corner-brackets-4 px-3 py-1 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isSaving ? (
+                                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                            ) : (
+                                <span className="w-1.5 h-1.5 rounded-[0.5px] inline-block bg-[#555555]" />
+                            )}
+                            <span>
+                                {isSaving ? "Saving…" : "Save Changes"}
+                            </span>
+                        </button>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={handleAttemptClose}
+                        className="text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/50 rounded-[2px] transition-colors p-1 cursor-pointer"
+                        title="Close modal (Esc)"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
 
                 {/* Content Grid */}
                 <div className="flex-1 overflow-hidden p-3.5 grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0 h-full">
@@ -1766,112 +1824,34 @@ export default function TaskModal({
                                             <label className="eyebrow">
                                                 Description
                                             </label>
-                                            {canEditDetails && (
+                                            {canEditDetails && hasDescription && (
                                                 <div className="flex items-center gap-2">
-                                                    {isEditingDescription ? (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setDescription(
-                                                                    task.description ||
-                                                                        "",
-                                                                );
-                                                                setIsEditingDescription(
-                                                                    false,
-                                                                );
-                                                            }}
-                                                            className="relative corner-brackets-4 bg-[var(--app-card,#FFFFFF)] hover:bg-[var(--app-hover-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
-                                                        >
-                                                            <span>Cancel</span>
-                                                        </button>
-                                                    ) : hasDescription ? (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    setIsDeleteDescConfirmOpen(
-                                                                        true,
-                                                                    )
-                                                                }
-                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FFF5F5] border border-[#E5E5E3] hover:border-[#CB2431] text-[#CB2431] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
-                                                                title="Delete description"
-                                                            >
-                                                                <Trash2 className="w-3 h-3 text-[#CB2431]" />
-                                                                <span>
-                                                                    Delete
-                                                                </span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    setIsEditingDescription(
-                                                                        true,
-                                                                    )
-                                                                }
-                                                                className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
-                                                            >
-                                                                <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
-                                                                <span>
-                                                                    Edit
-                                                                </span>
-                                                            </button>
-                                                        </>
-                                                    ) : (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                setIsEditingDescription(
-                                                                    true,
-                                                                )
-                                                            }
-                                                            className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
-                                                        >
-                                                            <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
-                                                            <span>+ Add</span>
-                                                        </button>
-                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setIsDeleteDescConfirmOpen(
+                                                                true,
+                                                            )
+                                                        }
+                                                        className="relative corner-brackets-4 bg-white hover:bg-[#FFF5F5] border border-[#E5E5E3] hover:border-[#CB2431] text-[#CB2431] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
+                                                        title="Delete description"
+                                                    >
+                                                        <Trash2 className="w-3 h-3 text-[#CB2431]" />
+                                                        <span>Clear</span>
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
 
-                                        {isEditingDescription ? (
-                                            <div className="flex-1 min-h-[250px] flex flex-col">
-                                                <TipTapEditor
-                                                    value={description}
-                                                    onChange={(html) =>
-                                                        setDescription(html)
-                                                    }
-                                                    disabled={!canEditDetails}
-                                                />
-                                            </div>
-                                        ) : hasDescription ? (
-                                            <div
-                                                className="relative flex-1 min-h-[250px] overflow-y-auto scrollbar-none border border-[#E5E5E3] bg-white p-3.5 text-[11px] text-[#1A1A1A] leading-relaxed rounded-[2.5px] corner-brackets prose-content"
-                                                dangerouslySetInnerHTML={{
-                                                    __html: description,
-                                                }}
-                                            />
-                                        ) : (
-                                            <div
-                                                onClick={() =>
-                                                    canEditDetails &&
-                                                    setIsEditingDescription(
-                                                        true,
-                                                    )
+                                        <div className="flex-1 min-h-[250px] flex flex-col border border-[#E5E5E3] rounded-[2px] bg-white p-2">
+                                            <TipTapEditor
+                                                value={description}
+                                                onChange={(html) =>
+                                                    setDescription(html)
                                                 }
-                                                className="relative flex-1 min-h-[220px] w-full h-full border border-dashed border-[#E5E5E3] bg-[#FAFAF9] hover:bg-[#F5F5F3] p-8 text-center rounded-[2px] corner-brackets flex flex-col items-center justify-center gap-1 text-[#888883] cursor-pointer transition-colors"
-                                            >
-                                                <FileText className="w-5 h-5 text-[#DADAD6]" />
-                                                <span className="text-[11px] font-medium text-[#1A1A1A] mt-1">
-                                                    No description added
-                                                </span>
-                                                <span className="text-[10px]">
-                                                    Click "+ Add" or click here
-                                                    to write notes for this
-                                                    task.
-                                                </span>
-                                            </div>
-                                        )}
+                                                disabled={!canEditDetails}
+                                            />
+                                        </div>
                                     </div>
                                 );
                             })()}
@@ -2400,7 +2380,6 @@ export default function TaskModal({
                         </div>
                     </div>
                 </div>
-            </div>
 
             {/* Warning Dialog when trying to close modal with unsaved changes */}
             {showUnsavedWarning && (
@@ -2743,5 +2722,30 @@ export default function TaskModal({
                 </div>
             )}
         </div>
+    );
+
+    if (viewMode === "modal") {
+        return (
+            <ModalWrapper
+                isOpen={true}
+                onClose={handleAttemptClose}
+                maxWidth={isExpanded ? "max-w-7xl" : "max-w-5xl"}
+                className="h-[90vh] max-h-[900px] overflow-hidden text-left"
+            >
+                {modalInner}
+            </ModalWrapper>
+        );
+    }
+
+    return (
+        <SideSheetWrapper
+            isOpen={true}
+            onClose={handleAttemptClose}
+            width="2xl"
+            isExpanded={isExpanded}
+            className="overflow-hidden text-left"
+        >
+            {modalInner}
+        </SideSheetWrapper>
     );
 }

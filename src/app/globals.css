@@ -750,9 +750,7 @@ html[data-ui="modern"] a[class*="border-b"][class~="border-[var(--app-text)]"],
 html[data-ui="modern"] button[class*="border-b-2"][class~="border-[#1A1A1A]"],
 html[data-ui="modern"] button[class*="border-b-2"][class~="border-[var(--app-text)]"],
 html[data-ui="modern"] a[class*="border-b-2"][class~="border-[#1A1A1A]"],
-html[data-ui="modern"] a[class*="border-b-2"][class~="border-[var(--app-text)]"],
-html[data-ui="modern"] [class*="border-b"][class~="text-[#1A1A1A]"]:not([class*="border-transparent"]),
-html[data-ui="modern"] [class*="border-b"][class~="text-[var(--app-text)]"]:not([class*="border-transparent"]) {
+html[data-ui="modern"] a[class*="border-b-2"][class~="border-[var(--app-text)]"] {
   color: var(--color-accent) !important;
   border-bottom-color: var(--color-accent) !important;
 }
@@ -1444,6 +1442,60 @@ html[data-ui="modern"] .font-heading {
   animation: slideOut 0.2s ease-in forwards;
 }
 
+@keyframes sideSheetSlideIn {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes sideSheetSlideOut {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+@keyframes sideSheetBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sideSheetBackdropFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-sidesheet-in {
+  animation: sideSheetSlideIn 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+
+.animate-sidesheet-out {
+  animation: sideSheetSlideOut 0.24s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+  will-change: transform;
+}
+
+.animate-sidesheet-backdrop-in {
+  animation: sideSheetBackdropFadeIn 0.3s ease-out forwards;
+}
+
+.animate-sidesheet-backdrop-out {
+  animation: sideSheetBackdropFadeOut 0.22s ease-in forwards;
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -1827,15 +1879,18 @@ html:not([data-ui="modern"]) input[type="range"]::-moz-range-thumb {
 .react-flow__controls {
   border: 1px solid var(--app-border) !important;
   background: var(--app-card) !important;
-  border-radius: 3px !important;
+  border-radius: 4px !important;
   box-shadow: var(--shadow-subtle) !important;
+  overflow: hidden !important;
 }
 
 .react-flow__controls-button {
   background: var(--app-card) !important;
   border-bottom: 1px solid var(--app-border) !important;
   color: var(--app-text) !important;
-  fill: var(--app-text) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
@@ -1848,7 +1903,11 @@ html:not([data-ui="modern"]) input[type="range"]::-moz-range-thumb {
 }
 
 .react-flow__controls-button svg {
-  fill: currentColor !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2px !important;
+  width: 14px !important;
+  height: 14px !important;
 }
 
 /* Status Breakdown Cards — Light Mode */
