@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { 
     Plus, 
@@ -17,7 +17,10 @@ import {
     AlertCircle, 
     Users, 
     TrendingUp,
-    CheckCircle2
+    CheckCircle2,
+    SlidersHorizontal,
+    ChevronDown,
+    MoreHorizontal
 } from "lucide-react";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import CreateProjectModal from "./CreateProjectModal";
@@ -26,66 +29,9 @@ import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import { usePortfolioSummary } from "../../hooks/useProjectSWR";
 import { UserAvatar } from "../ui/UserAvatar";
 import { CustomSelect } from "../ui/CustomSelect";
-import { calculateProjectProgress } from "../../utils/projectProgress";
+import { ProjectCard } from "./ProjectCard";
+import { calculateProjectProgress, calculateProjectHealth } from "../../utils/projectProgress";
 import { calculateDaySpan, formatDaySpan } from "../../utils/date";
-
-function getStatusConfig(status: string) {
-    switch (status) {
-        case "ON_TRACK":
-        case "OnTrack":
-            return { 
-                label: "On Track", 
-                color: "text-[var(--status-on-track,#16A34A)]", 
-                bg: "bg-[var(--status-on-track,#16A34A)]/10", 
-                border: "border-[var(--status-on-track,#16A34A)]/20", 
-                dot: "bg-[var(--status-on-track,#16A34A)]" 
-            };
-        case "AT_RISK":
-        case "AtRisk":
-            return { 
-                label: "At Risk", 
-                color: "text-[var(--status-at-risk,#D97706)]", 
-                bg: "bg-[var(--status-at-risk,#D97706)]/10", 
-                border: "border-[var(--status-at-risk,#D97706)]/20", 
-                dot: "bg-[var(--status-at-risk,#D97706)]" 
-            };
-        case "ACTIVE":
-        case "Active":
-            return { 
-                label: "Active", 
-                color: "text-[var(--status-active,#0284C7)]", 
-                bg: "bg-[var(--status-active,#0284C7)]/10", 
-                border: "border-[var(--status-active,#0284C7)]/20", 
-                dot: "bg-[var(--status-active,#0284C7)]" 
-            };
-        case "COMPLETED":
-        case "Completed":
-            return { 
-                label: "Completed", 
-                color: "text-[var(--status-completed,#15803D)]", 
-                bg: "bg-[var(--status-completed,#15803D)]/10", 
-                border: "border-[var(--status-completed,#15803D)]/20", 
-                dot: "bg-[var(--status-completed,#15803D)]" 
-            };
-        case "ARCHIVED":
-        case "Archived":
-            return { 
-                label: "Archived", 
-                color: "text-[var(--status-archived,#6B7280)]", 
-                bg: "bg-[var(--status-archived,#6B7280)]/10", 
-                border: "border-[var(--status-archived,#6B7280)]/20", 
-                dot: "bg-[var(--status-archived,#6B7280)]" 
-            };
-        default:
-            return { 
-                label: status || "Active", 
-                color: "text-[var(--status-active,#0284C7)]", 
-                bg: "bg-[var(--status-active,#0284C7)]/10", 
-                border: "border-[var(--status-active,#0284C7)]/20", 
-                dot: "bg-[var(--status-active,#0284C7)]" 
-            };
-    }
-}
 
 function formatDate(dateInput: any) {
     if (!dateInput) return "";
@@ -99,24 +45,35 @@ function formatDate(dateInput: any) {
 
 function ProjectCardSkeleton() {
     return (
-        <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[4px] p-4.5 flex flex-col gap-3.5 animate-pulse">
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <div className="w-9 h-9 rounded-[4px] bg-[var(--app-border)]/60 shrink-0" />
-                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                        <div className="h-3.5 w-3/4 bg-[var(--app-border)]/70 rounded-[2px]" />
-                        <div className="h-2.5 w-1/3 bg-[var(--app-border)]/40 rounded-[2px]" />
-                    </div>
+        <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[var(--radius-card,6px)] p-4 flex flex-col justify-between gap-3.5 animate-pulse">
+            {/* Top & Middle: Title, Meta and Description */}
+            <div className="flex flex-col gap-2">
+                {/* 1. Title */}
+                <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-[2px] bg-[var(--app-border)]/60 shrink-0" />
+                    <div className="h-5 w-3/4 bg-[var(--app-border)]/70 rounded-[2px]" />
                 </div>
-                <div className="w-14 h-4 bg-[var(--app-border)]/50 rounded-[2px]" />
+
+                {/* 2. Minimal Text Meta (Team Left, Status Right) */}
+                <div className="flex items-center justify-between gap-2">
+                    <div className="h-3 w-20 bg-[var(--app-border)]/50 rounded-[2px]" />
+                    <div className="h-3 w-16 bg-[var(--app-border)]/40 rounded-[2px]" />
+                </div>
+
+                {/* 3. Description */}
+                <div className="h-3 w-full bg-[var(--app-border)]/30 rounded-[2px]" />
             </div>
-            <div className="h-3 w-full bg-[var(--app-border)]/30 rounded-[2px]" />
-            <div className="h-3 w-4/5 bg-[var(--app-border)]/30 rounded-[2px]" />
-            <div className="h-6 w-full bg-[var(--app-bg)] rounded-[2px] border border-[var(--app-border)]/40" />
-            <div className="h-1.5 w-full bg-[var(--app-border)]/50 rounded-full" />
-            <div className="pt-2 border-t border-[var(--app-border)] flex items-center justify-between">
-                <div className="h-3 w-20 bg-[var(--app-border)]/40 rounded-[2px]" />
-                <div className="h-3 w-12 bg-[var(--app-border)]/40 rounded-[2px]" />
+
+            {/* Bottom: Footer Zone */}
+            <div className="pt-2.5 border-t border-[var(--app-border)] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="h-4 w-20 bg-[var(--app-border)]/40 rounded-[2px]" />
+                    <div className="h-4 w-14 bg-[var(--app-border)]/40 rounded-[2px]" />
+                </div>
+                <div className="flex items-center -space-x-1.5">
+                    <div className="w-4 h-4 rounded-full bg-[var(--app-border)]/50" />
+                    <div className="w-4 h-4 rounded-full bg-[var(--app-border)]/40" />
+                </div>
             </div>
         </div>
     );
@@ -144,7 +101,7 @@ function ProjectRowSkeleton() {
     );
 }
 
-function ProjectCard({ project }: { project: any }) {
+function ProjectCardWrapper({ project }: { project: any }) {
     const totalTasks = project.totalTasks !== undefined ? project.totalTasks : (project.tasks?.length || 0);
     const doneTasks = project.doneTasks !== undefined ? project.doneTasks : (project.tasks?.filter((t: any) => t.column?.isComplete || t.status === "Completed" || t.status === "Done").length || 0);
     const overdueTasks = project.overdueTasks !== undefined ? project.overdueTasks : (project.tasks?.filter((t: any) => t.riskLevel === "OVERDUE" || t.riskLevel === "CRITICAL_SLA" || t.riskLevel === "Overdue" || t.riskLevel === "CriticalSLA").length || 0);
@@ -182,168 +139,30 @@ function ProjectCard({ project }: { project: any }) {
         return list;
     }, [project.manager, project.members]);
 
-    const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
-        ? calculateProjectProgress(project.tasks, project.columns)
-        : (project.progress !== undefined ? project.progress : 0);
-
-    const titleLength = (project.title || "").length;
-    const titleSizeClass = titleLength <= 22
-        ? "text-[20px] sm:text-[22px]"
-        : titleLength <= 42
-        ? "text-[18px] sm:text-[20px]"
-        : "text-[16px] sm:text-[18px]";
-
     return (
-        <Link href={`/projects/${project.id}`} className="block group">
-            <div className="relative bg-[var(--app-card)] border border-[var(--app-border)] rounded-[var(--radius-card,6px)] p-4 flex flex-col justify-between gap-3 hover:border-[var(--app-border-strong)] hover:shadow-subtle transition-all duration-200 cursor-pointer">
-                {/* Card Top: Identity */}
-                <div className="flex items-center gap-2.5">
-                    {/* Emoji / Icon Container */}
-                    <div className="w-8 h-8 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-base shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                        {project.emoji ? (
-                            <span className="emoji-font leading-none">{project.emoji}</span>
-                        ) : (
-                            <FolderKanban className="w-4 h-4 text-[var(--app-muted)]" />
-                        )}
-                    </div>
-
-                    {/* Title */}
-                    <h3 className="font-heading text-sm sm:text-[15px] font-bold text-[var(--app-text)] tracking-tight group-hover:text-[var(--color-accent)] transition-colors truncate min-w-0 flex-1 leading-snug" title={project.title}>
-                        {project.title}
-                    </h3>
-                </div>
-
-                {/* Timeline Date (Minimal) */}
-                {(project.startDate || project.endDate) && (
-                    <div
-                        className="flex items-center gap-1.5 text-[11px] text-[var(--app-muted)] -mt-1 font-medium"
-                        title={project.startDate && project.endDate ? `Timeline: ${formatDate(project.startDate)} – ${formatDate(project.endDate)} (${formatDaySpan(calculateDaySpan(project.startDate, project.endDate))})` : undefined}
-                    >
-                        <Calendar className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                        <span>{formatDate(project.startDate) || "—"}</span>
-                        <span className="text-[var(--app-muted)]/60">→</span>
-                        <span>{formatDate(project.endDate) || "—"}</span>
-                        {project.startDate && project.endDate && (
-                            <span className="ml-0.5 opacity-80">
-                                • {calculateDaySpan(project.startDate, project.endDate)}d
-                            </span>
-                        )}
-                    </div>
-                )}
-
-                {/* Metadata Row: Member Avatars Group & Owning Team Badge */}
-                <div className="flex items-center justify-between gap-2 pt-0.5 flex-wrap">
-                    {/* Member Group Avatar Stack */}
-                    <div className="flex items-center gap-1.5 min-w-0">
-                        {allMembers.length > 0 ? (
-                            <div className="flex items-center gap-1.5">
-                                <div className="flex items-center -space-x-1.5 overflow-visible">
-                                    {allMembers.slice(0, 3).map((member, idx) => (
-                                        <div
-                                            key={member.id || idx}
-                                            className="relative ring-1.5 ring-[var(--app-card)] rounded-full hover:scale-110 hover:z-20 transition-transform shadow-xs shrink-0"
-                                            title={`${member.name}${member.role ? ` (${member.role})` : ""}`}
-                                        >
-                                            <UserAvatar
-                                                name={member.name}
-                                                avatarUrl={member.avatarUrl}
-                                                size="sm"
-                                                showBorder={false}
-                                            />
-                                        </div>
-                                    ))}
-                                    {allMembers.length > 3 && (
-                                        <div
-                                            className="w-5 h-5 rounded-full bg-[var(--app-bg)] border border-[var(--app-card)] flex items-center justify-center text-[8px] font-bold text-[var(--app-text)] shadow-xs z-10 shrink-0"
-                                            title={`+${allMembers.length - 3} more members`}
-                                        >
-                                            +{allMembers.length - 3}
-                                        </div>
-                                    )}
-                                </div>
-                                <span className="text-[11px] font-medium text-[var(--app-muted)] truncate max-w-[100px]" title={allMembers.map(m => m.name).join(", ")}>
-                                    {allMembers.length === 1
-                                        ? allMembers[0].name.split(" ")[0]
-                                        : `${allMembers.length} members`}
-                                </span>
-                            </div>
-                        ) : (
-                            <span className="text-[11px] text-[var(--app-muted)] italic">No members</span>
-                        )}
-                    </div>
-
-                    {/* Owning Team Badge */}
-                    {project.team && (
-                        <div className="flex items-center gap-1 shrink-0">
-                            <span className="text-[10px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-1.5 py-0.5 rounded-[var(--radius-xs,2px)] border border-[var(--app-border)] flex items-center gap-1 w-fit max-w-full truncate" title={`Owning Team: ${project.team.name}`}>
-                                {project.team.emoji ? (
-                                    <span className="emoji-font text-[9px] shrink-0">{project.team.emoji}</span>
-                                ) : (
-                                    <Building2 className="w-2.5 h-2.5 shrink-0 text-[var(--app-muted)]" />
-                                )}
-                                <span className="truncate max-w-[100px]">{project.team.name}</span>
-                            </span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Progress Bar Section */}
-                <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-[var(--app-muted)] font-medium">Progress</span>
-                        <span className="font-semibold text-xs text-[var(--app-text)] tabular-nums">
-                            {calculatedProgress}%
-                        </span>
-                    </div>
-                    <div className="w-full h-2 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-[var(--app-text)] transition-all duration-300 rounded-full"
-                            style={{ width: `${calculatedProgress}%` }}
-                        />
-                    </div>
-                </div>
-
-                {/* Description */}
-                {project.description ? (
-                    <div
-                        className="text-xs text-[var(--app-muted)] leading-relaxed line-clamp-2 min-h-[32px] break-words [&_p]:inline [&_p]:m-0 [&_div]:inline [&_div]:m-0 [&_span]:inline"
-                        dangerouslySetInnerHTML={{ __html: project.description }}
-                    />
-                ) : (
-                    <p className="text-xs italic text-[var(--app-muted)]/70 leading-relaxed line-clamp-2 min-h-[32px]">
-                        No description provided
-                    </p>
-                )}
-
-                {/* Card Footer: Tasks, Members & Overdue Tag */}
-                <div className="flex items-center justify-between pt-2.5 border-t border-[var(--app-border)] text-[11px]">
-                    <div className="flex items-center gap-3">
-                        <span className="text-[var(--app-muted)] flex items-center gap-1 font-medium">
-                            <span className="font-semibold text-xs text-[var(--app-text)] tabular-nums">{doneTasks}</span>
-                            <span className="opacity-70">/{totalTasks}</span> tasks
-                        </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        {overdueTasks > 0 && (
-                            <span className="text-[10px] font-semibold text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-1.5 py-0.5 rounded-[var(--radius-xs,2px)] flex items-center gap-1">
-                                <AlertCircle className="w-3 h-3 shrink-0" />
-                                <span>{overdueTasks} overdue</span>
-                            </span>
-                        )}
-                        <span className="text-[11px] text-[var(--app-text)] group-hover:text-[var(--color-accent)] flex items-center gap-0.5 font-semibold group-hover:translate-x-0.5 transition-all">
-                            <span>Open</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </Link>
+        <ProjectCard
+            href={`/projects/${project.id}`}
+            title={project.title}
+            description={project.description}
+            emoji={project.emoji}
+            teamName={project.team?.name}
+            teamEmoji={project.team?.emoji}
+            status={project.status}
+            startDate={project.startDate}
+            endDate={project.endDate}
+            completedTasks={doneTasks}
+            totalTasks={totalTasks}
+            overdueTasks={overdueTasks}
+            progress={project.progress}
+            tasks={project.tasks}
+            columns={project.columns}
+            assignees={allMembers}
+        />
     );
 }
 
 function ProjectListItem({ project }: { project: any }) {
-    const status = getStatusConfig(project.status);
+    const status = calculateProjectHealth(project);
     const totalTasks = project.totalTasks !== undefined ? project.totalTasks : (project.tasks?.length || 0);
     const doneTasks = project.doneTasks !== undefined ? project.doneTasks : (project.tasks?.filter((t: any) => t.column?.isComplete || t.status === "Completed" || t.status === "Done").length || 0);
     const overdueTasks = project.overdueTasks !== undefined ? project.overdueTasks : (project.tasks?.filter((t: any) => t.riskLevel === "OVERDUE" || t.riskLevel === "CRITICAL_SLA" || t.riskLevel === "Overdue" || t.riskLevel === "CriticalSLA").length || 0);
@@ -521,7 +340,7 @@ function ProjectListItem({ project }: { project: any }) {
                         <Users className="w-4 h-4 text-[var(--app-muted)]" />
                         <span className="font-bold text-sm text-[var(--app-text)] tabular-nums">{project.members?.length || 0}</span>
                     </span>
-                    {overdueTasks > 0 && (
+                    {status.status !== "COMPLETED" && overdueTasks > 0 && (
                         <span className="text-[11px] font-semibold text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-2.5 py-0.5 rounded-[3px]">
                             {overdueTasks} overdue
                         </span>
@@ -560,6 +379,8 @@ export default function ProjectsPortfolio() {
     } = useWorkspace();
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isManageMenuOpen, setIsManageMenuOpen] = useState(false);
+    const manageMenuRef = useRef<HTMLDivElement>(null);
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const { summary, isLoading: isSummaryLoading } = usePortfolioSummary(currentTeam?.id, currentUser?.id);
     
@@ -569,6 +390,19 @@ export default function ProjectsPortfolio() {
     const [selectedTeamFilter, setSelectedTeamFilter] = useState<string>("ALL");
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [sortBy, setSortBy] = useState<string>("recent");
+
+    // Close Manage dropdown when clicked outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (manageMenuRef.current && !manageMenuRef.current.contains(event.target as Node)) {
+                setIsManageMenuOpen(false);
+            }
+        }
+        if (isManageMenuOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+            return () => document.removeEventListener("mousedown", handleClickOutside);
+        }
+    }, [isManageMenuOpen]);
 
     // Initialize preferred viewMode from localStorage
     useEffect(() => {
@@ -618,12 +452,12 @@ export default function ProjectsPortfolio() {
                 }
                 // Status Filter
                 if (statusFilter !== "ALL") {
-                    const statusUpper = (p.status || "").toUpperCase();
-                    if (statusFilter === "ACTIVE" && statusUpper !== "ACTIVE") return false;
-                    if (statusFilter === "ON_TRACK" && statusUpper !== "ON_TRACK" && statusUpper !== "ONTRACK") return false;
-                    if (statusFilter === "AT_RISK" && statusUpper !== "AT_RISK" && statusUpper !== "ATRISK") return false;
-                    if (statusFilter === "COMPLETED" && statusUpper !== "COMPLETED") return false;
-                    if (statusFilter === "ARCHIVED" && statusUpper !== "ARCHIVED") return false;
+                    const health = calculateProjectHealth(p);
+                    if (statusFilter === "ACTIVE" && health.status !== "ACTIVE") return false;
+                    if (statusFilter === "ON_TRACK" && health.status !== "ON_TRACK") return false;
+                    if (statusFilter === "AT_RISK" && health.status !== "AT_RISK") return false;
+                    if (statusFilter === "COMPLETED" && health.status !== "COMPLETED") return false;
+                    if (statusFilter === "ARCHIVED" && health.status !== "ARCHIVED") return false;
                 }
                 // Search Query Filter (Title, Description, Team, Manager)
                 if (searchQuery.trim()) {
@@ -684,7 +518,7 @@ export default function ProjectsPortfolio() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                         {/* View Switcher: Grid vs List */}
                         <div className="inline-flex items-center bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[var(--radius-sm,4px)] p-0.5 text-xs font-medium shrink-0">
                             <button
@@ -713,36 +547,70 @@ export default function ProjectsPortfolio() {
                             </button>
                         </div>
 
-                        {/* Invitations Button */}
-                        <button
-                            type="button"
-                            onClick={() => setIsManageInvitationsOpen(!isManageInvitationsOpen)}
-                            className={`relative bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border ${
-                                isManageInvitationsOpen
-                                    ? "border-[var(--app-border-strong)] bg-[var(--app-hover-bg)] text-[var(--app-text)] font-semibold"
-                                    : "border-[var(--app-border)] text-[var(--app-text)]"
-                            } text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-3xs`}
-                        >
-                            <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
-                            <span>Invitations</span>
-                            {projectInvitations.length > 0 && (
-                                <span className="px-1.5 py-0.2 rounded-[var(--radius-xs,2px)] text-[10px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold tabular-nums">
-                                    {projectInvitations.length}
-                                </span>
-                            )}
-                        </button>
-
-                        {/* Manage Folders (Leader Only) */}
-                        {isLeader && !isManageFoldersOpen && (
+                        {/* Manage Overflow Menu (Invitations + Folders) */}
+                        <div className="relative" ref={manageMenuRef}>
                             <button
                                 type="button"
-                                onClick={() => setIsManageFoldersOpen(true)}
-                                className="relative bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-3xs"
+                                onClick={() => setIsManageMenuOpen(!isManageMenuOpen)}
+                                className={`relative bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border ${
+                                    isManageMenuOpen || isManageInvitationsOpen || isManageFoldersOpen
+                                        ? "border-[var(--app-border-strong)] bg-[var(--app-hover-bg)] text-[var(--app-text)] font-semibold"
+                                        : "border-[var(--app-border)] text-[var(--app-text)]"
+                                } text-xs font-medium px-2.5 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-3xs`}
+                                title="Manage workspace & invitations"
                             >
-                                <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                                <span>Manage Folders</span>
+                                <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                <span>Manage</span>
+                                {projectInvitations.length > 0 && (
+                                    <span className="w-2 h-2 rounded-full bg-[var(--color-primary,#6366F1)] inline-block" />
+                                )}
+                                <ChevronDown className={`w-3 h-3 text-[var(--app-muted)] transition-transform ${isManageMenuOpen ? "rotate-180" : ""}`} />
                             </button>
-                        )}
+
+                            {isManageMenuOpen && (
+                                <div className="absolute right-0 mt-1 w-52 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[var(--radius-md,6px)] shadow-lg py-1 z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsManageMenuOpen(false);
+                                            setIsManageInvitationsOpen(true);
+                                        }}
+                                        className="w-full text-left px-3 py-2 text-xs text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] flex items-center justify-between gap-2 transition-colors cursor-pointer"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <Mail className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                            <span>Invitations</span>
+                                        </span>
+                                        {projectInvitations.length > 0 ? (
+                                            <span className="px-1.5 py-0.2 rounded-[var(--radius-xs,2px)] text-[10px] bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold tabular-nums">
+                                                {projectInvitations.length} new
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] text-[var(--app-muted)]">0 pending</span>
+                                        )}
+                                    </button>
+
+                                    {isLeader && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsManageMenuOpen(false);
+                                                setIsManageFoldersOpen(true);
+                                            }}
+                                            className="w-full text-left px-3 py-2 text-xs text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] flex items-center justify-between gap-2 transition-colors cursor-pointer"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <Folder className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                                <span>Manage Folders</span>
+                                            </span>
+                                            <span className="text-[10px] text-[var(--app-muted)] tabular-nums">
+                                                {folders.length} {folders.length === 1 ? "folder" : "folders"}
+                                            </span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         {/* Primary Action Button: New Project */}
                         {isLeader && (
@@ -761,63 +629,7 @@ export default function ProjectsPortfolio() {
                 {/* 2. Level 2: Compact KPI Stats Ribbon */}
                 <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] select-none">
                     <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-[var(--app-border)]">
-                        {/* Active Projects */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
-                            <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Active Projects</span>
-                                <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text)] tabular-nums">
-                                        {summary.activeProjects}
-                                    </span>
-                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">in progress</span>
-                                </div>
-                            </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
-                                <FolderKanban className="w-3.5 h-3.5" />
-                            </div>
-                        </div>
-
-                        {/* On-Time Rate */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
-                            <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">On-Time Rate</span>
-                                <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
-                                        summary.onTimeRate < 50
-                                            ? "text-[var(--color-error)]"
-                                            : summary.onTimeRate < 80
-                                            ? "text-[var(--color-warning)]"
-                                            : "text-[var(--color-success)]"
-                                    }`}>
-                                        {summary.onTimeRate}%
-                                    </span>
-                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">on track</span>
-                                </div>
-                            </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
-                                <TrendingUp className="w-3.5 h-3.5" />
-                            </div>
-                        </div>
-
-                        {/* Overdue Tasks */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
-                            <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Overdue Tasks</span>
-                                <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
-                                        summary.criticalSLABreaches > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"
-                                    }`}>
-                                        {summary.criticalSLABreaches}
-                                    </span>
-                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">overdue</span>
-                                </div>
-                            </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
-                                <AlertCircle className="w-3.5 h-3.5" />
-                            </div>
-                        </div>
-
-                        {/* Total Projects */}
+                        {/* 1. Total Projects (Anchor) */}
                         <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
                             <div className="flex flex-col min-w-0">
                                 <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Total Projects</span>
@@ -829,18 +641,89 @@ export default function ProjectsPortfolio() {
                                 </div>
                             </div>
                             <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <FolderKanban className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+
+                        {/* 2. Active Projects */}
+                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                            <div className="flex flex-col min-w-0">
+                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Active</span>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text)] tabular-nums">
+                                        {summary.activeProjects}
+                                    </span>
+                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">in progress</span>
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <TrendingUp className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+
+                        {/* 3. Overdue Tasks */}
+                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                            <div className="flex flex-col min-w-0">
+                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Overdue</span>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                    <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                        summary.criticalSLABreaches > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"
+                                    }`}>
+                                        {summary.criticalSLABreaches}
+                                    </span>
+                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">
+                                        {summary.criticalSLABreaches > 0 ? "needs attention" : "no breaches"}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <AlertCircle className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+
+                        {/* 4. On-Time Rate */}
+                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                            <div className="flex flex-col min-w-0">
+                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">On-Time Rate</span>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                    {summary.totalProjects === 0 || summary.onTimeRate === null || summary.onTimeRate === undefined ? (
+                                        <>
+                                            <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-muted)] tabular-nums">
+                                                —
+                                            </span>
+                                            <span className="text-[11px] text-[var(--app-muted)] font-normal">Not enough data yet</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                                summary.onTimeRate < 50
+                                                    ? "text-[var(--color-error)]"
+                                                    : summary.onTimeRate < 80
+                                                    ? "text-[var(--color-warning)]"
+                                                    : "text-[var(--color-success)]"
+                                            }`}>
+                                                {summary.onTimeRate}%
+                                            </span>
+                                            <span className="text-[11px] text-[var(--app-muted)] font-normal">
+                                                {summary.onTimeRate >= 80 ? "on track" : summary.onTimeRate >= 50 ? "moderate" : "delayed"}
+                                            </span>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 3. Level 3: Search, Filters & Folder Segmented Tabs Toolbar */}
+                {/* 3. Level 3: Search, Filters & Sort Unified Toolbar */}
                 <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 py-2 flex flex-wrap items-center justify-between gap-3 select-none">
-                    {/* Left: Search Input + Folder Tabs */}
-                    <div className="flex items-center gap-3 flex-wrap">
-                        {/* Compact Search Input */}
-                        <div className="relative w-52 sm:w-60">
+                    {/* Left: Search -> Status -> Sort -> Folder -> Team (Natural left-to-right scan) */}
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                        {/* Search Input */}
+                        <div className="relative w-48 sm:w-56">
                             <Search className="w-3.5 h-3.5 text-[var(--app-muted)] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                             <input
                                 type="text"
@@ -860,65 +743,6 @@ export default function ProjectsPortfolio() {
                             )}
                         </div>
 
-                        {/* Folder Tabs (Segmented Switcher) */}
-                        <div className="inline-flex items-center bg-[var(--app-bg)] border border-[var(--app-border)] p-0.5 rounded-[var(--radius-sm,4px)] gap-0.5 shrink-0">
-                            {/* All Folders Tab */}
-                            <button
-                                type="button"
-                                onClick={() => setActiveFolderId("ALL")}
-                                className={`px-2.5 py-1 flex items-center gap-1.5 text-xs font-medium rounded-[var(--radius-xs,2px)] transition-all cursor-pointer ${
-                                    activeFolderId === "ALL"
-                                        ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-3xs border border-[var(--app-border)]"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-card)]/50 border border-transparent"
-                                }`}
-                            >
-                                <FolderKanban className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                                <span>All</span>
-                                <span className={`px-1.5 py-0.2 rounded-[var(--radius-xs,2px)] text-[9px] tabular-nums font-semibold ${
-                                    activeFolderId === "ALL"
-                                        ? "bg-[var(--app-bg)] text-[var(--app-text)]"
-                                        : "bg-[var(--app-border)]/40 text-[var(--app-muted)]"
-                                }`}>
-                                    {projects.length}
-                                </span>
-                            </button>
-
-                            {/* Custom Folders */}
-                            {foldersWithProjects.map((folder) => {
-                                const isSelected = activeFolderId === folder.id;
-                                const folderProjects = projects.filter((p) => p.folderId === folder.id);
-                                return (
-                                    <button
-                                        key={folder.id}
-                                        type="button"
-                                        onClick={() => setActiveFolderId(folder.id)}
-                                        className={`px-2.5 py-1 flex items-center gap-1.5 text-xs font-medium rounded-[var(--radius-xs,2px)] transition-all cursor-pointer ${
-                                            isSelected
-                                                ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-3xs border border-[var(--app-border)]"
-                                                : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-card)]/50 border border-transparent"
-                                        }`}
-                                    >
-                                        {folder.emoji ? (
-                                            <span className="emoji-font text-xs shrink-0">{folder.emoji}</span>
-                                        ) : (
-                                            <Folder className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                                        )}
-                                        <span>{folder.name}</span>
-                                        <span className={`px-1.5 py-0.2 rounded-[var(--radius-xs,2px)] text-[9px] tabular-nums font-semibold ${
-                                            isSelected
-                                                ? "bg-[var(--app-bg)] text-[var(--app-text)]"
-                                                : "bg-[var(--app-border)]/40 text-[var(--app-muted)]"
-                                        }`}>
-                                            {folderProjects.length}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Right: Dropdowns + Reset Button + Count */}
-                    <div className="flex items-center gap-2 flex-wrap text-xs">
                         {/* Status Filter */}
                         <CustomSelect
                             options={[
@@ -949,6 +773,24 @@ export default function ProjectsPortfolio() {
                             className="w-34 h-[30px] shrink-0"
                         />
 
+                        {/* Folder Filter (Clean dropdown replacing raw / broken pill buttons) */}
+                        {folders.length > 0 && (
+                            <CustomSelect
+                                options={[
+                                    { value: "ALL", label: `All Folders (${projects.length})` },
+                                    ...folders.map((f) => ({
+                                        value: f.id,
+                                        label: `${f.emoji ? f.emoji + " " : ""}${f.name}`,
+                                        sublabel: `${projects.filter((p) => p.folderId === f.id).length}`,
+                                    })),
+                                ]}
+                                value={activeFolderId}
+                                onChange={setActiveFolderId}
+                                buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg)] border border-[var(--app-border)]"
+                                className="w-36 h-[30px] shrink-0"
+                            />
+                        )}
+
                         {/* Cross-Team Filter (if >1 team exists) */}
                         {uniqueTeams.length > 1 && (
                             <CustomSelect
@@ -977,11 +819,15 @@ export default function ProjectsPortfolio() {
                                 Reset
                             </button>
                         )}
+                    </div>
 
-                        {/* Result Counter */}
-                        <span className="text-[11px] text-[var(--app-muted)] shrink-0 hidden sm:inline pl-1">
-                            <span className="font-semibold text-[var(--app-text)]">{filteredProjects.length}</span>/{projects.length}
-                        </span>
+                    {/* Right: Result Counter */}
+                    <div className="text-xs text-[var(--app-muted)] shrink-0 hidden sm:flex items-center gap-1.5">
+                        <span>Showing</span>
+                        <span className="font-semibold text-[var(--app-text)] tabular-nums">{filteredProjects.length}</span>
+                        <span>of</span>
+                        <span className="font-semibold text-[var(--app-text)] tabular-nums">{projects.length}</span>
+                        <span>{projects.length === 1 ? "project" : "projects"}</span>
                     </div>
                 </div>
 
@@ -1082,7 +928,7 @@ export default function ProjectsPortfolio() {
                         ) : viewMode === "grid" ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                 {filteredProjects.map((project) => (
-                                    <ProjectCard key={project.id} project={project} />
+                                    <ProjectCardWrapper key={project.id} project={project} />
                                 ))}
                             </div>
                         ) : (
