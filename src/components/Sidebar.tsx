@@ -15,6 +15,7 @@ import {
     User as UserIcon,
     ChevronDown,
     ChevronUp,
+    ChevronRight,
     BookOpen,
     Bookmark,
     Moon,
@@ -56,6 +57,30 @@ export default function Sidebar({
 }: SidebarProps) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem("sidebar_collapsed_groups");
+                if (saved) return JSON.parse(saved);
+            } catch (e) {
+                // ignore
+            }
+        }
+        return {}; // Open by default
+    });
+
+    const toggleGroup = (title: string) => {
+        setCollapsedGroups((prev) => {
+            const next = { ...prev, [title]: !prev[title] };
+            try {
+                localStorage.setItem("sidebar_collapsed_groups", JSON.stringify(next));
+            } catch (e) {
+                // ignore
+            }
+            return next;
+        });
+    };
+
     const pathname = usePathname();
     const router = useRouter();
     const menuRef = useRef<HTMLDivElement>(null);
@@ -77,88 +102,122 @@ export default function Sidebar({
         };
     }, [isProfileMenuOpen]);
 
-    const views = [
-        {
-            id: "dashboard",
-            href: "/dashboard",
-            name: "Leader Dashboard",
-            icon: LayoutDashboard,
-            leaderOnly: false,
-            leaderOrObserverOnly: true,
-        },
+    interface NavItem {
+        id: string;
+        href: string;
+        name: string;
+        icon: React.ComponentType<{ className?: string }>;
+        leaderOnly?: boolean;
+        leaderOrObserverOnly?: boolean;
+    }
 
+    interface NavGroup {
+        title: string;
+        items: NavItem[];
+    }
+
+    const navGroups: NavGroup[] = [
         {
-            id: "kanban",
-            href: "/task-board",
-            name: "Task Board",
-            icon: Kanban,
-            leaderOnly: false,
+            title: "Overview",
+            items: [
+                {
+                    id: "dashboard",
+                    href: "/dashboard",
+                    name: "Leader Dashboard",
+                    icon: LayoutDashboard,
+                    leaderOrObserverOnly: true,
+                },
+                {
+                    id: "map",
+                    href: "/map",
+                    name: "Team Flow",
+                    icon: Network,
+                    leaderOrObserverOnly: true,
+                },
+                {
+                    id: "reports",
+                    href: "/reports",
+                    name: "Reports",
+                    icon: BarChart2,
+                    leaderOnly: true,
+                },
+            ],
         },
         {
-            id: "projects",
-            href: "/projects",
-            name: "Projects",
-            icon: FolderKanban,
-            leaderOnly: false,
+            title: "Workspace",
+            items: [
+                {
+                    id: "projects",
+                    href: "/projects",
+                    name: "Projects",
+                    icon: FolderKanban,
+                },
+                {
+                    id: "kanban",
+                    href: "/task-board",
+                    name: "Task Board",
+                    icon: Kanban,
+                },
+                {
+                    id: "list",
+                    href: "/list",
+                    name: "List View",
+                    icon: List,
+                },
+                {
+                    id: "calendar",
+                    href: "/calendar",
+                    name: "Calendar",
+                    icon: Calendar,
+                },
+            ],
         },
         {
-            id: "list",
-            href: "/list",
-            name: "List View",
-            icon: List,
-            leaderOnly: false,
-        },
-        {
-            id: "map",
-            href: "/map",
-            name: "Team Flow",
-            icon: Network,
-            leaderOnly: false,
-            leaderOrObserverOnly: true,
-        },
-        {
-            id: "team-details",
-            href: "/team-details",
-            name: "Team Details",
-            icon: Users,
-            leaderOnly: false,
-        },
-        {
-            id: "calendar",
-            href: "/calendar",
-            name: "Calendar",
-            icon: Calendar,
-            leaderOnly: false,
-        },
-        {
-            id: "reports",
-            href: "/reports",
-            name: "Reports",
-            icon: BarChart2,
-            leaderOnly: true,
-        },
-        {
-            id: "knowledge",
-            href: "/knowledge",
-            name: "Docs & Knowledge Base",
-            icon: BookOpen,
-            leaderOnly: false,
-        },
-        {
-            id: "bookmarks",
-            href: "/bookmarks",
-            name: "Bookmarks",
-            icon: Bookmark,
-            leaderOnly: false,
-        },
-        {
-            id: "trash",
-            href: "/trash",
-            name: "Trash",
-            icon: Trash2,
-            leaderOnly: false,
+            title: "Resources",
+            items: [
+                {
+                    id: "team-details",
+                    href: "/team-details",
+                    name: "Team Details",
+                    icon: Users,
+                },
+                {
+                    id: "knowledge",
+                    href: "/knowledge",
+                    name: "Docs & Knowledge Base",
+                    icon: BookOpen,
+                },
+                {
+                    id: "bookmarks",
+                    href: "/bookmarks",
+                    name: "Bookmarks",
+                    icon: Bookmark,
+                },
+                {
+                    id: "trash",
+                    href: "/trash",
+                    name: "Trash",
+                    icon: Trash2,
+                },
+            ],
         },
     ];
+
+    const isItemAllowed = (item: NavItem) => {
+        return (
+            (!item.leaderOnly || userRole === "LEADER") &&
+            (!item.leaderOrObserverOnly ||
+                userRole === "LEADER" ||
+                userRole === "OBSERVER")
+        );
+    };
+
+    const visibleGroups = navGroups
+        .map((group) => ({
+            ...group,
+            items: group.items.filter(isItemAllowed),
+        }))
+        .filter((group) => group.items.length > 0);
 
     const getRoleBadge = (role: string) => {
         switch (role) {
@@ -234,13 +293,15 @@ export default function Sidebar({
                 {!isCollapsed ? (
                     <div className="flex flex-col gap-2">
                         {currentTeam && (
-                            <div className="text-[12px] font-semibold text-[var(--app-text)] truncate border-b border-dashed border-[color-mix(in_srgb,var(--app-muted)_18%,transparent)] pb-1.5 mb-1 flex items-center gap-1.5">
-                                <span className="text-sm shrink-0 emoji-font">
-                                    {currentTeam.emoji || "🧑‍💻"}
-                                </span>
-                                <span className="truncate">
-                                    {currentTeam.name}
-                                </span>
+                            <div className="border-b border-[var(--app-border)] pb-1.5 mb-1">
+                                <div className="text-[12px] font-semibold text-[var(--app-text)] truncate flex items-center gap-1.5">
+                                    <span className="text-sm shrink-0 emoji-font">
+                                        {currentTeam.emoji || "🧑‍💻"}
+                                    </span>
+                                    <span className="truncate">
+                                        {currentTeam.name}
+                                    </span>
+                                </div>
                             </div>
                         )}
                         <div className="flex justify-between items-center">
@@ -288,64 +349,94 @@ export default function Sidebar({
                     </button>
                 )}
 
-                {/* View Navigation */}
-                <div className="flex flex-col gap-1 mt-1">
-                    {!isCollapsed && (
-                        <span className="eyebrow mb-1">Views</span>
-                    )}
-                    {views.map((v) => {
-                        const Icon = v.icon;
-                        const isActive = pathname === v.href || (v.href !== "/" && pathname?.startsWith(`${v.href}/`));
-                        const isLeaderOnly = v.leaderOnly;
-                        const isLeaderOrObserverOnly = (v as any)
-                            .leaderOrObserverOnly;
-                        const isAllowed =
-                            (!isLeaderOnly || userRole === "LEADER") &&
-                            (!isLeaderOrObserverOnly ||
-                                userRole === "LEADER" ||
-                                userRole === "OBSERVER");
-                        if (!isAllowed) return null;
+                {/* Grouped View Navigation */}
+                <div className={`flex flex-col ${isCollapsed ? "gap-2" : "gap-3"} mt-1`}>
+                    {visibleGroups.map((group, groupIdx) => {
+                        const isGroupCollapsed = !isCollapsed && !!collapsedGroups[group.title];
 
                         return (
-                            <Link
-                                key={v.id}
-                                href={v.href}
-                                onClick={() => {
-                                    if (setCurrentView) {
-                                        setCurrentView(v.id);
-                                    }
-                                }}
-                                className={`flex items-center transition-colors relative group ${
-                                    isCollapsed
-                                        ? "w-9 h-9 mx-auto justify-center rounded-[3px]"
-                                        : "w-full justify-between px-2.5 py-2 rounded-[2px] gap-2.5"
-                                } text-[12px] ${
-                                    isActive
-                                        ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold border border-[var(--app-border)] corner-brackets-4"
-                                        : "text-[var(--app-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
-                                }`}
-                            >
-                                <Icon className="w-4 h-4 shrink-0" />
-                                {!isCollapsed && (
-                                    <div className="flex-1 flex items-center justify-between truncate">
-                                        <span className="truncate">
-                                            {v.name}
+                            <div key={group.title} className="flex flex-col gap-1">
+                                {/* Section Header or Divider */}
+                                {!isCollapsed ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleGroup(group.title)}
+                                        className="w-full flex items-center justify-between px-1.5 py-1 text-[10px] tracking-wider text-[var(--app-muted)] hover:text-[var(--app-text)] font-semibold uppercase select-none rounded-[2px] hover:bg-[var(--app-hover-bg)]/60 transition-colors cursor-pointer group/hdr"
+                                    >
+                                        <span className="eyebrow text-[10px] tracking-wider">
+                                            {group.title}
                                         </span>
-                                        {isLeaderOnly && (
-                                            <span className="text-[9px] text-[#CB2431] font-medium ml-1">
-                                                Lead
-                                            </span>
-                                        )}
-                                    </div>
+                                        <span className="text-[var(--app-muted)] group-hover/hdr:text-[var(--app-text)] transition-transform">
+                                            {isGroupCollapsed ? (
+                                                <ChevronRight className="w-3 h-3" />
+                                            ) : (
+                                                <ChevronDown className="w-3 h-3" />
+                                            )}
+                                        </span>
+                                    </button>
+                                ) : (
+                                    groupIdx > 0 && (
+                                        <div className="w-6 mx-auto border-t border-[var(--app-border)]/70 my-1" />
+                                    )
                                 )}
 
-                                {/* Collapsed Tooltip */}
-                                {isCollapsed && (
-                                    <div className="absolute left-14 top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-[#1A1A1A] text-white text-[11px] font-medium rounded-[3px] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity shadow-md">
-                                        {v.name}
+                                {/* Group Items */}
+                                {!isGroupCollapsed && (
+                                    <div className="flex flex-col gap-0.5">
+                                        {group.items.map((v) => {
+                                            const Icon = v.icon;
+                                            const isActive =
+                                                pathname === v.href ||
+                                                (v.href !== "/" &&
+                                                    pathname?.startsWith(
+                                                        `${v.href}/`
+                                                    ));
+
+                                            return (
+                                                <Link
+                                                    key={v.id}
+                                                    href={v.href}
+                                                    onClick={() => {
+                                                        if (setCurrentView) {
+                                                            setCurrentView(v.id);
+                                                        }
+                                                    }}
+                                                    className={`flex items-center transition-colors relative group ${
+                                                        isCollapsed
+                                                            ? "w-9 h-9 mx-auto justify-center rounded-[3px]"
+                                                            : "w-full justify-between px-2.5 py-2 rounded-[2px] gap-2.5"
+                                                    } text-[12px] ${
+                                                        isActive
+                                                            ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold border border-[var(--app-border)] corner-brackets-4"
+                                                            : "text-[var(--app-muted)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)]"
+                                                    }`}
+                                                >
+                                                    <Icon className="w-4 h-4 shrink-0" />
+                                                    {!isCollapsed && (
+                                                        <div className="flex-1 flex items-center justify-between truncate">
+                                                            <span className="truncate">
+                                                                {v.name}
+                                                            </span>
+                                                            {v.leaderOnly && (
+                                                                <span className="text-[9px] text-[#CB2431] font-medium ml-1">
+                                                                    Lead
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Collapsed Tooltip */}
+                                                    {isCollapsed && (
+                                                        <div className="absolute left-14 top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-[#1A1A1A] text-white text-[11px] font-medium rounded-[3px] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity shadow-md">
+                                                            {v.name}
+                                                        </div>
+                                                    )}
+                                                </Link>
+                                            );
+                                        })}
                                     </div>
                                 )}
-                            </Link>
+                            </div>
                         );
                     })}
                 </div>

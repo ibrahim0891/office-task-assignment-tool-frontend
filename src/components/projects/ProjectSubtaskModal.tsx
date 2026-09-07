@@ -18,6 +18,10 @@ import {
     AlertTriangle,
     Upload,
     Maximize2,
+    Minimize2,
+    ChevronsRight,
+    AppWindow,
+    Sidebar,
     CornerDownRight,
     Edit2,
     Check,
@@ -35,6 +39,7 @@ import { UserAvatar } from "../ui/UserAvatar";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
 import { TipTapEditor } from "../ui/TipTapEditor";
+import SideSheetWrapper from "../ui/SideSheetWrapper";
 import ModalWrapper from "../ui/ModalWrapper";
 import { triggerMicroCelebration } from "../../utils/confetti";
 import { playFeedback } from "../../utils/feedback";
@@ -125,6 +130,35 @@ export default function ProjectSubtaskModal({
     const [actualDays, setActualDays] = useState(0);
     const [isCompleted, setIsCompleted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [viewMode, setViewMode] = useState<"side_sheet" | "modal">("side_sheet");
+
+    // Load saved view mode from localStorage
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem("subtask_view_mode");
+            if (saved === "modal" || saved === "side_sheet") {
+                setViewMode(saved);
+            }
+        } catch {
+            // Ignore localStorage access errors
+        }
+    }, []);
+
+    const toggleViewMode = () => {
+        const nextMode = viewMode === "side_sheet" ? "modal" : "side_sheet";
+        setViewMode(nextMode);
+        try {
+            localStorage.setItem("subtask_view_mode", nextMode);
+            toast.success(
+                nextMode === "modal" ? "Switched to Center Modal view" : "Switched to Side Sheet view",
+                { duration: 2000, id: "view-mode-toggle" }
+            );
+        } catch {
+            // Ignore
+        }
+    };
 
     // Active tab
     const [activeTab, setActiveTab] = useState<
@@ -899,57 +933,112 @@ export default function ProjectSubtaskModal({
 
     const isOverdue = dueDate && !isCompleted && new Date(dueDate).getTime() < Date.now();
 
-    return (
-        <ModalWrapper
-            isOpen={isOpen}
-            onClose={onClose}
-            maxWidth="max-w-4xl"
-            className="h-[85vh] max-h-[850px] overflow-hidden text-left"
-        >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-3.5 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0">
-                    <div className="flex flex-col min-w-0">
-                        <span className="text-[10px] text-[var(--app-muted)] flex items-center gap-1.5 truncate">
-                            <span>Main Task:</span>
-                            <span className="font-semibold text-[var(--app-text)] truncate">
-                                {parentTask?.title}
-                            </span>
+    const innerContent = (
+        <>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0 gap-3">
+                {/* Left: Close button & Breadcrumb */}
+                <div className="flex items-center gap-2 min-w-0">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer shrink-0"
+                        title="Close (Esc)"
+                    >
+                        {viewMode === "side_sheet" ? (
+                            <ChevronsRight className="w-4 h-4" />
+                        ) : (
+                            <X className="w-4 h-4" />
+                        )}
+                    </button>
+
+                    <div className="flex items-center gap-1.5 text-xs min-w-0">
+                        <span className="text-[var(--app-muted)] font-medium truncate max-w-[140px] sm:max-w-[200px]" title={parentTask?.title}>
+                            {parentTask?.title || "Project Task"}
                         </span>
-                        <h2 className="text-base font-semibold text-[var(--app-text)] truncate">
-                            {isEditMode ? title || "Edit Subtask" : "Create Subtask"}
-                        </h2>
+                        <span className="text-[var(--app-muted)]/60 font-medium select-none">/</span>
+                        <span className="text-[var(--app-text)] font-semibold truncate max-w-[160px] sm:max-w-[240px]" title={title || "Subtask"}>
+                            {isEditMode ? title || "Edit Subtask" : "New Subtask"}
+                        </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        {isEditMode && canManageTasks && (
-                            <button
-                                type="button"
-                                onClick={handleDelete}
-                                disabled={submitting}
-                                className="p-1.5 text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-[2px] transition-colors cursor-pointer"
-                                title="Delete subtask"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        )}
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
+                    {isCompleted ? (
+                        <span className="text-[9px] font-semibold text-[var(--color-success,#16A34A)] bg-[var(--color-success,#16A34A)]/10 px-1.5 py-0.5 rounded-[1px] leading-none shrink-0 border border-[var(--color-success,#16A34A)]/20">
+                            Done
+                        </span>
+                    ) : isOverdue ? (
+                        <span className="text-[9px] font-semibold text-[var(--color-error)] bg-[var(--color-error)]/10 px-1.5 py-0.5 rounded-[1px] leading-none shrink-0 border border-[var(--color-error)]/20">
+                            Overdue
+                        </span>
+                    ) : null}
                 </div>
 
-                {/* Modal Layout: 2-Column Split (Left: Primary Fields, Right: Tabs Content) */}
+                {/* Right: Actions */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                    {/* View Mode Toggle (Center Modal vs Side Sheet) */}
+                    <button
+                        type="button"
+                        onClick={toggleViewMode}
+                        className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
+                        title={
+                            viewMode === "side_sheet"
+                                ? "Switch to Center Modal view (remembered)"
+                                : "Switch to Side Sheet view (remembered)"
+                        }
+                    >
+                        {viewMode === "side_sheet" ? (
+                            <AppWindow className="w-4 h-4" />
+                        ) : (
+                            <Sidebar className="w-4 h-4" />
+                        )}
+                    </button>
+
+                    {/* Expand / Minimize Full Width Toggle */}
+                    <button
+                        type="button"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
+                        title={isExpanded ? "Collapse to default width" : "Expand to full width"}
+                    >
+                        {isExpanded ? (
+                            <Minimize2 className="w-4 h-4" />
+                        ) : (
+                            <Maximize2 className="w-4 h-4" />
+                        )}
+                    </button>
+
+                    {isEditMode && canManageTasks && (
+                        <button
+                            type="button"
+                            onClick={handleDelete}
+                            disabled={submitting}
+                            className="p-1.5 text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-[2px] transition-colors cursor-pointer"
+                            title="Delete subtask"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
+                        title="Close (Esc)"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+
+                {/* Modal Layout: 2-Column Split (Left: Tabs Content, Right: Attributes Sidebar) */}
                 <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden bg-[var(--app-bg)]">
-                    {/* Left Column: Form Attributes */}
-                    <div className="w-full md:w-[360px] border-r border-[var(--app-border)] p-5 flex flex-col gap-4 overflow-y-auto bg-[var(--app-card)] shrink-0">
-                        {/* Title input */}
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-[11px] font-medium text-[var(--app-text)]">
-                                Subtask Title <span className="text-[var(--color-error)]">*</span>
+                    {/* Left Column: Tabbed Content (Description, Comments, Activity Log, Attachments) */}
+                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[var(--app-bg)] border-r border-[var(--app-border)]">
+                        {/* Subtask Title above Tabs */}
+                        <div className="px-5 pt-4 pb-3 bg-[var(--app-card)] border-b border-[var(--app-border)] shrink-0 flex flex-col gap-1.5">
+                            <label className="text-[10px] font-semibold tracking-wide text-[var(--app-muted)] uppercase flex items-center gap-1">
+                                <span>Subtask Title</span>
+                                <span className="text-[var(--color-error)]">*</span>
                             </label>
                             <input
                                 type="text"
@@ -959,223 +1048,12 @@ export default function ProjectSubtaskModal({
                                 autoFocus={canModifyThisSubtask}
                                 disabled={!canModifyThisSubtask}
                                 readOnly={!canModifyThisSubtask}
-                                className={`px-3 py-2 text-xs bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)] transition-colors font-medium ${
+                                className={`w-full px-3 py-2 text-sm sm:text-base font-semibold bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)] transition-colors ${
                                     !canModifyThisSubtask ? "opacity-60 cursor-not-allowed bg-[var(--app-hover-bg)] select-none" : ""
                                 }`}
                             />
                         </div>
 
-                        {/* Column / Status */}
-                        {columns.length > 0 && (
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-medium text-[var(--app-text)]">
-                                    Column / Stage
-                                </label>
-                                <CustomSelect
-                                    options={columnOptions}
-                                    value={columnId}
-                                    disabled={!canModifyThisSubtask}
-                                    onChange={(newColId) => {
-                                        setColumnId(newColId);
-                                        const selectedCol = columns.find((c) => c.id === newColId);
-                                        if (selectedCol?.isComplete) {
-                                            setIsCompleted(true);
-                                            const startDateRef = startDate || subtask?.startDate || subtask?.createdAt || new Date();
-                                            const computedActual = calculateDaySpan(startDateRef, new Date());
-                                            setActualDays(computedActual);
-                                        } else if (isCompleted && selectedCol && !selectedCol.isComplete) {
-                                            setIsCompleted(false);
-                                            setActualDays(0);
-                                        }
-                                    }}
-                                    buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
-                                />
-                            </div>
-                        )}
-
-                        {/* Priority */}
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-[11px] font-medium text-[var(--app-text)]">
-                                Priority Level
-                            </label>
-                            <CustomSelect
-                                options={priorityOptions}
-                                value={priority}
-                                disabled={!canModifyThisSubtask}
-                                onChange={(val) => setPriority(val)}
-                                buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
-                            />
-                        </div>
-
-                        {/* Assignee */}
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center justify-between">
-                                <span>Assigned Member</span>
-                                {!canManageTasks && (
-                                    <span className="text-[9px] text-[var(--app-muted)] italic font-normal">
-                                        (Self-assignment)
-                                    </span>
-                                )}
-                            </label>
-                            {canManageTasks ? (
-                                <CustomSelect
-                                    options={assigneeOptions}
-                                    value={assignedToId}
-                                    disabled={!canModifyThisSubtask}
-                                    onChange={(val) => setAssignedToId(val)}
-                                    placeholder="Select assignee..."
-                                    buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
-                                />
-                            ) : (
-                                <div className="flex items-center gap-2 p-2 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] text-xs text-[var(--app-text)]">
-                                    <UserAvatar name={currentUser?.name || "You"} avatarUrl={currentUser?.avatarUrl} size="xs" />
-                                    <span>
-                                        <span className="font-semibold">{currentUser?.name || "You"}</span> (Self)
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Start Date & Due Date */}
-                        <div className="grid grid-cols-2 gap-2.5">
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center gap-1">
-                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>Start Date</span>
-                                </label>
-                                <CustomDatePicker
-                                    value={startDate}
-                                    maxDate={dueDate || undefined}
-                                    onChange={(val) => {
-                                        setStartDate(val);
-                                        const newDue = (dueDate && val > dueDate) ? val : dueDate;
-                                        if (dueDate && val > dueDate) {
-                                            setDueDate(val);
-                                        }
-                                        if (val && newDue) {
-                                            setEstimatedDays(calculateDaySpan(val, newDue));
-                                        }
-                                    }}
-                                    disabled={!canModifyThisSubtask}
-                                    className="w-full text-xs"
-                                />
-                            </div>
-
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center gap-1">
-                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>Due Date</span>
-                                </label>
-                                <CustomDatePicker
-                                    value={dueDate}
-                                    minDate={startDate || undefined}
-                                    onChange={(val) => {
-                                        setDueDate(val);
-                                        const newStart = (startDate && val < startDate) ? val : startDate;
-                                        if (startDate && val < startDate) {
-                                            setStartDate(val);
-                                        }
-                                        if (val && newStart) {
-                                            setEstimatedDays(calculateDaySpan(newStart, val));
-                                        }
-                                    }}
-                                    disabled={!canModifyThisSubtask}
-                                    className="w-full text-xs"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Computed Duration Metrics */}
-                        <div className="grid grid-cols-2 gap-2">
-                            {/* Estimated Duration Card */}
-                            <div className="flex flex-col p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] min-w-0">
-                                <div className="flex items-center gap-1.5 text-[10px] text-[var(--app-muted)] font-medium">
-                                    <Clock className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                                    <span className="truncate">Est. Duration</span>
-                                </div>
-                                <div className="text-sm font-bold text-[var(--app-text)] tabular-nums mt-1">
-                                    {formatDaySpan(calculateDaySpan(startDate, dueDate))}
-                                </div>
-                                <span className="text-[9.5px] text-[var(--app-muted)] mt-0.5 truncate" title="Calendar day count from Start Date to Due Date">
-                                    Start → Due span
-                                </span>
-                            </div>
-
-                            {/* Actual Duration Card */}
-                            <div className={`flex flex-col p-2.5 rounded-[2px] border min-w-0 ${
-                                isCompleted
-                                    ? "bg-[var(--color-success,#16A34A)]/5 border-[var(--color-success,#16A34A)]/25"
-                                    : "bg-[var(--app-bg)] border-[var(--app-border)]"
-                            }`}>
-                                <div className="flex items-center justify-between gap-1 text-[10px]">
-                                    <span className="text-[var(--app-muted)] flex items-center gap-1 font-medium truncate">
-                                        {isCompleted ? (
-                                            <CheckCircle2 className="w-3 h-3 text-[var(--color-success,#16A34A)] shrink-0" />
-                                        ) : (
-                                            <Clock className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                                        )}
-                                        <span className="truncate">Actual Time</span>
-                                    </span>
-                                    {isCompleted ? (
-                                        <span className="text-[8px] font-semibold text-[var(--color-success,#16A34A)] bg-[var(--color-success,#16A34A)]/10 px-1 py-0.2 rounded-[1px] leading-none shrink-0 border border-[var(--color-success,#16A34A)]/20">
-                                            Done
-                                        </span>
-                                    ) : (
-                                        <span className="text-[8px] font-medium text-[var(--app-muted)] bg-[var(--app-card)] px-1 py-0.2 rounded-[1px] leading-none shrink-0 border border-[var(--app-border)]">
-                                            Open
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="mt-1">
-                                    <span className={`text-sm font-bold tabular-nums ${
-                                        isCompleted ? "text-[var(--color-success,#16A34A)]" : "text-[var(--app-muted)]"
-                                    }`}>
-                                        {isCompleted
-                                            ? formatDaySpan(actualDays || calculateDaySpan(subtask?.startDate || startDate || subtask?.createdAt, subtask?.completedAt || new Date()))
-                                            : "—"}
-                                    </span>
-                                </div>
-                                <span className="text-[9.5px] text-[var(--app-muted)] mt-0.5 truncate" title={isCompleted ? "Day count from Start date to Done date" : "Logged upon completion"}>
-                                    {isCompleted ? "Start → Done" : "Logged on completion"}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Save Action in Left Column */}
-                        {canModifyThisSubtask ? (
-                            <div className="pt-2 mt-auto border-t border-[var(--app-border)] flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => handleSaveSubtask()}
-                                    disabled={submitting}
-                                    className="relative corner-brackets-4 w-full py-2 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] font-medium text-xs rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
-                                >
-                                    {submitting ? (
-                                        <>
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-[var(--app-text)]" />
-                                            <span>Saving...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {isEditMode ? (
-                                                <Check className="w-3.5 h-3.5 text-[var(--app-text)] shrink-0" />
-                                            ) : (
-                                                <Plus className="w-3.5 h-3.5 text-[var(--app-text)] shrink-0" />
-                                            )}
-                                            <span>{isEditMode ? "Save Changes" : "Create Subtask"}</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="pt-2 mt-auto border-t border-[var(--app-border)] text-center text-[10px] text-[var(--app-muted)] italic">
-                                View only mode (assigned to another member)
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Right Column: Tabbed Content (Description, Comments, Activity Log, Attachments) */}
-                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[var(--app-bg)]">
                         {/* Tabs Bar */}
                         <div className="flex items-center gap-1 px-4 py-2 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0">
                             <button
@@ -1245,55 +1123,20 @@ export default function ProjectSubtaskModal({
                         <div className="flex-1 p-5 overflow-hidden min-h-0 flex flex-col">
                             {/* TAB 1: DESCRIPTION */}
                             {activeTab === "description" && (
-                                <div className="flex-1 overflow-y-auto flex flex-col gap-3">
+                                <div className="flex-1 overflow-y-auto flex flex-col gap-3 min-h-[260px]">
                                     <div className="flex items-center justify-between">
                                         <h4 className="text-xs font-semibold text-[var(--app-text)]">
                                             Subtask Description & Details
                                         </h4>
-                                        {canModifyThisSubtask && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsEditingDescription(!isEditingDescription)}
-                                                className="px-2.5 py-1 text-[11px] font-medium border border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] rounded-[2px] flex items-center gap-1 transition-colors cursor-pointer"
-                                            >
-                                                <Edit2 className="w-3 h-3 text-[var(--app-muted)]" />
-                                                <span>{isEditingDescription ? "Preview" : "Edit Rich Text"}</span>
-                                            </button>
-                                        )}
                                     </div>
 
-                                    {isEditingDescription && canModifyThisSubtask ? (
-                                        <div className="flex-1 border border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] p-2">
-                                            <TipTapEditor
-                                                value={description}
-                                                onChange={setDescription}
-                                            />
-                                        </div>
-                                    ) : description ? (
-                                        <div
-                                            className="flex-1 p-4 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] prose dark:prose-invert max-w-none text-xs leading-relaxed overflow-y-auto"
-                                            dangerouslySetInnerHTML={{ __html: description }}
+                                    <div className="flex-1 border border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] p-2 min-h-[220px] flex flex-col">
+                                        <TipTapEditor
+                                            value={description}
+                                            onChange={setDescription}
+                                            disabled={!canModifyThisSubtask}
                                         />
-                                    ) : (
-                                        <div
-                                            onClick={() => {
-                                                if (canModifyThisSubtask) setIsEditingDescription(true);
-                                            }}
-                                            className={`flex-1 flex flex-col items-center justify-center p-8 border border-dashed border-[var(--app-border)] rounded-[2px] text-center text-[var(--app-muted)] ${
-                                                canModifyThisSubtask
-                                                    ? "hover:text-[var(--app-text)] hover:border-[var(--app-border-strong)] cursor-pointer"
-                                                    : "cursor-default"
-                                            } transition-colors`}
-                                        >
-                                            <FileText className="w-8 h-8 mb-2 opacity-40" />
-                                            <span className="text-xs font-medium">No description provided yet</span>
-                                            {canModifyThisSubtask && (
-                                                <span className="text-[10px] mt-1 text-[var(--app-muted)]">
-                                                    Click here to add rich notes, acceptance criteria, or code snippets.
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
+                                    </div>
                                 </div>
                             )}
 
@@ -1731,6 +1574,217 @@ export default function ProjectSubtaskModal({
                             )}
                         </div>
                     </div>
+
+                    {/* Right Column: Form Attributes Sidebar */}
+                    <div className="w-full md:w-[360px] p-5 flex flex-col gap-4 overflow-y-auto bg-[var(--app-card)] shrink-0">
+                        {/* Column / Status */}
+                        {columns.length > 0 && (
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[11px] font-medium text-[var(--app-text)]">
+                                    Column / Stage
+                                </label>
+                                <CustomSelect
+                                    options={columnOptions}
+                                    value={columnId}
+                                    disabled={!canModifyThisSubtask}
+                                    onChange={(newColId) => {
+                                        setColumnId(newColId);
+                                        const selectedCol = columns.find((c) => c.id === newColId);
+                                        if (selectedCol?.isComplete) {
+                                            setIsCompleted(true);
+                                            const startDateRef = startDate || subtask?.startDate || subtask?.createdAt || new Date();
+                                            const computedActual = calculateDaySpan(startDateRef, new Date());
+                                            setActualDays(computedActual);
+                                        } else if (isCompleted && selectedCol && !selectedCol.isComplete) {
+                                            setIsCompleted(false);
+                                            setActualDays(0);
+                                        }
+                                    }}
+                                    buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
+                                />
+                            </div>
+                        )}
+
+                        {/* Priority */}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-medium text-[var(--app-text)]">
+                                Priority Level
+                            </label>
+                            <CustomSelect
+                                options={priorityOptions}
+                                value={priority}
+                                disabled={!canModifyThisSubtask}
+                                onChange={(val) => setPriority(val)}
+                                buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
+                            />
+                        </div>
+
+                        {/* Assignee */}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center justify-between">
+                                <span>Assigned Member</span>
+                                {!canManageTasks && (
+                                    <span className="text-[9px] text-[var(--app-muted)] italic font-normal">
+                                        (Self-assignment)
+                                    </span>
+                                )}
+                            </label>
+                            {canManageTasks ? (
+                                <CustomSelect
+                                    options={assigneeOptions}
+                                    value={assignedToId}
+                                    disabled={!canModifyThisSubtask}
+                                    onChange={(val) => setAssignedToId(val)}
+                                    placeholder="Select assignee..."
+                                    buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
+                                />
+                            ) : (
+                                <div className="flex items-center gap-2 p-2 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] text-xs text-[var(--app-text)]">
+                                    <UserAvatar name={currentUser?.name || "You"} avatarUrl={currentUser?.avatarUrl} size="xs" />
+                                    <span>
+                                        <span className="font-semibold">{currentUser?.name || "You"}</span> (Self)
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Start Date & Due Date */}
+                        <div className="grid grid-cols-2 gap-2.5">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center gap-1">
+                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <span>Start Date</span>
+                                </label>
+                                <CustomDatePicker
+                                    value={startDate}
+                                    maxDate={dueDate || undefined}
+                                    onChange={(val) => {
+                                        setStartDate(val);
+                                        const newDue = (dueDate && val > dueDate) ? val : dueDate;
+                                        if (dueDate && val > dueDate) {
+                                            setDueDate(val);
+                                        }
+                                        if (val && newDue) {
+                                            setEstimatedDays(calculateDaySpan(val, newDue));
+                                        }
+                                    }}
+                                    disabled={!canModifyThisSubtask}
+                                    className="w-full text-xs"
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center gap-1">
+                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <span>Due Date</span>
+                                </label>
+                                <CustomDatePicker
+                                    value={dueDate}
+                                    minDate={startDate || undefined}
+                                    onChange={(val) => {
+                                        setDueDate(val);
+                                        const newStart = (startDate && val < startDate) ? val : startDate;
+                                        if (startDate && val < startDate) {
+                                            setStartDate(val);
+                                        }
+                                        if (val && newStart) {
+                                            setEstimatedDays(calculateDaySpan(newStart, val));
+                                        }
+                                    }}
+                                    disabled={!canModifyThisSubtask}
+                                    className="w-full text-xs"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Computed Duration Metrics */}
+                        <div className="grid grid-cols-2 gap-2">
+                            {/* Estimated Duration Card */}
+                            <div className="flex flex-col p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] min-w-0">
+                                <div className="flex items-center gap-1.5 text-[10px] text-[var(--app-muted)] font-medium">
+                                    <Clock className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
+                                    <span className="truncate">Est. Duration</span>
+                                </div>
+                                <div className="text-sm font-bold text-[var(--app-text)] tabular-nums mt-1">
+                                    {formatDaySpan(calculateDaySpan(startDate, dueDate))}
+                                </div>
+                                <span className="text-[9.5px] text-[var(--app-muted)] mt-0.5 truncate" title="Calendar day count from Start Date to Due Date">
+                                    Start → Due span
+                                </span>
+                            </div>
+
+                            {/* Actual Duration Card */}
+                            <div className={`flex flex-col p-2.5 rounded-[2px] border min-w-0 ${
+                                isCompleted
+                                    ? "bg-[var(--color-success,#16A34A)]/5 border-[var(--color-success,#16A34A)]/25"
+                                    : "bg-[var(--app-bg)] border-[var(--app-border)]"
+                            }`}>
+                                <div className="flex items-center justify-between gap-1 text-[10px]">
+                                    <span className="text-[var(--app-muted)] flex items-center gap-1 font-medium truncate">
+                                        {isCompleted ? (
+                                            <CheckCircle2 className="w-3 h-3 text-[var(--color-success,#16A34A)] shrink-0" />
+                                        ) : (
+                                            <Clock className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
+                                        )}
+                                        <span className="truncate">Actual Time</span>
+                                    </span>
+                                    {isCompleted ? (
+                                        <span className="text-[8px] font-semibold text-[var(--color-success,#16A34A)] bg-[var(--color-success,#16A34A)]/10 px-1 py-0.2 rounded-[1px] leading-none shrink-0 border border-[var(--color-success,#16A34A)]/20">
+                                            Done
+                                        </span>
+                                    ) : (
+                                        <span className="text-[8px] font-medium text-[var(--app-muted)] bg-[var(--app-card)] px-1 py-0.2 rounded-[1px] leading-none shrink-0 border border-[var(--app-border)]">
+                                            Open
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="mt-1">
+                                    <span className={`text-sm font-bold tabular-nums ${
+                                        isCompleted ? "text-[var(--color-success,#16A34A)]" : "text-[var(--app-muted)]"
+                                    }`}>
+                                        {isCompleted
+                                            ? formatDaySpan(actualDays || calculateDaySpan(subtask?.startDate || startDate || subtask?.createdAt, subtask?.completedAt || new Date()))
+                                            : "—"}
+                                    </span>
+                                </div>
+                                <span className="text-[9.5px] text-[var(--app-muted)] mt-0.5 truncate" title={isCompleted ? "Day count from Start date to Done date" : "Logged upon completion"}>
+                                    {isCompleted ? "Start → Done" : "Logged on completion"}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Save Action in Sidebar */}
+                        {canModifyThisSubtask ? (
+                            <div className="pt-2 mt-auto border-t border-[var(--app-border)] flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSaveSubtask()}
+                                    disabled={submitting}
+                                    className="relative corner-brackets-4 w-full py-2 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] font-medium text-xs rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
+                                >
+                                    {submitting ? (
+                                        <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-[var(--app-text)]" />
+                                            <span>Saving...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {isEditMode ? (
+                                                <Check className="w-3.5 h-3.5 text-[var(--app-text)] shrink-0" />
+                                            ) : (
+                                                <Plus className="w-3.5 h-3.5 text-[var(--app-text)] shrink-0" />
+                                            )}
+                                            <span>{isEditMode ? "Save Changes" : "Create Subtask"}</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="pt-2 mt-auto border-t border-[var(--app-border)] text-center text-[10px] text-[var(--app-muted)] italic">
+                                View only mode (assigned to another member)
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Fullscreen Image Lightbox Modal */}
@@ -1756,6 +1810,31 @@ export default function ProjectSubtaskModal({
                         </div>
                     </div>
                 )}
-        </ModalWrapper>
+        </>
+    );
+
+    if (viewMode === "modal") {
+        return (
+            <ModalWrapper
+                isOpen={isOpen}
+                onClose={onClose}
+                maxWidth={isExpanded ? "max-w-7xl" : "max-w-5xl"}
+                className="h-[88vh] max-h-[880px] overflow-hidden text-left"
+            >
+                {innerContent}
+            </ModalWrapper>
+        );
+    }
+
+    return (
+        <SideSheetWrapper
+            isOpen={isOpen}
+            onClose={onClose}
+            width="2xl"
+            isExpanded={isExpanded}
+            className="overflow-hidden text-left"
+        >
+            {innerContent}
+        </SideSheetWrapper>
     );
 }

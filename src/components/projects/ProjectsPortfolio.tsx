@@ -751,7 +751,7 @@ export default function ProjectsPortfolio() {
                                 onClick={() => setIsCreateOpen(true)}
                                 className="relative bg-[var(--app-text)] hover:opacity-90 text-[var(--app-bg)] border border-[var(--app-text)] text-xs font-semibold px-3.5 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs"
                             >
-                                <Plus className="w-3.5 h-3.5 text-[var(--app-bg)]" />
+                                <Plus className="w-3.5 h-3.5 " />
                                 <span>New Project</span>
                             </button>
                         )}
