@@ -17,6 +17,12 @@ import {
     Filter,
     MessageSquare,
     Paperclip,
+    Search,
+    X,
+    TrendingUp,
+    ListTodo,
+    AlertTriangle,
+    Calendar,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 
@@ -554,209 +560,371 @@ export default function ListView({
     const hasMultipleMembers = teamMembers && teamMembers.length > 1;
     const showAssigneeFilter = !isMember && hasMultipleMembers;
 
+    const totalActiveTasks = activeTasks.length;
+    const doneTasksCount = activeTasks.filter((t) => isTaskCompleted(t)).length;
+    const completionRate =
+        totalActiveTasks > 0
+            ? Math.round((doneTasksCount / totalActiveTasks) * 100)
+            : 0;
+    const overdueTasksCount = activeTasks.filter((t) => isTaskOverdue(t)).length;
+    const dueTodayTasksCount = activeTasks.filter((t) => isTaskDueToday(t)).length;
+
+    const presetCounts = React.useMemo(() => {
+        const overdue = activeTasks.filter((t) => isTaskOverdue(t)).length;
+        const today = activeTasks.filter((t) => isTaskDueToday(t)).length;
+        const urgent = activeTasks.filter(
+            (t) => t.priority === "URGENT" || t.priority === "HIGH",
+        ).length;
+        const carried = activeTasks.filter(
+            (t) => Number(t.carryCount) > 0,
+        ).length;
+        return {
+            all: activeTasks.length,
+            overdue,
+            today,
+            urgent,
+            carried,
+        };
+    }, [activeTasks, todayStr]);
+
+    const hasActiveFilters = Boolean(
+        search.trim() ||
+        activePreset !== "all" ||
+        selectedStatus ||
+        selectedPriority ||
+        selectedAssignee ||
+        groupBy !== "none"
+    );
+
+    const handleClearFilters = () => {
+        setSearch("");
+        setActivePreset("all");
+        setSelectedStatus("");
+        setSelectedPriority("");
+        setSelectedAssignee("");
+        setGroupBy("none");
+    };
+
     return (
-        <div className="flex-1 overflow-y-auto p-4 bg-[var(--app-bg,#FAFAF9)] text-[var(--app-text,#1A1A1A)] flex flex-col gap-3.5 select-none">
-            {/* Header with Title and CSV Export */}
-            <div className="flex items-center justify-between gap-3">
-                <div>
-                    <h1 className="font-heading text-xl text-[var(--app-text,#1A1A1A)]">
-                        List View
-                    </h1>
-                    <p className="text-xs text-[var(--app-muted,#888883)] mt-0.5">
-                        Search, group, filter, and track tasks.
-                    </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                        variant="ghost"
-                        onClick={handleExportCSV}
-                        icon={
-                            <Download className="w-3.5 h-3.5 text-[var(--app-text,#1A1A1A)]" />
-                        }
-                        title="Export current filtered tasks to CSV"
-                    >
-                        Export CSV
-                    </Button>
-                </div>
-            </div>
-
-            {/* Quick Filter Presets */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                <span className="text-[10px]   font-bold text-[var(--app-muted,#888883)] flex items-center gap-1 mr-1 shrink-0">
-                    <Filter className="w-3 h-3" />
-                    Presets:
-                </span>
-                {[
-                    { id: "all", label: "All Tasks" },
-                    { id: "overdue", label: "Overdue" },
-                    { id: "today", label: "Due Today" },
-                    { id: "urgent", label: "High & Urgent" },
-                    { id: "carried", label: "Carried Over" },
-                ].map((preset) => {
-                    const isActive = activePreset === preset.id;
-                    return (
-                        <button
-                            key={preset.id}
-                            type="button"
-                            onClick={() =>
-                                setActivePreset(preset.id as FilterPreset)
-                            }
-                            className={`px-2.5 py-1 text-[11px] rounded-[3px] transition-all font-medium cursor-pointer shrink-0 border ${
-                                isActive
-                                    ? "bg-[var(--color-accent,#1A1A1A)] text-[var(--app-bg,#FAFAF9)] border-[var(--color-accent,#1A1A1A)] shadow-xs"
-                                    : "bg-[var(--app-card,#FFFFFF)] text-[var(--app-text,#1A1A1A)] border-[var(--app-border,#E5E5E3)] hover:border-[var(--color-accent,#1A1A1A)]"
-                            }`}
-                        >
-                            {preset.label}
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* Filters Toolbar */}
-            <div className="relative bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] p-3.5 flex flex-col gap-3 corner-brackets rounded-[2px]">
-                <div
-                    className={`grid grid-cols-1 ${
-                        showAssigneeFilter ? "md:grid-cols-5" : "md:grid-cols-4"
-                    } gap-2 items-center`}
-                >
-                    <input
-                        type="text"
-                        placeholder="Search by title, details…"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] rounded-[3px] px-2.5 py-1.5 h-[30px] text-[11px] text-[var(--app-text,#1A1A1A)] focus:outline-none focus:border-[var(--color-accent,#1A1A1A)] transition-colors w-full"
-                    />
-
-                    {/* Group By Selector */}
-                    <CustomSelect
-                        options={[
-                            { value: "none", label: "Group: Flat List" },
-                            { value: "status", label: "Group: By Status" },
-                            { value: "priority", label: "Group: By Priority" },
-                            { value: "dueDate", label: "Group: By Due Date" },
-                            ...(showAssigneeFilter
-                                ? [{ value: "assignee", label: "Group: By Assignee" }]
-                                : []),
-                        ]}
-                        value={groupBy}
-                        onChange={(val) => setGroupBy(val as GroupByField)}
-                        className="w-full"
-                    />
-
-                    <CustomSelect
-                        options={[
-                            { value: "", label: "All Statuses" },
-                            ...columns.map((col) => ({
-                                value: col.id,
-                                label: col.name,
-                            })),
-                        ]}
-                        value={selectedStatus}
-                        onChange={(val) => setSelectedStatus(val)}
-                        className="w-full"
-                    />
-
-                    <CustomSelect
-                        options={[
-                            { value: "", label: "All Priorities" },
-                            { value: "URGENT", label: "Urgent" },
-                            { value: "HIGH", label: "High" },
-                            { value: "MEDIUM", label: "Medium" },
-                            { value: "LOW", label: "Low" },
-                        ]}
-                        value={selectedPriority}
-                        onChange={(val) => setSelectedPriority(val)}
-                        className="w-full"
-                    />
-
-                    {showAssigneeFilter && (
-                        <CustomSelect
-                            options={[
-                                { value: "", label: "All Assignees" },
-                                ...teamMembers.map(({ user }) => ({
-                                    value: user.id,
-                                    label: user.fullName,
-                                    avatarUrl: user.avatarUrl || null,
-                                })),
-                            ]}
-                            value={selectedAssignee}
-                            onChange={(val) => setSelectedAssignee(val)}
-                            className="w-full"
-                        />
-                    )}
-                </div>
-
-                {/* Bulk Actions Bar */}
-                {validSelectedTasks.length > 0 && !isObserver && (
-                    <div className="pt-3 border-t border-[var(--app-border,#E5E5E3)] flex flex-wrap gap-2 items-center justify-between">
-                        <span className="text-[11px] font-semibold text-[var(--app-text,#1A1A1A)]">
-                            {validSelectedTasks.length} selected
-                        </span>
-                        <div className="flex items-center gap-2">
-                            {isLeader && (
-                                <>
-                                    <CustomSelect
-                                        options={[
-                                            { value: "", label: "Reassign to…" },
-                                            ...teamMembers.map(({ user }) => ({
-                                                value: user.id,
-                                                label: user.fullName,
-                                                avatarUrl: user.avatarUrl || null,
-                                            })),
-                                        ]}
-                                        value={bulkAssignee}
-                                        onChange={(val) => setBulkAssignee(val)}
-                                        className="w-44"
-                                    />
-                                    <Button
-                                        onClick={handleBulkReassign}
-                                        disabled={
-                                            !bulkAssignee ||
-                                            !canBulkReassign ||
-                                            isBulkReassigning
-                                        }
-                                        isLoading={isBulkReassigning}
-                                        loadingText="Reassigning…"
-                                        showDot={!isBulkReassigning}
-                                    >
-                                        Reassign
-                                    </Button>
-                                </>
-                            )}
-                            {canBulkDelete && (
-                                <Button
-                                    variant="danger"
-                                    onClick={handleBulkDelete}
-                                    icon={
-                                        <Trash2 className="w-3 h-3 text-[var(--color-danger,#CB2431)]" />
-                                    }
-                                    title="Archive selected tasks"
-                                >
-                                    Delete
-                                </Button>
-                            )}
-                            <Button
-                                variant="ghost"
-                                onClick={() => setSelectedTasks([])}
-                            >
-                                Cancel
-                            </Button>
+        <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden bg-[var(--app-bg,#FAFAF9)] text-[var(--app-text,#1A1A1A)] select-none">
+                {/* 1. Level 1: Header & Primary Action Toolbar */}
+                <div className="shrink-0 border-b border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FFFFFF)] px-5 py-3 flex items-center justify-between gap-4 select-none">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <ListTodo className="w-5 h-5 text-[var(--app-muted,#888883)] shrink-0" />
+                        <div>
+                            <h1 className="font-heading text-lg sm:text-xl font-bold tracking-tight text-[var(--app-text,#1A1A1A)] leading-tight">
+                                List View
+                            </h1>
+                            <p className="text-[11px] text-[var(--app-muted,#888883)]">
+                                Search, group, filter, and track tasks across your workspace
+                            </p>
                         </div>
                     </div>
-                )}
-            </div>
 
-            {/* Table */}
-            <div className="relative bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] overflow-hidden corner-brackets rounded-[2px] shadow-xs">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr className="border-b border-[var(--app-border,#E5E5E3)] text-[11px] font-medium text-[var(--app-muted,#888883)] bg-[var(--app-bg,#FAFAF9)]">
-                                <th className="py-2.5 px-3 w-10 text-center">
-                                    {!isObserver && (
-                                        <Checkbox
-                                            checked={
+                    <div className="flex items-center gap-2 flex-wrap shrink-0">
+                        <button
+                            type="button"
+                            onClick={handleExportCSV}
+                            className="relative bg-[var(--app-card,#FFFFFF)] hover:bg-[var(--app-hover-bg,#F5F5F3)] border border-[var(--app-border,#E5E5E3)] text-[var(--app-text,#1A1A1A)] text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-3xs"
+                            title="Export current filtered tasks to CSV"
+                        >
+                            <Download className="w-3.5 h-3.5 text-[var(--app-muted,#888883)] shrink-0" />
+                            <span>Export CSV</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* 2. Level 2: Compact KPI Stats Ribbon */}
+                <div className="shrink-0 border-b border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FFFFFF)] select-none">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-[var(--app-border,#E5E5E3)]">
+                        {/* Active Tasks */}
+                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
+                            <div className="flex flex-col min-w-0">
+                                <span className="eyebrow text-[10px] text-[var(--app-muted,#888883)] tracking-wider uppercase">Active Tasks</span>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text,#1A1A1A)] tabular-nums">
+                                        {totalActiveTasks}
+                                    </span>
+                                    <span className="text-[11px] text-[var(--app-muted,#888883)] font-normal">in view</span>
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
+                                <Layers className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+
+                        {/* Completion Rate */}
+                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
+                            <div className="flex flex-col min-w-0">
+                                <span className="eyebrow text-[10px] text-[var(--app-muted,#888883)] tracking-wider uppercase">Completion Rate</span>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                    <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                        completionRate < 50
+                                            ? "text-[var(--color-error,#CB2431)]"
+                                            : completionRate < 80
+                                            ? "text-[var(--color-warning,#B08800)]"
+                                            : "text-[var(--color-success,#16A34A)]"
+                                    }`}>
+                                        {completionRate}%
+                                    </span>
+                                    <span className="text-[11px] text-[var(--app-muted,#888883)] font-normal">{doneTasksCount} done</span>
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
+                                <TrendingUp className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+
+                        {/* Overdue Tasks */}
+                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
+                            <div className="flex flex-col min-w-0">
+                                <span className="eyebrow text-[10px] text-[var(--app-muted,#888883)] tracking-wider uppercase">Overdue Tasks</span>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                    <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                        overdueTasksCount > 0 ? "text-[var(--color-error,#CB2431)]" : "text-[var(--app-text,#1A1A1A)]"
+                                    }`}>
+                                        {overdueTasksCount}
+                                    </span>
+                                    <span className="text-[11px] text-[var(--app-muted,#888883)] font-normal">requires attention</span>
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
+                                <AlertCircle className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+
+                        {/* Due Today */}
+                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
+                            <div className="flex flex-col min-w-0">
+                                <span className="eyebrow text-[10px] text-[var(--app-muted,#888883)] tracking-wider uppercase">Due Today</span>
+                                <div className="flex items-baseline gap-1.5 mt-0.5">
+                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text,#1A1A1A)] tabular-nums">
+                                        {dueTodayTasksCount}
+                                    </span>
+                                    <span className="text-[11px] text-[var(--app-muted,#888883)] font-normal">scheduled today</span>
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
+                                <Clock className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Level 3: Search, Presets & Filters Toolbar */}
+                <div className="shrink-0 border-b border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FFFFFF)] px-5 py-2 flex flex-wrap items-center justify-between gap-3 select-none">
+                    {/* Left: Search Input + Preset Tabs */}
+                    <div className="flex items-center gap-3 flex-wrap">
+                        {/* Compact Search Input */}
+                        <div className="relative w-52 sm:w-60">
+                            <Search className="w-3.5 h-3.5 text-[var(--app-muted,#888883)] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search tasks..."
+                                className="w-full bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] focus:border-[var(--app-border-strong,#1A1A1A)] focus:outline-none text-xs text-[var(--app-text,#1A1A1A)] placeholder-[var(--app-muted,#888883)] pl-8 pr-7 py-1 rounded-[var(--radius-sm,4px)] transition-colors h-[30px]"
+                            />
+                            {search && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearch("")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] p-0.5 cursor-pointer"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Presets Segmented Tabs */}
+                        <div className="inline-flex items-center bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] p-0.5 rounded-[var(--radius-sm,4px)] gap-0.5 shrink-0 overflow-x-auto">
+                            {[
+                                { id: "all", label: "All", count: presetCounts.all, icon: Layers },
+                                { id: "overdue", label: "Overdue", count: presetCounts.overdue, icon: AlertCircle },
+                                { id: "today", label: "Today", count: presetCounts.today, icon: Clock },
+                                { id: "urgent", label: "Urgent", count: presetCounts.urgent, icon: AlertTriangle },
+                                { id: "carried", label: "Carried", count: presetCounts.carried, icon: Calendar },
+                            ].map((preset) => {
+                                const isSelected = activePreset === preset.id;
+                                const Icon = preset.icon;
+                                return (
+                                    <button
+                                        key={preset.id}
+                                        type="button"
+                                        onClick={() => setActivePreset(preset.id as FilterPreset)}
+                                        className={`px-2.5 py-1 flex items-center gap-1.5 text-xs font-medium rounded-[var(--radius-xs,2px)] transition-all cursor-pointer ${
+                                            isSelected
+                                                ? "bg-[var(--app-card,#FFFFFF)] text-[var(--app-text,#1A1A1A)] font-semibold shadow-3xs border border-[var(--app-border,#E5E5E3)]"
+                                                : "text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-card,#FFFFFF)]/50 border border-transparent"
+                                        }`}
+                                    >
+                                        <Icon className="w-3 h-3 text-[var(--app-muted,#888883)] shrink-0" />
+                                        <span>{preset.label}</span>
+                                        <span className={`px-1.5 py-0.2 rounded-[var(--radius-xs,2px)] text-[9px] tabular-nums font-semibold ${
+                                            isSelected
+                                                ? "bg-[var(--app-bg,#FAFAF9)] text-[var(--app-text,#1A1A1A)]"
+                                                : "bg-[var(--app-border,#E5E5E3)]/40 text-[var(--app-muted,#888883)]"
+                                        }`}>
+                                            {preset.count}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Right: Dropdowns + Reset Button */}
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                        {/* Group By Selector */}
+                        <CustomSelect
+                            options={[
+                                { value: "none", label: "Group: Flat List" },
+                                { value: "status", label: "Group: By Status" },
+                                { value: "priority", label: "Group: By Priority" },
+                                { value: "dueDate", label: "Group: By Due Date" },
+                                ...(showAssigneeFilter
+                                    ? [{ value: "assignee", label: "Group: By Assignee" }]
+                                    : []),
+                            ]}
+                            value={groupBy}
+                            onChange={(val) => setGroupBy(val as GroupByField)}
+                            buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)]"
+                            className="w-36 h-[30px] shrink-0"
+                        />
+
+                        {/* Status Filter */}
+                        <CustomSelect
+                            options={[
+                                { value: "", label: "All Statuses" },
+                                ...columns.map((col) => ({
+                                    value: col.id,
+                                    label: col.name,
+                                })),
+                            ]}
+                            value={selectedStatus}
+                            onChange={(val) => setSelectedStatus(val)}
+                            buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)]"
+                            className="w-32 h-[30px] shrink-0"
+                        />
+
+                        {/* Priority Filter */}
+                        <CustomSelect
+                            options={[
+                                { value: "", label: "All Priorities" },
+                                { value: "URGENT", label: "Urgent" },
+                                { value: "HIGH", label: "High" },
+                                { value: "MEDIUM", label: "Medium" },
+                                { value: "LOW", label: "Low" },
+                            ]}
+                            value={selectedPriority}
+                            onChange={(val) => setSelectedPriority(val)}
+                            buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)]"
+                            className="w-32 h-[30px] shrink-0"
+                        />
+
+                        {/* Assignee Filter */}
+                        {showAssigneeFilter && (
+                            <CustomSelect
+                                options={[
+                                    { value: "", label: "All Assignees" },
+                                    ...teamMembers.map(({ user }) => ({
+                                        value: user.id,
+                                        label: user.fullName,
+                                        avatarUrl: user.avatarUrl || null,
+                                    })),
+                                ]}
+                                value={selectedAssignee}
+                                onChange={(val) => setSelectedAssignee(val)}
+                                buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)]"
+                                className="w-36 h-[30px] shrink-0"
+                            />
+                        )}
+
+                        {/* Reset Filter Button */}
+                        {hasActiveFilters && (
+                            <button
+                                type="button"
+                                onClick={handleClearFilters}
+                                className="text-xs text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] underline cursor-pointer px-1 py-1"
+                            >
+                                Reset
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Content Area */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5 flex flex-col gap-3">
+                    {/* Bulk Actions Bar */}
+                    {validSelectedTasks.length > 0 && !isObserver && (
+                        <div className="bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] p-2.5 px-4 rounded-[var(--radius-sm,4px)] flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                            <span className="text-xs font-semibold text-[var(--app-text,#1A1A1A)]">
+                                {validSelectedTasks.length} task{validSelectedTasks.length === 1 ? "" : "s"} selected
+                            </span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {isLeader && (
+                                    <>
+                                        <CustomSelect
+                                            options={[
+                                                { value: "", label: "Reassign to…" },
+                                                ...teamMembers.map(({ user }) => ({
+                                                    value: user.id,
+                                                    label: user.fullName,
+                                                    avatarUrl: user.avatarUrl || null,
+                                                })),
+                                            ]}
+                                            value={bulkAssignee}
+                                            onChange={(val) => setBulkAssignee(val)}
+                                            buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)]"
+                                            className="w-44 h-[30px]"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleBulkReassign}
+                                            disabled={
+                                                !bulkAssignee ||
+                                                !canBulkReassign ||
+                                                isBulkReassigning
+                                            }
+                                            className="bg-[var(--app-text,#1A1A1A)] text-[var(--app-bg,#FAFAF9)] hover:opacity-90 disabled:opacity-50 text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm,4px)] transition-all cursor-pointer shadow-3xs flex items-center gap-1.5"
+                                        >
+                                            {isBulkReassigning ? "Reassigning…" : "Reassign"}
+                                        </button>
+                                    </>
+                                )}
+                                {canBulkDelete && (
+                                    <button
+                                        type="button"
+                                        onClick={handleBulkDelete}
+                                        className="bg-[var(--color-danger,#CB2431)]/10 text-[var(--color-danger,#CB2431)] hover:bg-[var(--color-danger,#CB2431)]/20 border border-[var(--color-danger,#CB2431)]/20 text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm,4px)] transition-all cursor-pointer flex items-center gap-1.5"
+                                        title="Archive selected tasks"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                        <span>Delete</span>
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedTasks([])}
+                                    className="text-xs text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] px-2.5 py-1.5 rounded-[var(--radius-sm,4px)] border border-transparent hover:border-[var(--app-border,#E5E5E3)] transition-colors cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Table */}
+                    <div className="relative bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] overflow-hidden rounded-[var(--radius-sm,4px)] shadow-xs">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr className="border-b border-[var(--app-border,#E5E5E3)] text-[11px] font-medium text-[var(--app-muted,#888883)] bg-[var(--app-bg,#FAFAF9)]">
+                                        <th className="py-2.5 px-3 w-10 text-center">
+                                            {!isObserver && (
+                                                <Checkbox
+                                                    checked={
                                                 selectableTasks.length > 0 &&
                                                 validSelectedTasks.length ===
                                                     selectableTasks.length
@@ -1215,6 +1383,8 @@ export default function ListView({
                 onConfirm={handleConfirmBulkDelete}
                 onClose={() => setIsBulkDeleteConfirmOpen(false)}
             />
+                </div>
+            </div>
         </div>
     );
 }
