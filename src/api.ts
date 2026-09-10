@@ -1286,6 +1286,34 @@ export const api = {
     return res.json();
   },
 
+  async uploadProjectSubtaskImage(projectId: string, taskId: string, subtaskId: string, imageBase64: string, filename: string, userId: string): Promise<Attachment> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/attachments/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': userId
+      },
+      body: JSON.stringify({ imageBase64, filename, userId })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to upload subtask image.');
+    }
+    return res.json();
+  },
+
+  async deleteProjectSubtaskAttachment(projectId: string, taskId: string, subtaskId: string, attachmentId: string, userId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/attachments/${attachmentId}`, {
+      method: 'DELETE',
+      headers: { 'x-user-id': userId }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete attachment.');
+    }
+    return res.json();
+  },
+
   async getProjectTaskComments(projectId: string, taskId: string, subtaskId?: string): Promise<any[]> {
     const url = subtaskId
       ? `${API_BASE}/projects/${projectId}/tasks/${taskId}/comments?subtaskId=${encodeURIComponent(subtaskId)}`

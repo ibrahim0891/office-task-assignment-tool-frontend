@@ -240,26 +240,34 @@ export default function ProjectSubtaskModal({
         try {
             const compressedBase64 = await compressImage30Percent(file);
             const filename = file.name || `Image_${Date.now()}.jpg`;
-            const newAttachment = {
-                id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-                name: filename,
-                url: compressedBase64,
-                type: "IMAGE",
-                createdAt: new Date().toISOString(),
-                user: currentUser ? { id: currentUser.id, name: currentUser.name || "User" } : undefined,
-            };
-
-            const updatedAttachments = [...attachments, newAttachment];
-            setAttachments(updatedAttachments);
 
             if (isEditMode && subtask?.id && projectId) {
                 const targetTaskId = parentTask?.id || subtask?.parentTaskId;
-                if (targetTaskId) {
-                    await api.updateProjectSubtask(projectId, targetTaskId, subtask.id, {
-                        attachments: updatedAttachments,
-                    });
-                    if (onRefresh) onRefresh();
+                if (!targetTaskId) {
+                    throw new Error("Parent task reference missing.");
                 }
+                const uploadedAttachment = await api.uploadProjectSubtaskImage(
+                    projectId,
+                    targetTaskId,
+                    subtask.id,
+                    compressedBase64,
+                    filename,
+                    currentUser?.id || ""
+                );
+                setAttachments((prev) => [uploadedAttachment, ...prev.filter((a) => a.id !== uploadedAttachment.id)]);
+                if (onRefresh) onRefresh();
+            } else {
+                const pendingAttachment = {
+                    id: `pending-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                    name: filename,
+                    url: compressedBase64,
+                    type: "IMAGE",
+                    createdAt: new Date().toISOString(),
+                    user: currentUser ? { id: currentUser.id, name: currentUser.name || "User" } : undefined,
+                    isPending: true,
+                    rawBase64: compressedBase64,
+                };
+                setAttachments((prev) => [pendingAttachment, ...prev]);
             }
 
             toast.success(`Attached "${filename}"`);
@@ -278,16 +286,24 @@ export default function ProjectSubtaskModal({
     };
 
     const handleDeleteAttachment = async (attachmentId: string) => {
-        const updatedAttachments = attachments.filter((a) => a.id !== attachmentId);
-        setAttachments(updatedAttachments);
+        if (attachmentId.startsWith("pending-")) {
+            setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+            toast.success("Attachment removed");
+            return;
+        }
 
         if (isEditMode && subtask?.id && projectId) {
             const targetTaskId = parentTask?.id || subtask?.parentTaskId;
             if (targetTaskId) {
                 try {
-                    await api.updateProjectSubtask(projectId, targetTaskId, subtask.id, {
-                        attachments: updatedAttachments,
-                    });
+                    await api.deleteProjectSubtaskAttachment(
+                        projectId,
+                        targetTaskId,
+                        subtask.id,
+                        attachmentId,
+                        currentUser?.id || ""
+                    );
+                    setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
                     toast.success("Attachment removed");
                     if (onRefresh) onRefresh();
                 } catch (err: any) {
@@ -707,7 +723,23 @@ export default function ProjectSubtaskModal({
                 await api.updateProjectSubtask(projectId, targetParentTaskId, subtask.id, subtaskPayload);
                 toast.success("Subtask updated successfully!");
             } else {
-                await api.createProjectSubtask(projectId, targetParentTaskId, subtaskPayload);
+                const createdSubtask = await api.createProjectSubtask(projectId, targetParentTaskId, subtaskPayload);
+                // Upload any pending attachments for the newly created subtask
+                const pending = attachments.filter((a) => a.isPending && a.rawBase64);
+                for (const p of pending) {
+                    try {
+                        await api.uploadProjectSubtaskImage(
+                            projectId,
+                            targetParentTaskId,
+                            createdSubtask.id,
+                            p.rawBase64,
+                            p.name,
+                            currentUser?.id || ""
+                        );
+                    } catch (e) {
+                        console.error("Failed to upload pending attachment:", e);
+                    }
+                }
                 toast.success("Subtask created successfully!");
             }
             if (typeof window !== "undefined") {
