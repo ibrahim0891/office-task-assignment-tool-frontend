@@ -18,9 +18,10 @@ export default function DashboardPage() {
         loadTasks,
         loadTeamMetadata,
         setSelectedTaskId,
+        isTasksLoading,
     } = useWorkspace();
 
-    if (!currentTeam || !currentUser || teamMembers.length === 0) {
+    if (!currentTeam || !currentUser || teamMembers.length === 0 || isTasksLoading) {
         return <SkeletonBoard />;
     }
 

@@ -14,9 +14,10 @@ export default function MyDayPage() {
         setSelectedTaskId,
         handleToggleComplete,
         currentTeam,
+        isTasksLoading,
     } = useWorkspace();
 
-    if (!currentTeam || !currentUser) {
+    if (!currentTeam || !currentUser || isTasksLoading) {
         return <SkeletonList />;
     }
 

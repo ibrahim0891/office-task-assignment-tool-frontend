@@ -14,9 +14,10 @@ export default function ListPage() {
         currentTeam,
         loadTasks,
         setSelectedTaskId,
+        isTasksLoading,
     } = useWorkspace();
 
-    if (!currentTeam || !currentUser) {
+    if (!currentTeam || !currentUser || isTasksLoading) {
         return <SkeletonList />;
     }
 

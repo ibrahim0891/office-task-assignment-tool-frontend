@@ -290,17 +290,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                         }
 
                         // Load initial columns, tasks and folders for the active workspace before finishing initialization
-                        const initialView = getViewFromPath(pathname || "/");
-                        const initialTaskParams: any = { teamId: matched.id };
-                        if (
-                            initialView === "kanban" ||
-                            initialView === "list" ||
-                            initialView === "myday" ||
-                            initialView === "dashboard" ||
-                            initialView === "map"
-                        ) {
-                            initialTaskParams.date = activeDateStr || getLocalDateString();
-                        }
+                        const initialTaskParams: any = {
+                            teamId: matched.id,
+                            date: activeDateStr || getLocalDateString(),
+                        };
 
                         const [cols, initialTasks, initialFolders] = await Promise.all([
                             api.getColumns(matched.id).catch(() => []),
@@ -532,16 +525,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             setIsTasksLoading(true);
         }
         try {
-            const params: any = { teamId: currentTeam.id };
-            if (
-                currentView === "kanban" ||
-                currentView === "list" ||
-                currentView === "myday" ||
-                currentView === "dashboard" ||
-                currentView === "map"
-            ) {
-                params.date = activeDateStr;
-            }
+            const params: any = {
+                teamId: currentTeam.id,
+                date: activeDateStr || getLocalDateString(),
+            };
             if (searchQuery) {
                 params.search = searchQuery;
             }
@@ -566,7 +553,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 setIsTasksLoading(false);
             }
         }
-    }, [currentTeam?.id, activeDateStr, currentView, searchQuery, currentUser]);
+    }, [currentTeam?.id, activeDateStr, searchQuery, currentUser]);
 
     const pendingColumnUpdatesRef = React.useRef<Record<string, { timeoutId: NodeJS.Timeout; previousTasks: any[]; targetColumnId: string }>>({});
     const moveVersionRef = useRef<Record<string, number>>({});
@@ -621,16 +608,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     isSwitchingTeamRef.current = isSwitchingTeam;
 
     const prevDateRef = useRef<string>(activeDateStr);
-    const prevViewRef = useRef<string>(currentView);
 
     useEffect(() => {
         if (isSwitchingTeamRef.current) return;
         const isDateChange = prevDateRef.current !== activeDateStr;
-        const isViewChange = prevViewRef.current !== currentView;
         prevDateRef.current = activeDateStr;
-        prevViewRef.current = currentView;
-        loadTasks({ isDateChange: isDateChange || isViewChange });
-    }, [loadTasks, activeDateStr, currentView]);
+        if (isDateChange) {
+            loadTasks({ isDateChange: true });
+        }
+    }, [loadTasks, activeDateStr]);
 
     // Parse URL search parameters on load/redirect to automatically open task modal (e.g., from desktop notifications)
     useEffect(() => {
