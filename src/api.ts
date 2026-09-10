@@ -1262,6 +1262,19 @@ export const api = {
     return res.json();
   },
 
+  async reorderProjectSubtasks(projectId: string, taskId: string, subtaskOrders: { id: string; order: number; columnId?: string }[]): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subtaskOrders })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to reorder subtasks.');
+    }
+    return res.json();
+  },
+
   async deleteProjectSubtask(projectId: string, taskId: string, subtaskId: string): Promise<any> {
     const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}`, {
       method: 'DELETE'

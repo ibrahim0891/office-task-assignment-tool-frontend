@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -58,7 +58,7 @@ import { Button } from "../ui/Button";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
 import { calculateTaskProgress, isSystemColumn, getStageMeta } from "../../utils/projectProgress";
-import { getProjectPermissions } from "../../utils/projectPermissions";
+import { getProjectPermissions, canModifySubtask } from "../../utils/projectPermissions";
 import { getLocalDateString, parseLocalDate, extractDateString, calculateDaySpan, formatDaySpan } from "../../utils/date";
 
 function getPriorityBadge(priority: string) {
@@ -380,13 +380,17 @@ export default function ProjectTaskDetailPage() {
     useEffect(() => {
         const handleProjectDataUpdated = async (e: any) => {
             const detail = e.detail;
+            // Ignore socket re-fetch if this was our own subtask reorder event to prevent card flashing
+            if (detail?.action === "subtask_reorder" && detail?.actingUserId && currentUser?.id && detail.actingUserId === currentUser.id) {
+                return;
+            }
             if (!detail || !detail.projectId || detail.projectId === projectId) {
                 await loadProjectDetail();
             }
         };
         window.addEventListener("project_data_updated", handleProjectDataUpdated);
         return () => window.removeEventListener("project_data_updated", handleProjectDataUpdated);
-    }, [projectId, loadProjectDetail]);
+    }, [projectId, currentUser?.id, loadProjectDetail]);
 
     const [localColumns, setLocalColumns] = useState<ColumnDef[]>([]);
 
@@ -500,19 +504,13 @@ export default function ProjectTaskDetailPage() {
             const updatedCols = Array.from(columns);
             const [movedCol] = updatedCols.splice(source.index, 1);
             updatedCols.splice(destination.index, 0, movedCol);
-
-            // Optimistic UI update
             setLocalColumns(updatedCols);
 
-            const columnOrders = updatedCols.map((c, idx) => ({
-                id: c.id,
-                order: idx,
-            }));
-
             try {
-                // Silently persist new order to database
-                await api.reorderProjectColumns(projectId, columnOrders);
-                loadProjectDetail();
+                await api.reorderProjectColumns(
+                    projectId,
+                    updatedCols.map((c, idx) => ({ id: c.id, order: idx }))
+                );
             } catch (err: any) {
                 toast.error(err.message || "Failed to save column order");
                 if (project?.columns) {
@@ -522,60 +520,114 @@ export default function ProjectTaskDetailPage() {
             return;
         }
 
+        // Subtask reordering / moving across columns
+        const sourceColId = source.droppableId;
         const targetColId = destination.droppableId;
         const targetCol = columns.find((c) => c.id === targetColId);
-        if (!targetCol) return;
+        const draggedSubtask = subtasks.find((s) => s.id === draggableId);
+        if (!targetCol || !draggedSubtask) return;
+
+        const isMovingAcross = sourceColId !== targetColId;
+
+        // Check permissions if moving across columns
+        if (isMovingAcross && !canModifySubtask(draggedSubtask, currentUser, canManageTasks)) {
+            toast.error("Only the assigned member, project leader, or manager can move this subtask to another column.");
+            return;
+        }
 
         const isTargetComplete = Boolean(targetCol.isComplete || targetCol.name.toLowerCase() === "completed");
         const isTargetReview = targetCol.name.toLowerCase().includes("review");
 
-        // Optimistic local state update
+        let actualDaysPayload = draggedSubtask.actualDays;
+        if (isMovingAcross) {
+            if (isTargetComplete) {
+                const startDateRef = draggedSubtask.startDate || draggedSubtask.createdAt || new Date();
+                actualDaysPayload = calculateDaySpan(startDateRef, new Date());
+            } else if (draggedSubtask.isCompleted) {
+                actualDaysPayload = 0;
+            }
+        }
+
+        const updatedSubtask = isMovingAcross
+            ? {
+                  ...draggedSubtask,
+                  columnId: targetColId,
+                  isCompleted: isTargetComplete,
+                  actualDays: actualDaysPayload,
+                  acceptanceStatus: isTargetReview ? "PENDING" : "ACCEPTED",
+                  status: isTargetComplete
+                      ? "Completed"
+                      : isTargetReview
+                      ? "InReview"
+                      : targetCol.name.toLowerCase().includes("progress")
+                      ? "InProgress"
+                      : "Backlog",
+              }
+            : draggedSubtask;
+
+        // 1. Target column list
+        const targetList = subtasks
+            .filter((st) => st.id !== draggableId && getSubtaskColumnId(st) === targetColId)
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        targetList.splice(destination.index, 0, updatedSubtask);
+
+        const targetOrders = targetList.map((st, idx) => ({
+            id: st.id,
+            order: idx,
+            columnId: targetColId,
+        }));
+
+        // 2. Source column list (if moved across columns)
+        let sourceOrders: { id: string; order: number; columnId: string }[] = [];
+        if (isMovingAcross) {
+            const sourceList = subtasks
+                .filter((st) => st.id !== draggableId && getSubtaskColumnId(st) === sourceColId)
+                .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            sourceOrders = sourceList.map((st, idx) => ({
+                id: st.id,
+                order: idx,
+                columnId: sourceColId,
+            }));
+        }
+
+        const allOrders = [...targetOrders, ...sourceOrders];
+        const orderMap = new Map(allOrders.map((item) => [item.id, item.order]));
+
+        // Optimistic UI state update
         setSubtasks((prev) =>
             prev.map((st) => {
                 if (st.id === draggableId) {
-                    return {
-                        ...st,
-                        columnId: targetColId,
-                        isCompleted: isTargetComplete,
-                        acceptanceStatus: isTargetReview ? "PENDING" : "ACCEPTED",
-                        status: isTargetComplete
-                            ? "Completed"
-                            : isTargetReview
-                            ? "InReview"
-                            : targetCol.name.toLowerCase().includes("progress")
-                            ? "InProgress"
-                            : "Backlog",
-                    };
+                    return { ...updatedSubtask, order: destination.index };
+                }
+                if (orderMap.has(st.id)) {
+                    return { ...st, order: orderMap.get(st.id)! };
                 }
                 return st;
             })
         );
 
-        if (isTargetComplete) {
+        if (isMovingAcross && isTargetComplete) {
             triggerMicroCelebration({ intensity: "medium" });
-            playFeedback();
+            playFeedback("complete");
+        } else {
+            playFeedback("click");
         }
 
-        const draggedSubtask = subtasks.find((s) => s.id === draggableId);
-        let actualDaysPayload = undefined;
-        if (isTargetComplete) {
-            const startDateRef = draggedSubtask?.startDate || draggedSubtask?.createdAt || new Date();
-            actualDaysPayload = calculateDaySpan(startDateRef, new Date());
-        } else if (draggedSubtask?.isCompleted && !isTargetComplete) {
-            actualDaysPayload = 0;
-        }
-
+        // Persist to database
         try {
-            await api.updateProjectSubtask(projectId, taskId, draggableId, {
-                columnId: targetColId,
-                isCompleted: isTargetComplete,
-                actualDays: actualDaysPayload,
-                completedAt: isTargetComplete ? new Date().toISOString() : null,
-                acceptanceStatus: isTargetReview ? "PENDING" : "ACCEPTED",
-            });
-            toast.success(`Moved to ${targetCol.name}`);
+            if (isMovingAcross) {
+                await api.updateProjectSubtask(projectId, taskId, draggableId, {
+                    columnId: targetColId,
+                    isCompleted: isTargetComplete,
+                    actualDays: actualDaysPayload,
+                    completedAt: isTargetComplete ? new Date().toISOString() : null,
+                    acceptanceStatus: isTargetReview ? "PENDING" : "ACCEPTED",
+                    order: destination.index,
+                });
+            }
+            await api.reorderProjectSubtasks(projectId, taskId, allOrders);
         } catch (err: any) {
-            toast.error(err.message || "Failed to move subtask");
+            toast.error(err.message || "Failed to update subtask order");
             loadProjectDetail();
         }
     };
@@ -1046,9 +1098,9 @@ export default function ProjectTaskDetailPage() {
                             className="flex-1 p-4 flex gap-4 overflow-x-auto overflow-y-hidden"
                         >
                             {columns.map((col, colIndex) => {
-                                const colSubtasks = filteredSubtasks.filter(
-                                    (st) => getSubtaskColumnId(st) === col.id
-                                );
+                                const colSubtasks = filteredSubtasks
+                                    .filter((st) => getSubtaskColumnId(st) === col.id)
+                                    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
                                 const isDoneCol = Boolean(col.isComplete || col.name.toLowerCase().includes("done") || col.name.toLowerCase().includes("completed"));
                                 const isProgressCol = col.name.toLowerCase().includes("progress") || col.name.toLowerCase().includes("doing");
                                 const isReviewCol = col.name.toLowerCase().includes("review") || col.name.toLowerCase().includes("qa");
@@ -1175,6 +1227,7 @@ export default function ProjectTaskDetailPage() {
                                                                         index={idx}
                                                                         currentUser={currentUser}
                                                                         canManageTasks={canManageTasks}
+                                                                        isProjectMember={isProjectMember}
                                                                         candidateAssignees={candidateAssignees}
                                                                         onSelectSubtask={(sub) => {
                                                                             setSubtaskModalData(sub);

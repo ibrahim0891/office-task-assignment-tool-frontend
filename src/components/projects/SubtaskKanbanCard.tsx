@@ -84,6 +84,7 @@ interface SubtaskKanbanCardProps {
     onDeleteSubtask?: (subtaskId: string) => void;
     onReassignSubtask?: (subtaskId: string, newAssigneeId: string) => Promise<void>;
     onToggleComplete?: (subtask: any) => void;
+    isProjectMember?: boolean;
 }
 
 export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
@@ -97,6 +98,7 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
     onDeleteSubtask,
     onReassignSubtask,
     onToggleComplete,
+    isProjectMember = false,
 }) => {
     const [cardMenuId, setCardMenuId] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -105,7 +107,8 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
         subtask.assignedToId === currentUser?.id ||
         subtask.assignedTo?.id === currentUser?.id;
     const canModifyThisSubtask = canModifySubtask(subtask, currentUser, canManageTasks);
-    const isDragDisabled = !canModifyThisSubtask;
+    // Any project collaborator can reorder tasks in the board
+    const isDragDisabled = !(canModifyThisSubtask || isProjectMember);
 
     const assigneeName =
         subtask.assignedTo?.name ||
@@ -165,7 +168,7 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                               }
                             : {}),
                     }}
-                    className={`kanban-task-card group relative p-2.5 bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] flex flex-col gap-2 transition-all text-left corner-brackets-4 ${getPriorityStyle(
+                    className={`kanban-task-card group relative p-2.5 bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] flex flex-col gap-2 transition-colors text-left corner-brackets-4 ${getPriorityStyle(
                         subtask.priority || "MEDIUM"
                     )} ${
                         dragSnapshot.isDragging
@@ -192,7 +195,7 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                         </h4>
 
                         {/* 3-dot menu trigger visible on hover */}
-                        {canModifyThisSubtask && (
+                        {(canModifyThisSubtask || isProjectMember) && (
                             <div
                                 className="relative shrink-0 -mt-0.5 -mr-1"
                                 ref={menuRef}
@@ -225,7 +228,9 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                                             <span>Open Details</span>
                                         </button>
 
-                                        {onDeleteSubtask && (
+
+
+                                        {onDeleteSubtask && canModifyThisSubtask && (
                                             <button
                                                 type="button"
                                                 onClick={() => {
