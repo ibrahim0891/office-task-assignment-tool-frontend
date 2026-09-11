@@ -22,6 +22,7 @@ interface CustomSelectProps {
     searchable?: boolean;
     align?: "left" | "right";
     renderSelected?: (selected: SelectOption) => React.ReactNode;
+    renderFooter?: (closeDropdown: () => void) => React.ReactNode;
 }
 
 export function CustomSelect({
@@ -35,6 +36,7 @@ export function CustomSelect({
     searchable = false,
     align,
     renderSelected,
+    renderFooter,
 }: CustomSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -63,13 +65,14 @@ export function CustomSelect({
             const rect = triggerRef.current.getBoundingClientRect();
             const spaceBelow = window.innerHeight - rect.bottom;
             const openUp = spaceBelow < 220 && rect.top > 220;
-            const width = Math.max(rect.width, 120);
+            const minDropdownWidth = renderFooter ? 220 : 120;
+            const width = Math.max(rect.width, minDropdownWidth);
 
             // Determine horizontal placement (align right if explicitly set or if near right edge)
             let left = rect.left;
             const shouldAlignRight =
                 align === "right" ||
-                (align === undefined && rect.right > window.innerWidth - 120);
+                (align === undefined && rect.right > window.innerWidth - minDropdownWidth);
 
             if (shouldAlignRight) {
                 left = rect.right - width;
@@ -265,6 +268,18 @@ export function CustomSelect({
                                 })
                             )}
                         </div>
+
+                        {renderFooter && (
+                            <div
+                                className="pt-1 mt-0.5 border-t border-[var(--app-border)] shrink-0"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            >
+                                {renderFooter(() => {
+                                    setIsOpen(false);
+                                    setSearch("");
+                                })}
+                            </div>
+                        )}
                     </div>,
                     document.body,
                 )}

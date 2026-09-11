@@ -41,7 +41,13 @@ const PRIORITY_OPTIONS: SelectOption[] = [
 
 function stripHtml(html: string) {
     if (!html) return "";
-    return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+    return html
+        .replace(/<\/(p|li|h[1-6]|div)>/gi, "\n")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<[^>]*>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
 }
 
 function getPriorityDetails(priority: string) {
@@ -228,15 +234,18 @@ function MainTaskGridCard({
                 )}
             </div>
 
-            {/* Description */}
+            {/* Description: specific fixed height with overflow scroll */}
             {cleanDescription ? (
-                <p className="text-xs text-[var(--app-muted)] line-clamp-2 leading-relaxed min-h-[30px]">
+                <div
+                    className="h-[52px] overflow-y-auto pr-1 text-xs text-[var(--app-muted)] leading-relaxed select-text whitespace-pre-line break-words"
+                    onClick={(e) => e.stopPropagation()}
+                >
                     {cleanDescription}
-                </p>
+                </div>
             ) : (
-                <p className="text-xs text-[var(--app-muted)] italic opacity-50 min-h-[30px]">
+                <div className="h-[52px] flex items-start text-xs text-[var(--app-muted)] italic opacity-50 select-none">
                     No description provided
-                </p>
+                </div>
             )}
 
             {/* Subtask Breakdown / Checklist Tracker Box */}

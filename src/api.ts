@@ -1086,6 +1086,41 @@ export const api = {
     return res.json();
   },
 
+  async permanentlyDeleteProject(projectId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/permanent`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to permanently delete project.');
+    }
+    return res.json();
+  },
+
+  async restoreProject(projectId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/restore`, {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to restore project.');
+    }
+    return res.json();
+  },
+
+  async getArchivedProjects(teamId: string): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/projects/archived?teamId=${teamId}`, {
+      headers: {
+        'x-team-id': teamId
+      }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch archived projects.');
+    }
+    return res.json();
+  },
+
   async getProjectAnalytics(projectId: string, startDate?: string): Promise<any> {
     const url = startDate 
       ? `${API_BASE}/projects/${projectId}/analytics?startDate=${startDate}` 

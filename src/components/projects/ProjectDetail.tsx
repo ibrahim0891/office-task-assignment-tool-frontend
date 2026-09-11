@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { 
     LayoutGrid, Users, Calendar, BarChart2, 
     Settings, ChevronLeft, FolderKanban, 
-    Building2, Edit2, FolderGit2
+    Building2, Edit2, FolderGit2, FolderArchive
 } from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
@@ -90,6 +90,38 @@ export default function ProjectDetail() {
                     >
                         ← Back to Projects
                     </Link>
+                </div>
+            </div>
+        );
+    }
+
+    if (project.isDeleted) {
+        return (
+            <div className="flex-1 flex items-center justify-center p-5 bg-[var(--app-bg)]">
+                <div className="text-center flex flex-col items-center gap-3 max-w-sm">
+                    <div className="w-12 h-12 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[var(--app-muted)]">
+                        <FolderArchive className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-[var(--app-text)]">
+                        This Project is Archived
+                    </h2>
+                    <p className="text-xs text-[var(--app-muted)] leading-relaxed">
+                        This project was soft-deleted and moved to the workspace archive. It can be restored or permanently purged from the archive.
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                        <Link
+                            href="/trash"
+                            className="px-3 py-1.5 rounded-[2px] bg-[var(--app-card)] border border-[var(--app-border)] text-xs font-medium text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                        >
+                            Open Archive
+                        </Link>
+                        <Link
+                            href="/projects"
+                            className="px-3 py-1.5 rounded-[2px] text-xs font-medium text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                        >
+                            ← Back to Projects
+                        </Link>
+                    </div>
                 </div>
             </div>
         );

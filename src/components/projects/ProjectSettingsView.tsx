@@ -59,10 +59,10 @@ export default function ProjectSettingsView({ project }: ProjectSettingsViewProp
         try {
             setIsDeleting(true);
             await api.deleteProject(project.id);
-            toast.success("Project deleted successfully.");
+            toast.success("Project moved to archive.");
             router.push("/projects");
         } catch (err: any) {
-            toast.error(err.message || "Failed to delete project.");
+            toast.error(err.message || "Failed to archive project.");
             setIsDeleting(false);
             setConfirmDelete(false);
         }
@@ -464,10 +464,10 @@ export default function ProjectSettingsView({ project }: ProjectSettingsViewProp
                             <>
                                 <div className="max-w-md">
                                     <p className="text-xs font-semibold text-[var(--app-text)]">
-                                        Delete This Project
+                                        Archive This Project
                                     </p>
                                     <p className="text-[11px] text-[var(--app-muted)] mt-1 leading-relaxed">
-                                        Permanently delete <strong className="text-[var(--app-text)] font-semibold">{project.title || project.name}</strong> and all associated main tasks, subtasks, activity feeds, and comments. This action cannot be undone.
+                                        Move <strong className="text-[var(--app-text)] font-semibold">{project.title || project.name}</strong> to the workspace archive. It will be hidden from active views. Only you (the Project Manager) or the Workspace Owner can view, restore, or permanently delete it.
                                     </p>
                                 </div>
 
@@ -486,14 +486,14 @@ export default function ProjectSettingsView({ project }: ProjectSettingsViewProp
                                     ) : (
                                         <Trash2 className="w-3.5 h-3.5" />
                                     )}
-                                    <span>{confirmDelete ? "Confirm Permanent Delete?" : "Delete Project"}</span>
+                                    <span>{confirmDelete ? "Confirm Move to Archive?" : "Move to Archive"}</span>
                                 </button>
                             </>
                         ) : (
                             <div className="flex items-center gap-3 text-[var(--app-muted)] text-xs">
                                 <ShieldAlert className="w-4 h-4 shrink-0 text-[var(--app-muted)]" />
                                 <span>
-                                    Destructive project deletion is restricted exclusively to the Project Manager ({project.manager?.name || "Manager"}).
+                                    Project archiving and deletion is restricted exclusively to the Project Manager ({project.manager?.fullName || project.manager?.name || "Assigned Manager"}).
                                 </span>
                             </div>
                         )}

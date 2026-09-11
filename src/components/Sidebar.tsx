@@ -196,7 +196,7 @@ export default function Sidebar({
                 {
                     id: "trash",
                     href: "/trash",
-                    name: "Trash",
+                    name: "Trash & Archive",
                     icon: Trash2,
                 },
             ],

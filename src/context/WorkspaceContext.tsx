@@ -88,7 +88,7 @@ interface WorkspaceContextType {
     handleRejectProjectInvitation: (invitationId: string) => Promise<void>;
     handleCancelProjectInvitation: (invitationId: string) => Promise<void>;
     handleSendProjectInvitation: (projectId: string, data: { userId?: string; email?: string; role?: string; dailyCapacity?: number }) => Promise<any>;
-    handleCreateFolder: (name: string, emoji?: string) => Promise<void>;
+    handleCreateFolder: (name: string, emoji?: string) => Promise<any>;
     handleUpdateFolder: (id: string, name?: string, emoji?: string) => Promise<void>;
     handleDeleteFolder: (id: string) => Promise<void>;
     isManageFoldersOpen: boolean;
@@ -383,9 +383,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const handleCreateFolder = async (name: string, emoji?: string) => {
         if (!currentTeam) return;
         try {
-            await api.createFolder(currentTeam.id, name, emoji);
+            const res = await api.createFolder(currentTeam.id, name, emoji);
             toast.success(`Folder "${name}" created successfully!`);
             await loadFolders();
+            return res;
         } catch (err: any) {
             toast.error(err.message || "Failed to create folder");
             throw err;

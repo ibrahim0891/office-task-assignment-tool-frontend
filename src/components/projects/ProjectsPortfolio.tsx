@@ -20,10 +20,17 @@ import {
     CheckCircle2,
     SlidersHorizontal,
     ChevronDown,
-    MoreHorizontal
+    MoreHorizontal,
+    MoreVertical,
+    Pencil,
+    FolderArchive
 } from "lucide-react";
+import toast from "react-hot-toast";
+import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import CreateProjectModal from "./CreateProjectModal";
+import EditProjectModal from "./EditProjectModal";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import ManageFoldersTray from "../ManageFoldersTray";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import { usePortfolioSummary } from "../../hooks/useProjectSWR";
@@ -101,7 +108,17 @@ function ProjectRowSkeleton() {
     );
 }
 
-function ProjectCardWrapper({ project }: { project: any }) {
+function ProjectCardWrapper({
+    project,
+    onEdit,
+    onArchive,
+    canArchive = false,
+}: {
+    project: any;
+    onEdit?: () => void;
+    onArchive?: () => void;
+    canArchive?: boolean;
+}) {
     const totalTasks = project.totalTasks !== undefined ? project.totalTasks : (project.tasks?.length || 0);
     const doneTasks = project.doneTasks !== undefined ? project.doneTasks : (project.tasks?.filter((t: any) => t.column?.isComplete || t.status === "Completed" || t.status === "Done").length || 0);
     const overdueTasks = project.overdueTasks !== undefined ? project.overdueTasks : (project.tasks?.filter((t: any) => t.riskLevel === "OVERDUE" || t.riskLevel === "CRITICAL_SLA" || t.riskLevel === "Overdue" || t.riskLevel === "CriticalSLA").length || 0);
@@ -157,11 +174,37 @@ function ProjectCardWrapper({ project }: { project: any }) {
             tasks={project.tasks}
             columns={project.columns}
             assignees={allMembers}
+            onEdit={onEdit}
+            onArchive={onArchive}
+            canArchive={canArchive}
         />
     );
 }
 
-function ProjectListItem({ project }: { project: any }) {
+function ProjectListItem({
+    project,
+    onEdit,
+    onArchive,
+    canArchive = false,
+}: {
+    project: any;
+    onEdit?: () => void;
+    onArchive?: () => void;
+    canArchive?: boolean;
+}) {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!isMenuOpen) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isMenuOpen]);
     const status = calculateProjectHealth(project);
     const totalTasks = project.totalTasks !== undefined ? project.totalTasks : (project.tasks?.length || 0);
     const doneTasks = project.doneTasks !== undefined ? project.doneTasks : (project.tasks?.filter((t: any) => t.column?.isComplete || t.status === "Completed" || t.status === "Done").length || 0);
@@ -350,13 +393,73 @@ function ProjectListItem({ project }: { project: any }) {
 
             {/* Action */}
             <td className="py-4 px-4 text-right whitespace-nowrap">
-                <Link
-                    href={`/projects/${project.id}`}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] hover:text-[var(--color-accent)] text-xs font-semibold rounded-[3px] transition-colors"
-                >
-                    <span>Open</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </Link>
+                <div className="flex items-center justify-end gap-1.5">
+                    <Link
+                        href={`/projects/${project.id}`}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] hover:text-[var(--color-accent)] text-xs font-semibold rounded-[3px] transition-colors"
+                    >
+                        <span>Open</span>
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+
+                    {onEdit && (
+                        <div className="relative inline-block text-left" ref={menuRef}>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setIsMenuOpen((prev) => !prev);
+                                }}
+                                className="p-1.5 rounded-[3px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] border border-transparent hover:border-[var(--app-border)] transition-colors cursor-pointer"
+                                title="Project options"
+                                aria-label="Project options"
+                            >
+                                <MoreVertical className="w-3.5 h-3.5" />
+                            </button>
+
+                            {isMenuOpen && (
+                                <div
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                    }}
+                                    className="absolute right-0 top-full mt-1 z-30 min-w-[140px] bg-[var(--app-card)] border border-[var(--app-border-strong)] rounded-[4px] shadow-float py-1 text-xs select-none text-left"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setIsMenuOpen(false);
+                                            onEdit();
+                                        }}
+                                        className="w-full text-left px-3 py-1.5 flex items-center gap-2 text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                        <span>Edit Project</span>
+                                    </button>
+
+                                    {canArchive && onArchive && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setIsMenuOpen(false);
+                                                onArchive();
+                                            }}
+                                            className="w-full text-left px-3 py-1.5 flex items-center gap-2 text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors cursor-pointer border-t border-[var(--app-border)] mt-0.5 pt-1.5"
+                                        >
+                                            <FolderArchive className="w-3.5 h-3.5 text-[var(--color-error)]" />
+                                            <span>Archive Project</span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </td>
         </tr>
     );
@@ -379,10 +482,28 @@ export default function ProjectsPortfolio() {
     } = useWorkspace();
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [projectToEdit, setProjectToEdit] = useState<any | null>(null);
+    const [projectToArchive, setProjectToArchive] = useState<any | null>(null);
+    const [isArchiving, setIsArchiving] = useState(false);
     const [isManageMenuOpen, setIsManageMenuOpen] = useState(false);
     const manageMenuRef = useRef<HTMLDivElement>(null);
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const { summary, isLoading: isSummaryLoading } = usePortfolioSummary(currentTeam?.id, currentUser?.id);
+
+    const handleConfirmArchive = async () => {
+        if (!projectToArchive) return;
+        setIsArchiving(true);
+        try {
+            await api.deleteProject(projectToArchive.id);
+            toast.success(`Project "${projectToArchive.title || projectToArchive.name}" moved to archive.`);
+            setProjectToArchive(null);
+            await loadProjects();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to archive project.");
+        } finally {
+            setIsArchiving(false);
+        }
+    };
     
     // Filter & Search states
     const [searchQuery, setSearchQuery] = useState("");
@@ -927,9 +1048,36 @@ export default function ProjectsPortfolio() {
                             </div>
                         ) : viewMode === "grid" ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {filteredProjects.map((project) => (
-                                    <ProjectCardWrapper key={project.id} project={project} />
-                                ))}
+                                {filteredProjects.map((project) => {
+                                    const isManager = Boolean(
+                                        currentUser?.id && (
+                                            project.managerId === currentUser.id ||
+                                            project.manager?.id === currentUser.id ||
+                                            project.creatorId === currentUser.id
+                                        )
+                                    );
+
+                                    const isLeader = Boolean(
+                                        (userRole || "").toUpperCase() === "LEADER" ||
+                                        project.members?.some((m: any) => 
+                                            (m.userId === currentUser?.id || m.user?.id === currentUser?.id) && 
+                                            (m.role === "LEADER" || m.role === "Leader")
+                                        )
+                                    );
+
+                                    const canEdit = isManager || isLeader;
+                                    const canArchive = isManager;
+
+                                    return (
+                                        <ProjectCardWrapper
+                                            key={project.id}
+                                            project={project}
+                                            onEdit={canEdit ? () => setProjectToEdit(project) : undefined}
+                                            onArchive={canArchive ? () => setProjectToArchive(project) : undefined}
+                                            canArchive={canArchive}
+                                        />
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div className="border border-[var(--app-border)] rounded-[var(--radius-md,8px)] bg-[var(--app-card)] overflow-hidden shadow-card">
@@ -946,9 +1094,36 @@ export default function ProjectsPortfolio() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredProjects.map((project) => (
-                                            <ProjectListItem key={project.id} project={project} />
-                                        ))}
+                                        {filteredProjects.map((project) => {
+                                            const isManager = Boolean(
+                                                currentUser?.id && (
+                                                    project.managerId === currentUser.id ||
+                                                    project.manager?.id === currentUser.id ||
+                                                    project.creatorId === currentUser.id
+                                                )
+                                            );
+
+                                            const isLeader = Boolean(
+                                                (userRole || "").toUpperCase() === "LEADER" ||
+                                                project.members?.some((m: any) => 
+                                                    (m.userId === currentUser?.id || m.user?.id === currentUser?.id) && 
+                                                    (m.role === "LEADER" || m.role === "Leader")
+                                                )
+                                            );
+
+                                            const canEdit = isManager || isLeader;
+                                            const canArchive = isManager;
+
+                                            return (
+                                                <ProjectListItem
+                                                    key={project.id}
+                                                    project={project}
+                                                    onEdit={canEdit ? () => setProjectToEdit(project) : undefined}
+                                                    onArchive={canArchive ? () => setProjectToArchive(project) : undefined}
+                                                    canArchive={canArchive}
+                                                />
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -960,6 +1135,32 @@ export default function ProjectsPortfolio() {
             <CreateProjectModal
                 isOpen={isCreateOpen}
                 onClose={() => setIsCreateOpen(false)}
+            />
+
+            {/* Edit Project Modal */}
+            {projectToEdit && (
+                <EditProjectModal
+                    isOpen={Boolean(projectToEdit)}
+                    onClose={() => setProjectToEdit(null)}
+                    project={projectToEdit}
+                    onSaved={async () => {
+                        setProjectToEdit(null);
+                        await loadProjects();
+                    }}
+                />
+            )}
+
+            {/* Confirm Archive Dialog */}
+            <ConfirmDialog
+                isOpen={Boolean(projectToArchive)}
+                title="Archive Project?"
+                description={`Move "${projectToArchive?.title || projectToArchive?.name}" to the workspace archive? It will be removed from active project boards. Only the Project Manager and Workspace Owner can view, restore, or permanently delete it.`}
+                confirmText="Move to Archive"
+                cancelText="Cancel"
+                isDanger={true}
+                isLoading={isArchiving}
+                onConfirm={handleConfirmArchive}
+                onClose={() => setProjectToArchive(null)}
             />
 
             {/* Manage Folders Tray (Slide-out) */}

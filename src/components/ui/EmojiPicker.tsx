@@ -8,6 +8,8 @@ interface EmojiPickerProps {
     onChange: (emoji: string) => void;
     disabled?: boolean;
     buttonClassName?: string;
+    className?: string;
+    renderTrigger?: (emoji: string, isOpen: boolean) => React.ReactNode;
 }
 
 interface FetchedEmoji {
@@ -59,6 +61,8 @@ export function EmojiPicker({
     onChange,
     disabled = false,
     buttonClassName,
+    className = "",
+    renderTrigger,
 }: EmojiPickerProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -88,9 +92,15 @@ export function EmojiPicker({
                 topPosition = rect.top + window.scrollY - popoverHeight - 12;
             }
 
+            let leftPosition = rect.left + window.scrollX;
+            const popoverWidth = 350;
+            if (leftPosition + popoverWidth > window.innerWidth - 12) {
+                leftPosition = Math.max(12, window.innerWidth - popoverWidth - 12);
+            }
+
             setCoords({
                 top: topPosition,
-                left: rect.left + window.scrollX,
+                left: leftPosition,
             });
         }
     };
@@ -194,7 +204,7 @@ export function EmojiPicker({
     );
 
     return (
-        <div ref={containerRef} className="relative inline-block text-left">
+        <div ref={containerRef} className={`relative text-left ${className || "inline-block"}`}>
             <button
                 ref={buttonRef}
                 type="button"
@@ -202,7 +212,7 @@ export function EmojiPicker({
                 onClick={() => setIsOpen(!isOpen)}
                 className={`rounded-[2px] border border-[var(--app-border)] bg-[var(--app-card)] hover:border-[var(--color-accent)] hover:bg-[var(--app-hover-bg)] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed relative emoji-font ${buttonClassName || "w-[46px] h-[46px] text-lg corner-brackets-4"}`}
             >
-                {value}
+                {renderTrigger ? renderTrigger(value, isOpen) : value}
             </button>
 
             {isOpen && mounted && typeof document !== "undefined" && createPortal(

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Calendar, Building2, FolderKanban } from "lucide-react";
+import { Calendar, Building2, FolderKanban, MoreVertical, Pencil, FolderArchive } from "lucide-react";
 import { UserAvatar } from "../ui/UserAvatar";
-import { calculateRemainingDays, extractDateString, parseLocalDate } from "../../utils/date";
+import { calculateRemainingDays, extractDateString, parseLocalDate, calculateDaySpan, formatDaySpan } from "../../utils/date";
 
 import { calculateProjectHealth } from "../../utils/projectProgress";
 
@@ -26,6 +26,9 @@ export interface TaskCardProps {
     assignees?: Array<{ id: string; name: string; avatarUrl?: string | null; role?: string }>;
     onClick?: () => void;
     href?: string;
+    onEdit?: () => void;
+    onArchive?: () => void;
+    canArchive?: boolean;
 }
 
 function formatShortDateRange(start?: string | Date | null, end?: string | Date | null): string {
@@ -58,6 +61,9 @@ export function ProjectCard({
     assignees = [],
     onClick,
     href,
+    onEdit,
+    onArchive,
+    canArchive = false,
 }: TaskCardProps) {
     const health = useMemo(() => {
         return calculateProjectHealth({
@@ -75,9 +81,36 @@ export function ProjectCard({
     }, [status, startDate, endDate, totalTasks, completedTasks, overdueTasks, progress, tasks, columns]);
 
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!isMenuOpen) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isMenuOpen]);
+
     const dateRange = formatShortDateRange(startDate, endDate);
-    const cleanDesc = description && description.replace(/<[^>]*>/g, "").trim();
-    const isLongDesc = Boolean(cleanDesc && (cleanDesc.length > 90 || cleanDesc.includes("\n")));
+    const durationDays = useMemo(() => {
+        if (!startDate || !endDate) return null;
+        return calculateDaySpan(startDate, endDate);
+    }, [startDate, endDate]);
+    const cleanDesc = useMemo(() => {
+        if (!description) return "";
+        return description
+            .replace(/<\/(p|li|h[1-6]|div)>/gi, "\n")
+            .replace(/<br\s*\/?>/gi, "\n")
+            .replace(/<[^>]*>/g, "")
+            .replace(/&nbsp;/g, " ")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim();
+    }, [description]);
+    const isLongDesc = Boolean(cleanDesc && (cleanDesc.length > 85 || cleanDesc.includes("\n")));
 
     const cardContent = (
         <div
@@ -87,11 +120,72 @@ export function ProjectCard({
             {/* Top & Middle: Title, Meta (Team & Overdue status) and Description */}
             <div className="flex flex-col gap-2 min-w-0">
                 {/* 1. Title Row */}
-                <div className="flex items-start gap-2 min-w-0">
-                    {emoji && <span className="emoji-font text-base shrink-0 leading-none mt-0.5">{emoji}</span>}
-                    <h3 className="text-sm sm:text-[14.5px] font-semibold text-[var(--app-text)] tracking-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-2 min-w-0 flex-1 leading-snug break-words" title={title}>
-                        {title}
-                    </h3>
+                <div className="flex items-start justify-between gap-2 min-w-0">
+                    <div className="flex items-start gap-2 min-w-0 flex-1">
+                        {emoji && <span className="emoji-font text-base shrink-0 leading-none mt-0.5">{emoji}</span>}
+                        <h3 className="text-sm sm:text-[14.5px] font-semibold text-[var(--app-text)] tracking-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-2 min-w-0 flex-1 leading-snug break-words" title={title}>
+                            {title}
+                        </h3>
+                    </div>
+
+                    {/* Ellipsis menu button */}
+                    {onEdit && (
+                        <div className="relative shrink-0 -mr-1 -mt-0.5" ref={menuRef}>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setIsMenuOpen((prev) => !prev);
+                                }}
+                                className="p-1 rounded-[3px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer"
+                                title="Project actions"
+                                aria-label="Project actions"
+                            >
+                                <MoreVertical className="w-4 h-4" />
+                            </button>
+
+                            {isMenuOpen && (
+                                <div
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                    }}
+                                    className="absolute right-0 top-full mt-1 z-30 min-w-[140px] bg-[var(--app-card)] border border-[var(--app-border-strong)] rounded-[4px] shadow-float py-1 text-xs select-none"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setIsMenuOpen(false);
+                                            onEdit();
+                                        }}
+                                        className="w-full text-left px-3 py-1.5 flex items-center gap-2 text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                        <span>Edit Project</span>
+                                    </button>
+
+                                    {canArchive && onArchive && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setIsMenuOpen(false);
+                                                onArchive();
+                                            }}
+                                            className="w-full text-left px-3 py-1.5 flex items-center gap-2 text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors cursor-pointer border-t border-[var(--app-border)] mt-0.5 pt-1.5"
+                                        >
+                                            <FolderArchive className="w-3.5 h-3.5 text-[var(--color-error)]" />
+                                            <span>Archive Project</span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* 2. Team Name (Left) & Dynamic Status / Overdue (Right): Simple Minimal Text without background or shadows */}
@@ -115,13 +209,20 @@ export function ProjectCard({
                     </span>
                 </div>
 
-                {/* 3. Description */}
+                {/* 3. Description: fixed height with overflow scroll when expanded */}
                 {cleanDesc ? (
                     isLongDesc ? (
                         <div className="text-xs text-[var(--app-muted)] leading-relaxed mt-0.5 break-words">
                             {isExpanded ? (
-                                <>
-                                    <div dangerouslySetInnerHTML={{ __html: description! }} />
+                                <div className="flex flex-col gap-1">
+                                    <div
+                                        className="h-[80px] overflow-y-auto pr-1 text-xs text-[var(--app-muted)] leading-relaxed break-words select-text [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                        }}
+                                        dangerouslySetInnerHTML={{ __html: description! }}
+                                    />
                                     <button
                                         type="button"
                                         onClick={(e) => {
@@ -129,11 +230,11 @@ export function ProjectCard({
                                             e.stopPropagation();
                                             setIsExpanded(false);
                                         }}
-                                        className="text-[var(--color-accent)] font-medium hover:underline text-[11px] cursor-pointer mt-1 inline-block"
+                                        className="text-[var(--color-accent)] font-medium hover:underline text-[11px] cursor-pointer self-start"
                                     >
                                         see less
                                     </button>
-                                </>
+                                </div>
                             ) : (
                                 <p className="line-clamp-2">
                                     <span>{cleanDesc.slice(0, 85).trim()}... </span>
@@ -152,7 +253,10 @@ export function ProjectCard({
                             )}
                         </div>
                     ) : (
-                        <p className="text-xs text-[var(--app-muted)] leading-relaxed line-clamp-2 break-words mt-0.5" dangerouslySetInnerHTML={{ __html: description! }} />
+                        <p
+                            className="text-xs text-[var(--app-muted)] leading-relaxed line-clamp-2 break-words mt-0.5"
+                            dangerouslySetInnerHTML={{ __html: description! }}
+                        />
                     )
                 ) : (
                     <p className="text-xs italic text-[var(--app-muted)]/60 leading-relaxed line-clamp-2 mt-0.5">
@@ -165,9 +269,17 @@ export function ProjectCard({
             <div className="flex items-center justify-between pt-2.5 border-t border-[var(--app-border)] text-[11px] text-[var(--app-muted)]">
                 <div className="flex items-center gap-2.5 min-w-0">
                     {dateRange && (
-                        <span className="flex items-center gap-1 font-medium bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] shrink-0">
+                        <span
+                            className="flex items-center gap-1 font-medium bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] shrink-0"
+                            title={startDate && endDate && durationDays ? `Timeline: ${dateRange} (${formatDaySpan(durationDays)})` : dateRange}
+                        >
                             <Calendar className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
                             <span className="truncate">{dateRange}</span>
+                            {durationDays && (
+                                <span className="font-semibold text-[var(--app-text)] tabular-nums ml-0.5">
+                                    • {durationDays}d
+                                </span>
+                            )}
                         </span>
                     )}
                     <span className="font-medium shrink-0">

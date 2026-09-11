@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import toast from "react-hot-toast";
-import { Loader2, Clock, Calendar } from "lucide-react";
+import { Loader2, Clock, Calendar, Plus, Check, ChevronDown } from "lucide-react";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect } from "../ui/CustomSelect";
+import { EmojiPicker } from "../ui/EmojiPicker";
 import ModalWrapper from "../ui/ModalWrapper";
 import { calculateDaySpan, formatDaySpan } from "../../utils/date";
 
@@ -17,20 +18,8 @@ interface CreateProjectModalProps {
     onClose: () => void;
 }
 
-const EMOJI_OPTIONS = [
-    { value: "📁", label: "📁 Folder" },
-    { value: "🚀", label: "🚀 Rocket" },
-    { value: "💻", label: "💻 Coding" },
-    { value: "📊", label: "📊 Marketing" },
-    { value: "🎨", label: "🎨 Design" },
-    { value: "🔒", label: "🔒 Security" },
-    { value: "⚙️", label: "⚙️ Tooling" },
-    { value: "📣", label: "📣 Launch" },
-    { value: "💡", label: "💡 Innovation" },
-];
-
 export default function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps) {
-    const { handleCreateProject, folders } = useWorkspace();
+    const { handleCreateProject, folders, handleCreateFolder } = useWorkspace();
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -39,6 +28,31 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Direct inline folder creation state
+    const [isInlineCreatingFolder, setIsInlineCreatingFolder] = useState(false);
+    const [newFolderName, setNewFolderName] = useState("");
+    const [newFolderEmoji, setNewFolderEmoji] = useState("📁");
+    const [isCreatingFolderLoading, setIsCreatingFolderLoading] = useState(false);
+
+    const handleQuickCreateFolder = async (closeDropdown: () => void) => {
+        const trimmedName = newFolderName.trim();
+        if (!trimmedName || isCreatingFolderLoading) return;
+        setIsCreatingFolderLoading(true);
+        try {
+            const created = await handleCreateFolder(trimmedName, newFolderEmoji);
+            if (created && created.id) {
+                setFolderId(created.id);
+            }
+            setIsInlineCreatingFolder(false);
+            setNewFolderName("");
+            closeDropdown();
+        } catch (err: any) {
+            console.error("Quick create folder error:", err);
+        } finally {
+            setIsCreatingFolderLoading(false);
+        }
+    };
 
     React.useEffect(() => {
         if (folders.length > 0 && !folderId) {
@@ -134,21 +148,111 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
 
                 <div className="grid grid-cols-2 gap-2">
                     <div className="flex flex-col gap-1">
-                        <label className="eyebrow">Folder</label>
+                        <div className="flex items-center justify-between">
+                            <label className="eyebrow">Folder</label>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsInlineCreatingFolder(true);
+                                }}
+                                className="text-[10px] text-[var(--color-accent)] hover:underline font-medium cursor-pointer"
+                            >
+                                + New
+                            </button>
+                        </div>
                         <CustomSelect
                             options={folders.map(f => ({ value: f.id, label: (f.emoji || "📁") + "  " + f.name }))}
                             value={folderId}
                             onChange={(val) => setFolderId(val)}
                             className="w-full"
+                            renderFooter={(closeDropdown) => (
+                                <div className="p-1">
+                                    {!isInlineCreatingFolder ? (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setIsInlineCreatingFolder(true);
+                                            }}
+                                            className="w-full px-2 py-1.5 text-[11px] font-medium text-[var(--color-accent)] hover:bg-[var(--app-hover-bg)] rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            <span>Create new folder</span>
+                                        </button>
+                                    ) : (
+                                        <div
+                                            className="p-1.5 flex flex-col gap-1.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px]"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-xs shrink-0 select-none">📁</span>
+                                                <input
+                                                    type="text"
+                                                    autoFocus
+                                                    placeholder="Folder name..."
+                                                    value={newFolderName}
+                                                    onChange={(e) => setNewFolderName(e.target.value)}
+                                                    onKeyDown={async (e) => {
+                                                        if (e.key === "Enter") {
+                                                            e.preventDefault();
+                                                            await handleQuickCreateFolder(closeDropdown);
+                                                        } else if (e.key === "Escape") {
+                                                            e.preventDefault();
+                                                            setIsInlineCreatingFolder(false);
+                                                            setNewFolderName("");
+                                                        }
+                                                    }}
+                                                    className="flex-1 min-w-0 bg-[var(--app-card)] border border-[var(--app-border)] focus:border-[var(--app-border-strong)] rounded-[2px] px-2 py-1 text-[11px] text-[var(--app-text)] placeholder-[var(--app-muted)] focus:outline-none"
+                                                />
+                                            </div>
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsInlineCreatingFolder(false);
+                                                        setNewFolderName("");
+                                                    }}
+                                                    className="px-2 py-0.5 text-[10px] text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[1px] hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={!newFolderName.trim() || isCreatingFolderLoading}
+                                                    onClick={() => handleQuickCreateFolder(closeDropdown)}
+                                                    className="px-2.5 py-0.5 text-[10px] font-medium bg-[var(--app-card)] border border-[var(--app-border-strong)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] rounded-[1px] transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                                                >
+                                                    {isCreatingFolderLoading ? (
+                                                        <Loader2 className="w-2.5 h-2.5 animate-spin shrink-0" />
+                                                    ) : (
+                                                        <Check className="w-2.5 h-2.5 shrink-0" />
+                                                    )}
+                                                    <span>Create</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         />
                     </div>
                     <div className="flex flex-col gap-1">
                         <label className="eyebrow">Emoji</label>
-                        <CustomSelect
-                            options={EMOJI_OPTIONS}
+                        <EmojiPicker
                             value={emoji}
                             onChange={(val) => setEmoji(val)}
+                            disabled={isSubmitting}
                             className="w-full"
+                            buttonClassName="w-full h-[31px] px-2.5 py-1 border border-[#E5E5E3] bg-white hover:border-[#1A1A1A] rounded-[3px] text-xs flex items-center justify-between transition-colors cursor-pointer"
+                            renderTrigger={(selectedEmoji) => (
+                                <div className="flex items-center justify-between w-full">
+                                    <span className="emoji-font text-sm leading-none flex items-center gap-1.5">
+                                        <span>{selectedEmoji || "📁"}</span>
+                                    </span>
+                                    <ChevronDown className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                </div>
+                            )}
                         />
                     </div>
                 </div>
