@@ -27,6 +27,12 @@ export default function CreateProjectTaskModal({
     defaultColumnId,
     onRefresh,
 }: CreateProjectTaskModalProps) {
+    const lastProjectRef = React.useRef(project);
+    if (project) {
+        lastProjectRef.current = project;
+    }
+    const currentProject = project || lastProjectRef.current;
+
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [columnId, setColumnId] = useState("");
@@ -36,29 +42,29 @@ export default function CreateProjectTaskModal({
     const [dueDate, setDueDate] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const columns = (project?.columns || []).slice().sort((a: any, b: any) => a.order - b.order);
+    const columns = (currentProject?.columns || []).slice().sort((a: any, b: any) => a.order - b.order);
 
     // Calculate project bounds (YYYY-MM-DD)
-    const projMinDate = project?.startDate ? new Date(project.startDate).toISOString().split("T")[0] : "";
-    const projMaxDate = project?.endDate ? new Date(project.endDate).toISOString().split("T")[0] : "";
+    const projMinDate = currentProject?.startDate ? new Date(currentProject.startDate).toISOString().split("T")[0] : "";
+    const projMaxDate = currentProject?.endDate ? new Date(currentProject.endDate).toISOString().split("T")[0] : "";
 
     // Consolidate project members and manager into selectable list
     const availableMembers: any[] = [];
     const seenIds = new Set<string>();
 
-    if (project?.manager) {
-        seenIds.add(project.manager.id);
+    if (currentProject?.manager) {
+        seenIds.add(currentProject.manager.id);
         availableMembers.push({
-            id: project.manager.id,
-            name: project.manager.name,
-            email: project.manager.email,
-            avatarUrl: project.manager.avatarUrl || null,
+            id: currentProject.manager.id,
+            name: currentProject.manager.name,
+            email: currentProject.manager.email,
+            avatarUrl: currentProject.manager.avatarUrl || null,
             role: "Manager",
         });
     }
 
-    if (project?.members) {
-        project.members.forEach((m: any) => {
+    if (currentProject?.members) {
+        currentProject.members.forEach((m: any) => {
             if (m.user && !seenIds.has(m.userId)) {
                 seenIds.add(m.userId);
                 availableMembers.push({
@@ -73,7 +79,7 @@ export default function CreateProjectTaskModal({
     }
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && currentProject) {
             setTitle("");
             setDescription("");
             setColumnId(defaultColumnId || (columns[0]?.id || ""));
@@ -102,9 +108,9 @@ export default function CreateProjectTaskModal({
             }
             setDueDate(dueStr);
         }
-    }, [isOpen, defaultColumnId, project?.startDate, project?.endDate]);
+    }, [isOpen, defaultColumnId, currentProject?.startDate, currentProject?.endDate]);
 
-    if (!isOpen) return null;
+    if (!currentProject) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

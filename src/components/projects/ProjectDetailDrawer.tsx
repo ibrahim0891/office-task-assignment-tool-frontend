@@ -42,12 +42,18 @@ interface ProjectDetailDrawerProps {
 export default function ProjectDetailDrawer({
     isOpen,
     onClose,
-    project,
+    project: incomingProject,
     currentUser,
     userRole,
     canEdit = false,
     onEditClick,
 }: ProjectDetailDrawerProps) {
+    const lastProjectRef = React.useRef(incomingProject);
+    if (incomingProject) {
+        lastProjectRef.current = incomingProject;
+    }
+    const project = incomingProject || lastProjectRef.current;
+
     if (!project) return null;
 
     const status = calculateProjectHealth(project);

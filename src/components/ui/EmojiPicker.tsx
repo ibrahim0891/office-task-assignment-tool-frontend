@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { Skeleton } from "./Skeleton";
 
 interface EmojiPickerProps {
     value: string;
@@ -238,7 +239,13 @@ export function EmojiPicker({
                     </div>
 
                     {/* Category Tabs (hidden during search) */}
-                    {!searchQuery && !isLoading && (
+                    {isLoading ? (
+                        <div className="flex gap-1.5 overflow-x-auto border-b border-[var(--app-border)] pb-2 scrollbar-none shrink-0 select-none">
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <Skeleton key={i} className="w-8 h-8 rounded-[2px] shrink-0" />
+                            ))}
+                        </div>
+                    ) : !searchQuery ? (
                         <div className="flex gap-1.5 overflow-x-auto border-b border-[var(--app-border)] pb-2 scrollbar-none shrink-0 select-none">
                             {(Object.keys(fetchedCategories).length > 0
                                 ? Object.keys(fetchedCategories)
@@ -262,21 +269,29 @@ export function EmojiPicker({
                                 );
                             })}
                         </div>
-                    )}
+                    ) : null}
 
                     {/* Category Title */}
                     <div className="text-left shrink-0">
-                        <span className="text-[8px] font-bold capitalize   text-[var(--app-muted)]">
-                            {searchQuery ? "Search Results" : formatCategoryName(activeTab)}
-                        </span>
+                        {isLoading ? (
+                            <Skeleton className="w-24 h-2.5 rounded-[2px]" />
+                        ) : (
+                            <span className="text-[8px] font-bold capitalize text-[var(--app-muted)]">
+                                {searchQuery ? "Search Results" : formatCategoryName(activeTab)}
+                            </span>
+                        )}
                     </div>
 
                     {/* Scrollable Emojis Grid */}
                     <div className="flex-1 min-h-0">
                         {isLoading ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-[10px] text-[var(--app-muted)] gap-2">
-                                <div className="w-4 h-4 border-2 border-[var(--app-muted)] border-t-transparent rounded-full animate-spin" />
-                                <span>Loading all emojis...</span>
+                            <div className="grid grid-cols-8 gap-1 overflow-hidden max-h-[190px] pr-0.5">
+                                {Array.from({ length: 32 }).map((_, i) => (
+                                    <Skeleton
+                                        key={i}
+                                        className="w-[34px] h-[34px] rounded-[2px]"
+                                    />
+                                ))}
                             </div>
                         ) : (
                             <div className="grid grid-cols-8 gap-1 overflow-y-auto max-h-[190px] pr-0.5 scrollbar-thin">

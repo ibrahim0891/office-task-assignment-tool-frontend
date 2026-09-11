@@ -61,6 +61,15 @@ export default function GlobalModals() {
     const activeTask = tasks.find((t) => t.id === selectedTaskId);
     const modalTask = directTask?.id === selectedTaskId ? directTask : activeTask;
 
+    const [lastOpenedTask, setLastOpenedTask] = React.useState<any>(null);
+    React.useEffect(() => {
+        if (modalTask) {
+            setLastOpenedTask(modalTask);
+        }
+    }, [modalTask]);
+
+    const activeModalTask = modalTask || lastOpenedTask;
+
     const handleSelectTaskFromNotification = async (id: string, initialTab?: "details" | "comments" | "description" | "checklist" | "attachments") => {
         if (!id) return;
         if (id.startsWith("project:")) {
@@ -113,22 +122,22 @@ export default function GlobalModals() {
             />
 
             {/* Task Detail Modal Overlay */}
-            {selectedTaskId && modalTask && (
+            {activeModalTask && currentUser && (
                 <TaskModal
-                    task={modalTask}
-                    isOpen={!!selectedTaskId}
+                    task={activeModalTask}
+                    isOpen={Boolean(selectedTaskId && modalTask)}
                     onClose={() => {
                         setSelectedTaskId(null);
                         setDirectTask(null);
                     }}
                     columns={columns}
                     teamMembers={teamMembers}
-                    currentUser={currentUser!}
+                    currentUser={currentUser}
                     userRole={userRole}
                     onRefresh={async () => {
                         loadTasks();
                         loadTeamMetadata();
-                        if (directTask?.id === selectedTaskId) {
+                        if (selectedTaskId && directTask?.id === selectedTaskId) {
                             try {
                                 const refreshed = await api.getTask(selectedTaskId, currentTeam?.id);
                                 setDirectTask(refreshed);

@@ -102,13 +102,25 @@ function getDerivedStatus(task: any, columnMap: Record<string, any>) {
 export default function MainTaskDetailDrawer({
     isOpen,
     onClose,
-    task,
-    project,
+    task: incomingTask,
+    project: incomingProject,
     columnMap,
     canEdit = false,
     onEditClick,
     onOpenBoard,
 }: MainTaskDetailDrawerProps) {
+    const lastTaskRef = React.useRef(incomingTask);
+    if (incomingTask) {
+        lastTaskRef.current = incomingTask;
+    }
+    const task = incomingTask || lastTaskRef.current;
+
+    const lastProjectRef = React.useRef(incomingProject);
+    if (incomingProject) {
+        lastProjectRef.current = incomingProject;
+    }
+    const project = incomingProject || lastProjectRef.current;
+
     if (!task) return null;
 
     const subtasks = task.subtasks || [];

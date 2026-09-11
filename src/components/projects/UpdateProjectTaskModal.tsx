@@ -40,6 +40,18 @@ export default function UpdateProjectTaskModal({
     onRefresh,
     onTaskDeleted,
 }: UpdateProjectTaskModalProps) {
+    const lastTaskRef = React.useRef(task);
+    if (task) {
+        lastTaskRef.current = task;
+    }
+    const currentTask = task || lastTaskRef.current;
+
+    const lastProjectRef = React.useRef(project);
+    if (project) {
+        lastProjectRef.current = project;
+    }
+    const currentProject = project || lastProjectRef.current;
+
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [columnId, setColumnId] = useState("");
@@ -51,27 +63,27 @@ export default function UpdateProjectTaskModal({
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const columns = (project?.columns || []).slice().sort((a: any, b: any) => a.order - b.order);
+    const columns = (currentProject?.columns || []).slice().sort((a: any, b: any) => a.order - b.order);
 
-    const projMinDate = project?.startDate ? formatDateInput(project.startDate) : "";
-    const projMaxDate = project?.endDate ? formatDateInput(project.endDate) : "";
+    const projMinDate = currentProject?.startDate ? formatDateInput(currentProject.startDate) : "";
+    const projMaxDate = currentProject?.endDate ? formatDateInput(currentProject.endDate) : "";
 
     const availableMembers: any[] = [];
     const seenIds = new Set<string>();
 
-    if (project?.manager) {
-        seenIds.add(project.manager.id);
+    if (currentProject?.manager) {
+        seenIds.add(currentProject.manager.id);
         availableMembers.push({
-            id: project.manager.id,
-            name: project.manager.name,
-            email: project.manager.email,
-            avatarUrl: project.manager.avatarUrl || null,
+            id: currentProject.manager.id,
+            name: currentProject.manager.name,
+            email: currentProject.manager.email,
+            avatarUrl: currentProject.manager.avatarUrl || null,
             role: "Manager",
         });
     }
 
-    if (project?.members) {
-        project.members.forEach((m: any) => {
+    if (currentProject?.members) {
+        currentProject.members.forEach((m: any) => {
             if (m.user && !seenIds.has(m.userId)) {
                 seenIds.add(m.userId);
                 availableMembers.push({
@@ -86,25 +98,25 @@ export default function UpdateProjectTaskModal({
     }
 
     useEffect(() => {
-        if (task && isOpen) {
-            setTitle(task.title || "");
-            setDescription(task.description || "");
-            setColumnId(task.columnId || (columns[0]?.id || ""));
-            setPriority(task.priority || "MEDIUM");
-            setStartDate(formatDateInput(task.startDate));
-            setDueDate(formatDateInput(task.dueDate));
+        if (currentTask && isOpen) {
+            setTitle(currentTask.title || "");
+            setDescription(currentTask.description || "");
+            setColumnId(currentTask.columnId || (columns[0]?.id || ""));
+            setPriority(currentTask.priority || "MEDIUM");
+            setStartDate(formatDateInput(currentTask.startDate));
+            setDueDate(formatDateInput(currentTask.dueDate));
             setShowDeleteConfirm(false);
 
-            if (Array.isArray(task.assignees)) {
-                const ids = task.assignees.map((a: any) => a.userId || a.user?.id || a.id).filter(Boolean);
+            if (Array.isArray(currentTask.assignees)) {
+                const ids = currentTask.assignees.map((a: any) => a.userId || a.user?.id || a.id).filter(Boolean);
                 setSelectedAssigneeIds(ids);
             } else {
                 setSelectedAssigneeIds([]);
             }
         }
-    }, [task, isOpen]);
+    }, [currentTask, isOpen]);
 
-    if (!isOpen || !task) return null;
+    if (!currentTask || !currentProject) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -143,7 +155,7 @@ export default function UpdateProjectTaskModal({
         try {
             setLoading(true);
             const calculatedEstimatedDays = calculateDaySpan(startDate, dueDate);
-            await api.updateProjectTask(project.id, task.id, {
+            await api.updateProjectTask(currentProject.id, currentTask.id, {
                 title: title.trim(),
                 description: description.trim(),
                 columnId: targetColId,
@@ -167,7 +179,7 @@ export default function UpdateProjectTaskModal({
     const handleDeleteTask = async () => {
         try {
             setIsDeleting(true);
-            await api.deleteProjectTask(project.id, task.id);
+            await api.deleteProjectTask(currentProject.id, currentTask.id);
             toast.success("Main task deleted.");
             onClose();
             if (onTaskDeleted) {

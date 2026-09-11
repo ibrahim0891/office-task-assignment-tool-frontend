@@ -103,7 +103,7 @@ interface TaskModalProps {
 }
 
 export default function TaskModal({
-    task,
+    task: incomingTask,
     isOpen,
     onClose,
     columns,
@@ -113,18 +113,24 @@ export default function TaskModal({
     onRefresh,
     initialTab = "details",
 }: TaskModalProps) {
+    const lastTaskRef = React.useRef(incomingTask);
+    if (incomingTask) {
+        lastTaskRef.current = incomingTask;
+    }
+    const task = incomingTask || lastTaskRef.current;
+
     const { openMemberProfile, commentUpdateTrigger } = useWorkspace();
     // Form Local State (prevents auto-saving on every keystroke)
-    const [title, setTitle] = useState(task.title);
-    const [description, setDescription] = useState(task.description || "");
-    const [columnId, setColumnId] = useState(task.columnId);
-    const [priority, setPriority] = useState(task.priority);
-    const [assignedToId, setAssignedToId] = useState(task.assignedToId);
+    const [title, setTitle] = useState(task?.title || "");
+    const [description, setDescription] = useState(task?.description || "");
+    const [columnId, setColumnId] = useState(task?.columnId || "");
+    const [priority, setPriority] = useState(task?.priority || "Medium");
+    const [assignedToId, setAssignedToId] = useState(task?.assignedToId || "");
     const [dateStr, setDateStr] = useState(
-        task.date ? task.date.split("T")[0] : "",
+        task?.date ? task.date.split("T")[0] : "",
     );
     const [dueDateStr, setDueDateStr] = useState(
-        task.dueDate ? task.dueDate.split("T")[0] : "",
+        task?.dueDate ? task.dueDate.split("T")[0] : "",
     );
 
     const [isSaving, setIsSaving] = useState(false);
@@ -195,7 +201,7 @@ export default function TaskModal({
     const [isSendingComment, setIsSendingComment] = useState(false);
     const [hiddenCommentIds, setHiddenCommentIds] = useState<string[]>([]);
     const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(() =>
-        sortChecklist(task.checklist || []),
+        sortChecklist(task?.checklist || []),
     );
     const [newSubtask, setNewSubtask] = useState("");
     const checklistInputRef = useRef<HTMLInputElement>(null);
@@ -642,9 +648,9 @@ export default function TaskModal({
         return () => {
             window.removeEventListener("paste", handlePaste);
         };
-    }, [isOpen, task.id, currentUser.id, userRole, onRefresh]);
+    }, [isOpen, task?.id, currentUser?.id, userRole, onRefresh]);
 
-    if (!isOpen) return null;
+    if (!task) return null;
 
     const isLeader = userRole === "LEADER";
     const isObserver = userRole === "OBSERVER";

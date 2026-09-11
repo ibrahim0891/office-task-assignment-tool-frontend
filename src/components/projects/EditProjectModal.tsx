@@ -24,6 +24,12 @@ export default function EditProjectModal({
     project,
     onSaved,
 }: EditProjectModalProps) {
+    const lastProjectRef = React.useRef(project);
+    if (project) {
+        lastProjectRef.current = project;
+    }
+    const currentProject = project || lastProjectRef.current;
+
     const [title, setTitle] = useState("");
     const [emoji, setEmoji] = useState("📁");
     const [description, setDescription] = useState("");
@@ -32,16 +38,16 @@ export default function EditProjectModal({
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        if (project && isOpen) {
-            setTitle(project.title || project.name || "");
-            setEmoji(project.emoji || "📁");
-            setDescription(project.description || "");
-            setStartDate(extractDateString(project.startDate) || "");
-            setEndDate(extractDateString(project.endDate) || "");
+        if (currentProject && isOpen) {
+            setTitle(currentProject.title || currentProject.name || "");
+            setEmoji(currentProject.emoji || "📁");
+            setDescription(currentProject.description || "");
+            setStartDate(extractDateString(currentProject.startDate) || "");
+            setEndDate(extractDateString(currentProject.endDate) || "");
         }
-    }, [project, isOpen]);
+    }, [currentProject, isOpen]);
 
-    if (!isOpen) return null;
+    if (!currentProject) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,7 +68,7 @@ export default function EditProjectModal({
 
         setIsSubmitting(true);
         try {
-            await api.updateProject(project.id, {
+            await api.updateProject(currentProject.id, {
                 title: title.trim(),
                 name: title.trim(),
                 emoji,
@@ -216,10 +222,10 @@ export default function EditProjectModal({
                     </Button>
                     <Button
                         type="submit"
+                        variant="primary"
                         disabled={isSubmitting || !title.trim()}
                         isLoading={isSubmitting}
                         loadingText="Saving..."
-                        showDot={!isSubmitting}
                     >
                         Save Changes
                     </Button>

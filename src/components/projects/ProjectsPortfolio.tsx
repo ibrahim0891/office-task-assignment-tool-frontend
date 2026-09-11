@@ -1163,49 +1163,45 @@ export default function ProjectsPortfolio() {
             />
 
             {/* Edit Project Modal (Slide-out SideSheet) */}
-            {projectToEdit && (
-                <EditProjectModal
-                    isOpen={Boolean(projectToEdit)}
-                    onClose={() => setProjectToEdit(null)}
-                    project={projectToEdit}
-                    onSaved={async () => {
-                        setProjectToEdit(null);
-                        await loadProjects();
-                    }}
-                />
-            )}
+            <EditProjectModal
+                isOpen={Boolean(projectToEdit)}
+                onClose={() => setProjectToEdit(null)}
+                project={projectToEdit}
+                onSaved={async () => {
+                    setProjectToEdit(null);
+                    await loadProjects();
+                }}
+            />
 
             {/* Project Details Drawer (Slide-out SideSheet) */}
-            {projectForDetail && (
-                <ProjectDetailDrawer
-                    isOpen={Boolean(projectForDetail)}
-                    onClose={() => setProjectForDetail(null)}
-                    project={projectForDetail}
-                    currentUser={currentUser}
-                    userRole={userRole || "MEMBER"}
-                    canEdit={
-                        Boolean(
-                            currentUser?.id && (
-                                projectForDetail.managerId === currentUser.id ||
-                                projectForDetail.manager?.id === currentUser.id ||
-                                projectForDetail.creatorId === currentUser.id
-                            )
-                        ) ||
-                        Boolean(
-                            (userRole || "").toUpperCase() === "LEADER" ||
-                            projectForDetail.members?.some((m: any) => 
-                                (m.userId === currentUser?.id || m.user?.id === currentUser?.id) && 
-                                (m.role === "LEADER" || m.role === "Leader")
-                            )
+            <ProjectDetailDrawer
+                isOpen={Boolean(projectForDetail)}
+                onClose={() => setProjectForDetail(null)}
+                project={projectForDetail}
+                currentUser={currentUser}
+                userRole={userRole || "MEMBER"}
+                canEdit={
+                    Boolean(
+                        currentUser?.id && (
+                            projectForDetail?.managerId === currentUser.id ||
+                            projectForDetail?.manager?.id === currentUser.id ||
+                            projectForDetail?.creatorId === currentUser.id
                         )
-                    }
-                    onEditClick={() => {
-                        const p = projectForDetail;
-                        setProjectForDetail(null);
-                        setProjectToEdit(p);
-                    }}
-                />
-            )}
+                    ) ||
+                    Boolean(
+                        (userRole || "").toUpperCase() === "LEADER" ||
+                        projectForDetail?.members?.some((m: any) => 
+                            (m.userId === currentUser?.id || m.user?.id === currentUser?.id) && 
+                            (m.role === "LEADER" || m.role === "Leader")
+                        )
+                    )
+                }
+                onEditClick={() => {
+                    const p = projectForDetail;
+                    setProjectForDetail(null);
+                    setProjectToEdit(p);
+                }}
+            />
 
             {/* Confirm Archive Dialog */}
             <ConfirmDialog

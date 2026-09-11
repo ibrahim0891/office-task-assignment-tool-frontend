@@ -59,8 +59,6 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
         }
     }, [folders, folderId]);
 
-    if (!isOpen) return null;
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -333,10 +331,10 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
                     </Button>
                     <Button
                         type="submit"
+                        variant="primary"
                         disabled={isSubmitting || !title.trim() || !startDate || !endDate}
                         isLoading={isSubmitting}
                         loadingText="Creating..."
-                        showDot={!isSubmitting}
                     >
                         Create Project
                     </Button>
