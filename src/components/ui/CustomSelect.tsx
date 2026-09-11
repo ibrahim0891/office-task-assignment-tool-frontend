@@ -135,6 +135,7 @@ export function CustomSelect({
                 ref={triggerRef}
                 type="button"
                 disabled={disabled}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={handleToggle}
                 className={`w-full h-full bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--color-accent)] rounded-[3px] px-2.5 py-1.5 text-[11px] text-[var(--app-text)] flex items-center justify-between gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                     isOpen
@@ -182,6 +183,7 @@ export function CustomSelect({
                 createPortal(
                     <div
                         ref={dropdownRef}
+                        onMouseDown={(e) => e.preventDefault()}
                         style={{
                             position: "fixed",
                             left: `${coords.left}px`,

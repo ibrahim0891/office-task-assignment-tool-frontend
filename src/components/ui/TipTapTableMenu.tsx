@@ -45,7 +45,7 @@ export const TipTapTableMenu: React.FC<TipTapTableMenuProps> = ({ editor }) => {
         setIsOpen(false);
     };
 
-    const runTableAction = (action: () => boolean) => {
+    const runAction = (action: () => void) => {
         action();
         setIsOpen(false);
     };
@@ -61,7 +61,7 @@ export const TipTapTableMenu: React.FC<TipTapTableMenuProps> = ({ editor }) => {
                         ? "bg-[var(--app-select-bg)] text-[var(--color-accent)] font-semibold border border-[var(--color-accent)]/30"
                         : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-border)]/50"
                 }`}
-                title="Table controls"
+                title="Table insert & edit options"
             >
                 <TableIcon className="w-3.5 h-3.5 shrink-0" />
                 <span className="hidden sm:inline text-[10px]">Table</span>
@@ -102,6 +102,7 @@ export const TipTapTableMenu: React.FC<TipTapTableMenuProps> = ({ editor }) => {
                                         <div
                                             key={`${r}-${c}`}
                                             onMouseEnter={() => setHoveredGrid({ rows: rowNum, cols: colNum })}
+                                            onMouseDown={(e) => e.preventDefault()}
                                             onClick={() => handleInsert(rowNum, colNum)}
                                             className={`h-3 rounded-[1px] border transition-colors ${
                                                 isHighlighted
@@ -125,6 +126,7 @@ export const TipTapTableMenu: React.FC<TipTapTableMenuProps> = ({ editor }) => {
                                 <button
                                     key={preset.label}
                                     type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
                                     onClick={() => handleInsert(preset.r, preset.c)}
                                     className="flex-1 py-0.5 text-[10px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] hover:text-[var(--app-text)] border border-[var(--app-border)] rounded-[2px] text-[var(--app-muted)] transition-colors cursor-pointer text-center"
                                 >
@@ -134,122 +136,149 @@ export const TipTapTableMenu: React.FC<TipTapTableMenuProps> = ({ editor }) => {
                         </div>
                     </div>
 
-                    {/* Contextual Table Operations */}
-                    {isInsideTable && (
-                        <div className="border-t border-[var(--app-border)] pt-2 mt-2 space-y-2">
-                            <div className="text-[10px] font-medium uppercase tracking-wider text-[var(--app-muted)]">
-                                Active Table Actions
-                            </div>
-
-                            {/* Row & Column Actions */}
-                            <div className="grid grid-cols-2 gap-1">
-                                <button
-                                    type="button"
-                                    onClick={() => runTableAction(() => editor.chain().focus().addRowBefore().run())}
-                                    className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors"
-                                >
-                                    <Rows3 className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>+ Row Above</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => runTableAction(() => editor.chain().focus().addRowAfter().run())}
-                                    className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors"
-                                >
-                                    <Rows3 className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>+ Row Below</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => runTableAction(() => editor.chain().focus().addColumnBefore().run())}
-                                    className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors"
-                                >
-                                    <Columns3 className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>+ Col Left</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => runTableAction(() => editor.chain().focus().addColumnAfter().run())}
-                                    className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors"
-                                >
-                                    <Columns3 className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>+ Col Right</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => runTableAction(() => editor.chain().focus().deleteRow().run())}
-                                    className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--color-error)]/10 text-[var(--color-error)] border border-[var(--app-border)] text-left cursor-pointer transition-colors"
-                                >
-                                    <Trash2 className="w-3 h-3" />
-                                    <span>Delete Row</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => runTableAction(() => editor.chain().focus().deleteColumn().run())}
-                                    className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--color-error)]/10 text-[var(--color-error)] border border-[var(--app-border)] text-left cursor-pointer transition-colors"
-                                >
-                                    <Trash2 className="w-3 h-3" />
-                                    <span>Delete Col</span>
-                                </button>
-                            </div>
-
-                            {/* Cell & Header Actions */}
-                            <div className="grid grid-cols-2 gap-1 pt-1">
-                                <button
-                                    type="button"
-                                    onClick={() => runTableAction(() => editor.chain().focus().mergeCells().run())}
-                                    className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] text-left cursor-pointer transition-colors"
-                                >
-                                    <Combine className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>Merge Cells</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => runTableAction(() => editor.chain().focus().splitCell().run())}
-                                    className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] text-left cursor-pointer transition-colors"
-                                >
-                                    <Split className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>Split Cell</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => runTableAction(() => editor.chain().focus().toggleHeaderRow().run())}
-                                    className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] text-left cursor-pointer transition-colors"
-                                >
-                                    <span className="w-3 h-3 inline-flex items-center justify-center font-bold text-[9px]">H</span>
-                                    <span>Header Row</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => runTableAction(() => editor.chain().focus().toggleHeaderColumn().run())}
-                                    className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] text-left cursor-pointer transition-colors"
-                                >
-                                    <span className="w-3 h-3 inline-flex items-center justify-center font-bold text-[9px]">H</span>
-                                    <span>Header Col</span>
-                                </button>
-                            </div>
-
-                            {/* Delete Table Action */}
-                            <div className="pt-1">
-                                <button
-                                    type="button"
-                                    onClick={() => runTableAction(() => editor.chain().focus().deleteTable().run())}
-                                    className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-[2px] bg-[var(--color-error)]/10 hover:bg-[var(--color-error)]/20 text-[var(--color-error)] font-medium text-left cursor-pointer transition-colors border border-[var(--color-error)]/30"
-                                >
-                                    <Trash2 className="w-3 h-3" />
-                                    <span>Delete Entire Table</span>
-                                </button>
-                            </div>
+                    {/* Table Operations Section (Always available) */}
+                    <div className="border-t border-[var(--app-border)] pt-2 mt-2 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--app-muted)]">
+                                Table Operations
+                            </span>
+                            {isInsideTable && (
+                                <span className="text-[9px] px-1 py-0.2 bg-[var(--color-success)]/10 text-[var(--color-success)] rounded-[2px] font-medium">
+                                    Inside Table
+                                </span>
+                            )}
                         </div>
-                    )}
+
+                        {/* Cell Merge & Split */}
+                        <div className="grid grid-cols-2 gap-1">
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => runAction(() => {
+                                    const ok = editor.chain().focus().mergeCells().run();
+                                    if (!ok) editor.chain().focus().mergeOrSplit().run();
+                                })}
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors font-medium text-[10px]"
+                                title="Merge selected cells"
+                            >
+                                <Combine className="w-3 h-3 text-[var(--color-accent)]" />
+                                <span>Merge Cells</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => runAction(() => {
+                                    const ok = editor.chain().focus().splitCell().run();
+                                    if (!ok) editor.chain().focus().mergeOrSplit().run();
+                                })}
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors font-medium text-[10px]"
+                                title="Split merged cell"
+                            >
+                                <Split className="w-3 h-3 text-[var(--color-accent)]" />
+                                <span>Split Cell</span>
+                            </button>
+                        </div>
+
+                        {/* Row & Column Actions */}
+                        <div className="grid grid-cols-2 gap-1">
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => runAction(() => editor.chain().focus().addRowBefore().run())}
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors text-[10px]"
+                            >
+                                <Rows3 className="w-3 h-3 text-[var(--app-muted)]" />
+                                <span>+ Row Above</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => runAction(() => editor.chain().focus().addRowAfter().run())}
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors text-[10px]"
+                            >
+                                <Rows3 className="w-3 h-3 text-[var(--app-muted)]" />
+                                <span>+ Row Below</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => runAction(() => editor.chain().focus().addColumnBefore().run())}
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors text-[10px]"
+                            >
+                                <Columns3 className="w-3 h-3 text-[var(--app-muted)]" />
+                                <span>+ Col Left</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => runAction(() => editor.chain().focus().addColumnAfter().run())}
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors text-[10px]"
+                            >
+                                <Columns3 className="w-3 h-3 text-[var(--app-muted)]" />
+                                <span>+ Col Right</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => runAction(() => editor.chain().focus().deleteRow().run())}
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--color-error)]/10 text-[var(--color-error)] border border-[var(--app-border)] text-left cursor-pointer transition-colors text-[10px]"
+                            >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Delete Row</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => runAction(() => editor.chain().focus().deleteColumn().run())}
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] bg-[var(--app-bg)] hover:bg-[var(--color-error)]/10 text-[var(--color-error)] border border-[var(--app-border)] text-left cursor-pointer transition-colors text-[10px]"
+                            >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Delete Col</span>
+                            </button>
+                        </div>
+
+                        {/* Header Actions */}
+                        <div className="grid grid-cols-2 gap-1 pt-0.5">
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => runAction(() => editor.chain().focus().toggleHeaderRow().run())}
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors text-[10px]"
+                            >
+                                <span className="w-3 h-3 inline-flex items-center justify-center font-bold text-[9px]">H</span>
+                                <span>Header Row</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => runAction(() => editor.chain().focus().toggleHeaderColumn().run())}
+                                className="flex items-center gap-1 px-1.5 py-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)] text-left cursor-pointer transition-colors text-[10px]"
+                            >
+                                <span className="w-3 h-3 inline-flex items-center justify-center font-bold text-[9px]">H</span>
+                                <span>Header Col</span>
+                            </button>
+                        </div>
+
+                        {/* Delete Table Action */}
+                        <div className="pt-0.5">
+                            <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => runAction(() => editor.chain().focus().deleteTable().run())}
+                                className="w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded-[2px] bg-[var(--color-error)]/10 hover:bg-[var(--color-error)]/20 text-[var(--color-error)] font-medium text-left cursor-pointer transition-colors border border-[var(--color-error)]/30 text-[10px]"
+                            >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Delete Table</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

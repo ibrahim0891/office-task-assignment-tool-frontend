@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { CustomSelect, SelectOption } from "./CustomSelect";
 import { TipTapTableMenu } from "./TipTapTableMenu";
+import { TipTapTableOperations } from "./TipTapTableOperations";
 
 interface TipTapEditorProps {
     value: string;
@@ -287,8 +288,11 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
 
                     <div className="w-px h-3.5 bg-[var(--app-border)] mx-0.5" />
 
-                    {/* Modern Table Menu (Insert Grid & Active Controls) */}
-                    <TipTapTableMenu editor={editor} />
+                    {/* Modern Table Tools (Insert Grid & Operations) */}
+                    <div className="flex items-center gap-1">
+                        <TipTapTableMenu editor={editor} />
+                        <TipTapTableOperations editor={editor} />
+                    </div>
 
                     <div className="w-px h-3.5 bg-[var(--app-border)] mx-0.5" />
 
