@@ -6,7 +6,8 @@ import { useParams } from "next/navigation";
 import { 
     LayoutGrid, Users, Calendar, BarChart2, 
     Settings, ChevronLeft, FolderKanban, 
-    Building2, Edit2, FolderGit2, FolderArchive
+    Building2, FolderGit2, FolderArchive,
+    Info,
 } from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
@@ -18,6 +19,7 @@ import ProjectAssetsView from "./ProjectAssetsView";
 import ProjectSettingsView from "./ProjectSettingsView";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import EditProjectModal from "./EditProjectModal";
+import ProjectDetailDrawer from "./ProjectDetailDrawer";
 import { useProjectDetail } from "../../hooks/useProjectSWR";
 import ProjectDetailSkeleton from "./ProjectDetailSkeleton";
 import { Button } from "../ui/Button";
@@ -50,6 +52,7 @@ export default function ProjectDetail() {
         return "main-board";
     });
     const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
+    const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
 
     const loadProjectDetail = React.useCallback(async () => {
         await refreshProject();
@@ -199,8 +202,8 @@ export default function ProjectDetail() {
                         </div>
                     </div>
 
-                    {/* Right: Dates & Primary Action */}
-                    <div className="flex items-center gap-3 shrink-0 text-xs text-[var(--app-muted)]">
+                    {/* Right: Dates & Actions */}
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0 text-xs text-[var(--app-muted)]">
                         {/* Timeline Date Range */}
                         {(project.startDate || project.endDate) && (
                             <div
@@ -214,32 +217,20 @@ export default function ProjectDetail() {
                             </div>
                         )}
 
-                        {/* Edit Project Button */}
-                        {canManageTasks && (
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => setIsEditProjectModalOpen(true)}
-                                icon={<Edit2 className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />}
-                                title="Edit Project Configuration"
-                                className="shadow-2xs text-xs"
-                            >
-                                Edit Project
-                            </Button>
-                        )}
+                        {/* View Details Button (Opens Slide-In Drawer) */}
+                        <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            onClick={() => setIsDetailDrawerOpen(true)}
+                            icon={<Info className="w-3.5 h-3.5 shrink-0" />}
+                            title="View Project Scope, Description & Members"
+                            className="shadow-2xs text-xs"
+                        >
+                            View Details
+                        </Button>
                     </div>
                 </div>
-
-                {/* Project Description (Dynamic TipTap HTML with Max Height and Scroll) */}
-                {project.description && (
-                    <div className="shrink-0 px-5 py-2.5 bg-[var(--app-card)]/30 border-b border-[var(--app-border)] select-text">
-                        <div
-                            className="max-h-24 sm:max-h-28 overflow-y-auto pr-2 text-xs leading-relaxed text-[var(--app-text)]/85 prose prose-xs dark:prose-invert max-w-none"
-                            dangerouslySetInnerHTML={{ __html: project.description }}
-                        />
-                    </div>
-                )}
 
                 {/* Level 2: Navigation Tabs & Progress Gauge */}
                 <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 flex items-center justify-between gap-4 select-none">
@@ -309,6 +300,17 @@ export default function ProjectDetail() {
                     {activeTab === "settings" && <ProjectSettingsView project={project} onRefresh={loadProjectDetail} />}
                 </div>
             </div>
+
+            {/* Project Overview & Full Details Slide-In Drawer */}
+            <ProjectDetailDrawer
+                isOpen={isDetailDrawerOpen}
+                onClose={() => setIsDetailDrawerOpen(false)}
+                project={project}
+                currentUser={currentUser}
+                userRole={userRole}
+                canEdit={canManageTasks}
+                onEditClick={() => setIsEditProjectModalOpen(true)}
+            />
 
             {/* Edit Project Configuration Modal */}
             <EditProjectModal

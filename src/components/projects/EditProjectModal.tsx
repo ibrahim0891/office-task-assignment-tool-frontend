@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, Clock, Edit3, X } from "lucide-react";
 import { api } from "../../api";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { EmojiPicker } from "../ui/EmojiPicker";
 import { Button } from "../ui/Button";
+import SideSheetWrapper from "../ui/SideSheetWrapper";
+import { TipTapEditor } from "../ui/TipTapEditor";
 import { extractDateString, calculateDaySpan, formatDaySpan } from "../../utils/date";
 
 interface EditProjectModalProps {
@@ -79,33 +81,38 @@ export default function EditProjectModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 overflow-hidden flex justify-center items-center p-4">
-            <div
-                className="absolute inset-0 bg-black/40"
-                onClick={onClose}
-            />
-            <div
-                className="relative bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] p-5 w-full max-w-md flex flex-col gap-4 animate-fade-in text-left rounded-[3px] corner-brackets shadow-xl"
-                style={{ boxShadow: "var(--shadow-float)" }}
-            >
-                {/* Header */}
-                <div className="flex items-center justify-between pb-1">
-                    <h2 className="font-heading text-base text-[var(--app-text,#1A1A1A)]">
-                        Edit Project Configuration
-                    </h2>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] text-[15px] font-bold px-1 transition-colors cursor-pointer"
-                    >
-                        ✕
-                    </button>
+        <SideSheetWrapper
+            isOpen={isOpen}
+            onClose={onClose}
+            width="md"
+            className="flex flex-col h-full bg-[var(--app-card)] border-l border-[var(--app-border)] text-left select-none text-[var(--app-text)]"
+        >
+            {/* ── Header ── */}
+            <div className="flex items-center justify-between px-6 py-4.5 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                    <div className="flex items-center gap-2">
+                        <Edit3 className="w-4 h-4 text-[var(--color-accent)] shrink-0" />
+                        <h2 className="font-heading text-base font-bold text-[var(--app-text)] tracking-tight">
+                            Edit Project Configuration
+                        </h2>
+                    </div>
+                    <p className="text-[11px] text-[var(--app-muted)] leading-tight">
+                        Update project title, scope description, and timeline schedule.
+                    </p>
                 </div>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] w-7 h-7 rounded-[3px] flex items-center justify-center transition-colors cursor-pointer"
+                    title="Close"
+                >
+                    <X className="w-4 h-4" />
+                </button>
+            </div>
 
-                {/* Section Divider */}
-                <div className="w-full border-t border-[var(--app-border,#E5E5E3)]" />
-
-                <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+            {/* ── Scrollable Form Body ── */}
+            <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between overflow-hidden">
+                <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4.5 custom-scrollbar">
                     {/* Project Title & Icon */}
                     <div className="flex flex-col gap-1.5">
                         <label className="eyebrow">
@@ -116,7 +123,7 @@ export default function EditProjectModal({
                                 value={emoji}
                                 onChange={setEmoji}
                                 disabled={isSubmitting}
-                                buttonClassName="w-[36px] h-[36px] text-base shrink-0 corner-brackets-4"
+                                buttonClassName="w-[38px] h-[38px] text-base shrink-0 border border-[var(--app-border)] hover:border-[var(--color-accent)] bg-[var(--app-card)] rounded-[3px] flex items-center justify-center cursor-pointer"
                             />
                             <input
                                 type="text"
@@ -125,40 +132,40 @@ export default function EditProjectModal({
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 disabled={isSubmitting}
-                                className="flex-1 bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] px-3 py-1.5 rounded-[2px] text-xs text-[var(--app-text,#1A1A1A)] placeholder-[var(--app-muted,#888883)] focus:outline-none focus:border-[var(--color-accent,#1A1A1A)] transition-colors h-[36px]"
+                                className="flex-1 bg-[var(--app-bg)] border border-[var(--app-border)] focus:border-[var(--color-accent)] px-3 py-2 rounded-[3px] text-xs text-[var(--app-text)] placeholder-[var(--app-muted)] focus:outline-none transition-colors h-[38px]"
                             />
                         </div>
                     </div>
 
-                    {/* Description & Scope */}
+                    {/* Description & Scope with TipTap Editor */}
                     <div className="flex flex-col gap-1.5">
                         <label className="eyebrow">Description & Scope</label>
-                        <textarea
-                            rows={3}
-                            placeholder="Add context, project goals, and high-level milestones..."
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            disabled={isSubmitting}
-                            className="w-full bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] px-3 py-2 rounded-[2px] text-xs text-[var(--app-text,#1A1A1A)] placeholder-[var(--app-muted,#888883)] focus:outline-none focus:border-[var(--color-accent,#1A1A1A)] transition-colors resize-none leading-relaxed"
-                        />
+                        <div className="border border-[var(--app-border)] rounded-[3px] overflow-hidden bg-[var(--app-bg)] focus-within:border-[var(--color-accent)] transition-colors">
+                            <TipTapEditor
+                                value={description}
+                                onChange={setDescription}
+                                disabled={isSubmitting}
+                                className="min-h-[140px]"
+                            />
+                        </div>
                     </div>
 
-                    {/* Timeline Dates with Estimated Day Count */}
-                    <div className="flex flex-col gap-1.5">
+                    {/* Timeline Schedule Dates */}
+                    <div className="flex flex-col gap-1.5 p-3.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[3px]">
                         <div className="flex items-center justify-between">
                             <label className="eyebrow flex items-center gap-1">
                                 <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                                <span>Project Timeline</span>
+                                <span>Timeline Schedule</span>
                             </label>
                             {startDate && endDate && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--app-text)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] tabular-nums">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--app-text)] bg-[var(--app-card)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] tabular-nums">
                                     <Clock className="w-3 h-3 text-[var(--app-muted)]" />
                                     <span>{formatDaySpan(calculateDaySpan(startDate, endDate))}</span>
                                 </span>
                             )}
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="flex flex-col gap-1.5">
+                        <div className="grid grid-cols-2 gap-3 mt-1">
+                            <div className="flex flex-col gap-1">
                                 <span className="text-[10px] text-[var(--app-muted)]">Start Date</span>
                                 <CustomDatePicker
                                     value={startDate}
@@ -176,7 +183,7 @@ export default function EditProjectModal({
                                 />
                             </div>
 
-                            <div className="flex flex-col gap-1.5">
+                            <div className="flex flex-col gap-1">
                                 <span className="text-[10px] text-[var(--app-muted)]">Target End Date</span>
                                 <CustomDatePicker
                                     value={endDate}
@@ -195,30 +202,29 @@ export default function EditProjectModal({
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* Footer Actions */}
-                    <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-[var(--app-border,#E5E5E3)] mt-1">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            className="text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)]"
-                            onClick={onClose}
-                            disabled={isSubmitting}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={isSubmitting || !title.trim()}
-                            isLoading={isSubmitting}
-                            loadingText="Saving..."
-                            showDot={!isSubmitting}
-                        >
-                            Save Changes
-                        </Button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                {/* ── Sticky Bottom Footer ── */}
+                <div className="flex items-center justify-between px-6 py-3.5 border-t border-[var(--app-border)] bg-[var(--app-card)] shrink-0">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={onClose}
+                        disabled={isSubmitting}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={isSubmitting || !title.trim()}
+                        isLoading={isSubmitting}
+                        loadingText="Saving..."
+                        showDot={!isSubmitting}
+                    >
+                        Save Changes
+                    </Button>
+                </div>
+            </form>
+        </SideSheetWrapper>
     );
 }

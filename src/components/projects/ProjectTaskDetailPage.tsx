@@ -77,11 +77,6 @@ function getPriorityBadge(priority: string) {
     }
 }
 
-function stripHtml(html: string) {
-    if (!html) return "";
-    return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
-}
-
 interface ColumnDef {
     id: string;
     name: string;
@@ -918,16 +913,6 @@ export default function ProjectTaskDetailPage() {
                     )}
                 </div>
             </div>
-
-            {/* Main Task Description Row: Dynamic TipTap HTML with Max-Height and Smooth Scroll */}
-            {task.description && (
-                <div className="shrink-0 px-5 py-2.5 bg-[var(--app-card)]/30 border-b border-[var(--app-border)] select-text">
-                    <div
-                        className="max-h-28 sm:max-h-36 overflow-y-auto pr-2 text-xs leading-relaxed text-[var(--app-text)]/85 prose prose-xs dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: task.description }}
-                    />
-                </div>
-            )}
 
             {/* Subtask Controls & Filters Bar */}
             <div className="shrink-0 px-5 py-2.5 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-wrap items-center justify-between gap-3 select-none">

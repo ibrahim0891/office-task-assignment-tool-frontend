@@ -104,59 +104,65 @@ export default function TeamDetailsPage() {
         return (
             <div 
                 key={user.id}
-                className="group relative bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] p-2 sm:p-2.5 flex flex-col items-center text-center justify-center gap-1.5 rounded-[var(--radius-card,4px)] transition-all hover:shadow-subtle aspect-square overflow-hidden"
+                className="group relative bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] p-4 flex flex-col items-center text-center justify-between gap-3 rounded-[3px] transition-all hover:shadow-float shadow-3xs min-h-[200px]"
             >
-                {/* Avatar */}
-                <div className="relative flex items-center justify-center shrink-0">
-                    {user.avatarUrl ? (
-                        <img 
-                            src={user.avatarUrl} 
-                            alt={user.fullName}
-                            className="w-18 h-18 sm:w-20 sm:h-20 rounded-[var(--radius-card,8px)] object-cover border border-[var(--app-border)] shadow-xs group-hover:scale-105 transition-transform"
-                        />
-                    ) : (
-                        <div className="w-18 h-18 sm:w-20 sm:h-20 bg-[var(--app-select-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-bold text-base sm:text-lg rounded-[var(--radius-card,8px)] flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-                            {initials}
-                        </div>
+                {/* Top: Avatar & User Info */}
+                <div className="flex flex-col items-center w-full gap-2.5 min-w-0">
+                    {/* Avatar Frame */}
+                    <div className="relative flex items-center justify-center shrink-0">
+                        {user.avatarUrl ? (
+                            <img 
+                                src={user.avatarUrl} 
+                                alt={user.fullName}
+                                className="w-16 h-16 sm:w-18 sm:h-18 rounded-[4px] object-cover border border-[var(--app-border)] shadow-xs group-hover:scale-105 transition-transform"
+                            />
+                        ) : (
+                            <div className="w-16 h-16 sm:w-18 sm:h-18 bg-[var(--app-select-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-bold text-base sm:text-lg rounded-[4px] flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                                {initials}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Name & Email */}
+                    <div className="flex flex-col items-center w-full min-w-0 px-1">
+                        <h4 
+                            className="font-heading text-sm sm:text-[15px] font-bold text-[var(--app-text)] leading-snug line-clamp-2 w-full break-words text-center"
+                            title={user.fullName}
+                        >
+                            {user.fullName}
+                        </h4>
+                        <a 
+                            href={`mailto:${user.email}`}
+                            title={user.email}
+                            className="text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] truncate w-full mt-1 transition-colors block text-center"
+                        >
+                            {user.email}
+                        </a>
+                        {user.designation && (
+                            <span className="text-[11px] text-[var(--app-muted)]/80 truncate w-full mt-0.5 block text-center">
+                                {user.designation}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Bio snippet if available */}
+                    {user.bio && (
+                        <p className="text-[10px] italic text-[var(--app-muted)] line-clamp-2 px-1 leading-snug text-center mt-0.5">
+                            "{user.bio}"
+                        </p>
                     )}
                 </div>
 
-                {/* Name & Email (Secondary Text) */}
-                <div className="flex flex-col items-center w-full min-w-0 px-0.5">
-                    <h4 className="text-[15px] font-bold text-[var(--app-text)] truncate w-full leading-tight">
-                        {user.fullName}
-                    </h4>
-                    <a 
-                        href={`mailto:${user.email}`}
-                        title={user.email}
-                        className="text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] truncate w-full mt-0.5 transition-colors"
-                    >
-                        {user.email}
-                    </a>
-                    {user.designation && (
-                        <span className="text-[11px] text-[var(--app-muted)] opacity-80 truncate w-full mt-0.5">
-                            {user.designation}
-                        </span>
-                    )}
-                </div>
-
-                {/* Bio snippet if available */}
-                {user.bio && (
-                    <p className="text-[10px] italic text-[var(--app-muted)] line-clamp-1 px-1 leading-snug">
-                        "{user.bio}"
-                    </p>
-                )}
-
-                {/* Contact & Social Links */}
+                {/* Bottom: Contact & Social Links */}
                 {(user.telegram || user.github || user.whatsapp) && (
-                    <div className="flex items-center justify-center gap-2 pt-1 border-t border-[var(--app-border)] w-full text-[10px] shrink-0">
+                    <div className="flex items-center justify-center gap-2.5 pt-2.5 border-t border-[var(--app-border)]/70 w-full text-[11px] shrink-0 mt-auto">
                         {user.github && (
                             <a 
                                 href={`https://github.com/${user.github.replace('@', '')}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 title={`GitHub: ${user.github}`}
-                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] p-0.5 rounded transition-colors"
+                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] p-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] transition-colors"
                             >
                                 <GithubIcon className="w-3.5 h-3.5" />
                             </a>
@@ -167,7 +173,7 @@ export default function TeamDetailsPage() {
                                 target="_blank"
                                 rel="noreferrer"
                                 title={`Telegram: ${user.telegram}`}
-                                className="text-[var(--app-muted)] hover:text-sky-500 p-0.5 rounded transition-colors"
+                                className="text-[var(--app-muted)] hover:text-sky-500 p-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] transition-colors"
                             >
                                 <MessageSquare className="w-3.5 h-3.5" />
                             </a>
@@ -178,7 +184,7 @@ export default function TeamDetailsPage() {
                                 target="_blank"
                                 rel="noreferrer"
                                 title={`WhatsApp: ${user.whatsapp}`}
-                                className="text-[var(--app-muted)] hover:text-emerald-500 p-0.5 rounded transition-colors"
+                                className="text-[var(--app-muted)] hover:text-emerald-500 p-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] transition-colors"
                             >
                                 <Phone className="w-3.5 h-3.5" />
                             </a>
@@ -310,7 +316,7 @@ export default function TeamDetailsPage() {
                                 ▪ Leaders ({leaders.length})
                             </h2>
                             {leaders.length > 0 ? (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {leaders.map((m) => renderMemberCard(m))}
                                 </div>
                             ) : (
@@ -324,7 +330,7 @@ export default function TeamDetailsPage() {
                                 <h2 className="text-[13px] font-semibold text-[var(--app-text)]">
                                     ▪ Observers ({observers.length})
                                 </h2>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {observers.map((m) => renderMemberCard(m))}
                                 </div>
                             </div>
@@ -336,7 +342,7 @@ export default function TeamDetailsPage() {
                                 ▪ Team Members ({members.length})
                             </h2>
                             {members.length > 0 ? (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {members.map((m) => renderMemberCard(m))}
                                 </div>
                             ) : (

@@ -29,7 +29,7 @@ html {
   /* Typography */
   --font-serif: var(--font-secondary, var(--font-instrument-serif), 'Georgia', serif);
   --font-sans: var(--font-primary, var(--font-inter), 'Inter', -apple-system, system-ui, sans-serif);
-  --font-scale: 1.00;
+  --font-scale: 1.30;
 
   /* Priority theme tokens - visually distinct from status */
   --priority-urgent: #CB2431;
@@ -831,14 +831,14 @@ html[data-ui="modern"] .kanban-task-card[data-selected="true"] {
 }
 
 html {
-  font-size: calc(15px * var(--font-scale, 1.25));
+  font-size: calc(15px * var(--font-scale, 1.30));
 }
 
 body {
   background: var(--app-bg);
   color: var(--app-text);
   font-family: var(--font-sans);
-  font-size: calc(14px * var(--font-scale, 1.25));
+  font-size: calc(14px * var(--font-scale, 1.30));
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
@@ -1400,7 +1400,7 @@ html[data-ui="modern"] .font-heading {
 /* ─── Eyebrow label ─── */
 /* Small structural markers — the only capitalize pattern allowed */
 .eyebrow {
-  font-size: calc(11px * var(--font-scale, 1.25));
+  font-size: calc(11px * var(--font-scale, 1.30));
   font-weight: 500;
   color: var(--app-muted);
 }
@@ -1851,51 +1851,51 @@ html:not([data-ui="modern"]) input[type="range"]::-moz-range-thumb {
 }
 
 /* ─── Font-Size Overrides for Dynamic Scaling ─── */
-.text-\[7px\] { font-size: calc(7px * var(--font-scale, 1.25)) !important; }
-.text-\[7\.5px\] { font-size: calc(7.5px * var(--font-scale, 1.25)) !important; }
-.text-\[8px\] { font-size: calc(8px * var(--font-scale, 1.25)) !important; }
-.text-\[8\.5px\] { font-size: calc(8.5px * var(--font-scale, 1.25)) !important; }
-.text-\[9px\] { font-size: calc(9px * var(--font-scale, 1.25)) !important; }
-.text-\[9\.5px\] { font-size: calc(9.5px * var(--font-scale, 1.25)) !important; }
-.text-\[10px\] { font-size: calc(10px * var(--font-scale, 1.25)) !important; }
-.text-\[10\.5px\] { font-size: calc(10.5px * var(--font-scale, 1.25)) !important; }
-.text-\[11px\] { font-size: calc(11px * var(--font-scale, 1.25)) !important; }
-.text-\[11\.5px\] { font-size: calc(11.5px * var(--font-scale, 1.25)) !important; }
-.text-\[12px\] { font-size: calc(12px * var(--font-scale, 1.25)) !important; }
-.text-\[12\.5px\] { font-size: calc(12.5px * var(--font-scale, 1.25)) !important; }
-.text-\[13px\] { font-size: calc(13px * var(--font-scale, 1.25)) !important; }
-.text-\[13\.5px\] { font-size: calc(13.5px * var(--font-scale, 1.25)) !important; }
-.text-\[14px\] { font-size: calc(14px * var(--font-scale, 1.25)) !important; }
-.text-\[14\.5px\] { font-size: calc(14.5px * var(--font-scale, 1.25)) !important; }
-.text-\[15px\] { font-size: calc(15px * var(--font-scale, 1.25)) !important; }
-.text-\[15\.5px\] { font-size: calc(15.5px * var(--font-scale, 1.25)) !important; }
-.text-\[16px\] { font-size: calc(16px * var(--font-scale, 1.25)) !important; }
-.text-\[16\.5px\] { font-size: calc(16.5px * var(--font-scale, 1.25)) !important; }
-.text-\[17px\] { font-size: calc(17px * var(--font-scale, 1.25)) !important; }
-.text-\[18px\] { font-size: calc(18px * var(--font-scale, 1.25)) !important; }
-.text-\[19px\] { font-size: calc(19px * var(--font-scale, 1.25)) !important; }
-.text-\[20px\] { font-size: calc(20px * var(--font-scale, 1.25)) !important; }
-.text-\[21px\] { font-size: calc(21px * var(--font-scale, 1.25)) !important; }
-.text-\[22px\] { font-size: calc(22px * var(--font-scale, 1.25)) !important; }
-.text-\[24px\] { font-size: calc(24px * var(--font-scale, 1.25)) !important; }
-.text-\[26px\] { font-size: calc(26px * var(--font-scale, 1.25)) !important; }
-.text-\[28px\] { font-size: calc(28px * var(--font-scale, 1.25)) !important; }
-.text-\[30px\] { font-size: calc(30px * var(--font-scale, 1.25)) !important; }
-.text-\[32px\] { font-size: calc(32px * var(--font-scale, 1.25)) !important; }
-.text-\[36px\] { font-size: calc(36px * var(--font-scale, 1.25)) !important; }
-.text-\[40px\] { font-size: calc(40px * var(--font-scale, 1.25)) !important; }
-.text-\[48px\] { font-size: calc(48px * var(--font-scale, 1.25)) !important; }
+.text-\[7px\] { font-size: calc(7px * var(--font-scale, 1.30)) !important; }
+.text-\[7\.5px\] { font-size: calc(7.5px * var(--font-scale, 1.30)) !important; }
+.text-\[8px\] { font-size: calc(8px * var(--font-scale, 1.30)) !important; }
+.text-\[8\.5px\] { font-size: calc(8.5px * var(--font-scale, 1.30)) !important; }
+.text-\[9px\] { font-size: calc(9px * var(--font-scale, 1.30)) !important; }
+.text-\[9\.5px\] { font-size: calc(9.5px * var(--font-scale, 1.30)) !important; }
+.text-\[10px\] { font-size: calc(10px * var(--font-scale, 1.30)) !important; }
+.text-\[10\.5px\] { font-size: calc(10.5px * var(--font-scale, 1.30)) !important; }
+.text-\[11px\] { font-size: calc(11px * var(--font-scale, 1.30)) !important; }
+.text-\[11\.5px\] { font-size: calc(11.5px * var(--font-scale, 1.30)) !important; }
+.text-\[12px\] { font-size: calc(12px * var(--font-scale, 1.30)) !important; }
+.text-\[12\.5px\] { font-size: calc(12.5px * var(--font-scale, 1.30)) !important; }
+.text-\[13px\] { font-size: calc(13px * var(--font-scale, 1.30)) !important; }
+.text-\[13\.5px\] { font-size: calc(13.5px * var(--font-scale, 1.30)) !important; }
+.text-\[14px\] { font-size: calc(14px * var(--font-scale, 1.30)) !important; }
+.text-\[14\.5px\] { font-size: calc(14.5px * var(--font-scale, 1.30)) !important; }
+.text-\[15px\] { font-size: calc(15px * var(--font-scale, 1.30)) !important; }
+.text-\[15\.5px\] { font-size: calc(15.5px * var(--font-scale, 1.30)) !important; }
+.text-\[16px\] { font-size: calc(16px * var(--font-scale, 1.30)) !important; }
+.text-\[16\.5px\] { font-size: calc(16.5px * var(--font-scale, 1.30)) !important; }
+.text-\[17px\] { font-size: calc(17px * var(--font-scale, 1.30)) !important; }
+.text-\[18px\] { font-size: calc(18px * var(--font-scale, 1.30)) !important; }
+.text-\[19px\] { font-size: calc(19px * var(--font-scale, 1.30)) !important; }
+.text-\[20px\] { font-size: calc(20px * var(--font-scale, 1.30)) !important; }
+.text-\[21px\] { font-size: calc(21px * var(--font-scale, 1.30)) !important; }
+.text-\[22px\] { font-size: calc(22px * var(--font-scale, 1.30)) !important; }
+.text-\[24px\] { font-size: calc(24px * var(--font-scale, 1.30)) !important; }
+.text-\[26px\] { font-size: calc(26px * var(--font-scale, 1.30)) !important; }
+.text-\[28px\] { font-size: calc(28px * var(--font-scale, 1.30)) !important; }
+.text-\[30px\] { font-size: calc(30px * var(--font-scale, 1.30)) !important; }
+.text-\[32px\] { font-size: calc(32px * var(--font-scale, 1.30)) !important; }
+.text-\[36px\] { font-size: calc(36px * var(--font-scale, 1.30)) !important; }
+.text-\[40px\] { font-size: calc(40px * var(--font-scale, 1.30)) !important; }
+.text-\[48px\] { font-size: calc(48px * var(--font-scale, 1.30)) !important; }
 
-.text-xs { font-size: calc(12px * var(--font-scale, 1.25)) !important; }
-.text-sm { font-size: calc(14px * var(--font-scale, 1.25)) !important; }
-.text-base { font-size: calc(16px * var(--font-scale, 1.25)) !important; }
-.text-lg { font-size: calc(18px * var(--font-scale, 1.25)) !important; }
-.text-xl { font-size: calc(20px * var(--font-scale, 1.25)) !important; }
-.text-2xl { font-size: calc(24px * var(--font-scale, 1.25)) !important; }
-.text-3xl { font-size: calc(30px * var(--font-scale, 1.25)) !important; }
-.text-4xl { font-size: calc(36px * var(--font-scale, 1.25)) !important; }
-.text-5xl { font-size: calc(48px * var(--font-scale, 1.25)) !important; }
-.text-6xl { font-size: calc(60px * var(--font-scale, 1.25)) !important; }
+.text-xs { font-size: calc(12px * var(--font-scale, 1.30)) !important; }
+.text-sm { font-size: calc(14px * var(--font-scale, 1.30)) !important; }
+.text-base { font-size: calc(16px * var(--font-scale, 1.30)) !important; }
+.text-lg { font-size: calc(18px * var(--font-scale, 1.30)) !important; }
+.text-xl { font-size: calc(20px * var(--font-scale, 1.30)) !important; }
+.text-2xl { font-size: calc(24px * var(--font-scale, 1.30)) !important; }
+.text-3xl { font-size: calc(30px * var(--font-scale, 1.30)) !important; }
+.text-4xl { font-size: calc(36px * var(--font-scale, 1.30)) !important; }
+.text-5xl { font-size: calc(48px * var(--font-scale, 1.30)) !important; }
+.text-6xl { font-size: calc(60px * var(--font-scale, 1.30)) !important; }
 
 /* React Flow Controls Theme Overrides */
 .react-flow__controls {

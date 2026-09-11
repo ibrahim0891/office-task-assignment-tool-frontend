@@ -18,7 +18,9 @@ import {
     List, 
     X,
     ListTodo,
-    CheckSquare
+    CheckSquare,
+    ArrowRight,
+    Info
 } from "lucide-react";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { Button } from "../ui/Button";
@@ -27,6 +29,7 @@ import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { UserAvatar } from "../ui/UserAvatar";
 import CreateProjectTaskModal from "./CreateProjectTaskModal";
 import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
+import MainTaskDetailDrawer from "./MainTaskDetailDrawer";
 import { calculateTaskProgress } from "../../utils/projectProgress";
 import { getProjectPermissions } from "../../utils/projectPermissions";
 import { getLocalDateString, extractDateString, calculateDaySpan, formatDaySpan } from "../../utils/date";
@@ -138,12 +141,14 @@ function MainTaskGridCard({
     columnMap,
     canManageTasks,
     onEditTask,
+    onViewDetails,
 }: {
     task: any;
     projectId: string;
     columnMap: Record<string, any>;
     canManageTasks: boolean;
     onEditTask: (task: any) => void;
+    onViewDetails: (task: any) => void;
 }) {
     const router = useRouter();
     const subtasks = task.subtasks || [];
@@ -157,16 +162,13 @@ function MainTaskGridCard({
     const riskBadge = isCompleted ? null : getRiskBadge(task.riskLevel);
     const column = columnMap[task.columnId];
 
-    // Clean description HTML tags
-    const cleanDescription = stripHtml(task.description || "");
-
     // Dynamic title typography scaling
     const titleLength = (task.title || "").length;
     const titleSizeClass = titleLength <= 24
-        ? "text-[17px] sm:text-[18px]"
+        ? "text-[18.5px] sm:text-[20px]"
         : titleLength <= 45
-        ? "text-[15.5px] sm:text-[16.5px]"
-        : "text-[14px] sm:text-[15px]";
+        ? "text-[16.5px] sm:text-[17.5px]"
+        : "text-[15px] sm:text-[16px]";
 
     // Normalize assignees list
     const assigneesList: any[] = [];
@@ -177,157 +179,187 @@ function MainTaskGridCard({
         });
     }
 
+    const dateRange = task.startDate && task.dueDate
+        ? `${new Date(task.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+        : task.dueDate
+        ? `Due ${new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+        : task.startDate
+        ? `Starts ${new Date(task.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+        : null;
+
+    const durationDays = task.startDate && task.dueDate ? calculateDaySpan(task.startDate, task.dueDate) : null;
+
     return (
         <div
-            className={`group relative bg-[var(--app-card)] border border-[var(--app-border)] ${priorityDetails.accentBorder} hover:border-[var(--app-border-strong)] rounded-[4px] p-4 flex flex-col justify-between gap-3.5 transition-all duration-200 cursor-pointer shadow-subtle hover:shadow-sm min-h-[210px]`}
-            onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
+            className={`group relative bg-[var(--app-card)] border border-[var(--app-border)] ${priorityDetails.accentBorder} hover:border-[var(--app-border-strong)] rounded-[3px] p-5 flex flex-col justify-between gap-4.5 transition-all duration-200 cursor-pointer shadow-subtle hover:shadow-float corner-brackets`}
+            onClick={() => onViewDetails(task)}
         >
-            {/* Card Header: Title & Edit Button */}
-            <div className="flex items-start justify-between gap-2">
-                <h3 className={`font-heading ${titleSizeClass} font-bold text-[var(--app-text)] tracking-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-2 leading-snug flex-1 min-w-0`} title={task.title}>
-                    {task.title}
-                </h3>
-                {canManageTasks && (
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onEditTask(task);
-                        }}
-                        title="Edit Main Task"
-                        className="p-1 -mt-0.5 -mr-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent hover:border-[var(--app-border)] transition-colors cursor-pointer shrink-0"
-                    >
-                        <Edit2 className="w-3 h-3" />
-                    </button>
-                )}
-            </div>
-
-            {/* Tags & Badges Row (Below Title): Show ONLY the necessary badge(s) */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-                {isCompleted ? (
-                    /* When Completed: show ONLY the Completed status badge */
-                    <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border flex items-center gap-1 shrink-0 ${statusConfig.cls}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
-                        <span>{statusConfig.label}</span>
-                    </span>
-                ) : (
-                    <>
-                        {/* Priority Badge */}
-                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-[2px] border shrink-0 ${priorityDetails.badgeCls}`}>
-                            {priorityDetails.label}
-                        </span>
-
-                        {/* Risk Badge (Overdue / At Risk) OR Status Badge */}
-                        {riskBadge ? (
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-[2px] border shrink-0 ${riskBadge.cls}`}>
-                                {riskBadge.label}
-                            </span>
-                        ) : (
-                            statusConfig.label && (
-                                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border flex items-center gap-1 shrink-0 ${statusConfig.cls}`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
-                                    <span>{statusConfig.label}</span>
-                                </span>
-                            )
-                        )}
-                    </>
-                )}
-            </div>
-
-            {/* Description: specific fixed height with overflow scroll */}
-            {cleanDescription ? (
-                <div
-                    className="h-[52px] overflow-y-auto pr-1 text-xs text-[var(--app-muted)] leading-relaxed select-text whitespace-pre-line break-words"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    {cleanDescription}
+            <div className="flex flex-col gap-3">
+                {/* Card Header: Title & Edit Button */}
+                <div className="flex items-start justify-between gap-2.5">
+                    <h3 className={`font-heading ${titleSizeClass} font-bold text-[var(--app-text)] tracking-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-2 leading-snug flex-1 min-w-0`} title={task.title}>
+                        {task.title}
+                    </h3>
+                    {canManageTasks && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEditTask(task);
+                            }}
+                            title="Edit Main Task"
+                            className="p-1.5 -mt-1 -mr-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent hover:border-[var(--app-border)] transition-colors cursor-pointer shrink-0"
+                        >
+                            <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
-            ) : (
-                <div className="h-[52px] flex items-start text-xs text-[var(--app-muted)] italic opacity-50 select-none">
-                    No description provided
+
+                {/* Tags & Badges Row (Below Title): Show ONLY the necessary badge(s) */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    {isCompleted ? (
+                        /* When Completed: show ONLY the Completed status badge */
+                        <span className={`text-[11.5px] font-medium px-2.5 py-0.5 rounded-[2px] border flex items-center gap-1.5 shrink-0 ${statusConfig.cls}`}>
+                            <span className={`w-2 h-2 rounded-full ${statusConfig.dotCls}`} />
+                            <span>{statusConfig.label}</span>
+                        </span>
+                    ) : (
+                        <>
+                            {/* Priority Badge */}
+                            <span className={`text-[11.5px] font-semibold px-2.5 py-0.5 rounded-[2px] border shrink-0 ${priorityDetails.badgeCls}`}>
+                                {priorityDetails.label}
+                            </span>
+
+                            {/* Risk Badge (Overdue / At Risk) OR Status Badge */}
+                            {riskBadge ? (
+                                <span className={`text-[11.5px] font-semibold px-2.5 py-0.5 rounded-[2px] border shrink-0 ${riskBadge.cls}`}>
+                                    {riskBadge.label}
+                                </span>
+                            ) : (
+                                statusConfig.label && (
+                                    <span className={`text-[11.5px] font-medium px-2.5 py-0.5 rounded-[2px] border flex items-center gap-1.5 shrink-0 ${statusConfig.cls}`}>
+                                        <span className={`w-2 h-2 rounded-full ${statusConfig.dotCls}`} />
+                                        <span>{statusConfig.label}</span>
+                                    </span>
+                                )
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* Task Duration Days & Start/End Dates (Above Progress Section) */}
+            {dateRange && (
+                <div
+                    className="flex items-center gap-1.5 text-xs text-[var(--app-muted)] pt-0.5"
+                    title={task.startDate && task.dueDate ? `Timeline: ${dateRange} (${formatDaySpan(durationDays || 0)})` : (task.dueDate ? `Due: ${new Date(task.dueDate).toLocaleDateString()}` : "Schedule")}
+                >
+                    <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                    <span>{dateRange}</span>
+                    {durationDays && (
+                        <span className="font-semibold text-[var(--app-text)] ml-0.5 tabular-nums">
+                            • {durationDays}d
+                        </span>
+                    )}
                 </div>
             )}
 
-            {/* Subtask Breakdown / Checklist Tracker Box */}
-            <div className="bg-[var(--app-bg)]/60 border border-[var(--app-border)]/80 rounded-[3px] p-2 flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-[var(--app-muted)] flex items-center gap-1.5 font-medium">
-                        <CheckSquare className="w-3 h-3 text-[var(--app-muted)]" />
+            {/* Subtask Breakdown / Checklist Tracker */}
+            <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-xs text-[var(--app-muted)]">
+                    <span className="flex items-center gap-1.5 font-medium">
+                        <CheckSquare className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                         <span>Subtasks</span>
                     </span>
-                    <span className="font-semibold text-[var(--app-text)] tabular-nums">
+                    <span className="font-medium tabular-nums text-xs">
                         {totalSubtasks > 0 
-                            ? `${doneSubtasks}/${totalSubtasks} Done (${progressPercent}%)` 
-                            : (task.isCompleted ? "100% Completed" : "0 Subtasks")}
+                            ? `${doneSubtasks}/${totalSubtasks} (${progressPercent}%)` 
+                            : (task.isCompleted ? "Completed" : "0 subtasks")}
                     </span>
                 </div>
 
-                {/* Subtask Progress Track */}
-                <div className="w-full bg-[var(--app-card)] border border-[var(--app-border)] h-1.5 rounded-full overflow-hidden">
+                {/* Subtask Progress Track: Slim & Subtle */}
+                <div className="w-full bg-[var(--app-border)]/50 h-[3px] rounded-full overflow-hidden">
                     <div
                         className={`h-full transition-all duration-300 rounded-full ${
                             progressPercent === 100
-                                ? "bg-[var(--color-success,#22863A)]"
+                                ? "bg-[var(--color-success)]/80"
                                 : progressPercent > 0
-                                ? "bg-[var(--status-in-progress,#7C3AED)]"
-                                : "bg-[var(--app-border-strong)]"
+                                ? "bg-[var(--app-text)]/50"
+                                : "bg-transparent"
                         }`}
                         style={{ width: `${progressPercent}%` }}
                     />
                 </div>
             </div>
 
-            {/* Footer Row: Avatars, Due Date & Navigation Arrow */}
-            <div className="flex items-center justify-between pt-2.5 border-t border-[var(--app-border)] text-[10px]">
-                {/* Left: Assignees + Date */}
-                <div className="flex items-center gap-2">
-                    {/* Avatars Stack */}
-                    <div className="flex -space-x-1.5">
+            {/* Footer Row: Avatars & Action Buttons (View Details & Open) */}
+            <div className="flex items-center justify-between pt-3.5 border-t border-[var(--app-border)] gap-2.5">
+                {/* Left: Assignees Stack */}
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex -space-x-1.5 shrink-0">
                         {assigneesList.length > 0 ? (
                             assigneesList.slice(0, 3).map((user, idx) => {
                                 const name = user.name || user.fullName || "User";
                                 const avatarUrl = user.avatarUrl || user.user?.avatarUrl;
                                 return (
-                                    <UserAvatar
-                                        key={user.id || idx}
-                                        name={name}
-                                        avatarUrl={avatarUrl}
-                                        size="xs"
-                                        title={name}
-                                    />
+                                    <div key={user.id || idx} className="relative ring-2 ring-[var(--app-card)] rounded-full hover:scale-110 hover:z-20 transition-transform shadow-xs shrink-0">
+                                        <UserAvatar
+                                            name={name}
+                                            avatarUrl={avatarUrl}
+                                            size="sm"
+                                            title={name}
+                                        />
+                                    </div>
                                 );
                             })
                         ) : (
-                            <span className="text-[9.5px] text-[var(--app-muted)] italic">Unassigned</span>
+                            <span className="text-xs text-[var(--app-muted)] italic">Unassigned</span>
                         )}
                         {assigneesList.length > 3 && (
-                            <div className="w-4 h-4 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[7.5px] font-semibold text-[var(--app-muted)] shrink-0">
+                            <div className="w-5 h-5 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[8.5px] font-semibold text-[var(--app-muted)] shrink-0">
                                 +{assigneesList.length - 3}
                             </div>
                         )}
                     </div>
-
-                    {/* Due Date & Span */}
-                    {task.dueDate && (
-                        <div
-                            className="flex items-center gap-1 text-[9.5px] text-[var(--app-muted)] bg-[var(--app-bg)] px-1.5 py-0.5 rounded-[2px] border border-[var(--app-border)] shrink-0"
-                            title={task.startDate ? `Timeline: ${new Date(task.startDate).toLocaleDateString()} – ${new Date(task.dueDate).toLocaleDateString()} (${formatDaySpan(calculateDaySpan(task.startDate, task.dueDate))})` : `Due: ${new Date(task.dueDate).toLocaleDateString()}`}
-                        >
-                            <Calendar className="w-2.5 h-2.5 text-[var(--app-muted)]" />
-                            <span>{new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-                            {task.startDate && (
-                                <span className="font-semibold text-[var(--app-text)] ml-0.5">
-                                    • {calculateDaySpan(task.startDate, task.dueDate)}d
-                                </span>
-                            )}
-                        </div>
+                    {assigneesList.length === 1 && (
+                        <span className="text-xs text-[var(--app-text)] font-medium truncate max-w-[100px]">
+                            {assigneesList[0].name || assigneesList[0].fullName}
+                        </span>
                     )}
                 </div>
 
-                {/* Right: Action link with subtask count */}
-                <div className="flex items-center gap-1 text-[10px] font-medium text-[var(--app-muted)] group-hover:text-[var(--app-text)] transition-colors">
-                    <span>{totalSubtasks > 0 ? `Subtasks (${totalSubtasks})` : "View Subtasks"}</span>
-                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                {/* Right: View Details & Open Buttons */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onViewDetails(task);
+                        }}
+                        icon={<Info className="w-3.5 h-3.5 text-[var(--color-accent)] shrink-0" />}
+                        className="!h-[32px] !px-2.5 !text-xs font-semibold text-nowrap whitespace-nowrap shadow-3xs"
+                        title="View task description and full details"
+                    >
+                        View Details
+                    </Button>
+
+                    <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/projects/${projectId}/tasks/${task.id}`);
+                        }}
+                        icon={<ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform shrink-0" />}
+                        className="!h-[32px] !px-2.5 !text-xs font-semibold text-nowrap whitespace-nowrap shadow-3xs"
+                        title="Open task board and view subtasks"
+                    >
+                        Open
+                    </Button>
                 </div>
             </div>
         </div>
@@ -340,12 +372,14 @@ function MainTaskListItem({
     columnMap,
     canManageTasks,
     onEditTask,
+    onViewDetails,
 }: {
     task: any;
     projectId: string;
     columnMap: Record<string, any>;
     canManageTasks: boolean;
     onEditTask: (task: any) => void;
+    onViewDetails: (task: any) => void;
 }) {
     const router = useRouter();
     const subtasks = task.subtasks || [];
@@ -371,13 +405,13 @@ function MainTaskListItem({
     return (
         <tr
             className="group border-b border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer text-xs"
-            onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
+            onClick={() => onViewDetails(task)}
         >
             {/* Status & Stage */}
-            <td className="py-3 px-4 whitespace-nowrap">
+            <td className="py-3.5 px-4 whitespace-nowrap">
                 <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${priorityDetails.dotCls}`} title={`Priority: ${priorityDetails.label}`} />
-                    <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-[2px] border inline-flex items-center gap-1.5 ${statusConfig.cls}`}>
+                    <span className={`w-2.5 h-2.5 rounded-full ${priorityDetails.dotCls}`} title={`Priority: ${priorityDetails.label}`} />
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-[2px] border inline-flex items-center gap-1.5 ${statusConfig.cls}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
                         {statusConfig.label}
                     </span>
@@ -385,39 +419,39 @@ function MainTaskListItem({
             </td>
 
             {/* Task Title & Description */}
-            <td className="py-3.5 px-4 min-w-[220px]">
+            <td className="py-3.5 px-4 min-w-[240px]">
                 <div className="flex flex-col gap-0.5">
-                    <span className="font-semibold text-[13px] text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
+                    <span className="font-semibold text-[14px] text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
                         {task.title}
                     </span>
                     {cleanDescription && (
-                        <span className="text-[10px] text-[var(--app-muted)] line-clamp-1 max-w-[280px]">{cleanDescription}</span>
+                        <span className="text-[11.5px] text-[var(--app-muted)] line-clamp-1 max-w-[320px]">{cleanDescription}</span>
                     )}
                 </div>
             </td>
 
             {/* Priority & Risk */}
-            <td className="py-3 px-4 whitespace-nowrap">
+            <td className="py-3.5 px-4 whitespace-nowrap">
                 <div className="flex items-center gap-1.5">
                     {!isCompleted ? (
                         <>
-                            <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${priorityDetails.badgeCls}`}>
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-[2px] border ${priorityDetails.badgeCls}`}>
                                 {priorityDetails.label}
                             </span>
                             {riskBadge && (
-                                <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded-[2px] border ${riskBadge.cls}`}>
+                                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-[2px] border ${riskBadge.cls}`}>
                                     {riskBadge.label}
                                 </span>
                             )}
                         </>
                     ) : (
-                        <span className="text-[10px] text-[var(--status-completed,#15803D)] font-semibold">Done</span>
+                        <span className="text-xs text-[var(--status-completed,#15803D)] font-semibold">Done</span>
                     )}
                 </div>
             </td>
 
             {/* Assignees Squad */}
-            <td className="py-3 px-4 whitespace-nowrap">
+            <td className="py-3.5 px-4 whitespace-nowrap">
                 <div className="flex items-center gap-1.5">
                     <div className="flex -space-x-1.5">
                         {assigneesList.length > 0 ? (
@@ -435,7 +469,7 @@ function MainTaskListItem({
                                 );
                             })
                         ) : (
-                            <span className="text-[9.5px] text-[var(--app-muted)] italic">Unassigned</span>
+                            <span className="text-[10px] text-[var(--app-muted)] italic">Unassigned</span>
                         )}
                         {assigneesList.length > 3 && (
                             <div className="w-4 h-4 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[7.5px] font-semibold text-[var(--app-muted)] shrink-0">
@@ -444,7 +478,7 @@ function MainTaskListItem({
                         )}
                     </div>
                     {assigneesList.length === 1 && (
-                        <span className="text-[10px] text-[var(--app-text)] font-medium truncate max-w-[90px]">
+                        <span className="text-[11px] text-[var(--app-text)] font-medium truncate max-w-[90px]">
                             {assigneesList[0].name || assigneesList[0].fullName}
                         </span>
                     )}
@@ -452,16 +486,16 @@ function MainTaskListItem({
             </td>
 
             {/* Due Date & Span */}
-            <td className="py-3 px-4 whitespace-nowrap text-[10px] text-[var(--app-muted)]">
+            <td className="py-3.5 px-4 whitespace-nowrap text-xs text-[var(--app-muted)]">
                 {task.dueDate ? (
                     <div
-                        className="flex items-center gap-1.5 bg-[var(--app-bg)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] w-fit"
+                        className="flex items-center gap-1.5 w-fit"
                         title={task.startDate ? `Timeline: ${new Date(task.startDate).toLocaleDateString()} – ${new Date(task.dueDate).toLocaleDateString()} (${formatDaySpan(calculateDaySpan(task.startDate, task.dueDate))})` : `Due: ${new Date(task.dueDate).toLocaleDateString()}`}
                     >
-                        <Calendar className="w-2.5 h-2.5 text-[var(--app-muted)]" />
+                        <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                         <span>{new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                         {task.startDate && (
-                            <span className="font-semibold text-[var(--app-text)] ml-0.5">
+                            <span className="font-medium text-[var(--app-text)] ml-0.5">
                                 • {calculateDaySpan(task.startDate, task.dueDate)}d
                             </span>
                         )}
@@ -472,24 +506,24 @@ function MainTaskListItem({
             </td>
 
             {/* Subtask Progress */}
-            <td className="py-3 px-4 min-w-[160px]">
+            <td className="py-3.5 px-4 min-w-[150px]">
                 <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-[9.5px]">
-                        <span className="text-[var(--app-muted)] tabular-nums">
-                            {totalSubtasks > 0 ? `${doneSubtasks}/${totalSubtasks} Subtasks` : "No Subtasks"}
+                    <div className="flex items-center justify-between text-xs text-[var(--app-muted)]">
+                        <span className="tabular-nums text-[11px]">
+                            {totalSubtasks > 0 ? `${doneSubtasks}/${totalSubtasks}` : "0 subtasks"}
                         </span>
-                        <span className="font-semibold text-[var(--app-text)] tabular-nums">
+                        <span className="font-medium tabular-nums text-[11px]">
                             {progressPercent}%
                         </span>
                     </div>
-                    <div className="w-full bg-[var(--app-bg)] border border-[var(--app-border)] h-1.5 rounded-full overflow-hidden">
+                    <div className="w-full bg-[var(--app-border)]/50 h-[3px] rounded-full overflow-hidden">
                         <div
                             className={`h-full transition-all duration-300 rounded-full ${
                                 progressPercent === 100
-                                    ? "bg-[var(--color-success,#22863A)]"
+                                    ? "bg-[var(--color-success)]/80"
                                     : progressPercent > 0
-                                    ? "bg-[var(--status-in-progress,#7C3AED)]"
-                                    : "bg-[var(--app-border-strong)]"
+                                    ? "bg-[var(--app-text)]/50"
+                                    : "bg-transparent"
                             }`}
                             style={{ width: `${progressPercent}%` }}
                         />
@@ -510,17 +544,37 @@ function MainTaskListItem({
                             title="Edit Main Task"
                             className="p-1 rounded-[2px] hover:bg-[var(--app-card)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent hover:border-[var(--app-border)] transition-colors cursor-pointer"
                         >
-                            <Edit2 className="w-3 h-3" />
+                            <Edit2 className="w-3.5 h-3.5" />
                         </button>
                     )}
-                    <button
+                    <Button
                         type="button"
-                        onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
-                        className="px-2.5 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-muted)] hover:text-[var(--app-text)] text-[10.5px] font-medium rounded-[2px] transition-colors flex items-center gap-1 cursor-pointer"
+                        variant="secondary"
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onViewDetails(task);
+                        }}
+                        icon={<Info className="w-3 h-3 text-[var(--color-accent)]" />}
+                        className="!h-[28px] !px-2 !text-[11px] font-semibold text-nowrap whitespace-nowrap shadow-3xs"
+                        title="View details"
                     >
-                        <span>Subtasks</span>
-                        <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
+                        View Details
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/projects/${projectId}/tasks/${task.id}`);
+                        }}
+                        icon={<ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />}
+                        className="!h-[28px] !px-2.5 !text-[11px] font-semibold text-nowrap whitespace-nowrap shadow-3xs"
+                        title="Open subtask board"
+                    >
+                        Open
+                    </Button>
                 </div>
             </td>
         </tr>
@@ -533,6 +587,7 @@ interface ProjectBoardViewProps {
 }
 
 export default function ProjectBoardView({ project, onRefresh }: ProjectBoardViewProps) {
+    const router = useRouter();
     const { currentUser, userRole } = useWorkspace();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedPriority, setSelectedPriority] = useState<string>("ALL");
@@ -541,6 +596,8 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<any | null>(null);
     const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
+    const [selectedDetailTask, setSelectedDetailTask] = useState<any | null>(null);
+    const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
 
     const projectStartDate = extractDateString(project?.startDate);
     const projectEndDate = extractDateString(project?.endDate);
@@ -701,6 +758,11 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
     const handleOpenEditTask = (taskToEdit: any) => {
         setEditingTask(taskToEdit);
         setIsEditTaskModalOpen(true);
+    };
+
+    const handleOpenTaskDetail = (taskToDetail: any) => {
+        setSelectedDetailTask(taskToDetail);
+        setIsDetailDrawerOpen(true);
     };
 
     return (
@@ -955,7 +1017,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                         </div>
                     </div>
                 ) : viewMode === "grid" ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
                         {filteredTasks.map((task: any) => (
                             <MainTaskGridCard
                                 key={task.id}
@@ -964,6 +1026,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                                 columnMap={columnMap}
                                 canManageTasks={canManageTasks}
                                 onEditTask={handleOpenEditTask}
+                                onViewDetails={handleOpenTaskDetail}
                             />
                         ))}
                     </div>
@@ -992,6 +1055,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                                             columnMap={columnMap}
                                             canManageTasks={canManageTasks}
                                             onEditTask={handleOpenEditTask}
+                                            onViewDetails={handleOpenTaskDetail}
                                         />
                                     ))}
                                 </tbody>
@@ -1000,6 +1064,29 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                     </div>
                 )}
             </div>
+
+            {/* Main Task Detail Side Drawer */}
+            <MainTaskDetailDrawer
+                isOpen={isDetailDrawerOpen}
+                onClose={() => {
+                    setIsDetailDrawerOpen(false);
+                    setSelectedDetailTask(null);
+                }}
+                task={selectedDetailTask}
+                project={project}
+                columnMap={columnMap}
+                canEdit={canManageTasks}
+                onEditClick={() => {
+                    if (selectedDetailTask) {
+                        handleOpenEditTask(selectedDetailTask);
+                    }
+                }}
+                onOpenBoard={() => {
+                    if (selectedDetailTask) {
+                        router.push(`/projects/${project.id}/tasks/${selectedDetailTask.id}`);
+                    }
+                }}
+            />
 
             {/* Create Project Main Task Modal */}
             <CreateProjectTaskModal

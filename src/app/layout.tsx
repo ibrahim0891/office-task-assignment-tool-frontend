@@ -85,7 +85,7 @@ export default function RootLayout({
                                     // Apply Fonts & Scale
                                     var primary = localStorage.getItem('sys_primary_font') || 'Outfit';
                                     var secondary = localStorage.getItem('sys_secondary_font') || 'Lora';
-                                    var scale = localStorage.getItem('sys_font_scale') || '1.25';
+                                    var scale = localStorage.getItem('sys_font_scale') || '1.30';
 
                                     var fontMap = {
                                         Outfit: "'Outfit', sans-serif",
@@ -113,6 +113,7 @@ export default function RootLayout({
                                     };
 
                                     var root = document.documentElement;
+                                    root.style.setProperty('--font-scale', scale);
                                     if (fontMap[primary]) {
                                         root.style.setProperty('--font-primary', fontMap[primary]);
                                         root.style.setProperty('--font-sans', fontMap[primary]);
