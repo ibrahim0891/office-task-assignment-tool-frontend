@@ -41,6 +41,8 @@ import { CustomSelect, SelectOption } from "../ui/CustomSelect";
 import { TipTapEditor } from "../ui/TipTapEditor";
 import SideSheetWrapper from "../ui/SideSheetWrapper";
 import ModalWrapper from "../ui/ModalWrapper";
+import { Button } from "../ui/Button";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import { triggerMicroCelebration } from "../../utils/confetti";
 import { playFeedback } from "../../utils/feedback";
 import { calculateDaySpan, formatDaySpan, calculateActualDays, extractDateString, getLocalDateString } from "../../utils/date";
@@ -136,20 +138,36 @@ export default function ProjectSubtaskModal({
     const [isCompleted, setIsCompleted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [viewMode, setViewMode] = useState<"side_sheet" | "modal">("side_sheet");
+    // Dirty state tracking & ConfirmDialog state
+    const [initialSnapshot, setInitialSnapshot] = useState<{
+        title: string;
+        description: string;
+        priority: string;
+        assignedToId: string;
+        columnId: string;
+        startDate: string;
+        dueDate: string;
+        isCompleted: boolean;
+    } | null>(null);
+    const [isUnsavedConfirmOpen, setIsUnsavedConfirmOpen] = useState(false);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [commentToDeleteId, setCommentToDeleteId] = useState<string | null>(null);
+    const [isDeletingComment, setIsDeletingComment] = useState(false);
 
-    // Load saved view mode from localStorage
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem("subtask_view_mode");
-            if (saved === "modal" || saved === "side_sheet") {
-                setViewMode(saved);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [viewMode, setViewMode] = useState<"side_sheet" | "modal">(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem("subtask_view_mode");
+                if (saved === "modal" || saved === "side_sheet") {
+                    return saved;
+                }
+            } catch {
+                // Ignore localStorage access errors
             }
-        } catch {
-            // Ignore localStorage access errors
         }
-    }, []);
+        return "side_sheet";
+    });
 
     const toggleViewMode = () => {
         const nextMode = viewMode === "side_sheet" ? "modal" : "side_sheet";
@@ -389,6 +407,17 @@ export default function ProjectSubtaskModal({
                 setActualDays(Number(subtask.actualDays) || 0);
             }
 
+            setInitialSnapshot({
+                title: subtask.title || "",
+                description: subtask.description || "",
+                priority: subtask.priority || "MEDIUM",
+                assignedToId: subtask.assignedToId || subtask.assignedTo?.id || "",
+                columnId: subtask.columnId || columns[0]?.id || "",
+                startDate: sDate,
+                dueDate: dDate,
+                isCompleted: isComp,
+            });
+
             // Populate initial comments from subtask object if available
             if (Array.isArray(subtask.comments) && subtask.comments.length > 0) {
                 setComments(
@@ -435,11 +464,8 @@ export default function ProjectSubtaskModal({
             setTitle("");
             setDescription("");
             setPriority("MEDIUM");
-            if (!canManageTasks) {
-                setAssignedToId(currentUser?.id || "");
-            } else {
-                setAssignedToId(candidateAssignees[0]?.id || currentUser?.id || "");
-            }
+            const defaultAssignee = !canManageTasks ? (currentUser?.id || "") : (candidateAssignees[0]?.id || currentUser?.id || "");
+            setAssignedToId(defaultAssignee);
             const matchedCol = columns.find(
                 (c) =>
                     c.id === initialColumnStatus ||
@@ -459,14 +485,24 @@ export default function ProjectSubtaskModal({
             setDueDate(dDate);
             setEstimatedDays(calculateDaySpan(sDate, dDate));
             setActualDays(0);
-            setIsCompleted(
-                Boolean(matchedCol?.isComplete) ||
+            const initialIsComp = Boolean(matchedCol?.isComplete) ||
                 initialColumnStatus === "Completed" ||
-                initialColumnStatus === "Done"
-            );
+                initialColumnStatus === "Done";
+            setIsCompleted(initialIsComp);
             setComments([]);
             setActivities([]);
             setAttachments([]);
+
+            setInitialSnapshot({
+                title: "",
+                description: "",
+                priority: "MEDIUM",
+                assignedToId: defaultAssignee,
+                columnId: targetColId,
+                startDate: sDate,
+                dueDate: dDate,
+                isCompleted: initialIsComp,
+            });
         }
         if (isOpen) {
             setActiveTab(initialTab || "description");
@@ -946,28 +982,88 @@ export default function ProjectSubtaskModal({
     const handleDeleteComment = async (commentId: string) => {
         const targetTaskId = parentTask?.id || subtask?.parentTaskId;
         if (!subtask?.id || !projectId || !targetTaskId) return;
-        if (!window.confirm("Are you sure you want to delete this comment?")) return;
 
         try {
+            setIsDeletingComment(true);
             await api.deleteProjectTaskComment(projectId, targetTaskId, commentId);
             setComments((prev) => prev.filter((c) => c.id !== commentId));
             toast.success("Comment deleted");
             mutateComments();
+            setCommentToDeleteId(null);
         } catch (err: any) {
             toast.error(err.message || "Failed to delete comment");
+        } finally {
+            setIsDeletingComment(false);
         }
         setOpenMenuCommentId(null);
     };
 
+    const hasChanges = React.useMemo(() => {
+        if (!isEditMode) {
+            return title.trim().length > 0 || description.trim().length > 0;
+        }
+
+        const initialTitle = initialSnapshot?.title ?? (subtask?.title || "");
+        const initialDesc = initialSnapshot?.description ?? (subtask?.description || "");
+        const initialPriority = initialSnapshot?.priority ?? (subtask?.priority || "MEDIUM");
+        const initialAssignedToId = initialSnapshot?.assignedToId ?? (subtask?.assignedToId || subtask?.assignedTo?.id || "");
+        const initialColId = initialSnapshot?.columnId ?? (subtask?.columnId || columns[0]?.id || "");
+        const initialStartDate = initialSnapshot?.startDate ?? (extractDateString(subtask?.startDate) || extractDateString(parentTask?.startDate) || projectStartDate || "");
+        const initialDueDate = initialSnapshot?.dueDate ?? (extractDateString(subtask?.dueDate || subtask?.endDate) || extractDateString(parentTask?.dueDate || parentTask?.endDate) || projectEndDate || "");
+        const initialIsComp = initialSnapshot?.isCompleted ?? Boolean(subtask?.isCompleted);
+
+        return (
+            title.trim() !== initialTitle.trim() ||
+            description.trim() !== initialDesc.trim() ||
+            priority !== initialPriority ||
+            assignedToId !== initialAssignedToId ||
+            columnId !== initialColId ||
+            startDate !== initialStartDate ||
+            dueDate !== initialDueDate ||
+            isCompleted !== initialIsComp
+        );
+    }, [
+        isEditMode,
+        title,
+        description,
+        priority,
+        assignedToId,
+        columnId,
+        startDate,
+        dueDate,
+        isCompleted,
+        initialSnapshot,
+        subtask,
+        columns,
+        parentTask,
+        projectStartDate,
+        projectEndDate,
+    ]);
+
+    const handleAttemptClose = () => {
+        if (hasChanges) {
+            setIsUnsavedConfirmOpen(true);
+        } else {
+            onClose();
+        }
+    };
+
     const handleDelete = async () => {
         if (!isEditMode || !subtask?.id) return;
-        if (!window.confirm("Are you sure you want to delete this subtask?")) return;
 
         try {
             setSubmitting(true);
-            await api.deleteProjectSubtask(projectId, parentTask.id, subtask.id);
+            const targetParentTaskId = parentTask?.id || subtask?.parentTaskId || subtask?.taskId;
+            if (!targetParentTaskId || !projectId) {
+                throw new Error("Project or parent task context is missing.");
+            }
+            await api.deleteProjectSubtask(projectId, targetParentTaskId, subtask.id);
             toast.success("Subtask deleted");
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("project_data_updated", { detail: { projectId } }));
+            }
             if (onRefresh) onRefresh();
+            setIsDeleteConfirmOpen(false);
             onClose();
         } catch (err: any) {
             toast.error(err.message || "Failed to delete subtask");
@@ -1000,7 +1096,7 @@ export default function ProjectSubtaskModal({
                 <div className="flex items-center gap-2 min-w-0">
                     <button
                         type="button"
-                        onClick={onClose}
+                        onClick={handleAttemptClose}
                         className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer shrink-0"
                         title="Close (Esc)"
                     >
@@ -1033,7 +1129,7 @@ export default function ProjectSubtaskModal({
                 </div>
 
                 {/* Right: Actions */}
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                     {/* View Mode Toggle (Center Modal vs Side Sheet) */}
                     <button
                         type="button"
@@ -1066,10 +1162,11 @@ export default function ProjectSubtaskModal({
                         )}
                     </button>
 
-                    {isEditMode && canManageTasks && (
+                    {/* Delete subtask button */}
+                    {isEditMode && canModifyThisSubtask && (
                         <button
                             type="button"
-                            onClick={handleDelete}
+                            onClick={() => setIsDeleteConfirmOpen(true)}
                             disabled={submitting}
                             className="p-1.5 text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-[2px] transition-colors cursor-pointer"
                             title="Delete subtask"
@@ -1078,9 +1175,30 @@ export default function ProjectSubtaskModal({
                         </button>
                     )}
 
+                    {/* Save Changes / Save button - Top Right before X button */}
+                    {canModifyThisSubtask && (
+                        <Button
+                            type="button"
+                            variant={hasChanges ? "accent" : "secondary"}
+                            size="sm"
+                            onClick={() => handleSaveSubtask()}
+                            isLoading={submitting}
+                            loadingText="Saving..."
+                            className={`!h-[30px] !px-3 !text-xs transition-all ${
+                                hasChanges
+                                    ? "!bg-[var(--color-accent)] !border-[var(--color-accent)] !text-white hover:!opacity-90 shadow-sm font-semibold"
+                                    : "!bg-[var(--app-card)] !border-[var(--app-border)] !text-[var(--app-muted)] hover:!text-[var(--app-text)] font-medium"
+                            }`}
+                            title={isEditMode ? "Save Changes" : "Save"}
+                        >
+                            {isEditMode ? "Save Changes" : "Save"}
+                        </Button>
+                    )}
+
+                    {/* Close Button */}
                     <button
                         type="button"
-                        onClick={onClose}
+                        onClick={handleAttemptClose}
                         className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
                         title="Close (Esc)"
                     >
@@ -1347,7 +1465,10 @@ export default function ProjectSubtaskModal({
                                                                                 <div className="border-t border-[var(--app-border)] my-1 pt-1">
                                                                                     <button
                                                                                         type="button"
-                                                                                        onClick={() => handleDeleteComment(c.id)}
+                                                                                        onClick={() => {
+                                                                                            setCommentToDeleteId(c.id);
+                                                                                            setOpenMenuCommentId(null);
+                                                                                        }}
                                                                                         className="w-full px-3 py-1.5 text-left text-[var(--color-error)] hover:bg-[var(--color-error)]/10 flex items-center gap-2 cursor-pointer transition-colors"
                                                                                     >
                                                                                         <Trash2 className="w-3 h-3" />
@@ -1841,37 +1962,6 @@ export default function ProjectSubtaskModal({
                             </div>
                         </div>
 
-                        {/* Save Action in Sidebar */}
-                        {canModifyThisSubtask ? (
-                            <div className="pt-2 mt-auto border-t border-[var(--app-border)] flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => handleSaveSubtask()}
-                                    disabled={submitting}
-                                    className="relative corner-brackets-4 w-full py-2 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] font-medium text-xs rounded-[2px] transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
-                                >
-                                    {submitting ? (
-                                        <>
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-[var(--app-text)]" />
-                                            <span>Saving...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {isEditMode ? (
-                                                <Check className="w-3.5 h-3.5 text-[var(--app-text)] shrink-0" />
-                                            ) : (
-                                                <Plus className="w-3.5 h-3.5 text-[var(--app-text)] shrink-0" />
-                                            )}
-                                            <span>{isEditMode ? "Save Changes" : "Create Subtask"}</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="pt-2 mt-auto border-t border-[var(--app-border)] text-center text-[10px] text-[var(--app-muted)] italic">
-                                View only mode (assigned to another member)
-                            </div>
-                        )}
                     </div>
                 </div>
 
@@ -1901,28 +1991,80 @@ export default function ProjectSubtaskModal({
         </>
     );
 
+    const confirmModals = (
+        <>
+            <ConfirmDialog
+                isOpen={isUnsavedConfirmOpen}
+                title="Discard Unsaved Changes?"
+                description="You have unsaved changes in this subtask. Are you sure you want to close without saving?"
+                confirmText="Discard & Close"
+                cancelText="Keep Editing"
+                isDanger={true}
+                onConfirm={() => {
+                    setIsUnsavedConfirmOpen(false);
+                    onClose();
+                }}
+                onClose={() => setIsUnsavedConfirmOpen(false)}
+            />
+
+            <ConfirmDialog
+                isOpen={isDeleteConfirmOpen}
+                title="Delete Subtask"
+                description={`Are you sure you want to permanently delete "${title || subtask?.title || "this subtask"}"? This action cannot be undone.`}
+                confirmText="Delete Subtask"
+                cancelText="Cancel"
+                isDanger={true}
+                isLoading={submitting}
+                onConfirm={handleDelete}
+                onClose={() => setIsDeleteConfirmOpen(false)}
+            />
+
+            <ConfirmDialog
+                isOpen={Boolean(commentToDeleteId)}
+                title="Delete Comment"
+                description="Are you sure you want to delete this comment? This action cannot be undone."
+                confirmText="Delete Comment"
+                cancelText="Cancel"
+                isDanger={true}
+                isLoading={isDeletingComment}
+                onConfirm={() => {
+                    if (commentToDeleteId) {
+                        handleDeleteComment(commentToDeleteId);
+                    }
+                }}
+                onClose={() => setCommentToDeleteId(null)}
+            />
+        </>
+    );
+
     if (viewMode === "modal") {
         return (
-            <ModalWrapper
-                isOpen={isOpen}
-                onClose={onClose}
-                maxWidth={isExpanded ? "max-w-7xl" : "max-w-5xl"}
-                className="h-[88vh] max-h-[880px] overflow-hidden text-left"
-            >
-                {innerContent}
-            </ModalWrapper>
+            <>
+                <ModalWrapper
+                    isOpen={isOpen}
+                    onClose={handleAttemptClose}
+                    maxWidth={isExpanded ? "max-w-7xl" : "max-w-5xl"}
+                    className="h-[88vh] max-h-[880px] overflow-hidden text-left"
+                >
+                    {innerContent}
+                </ModalWrapper>
+                {confirmModals}
+            </>
         );
     }
 
     return (
-        <SideSheetWrapper
-            isOpen={isOpen}
-            onClose={onClose}
-            width="2xl"
-            isExpanded={isExpanded}
-            className="overflow-hidden text-left"
-        >
-            {innerContent}
-        </SideSheetWrapper>
+        <>
+            <SideSheetWrapper
+                isOpen={isOpen}
+                onClose={handleAttemptClose}
+                width="2xl"
+                isExpanded={isExpanded}
+                className="overflow-hidden text-left"
+            >
+                {innerContent}
+            </SideSheetWrapper>
+            {confirmModals}
+        </>
     );
 }

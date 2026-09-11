@@ -8,6 +8,7 @@ import { CustomSelect } from "../ui/CustomSelect";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { TipTapEditor } from "../ui/TipTapEditor";
 import SideSheetWrapper from "../ui/SideSheetWrapper";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import { Button } from "../ui/Button";
 import { UserAvatar } from "../ui/UserAvatar";
 import { calculateDaySpan, formatDaySpan } from "../../utils/date";
@@ -62,6 +63,7 @@ export default function UpdateProjectTaskModal({
     const [loading, setLoading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isUnsavedConfirmOpen, setIsUnsavedConfirmOpen] = useState(false);
 
     const columns = (currentProject?.columns || []).slice().sort((a: any, b: any) => a.order - b.order);
 
@@ -96,6 +98,43 @@ export default function UpdateProjectTaskModal({
             }
         });
     }
+
+    const initialAssigneeIds = React.useMemo(() => {
+        if (!currentTask || !Array.isArray(currentTask.assignees)) return [];
+        return currentTask.assignees.map((a: any) => a.userId || a.user?.id || a.id).filter(Boolean);
+    }, [currentTask]);
+
+    const hasChanges = React.useMemo(() => {
+        if (!currentTask) return false;
+        const initialTitle = (currentTask.title || "").trim();
+        const initialDesc = (currentTask.description || "").trim();
+        const initialCol = currentTask.columnId || (columns[0]?.id || "");
+        const initialPriority = currentTask.priority || "MEDIUM";
+        const initialStartDate = formatDateInput(currentTask.startDate);
+        const initialDueDate = formatDateInput(currentTask.dueDate);
+
+        const assigneesChanged =
+            selectedAssigneeIds.length !== initialAssigneeIds.length ||
+            selectedAssigneeIds.some((id) => !initialAssigneeIds.includes(id));
+
+        return (
+            title.trim() !== initialTitle ||
+            description.trim() !== initialDesc ||
+            columnId !== initialCol ||
+            priority !== initialPriority ||
+            startDate !== initialStartDate ||
+            dueDate !== initialDueDate ||
+            assigneesChanged
+        );
+    }, [currentTask, title, description, columnId, priority, startDate, dueDate, selectedAssigneeIds, initialAssigneeIds, columns]);
+
+    const handleAttemptClose = () => {
+        if (hasChanges) {
+            setIsUnsavedConfirmOpen(true);
+        } else {
+            onClose();
+        }
+    };
 
     useEffect(() => {
         if (currentTask && isOpen) {
@@ -198,12 +237,12 @@ export default function UpdateProjectTaskModal({
     return (
         <SideSheetWrapper
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleAttemptClose}
             width="lg"
             className="flex flex-col h-full bg-[var(--app-card)] border-l border-[var(--app-border)] text-left select-none text-[var(--app-text)]"
         >
             {/* ── Top Header ── */}
-            <div className="flex items-center justify-between px-6 py-4.5 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0">
+            <div className="flex items-center justify-between px-6 py-4.5 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0 gap-3">
                 <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-2">
                         <Edit3 className="w-4 h-4 text-[var(--color-accent)] shrink-0" />
@@ -216,14 +255,35 @@ export default function UpdateProjectTaskModal({
                     </p>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] w-7 h-7 rounded-[3px] flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                    title="Close Drawer"
-                >
-                    <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                        type="button"
+                        variant={hasChanges ? "accent" : "secondary"}
+                        size="sm"
+                        onClick={handleSubmit}
+                        isLoading={loading}
+                        loadingText="Saving..."
+                        icon={!loading ? <Check className="w-3.5 h-3.5" /> : undefined}
+                        disabled={loading || isDeleting || !title.trim()}
+                        className={`!h-[30px] !px-3 !text-xs transition-all ${
+                            hasChanges
+                                ? "!bg-[var(--color-accent)] !border-[var(--color-accent)] !text-white hover:!opacity-90 shadow-sm font-semibold"
+                                : "!bg-[var(--app-card)] !border-[var(--app-border)] !text-[var(--app-muted)] hover:!text-[var(--app-text)] font-medium"
+                        }`}
+                        title="Save Changes"
+                    >
+                        Save Changes
+                    </Button>
+
+                    <button
+                        type="button"
+                        onClick={handleAttemptClose}
+                        className="text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] w-7 h-7 rounded-[3px] flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                        title="Close (Esc)"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
             </div>
 
             {/* Delete Confirmation Alert Banner */}
@@ -402,7 +462,7 @@ export default function UpdateProjectTaskModal({
                     <div className="flex items-center justify-between">
                         <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
                             <Users className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                            <span>Assign Squad Members</span>
+                            <span>Assign Members</span>
                         </label>
                         <span className="text-[11px] text-[var(--app-muted)] font-medium tabular-nums">
                             {selectedAssigneeIds.length} assigned
@@ -489,25 +549,44 @@ export default function UpdateProjectTaskModal({
                         type="button"
                         variant="secondary"
                         size="md"
-                        onClick={onClose}
+                        onClick={handleAttemptClose}
                         disabled={loading || isDeleting}
                     >
                         Cancel
                     </Button>
                     <Button
                         type="button"
-                        variant="primary"
+                        variant={hasChanges ? "accent" : "secondary"}
                         size="md"
                         onClick={handleSubmit}
                         isLoading={loading}
                         loadingText="Saving..."
                         icon={<Check className="w-4 h-4" />}
                         disabled={loading || isDeleting || !title.trim()}
+                        className={`transition-all ${
+                            hasChanges
+                                ? "!bg-[var(--color-accent)] !border-[var(--color-accent)] !text-white hover:!opacity-90 shadow-sm font-semibold"
+                                : "!bg-[var(--app-card)] !border-[var(--app-border)] !text-[var(--app-muted)] hover:!text-[var(--app-text)] font-medium"
+                        }`}
                     >
                         Save Changes
                     </Button>
                 </div>
             </div>
+
+            <ConfirmDialog
+                isOpen={isUnsavedConfirmOpen}
+                title="Discard Unsaved Changes?"
+                description="You have unsaved changes in this task. Are you sure you want to close without saving?"
+                confirmText="Discard & Close"
+                cancelText="Keep Editing"
+                isDanger={true}
+                onConfirm={() => {
+                    setIsUnsavedConfirmOpen(false);
+                    onClose();
+                }}
+                onClose={() => setIsUnsavedConfirmOpen(false)}
+            />
         </SideSheetWrapper>
     );
 }

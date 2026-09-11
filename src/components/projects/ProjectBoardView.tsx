@@ -450,7 +450,7 @@ function MainTaskListItem({
                 </div>
             </td>
 
-            {/* Assignees Squad */}
+            {/* Assignees Members */}
             <td className="py-3.5 px-4 whitespace-nowrap">
                 <div className="flex items-center gap-1.5">
                     <div className="flex -space-x-1.5">
@@ -592,7 +592,17 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedPriority, setSelectedPriority] = useState<string>("ALL");
     const [filterMode, setFilterMode] = useState<"all" | "my-tasks">("all");
-    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem("project_main_tasks_view_mode");
+                if (saved === "list" || saved === "grid") {
+                    return saved;
+                }
+            } catch (e) {}
+        }
+        return "grid";
+    });
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<any | null>(null);
     const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
@@ -677,16 +687,6 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
             setRangeEndDate(getLocalDateString(sunday));
         }
     };
-
-    // Initialize preferred viewMode from localStorage
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem("project_main_tasks_view_mode");
-            if (saved === "list" || saved === "grid") {
-                setViewMode(saved);
-            }
-        } catch (e) {}
-    }, []);
 
     const handleViewModeChange = (mode: "grid" | "list") => {
         setViewMode(mode);
@@ -1040,7 +1040,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                                         <th className="py-3 px-4 font-semibold">Status</th>
                                         <th className="py-3 px-4 font-semibold">Task & Category</th>
                                         <th className="py-3 px-4 font-semibold">Priority</th>
-                                        <th className="py-3 px-4 font-semibold">Squad</th>
+                                        <th className="py-3 px-4 font-semibold">Members</th>
                                         <th className="py-3 px-4 font-semibold">Due Date</th>
                                         <th className="py-3 px-4 font-semibold">Subtasks Progress</th>
                                         <th className="py-3 px-4 font-semibold text-right">Actions</th>

@@ -83,6 +83,17 @@ export default function ProjectColumnModal({
 
     const isExistingColumn = Boolean(initialData?.id);
 
+    const hasChanges = React.useMemo(() => {
+        if (!initialData) {
+            return Boolean(name.trim() || selectedTag !== "TODO");
+        }
+        const initialName = (initialData.name || "").trim();
+        const initialMeta = getStageMeta(initialData);
+        const initialTag = initialMeta.tagId || "TODO";
+
+        return name.trim() !== initialName || selectedTag !== initialTag;
+    }, [initialData, name, selectedTag]);
+
     return (
         <ModalWrapper
             isOpen={isOpen}
@@ -141,6 +152,7 @@ export default function ProjectColumnModal({
                         onChange={(e) => setName(e.target.value)}
                         placeholder="e.g. Backlog, Figma Specs, Development, QA Review, Released..."
                         autoFocus
+                        disabled={loading || isDeleting}
                         className="px-3 py-2 text-xs bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] rounded-[3px] focus:outline-none focus:border-[var(--app-border-strong)] transition-colors"
                     />
                 </div>
@@ -151,8 +163,9 @@ export default function ProjectColumnModal({
                         <label className="text-[11px] font-semibold text-[var(--app-text)]">
                             Assign Workflow Stage Tag <span className="text-[var(--color-error)]">*</span>
                         </label>
-                        <span className="text-[10px] text-[var(--app-muted)]">
-                            Select one of 4 workflow categories
+                        <span className="text-[10px] text-[var(--app-muted)] font-normal flex items-center gap-1">
+                            <Sparkles className="w-3 h-3 text-[var(--color-accent)]" />
+                            Controls task % calculation
                         </span>
                     </div>
 
@@ -165,7 +178,7 @@ export default function ProjectColumnModal({
                                     onClick={() => setSelectedTag(option.id)}
                                     className={`p-3 rounded-[3px] border transition-all cursor-pointer flex flex-col gap-1.5 ${
                                         isSelected
-                                            ? "bg-[var(--app-bg)] border-[var(--app-text)] shadow-xs"
+                                            ? "bg-[var(--app-bg)] border-[var(--color-accent)] shadow-xs ring-1 ring-[var(--color-accent)]/20"
                                             : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border-[var(--app-border)]"
                                     }`}
                                 >
@@ -179,7 +192,7 @@ export default function ProjectColumnModal({
                                                 {option.weight}%
                                             </span>
                                             {isSelected && (
-                                                <div className="w-3.5 h-3.5 rounded-full bg-[var(--app-text)] text-[var(--app-card)] flex items-center justify-center">
+                                                <div className="w-3.5 h-3.5 rounded-full bg-[var(--color-accent)] text-white flex items-center justify-center">
                                                     <Check className="w-2.5 h-2.5" />
                                                 </div>
                                             )}
@@ -234,13 +247,17 @@ export default function ProjectColumnModal({
                         </button>
                         <button
                             type="submit"
-                            disabled={loading || isDeleting}
-                            className="relative corner-brackets-4 px-4 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold text-[11px] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
+                            disabled={loading || isDeleting || !name.trim()}
+                            className={`relative corner-brackets-4 px-4 py-1.5 font-semibold text-[11px] rounded-[2px] transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs ${
+                                hasChanges
+                                    ? "bg-[var(--color-accent)] border border-[var(--color-accent)] text-white hover:opacity-90 font-bold"
+                                    : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)]"
+                            }`}
                         >
                             {loading ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-[var(--app-text)]" />
+                                <Loader2 className={`w-3.5 h-3.5 animate-spin shrink-0 ${hasChanges ? "text-white" : "text-[var(--app-text)]"}`} />
                             ) : (
-                                <span className="w-1.5 h-1.5 bg-[var(--app-text)] rounded-[0.5px] inline-block" />
+                                <span className={`w-1.5 h-1.5 rounded-[0.5px] inline-block ${hasChanges ? "bg-white" : "bg-[var(--app-text)]"}`} />
                             )}
                             <span>{initialData?.id ? "Save Changes" : "Create Column"}</span>
                         </button>

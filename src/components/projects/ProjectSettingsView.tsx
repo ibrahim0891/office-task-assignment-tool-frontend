@@ -134,7 +134,7 @@ export default function ProjectSettingsView({ project }: ProjectSettingsViewProp
                                 <span>🚀 Projects</span>
                             </span>
                             <p className="text-[11px] text-[var(--app-muted)] leading-relaxed mt-0.5">
-                                Scoped initiatives with a timeline, Project Manager, squad leaders, and health metrics.
+                                Scoped initiatives with a timeline, Project Manager, project leaders, and health metrics.
                             </p>
                         </div>
 
@@ -211,7 +211,7 @@ export default function ProjectSettingsView({ project }: ProjectSettingsViewProp
                                         </div>
                                     </td>
                                     <td className="py-3 px-4 text-[var(--app-muted)]">
-                                        Project Squad Leader or Workspace Leader.
+                                        Project Leader or Workspace Leader.
                                     </td>
                                     <td className="py-3 px-4 text-[var(--app-text)]">
                                         Create and organize Main Tasks, customize workflow columns, send and manage project invitations, assign deliverables to team members.
@@ -445,7 +445,7 @@ export default function ProjectSettingsView({ project }: ProjectSettingsViewProp
                             <span>Pinned "Key Resources" Shelf</span>
                         </span>
                         <p className="text-[var(--app-muted)] leading-relaxed">
-                            Critical project anchors (such as primary Figma files, main Git repositories, PRDs, and live staging dashboards) can be pinned to remain persistently visible at the top of the tab for the entire squad.
+                            Critical project anchors (such as primary Figma files, main Git repositories, PRDs, and live staging dashboards) can be pinned to remain persistently visible at the top of the tab for all members.
                         </p>
                     </div>
                 </section>

@@ -12,7 +12,15 @@ import { SkeletonProfile } from "@/components/ui/SkeletonLoader";
 import { User as UserIcon, Phone, Share2 } from "lucide-react";
 
 export default function ProfilePage() {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [currentUser, setCurrentUser] = useState<User | null>(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const savedUserStr = localStorage.getItem("sessionUser") || localStorage.getItem("task_user");
+                if (savedUserStr) return JSON.parse(savedUserStr);
+            } catch {}
+        }
+        return null;
+    });
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -49,15 +57,17 @@ export default function ProfilePage() {
 
     useEffect(() => {
         async function initUser() {
-            let user: User | null = null;
-            const savedUserStr =
-                localStorage.getItem("sessionUser") ||
-                localStorage.getItem("task_user");
+            let user: User | null = currentUser;
+            if (!user) {
+                const savedUserStr =
+                    localStorage.getItem("sessionUser") ||
+                    localStorage.getItem("task_user");
 
-            if (savedUserStr) {
-                try {
-                    user = JSON.parse(savedUserStr);
-                } catch (e) {}
+                if (savedUserStr) {
+                    try {
+                        user = JSON.parse(savedUserStr);
+                    } catch (e) {}
+                }
             }
 
             if (!user) {

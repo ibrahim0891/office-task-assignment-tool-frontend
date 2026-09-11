@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import SideSheetWrapper from "./ui/SideSheetWrapper";
 import ModalWrapper from "./ui/ModalWrapper";
+import { Button } from "./ui/Button";
 
 // 30% Image Compression helper (70% quality)
 const compressImage30Percent = (file: File): Promise<string> => {
@@ -150,19 +151,17 @@ export default function TaskModal({
     const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
 
     const [isExpanded, setIsExpanded] = useState(false);
-    const [viewMode, setViewMode] = useState<"side_sheet" | "modal">("side_sheet");
-
-    // Load saved team task view mode from localStorage (defaults to side_sheet)
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem("team_task_view_mode");
-            if (saved === "modal" || saved === "side_sheet") {
-                setViewMode(saved);
-            }
-        } catch {
-            // Ignore
+    const [viewMode, setViewMode] = useState<"side_sheet" | "modal">(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem("team_task_view_mode");
+                if (saved === "modal" || saved === "side_sheet") {
+                    return saved;
+                }
+            } catch (e) {}
         }
-    }, []);
+        return "side_sheet";
+    });
 
     const toggleViewMode = () => {
         const nextMode = viewMode === "side_sheet" ? "modal" : "side_sheet";
@@ -1406,23 +1405,26 @@ export default function TaskModal({
                         </button>
                     )}
 
-                    {/* Save Changes — only rendered when there are unsaved changes */}
-                    {!isObserver && isDirty && (
-                        <button
+                    {/* Save Changes button — filled with accent color when there are unsaved changes */}
+                    {!isObserver && (
+                        <Button
                             type="button"
+                            variant={isDirty ? "accent" : "secondary"}
+                            size="sm"
                             onClick={() => handleSaveChanges(true)}
                             disabled={isSaving}
-                            className="relative corner-brackets-4 px-3 py-1 text-[11px] font-medium rounded-[2px] transition-colors flex items-center gap-1.5 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            isLoading={isSaving}
+                            loadingText="Saving…"
+                            icon={!isSaving ? <Check className="w-3.5 h-3.5" /> : undefined}
+                            className={`!h-[30px] !px-3 !text-xs transition-all ${
+                                isDirty
+                                    ? "!bg-[var(--color-accent)] !border-[var(--color-accent)] !text-white hover:!opacity-90 shadow-sm font-semibold"
+                                    : "!bg-[var(--app-card)] !border-[var(--app-border)] !text-[var(--app-muted)] hover:!text-[var(--app-text)] font-medium"
+                            }`}
+                            title="Save Changes"
                         >
-                            {isSaving ? (
-                                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                            ) : (
-                                <span className="w-1.5 h-1.5 rounded-[0.5px] inline-block bg-[#555555]" />
-                            )}
-                            <span>
-                                {isSaving ? "Saving…" : "Save Changes"}
-                            </span>
-                        </button>
+                            Save Changes
+                        </Button>
                     )}
 
                     <button
@@ -1444,7 +1446,7 @@ export default function TaskModal({
                         <div className="flex flex-col gap-1 shrink-0 px-1 mb-2">
                             <label className="eyebrow">Title *</label>
 
-                            {!canEditDetails || !isCreator ? (
+                            {!canEditDetails ? (
                                 <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight font-heading pt-1 select-text">
                                     {title}
                                 </h2>

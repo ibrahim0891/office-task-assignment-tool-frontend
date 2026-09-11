@@ -51,7 +51,7 @@ export default function KanbanBoard({
     onDragStartNotify,
     onDragEndNotify,
 }: KanbanBoardProps) {
-    const [isMounted, setIsMounted] = useState(false);
+    const [isMounted, setIsMounted] = useState(() => typeof window !== "undefined");
     const [cardMenuId, setCardMenuId] = useState<string | null>(null);
     const [taskToArchive, setTaskToArchive] = useState<Task | null>(null);
     const [isArchiving, setIsArchiving] = useState(false);
@@ -68,7 +68,14 @@ export default function KanbanBoard({
         }
     };
     const [quickAssigneeId, setQuickAssigneeId] = useState<string>(currentUser.id);
-    const [sortBy, setSortBy] = useState<string>("date");
+    const [sortBy, setSortBy] = useState<string>(() => {
+        if (typeof window !== "undefined") {
+            try {
+                return localStorage.getItem("kanbanSortBy") || "date";
+            } catch {}
+        }
+        return "date";
+    });
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -89,22 +96,18 @@ export default function KanbanBoard({
         onDragStartNotify,
         onDragEndNotify,
     });
-    const [customOrderMap, setCustomOrderMap] = useState<
-        Record<string, string[]>
-    >({});
+    const [customOrderMap, setCustomOrderMap] = useState<Record<string, string[]>>(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const savedOrder = localStorage.getItem("kanbanCustomOrderMap");
+                if (savedOrder) return JSON.parse(savedOrder);
+            } catch {}
+        }
+        return {};
+    });
 
     useEffect(() => {
         setIsMounted(true);
-        const savedSort = localStorage.getItem("kanbanSortBy");
-        if (savedSort) {
-            setSortBy(savedSort);
-        }
-        const savedOrder = localStorage.getItem("kanbanCustomOrderMap");
-        if (savedOrder) {
-            try {
-                setCustomOrderMap(JSON.parse(savedOrder));
-            } catch (e) { }
-        }
     }, []);
 
     const handleSortChange = (val: string) => {

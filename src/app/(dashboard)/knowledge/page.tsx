@@ -73,16 +73,17 @@ export default function KnowledgePage() {
     const titleInputRef = useRef<HTMLInputElement>(null);
 
     // View mode state (rail vs tabs)
-    const [viewMode, setViewMode] = useState<"rail" | "tabs">("rail");
-
-    useEffect(() => {
+    const [viewMode, setViewMode] = useState<"rail" | "tabs">(() => {
         if (typeof window !== "undefined") {
-            const saved = localStorage.getItem("knowledge_view_mode") as "rail" | "tabs";
-            if (saved === "rail" || saved === "tabs") {
-                setViewMode(saved);
-            }
+            try {
+                const saved = localStorage.getItem("knowledge_view_mode") as "rail" | "tabs";
+                if (saved === "rail" || saved === "tabs") {
+                    return saved;
+                }
+            } catch (e) {}
         }
-    }, []);
+        return "rail";
+    });
 
     const toggleViewMode = () => {
         const nextMode = viewMode === "rail" ? "tabs" : "rail";

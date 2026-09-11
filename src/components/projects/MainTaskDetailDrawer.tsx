@@ -419,13 +419,13 @@ export default function MainTaskDetailDrawer({
                     )}
                 </div>
 
-                {/* ── Assigned Squad Members ── */}
+                {/* ── Assigned Members ── */}
                 <div className="flex flex-col gap-2.5">
                     <div className="flex items-center justify-between pb-1 border-b border-[var(--app-border)]/60">
                         <div className="flex items-center gap-2">
                             <Users className="w-3.5 h-3.5 text-[var(--color-accent)]" />
                             <h3 className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold">
-                                Assigned Squad ({assigneesList.length})
+                                Assigned Members ({assigneesList.length})
                             </h3>
                         </div>
                     </div>

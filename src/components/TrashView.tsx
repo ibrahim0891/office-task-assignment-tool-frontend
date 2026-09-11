@@ -21,7 +21,23 @@ export default function TrashView({
     userRole,
     onRefreshWorkspace,
 }: TrashViewProps) {
-    const [activeTab, setActiveTab] = useState<"tasks" | "projects">("tasks");
+    const [activeTab, setActiveTab] = useState<"tasks" | "projects">(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem("trash_active_tab");
+                if (saved === "tasks" || saved === "projects") return saved;
+            } catch {}
+        }
+        return "tasks";
+    });
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            try {
+                localStorage.setItem("trash_active_tab", activeTab);
+            } catch {}
+        }
+    }, [activeTab]);
     const [trashTasks, setTrashTasks] = useState<Task[]>([]);
     const [archivedProjectsCount, setArchivedProjectsCount] = useState<number>(0);
     const [isLoading, setIsLoading] = useState(true);

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalWrapperProps {
     isOpen: boolean;
@@ -24,6 +25,11 @@ export default function ModalWrapper({
     zIndex = "z-50",
 }: ModalWrapperProps) {
     const dialogRef = useRef<HTMLDivElement>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Close on Escape key
     useEffect(() => {
@@ -50,7 +56,7 @@ export default function ModalWrapper({
         }
     }, [isOpen]);
 
-    if (!isOpen) return null;
+    if (!isOpen || !mounted || typeof document === "undefined") return null;
 
     const handleBackdropClick = (e: React.MouseEvent) => {
         if (closeOnClickOutside && e.target === e.currentTarget) {
@@ -58,7 +64,7 @@ export default function ModalWrapper({
         }
     };
 
-    return (
+    const content = (
         <div
             className={`fixed inset-0 ${zIndex} overflow-hidden flex justify-center items-center p-4 backdrop-blur-xs animate-fade-in`}
             onClick={handleBackdropClick}
@@ -79,4 +85,6 @@ export default function ModalWrapper({
             </div>
         </div>
     );
+
+    return createPortal(content, document.body);
 }

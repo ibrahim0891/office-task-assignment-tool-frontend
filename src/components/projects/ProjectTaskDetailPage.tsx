@@ -55,6 +55,7 @@ import { SubtaskKanbanCard } from "./SubtaskKanbanCard";
 import ProjectSubtaskDetailSkeleton from "./ProjectSubtaskDetailSkeleton";
 import { UserAvatar } from "../ui/UserAvatar";
 import { Button } from "../ui/Button";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
 import { calculateTaskProgress, isSystemColumn, getStageMeta } from "../../utils/projectProgress";
@@ -122,6 +123,10 @@ export default function ProjectTaskDetailPage() {
     const [subtaskModalInitialColStatus, setSubtaskModalInitialColStatus] = useState("Backlog");
     const [subtaskModalInitialTab, setSubtaskModalInitialTab] = useState<"description" | "comments" | "activity" | "attachments">("description");
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+    const [subtaskToDelete, setSubtaskToDelete] = useState<{ id: string; title?: string } | null>(null);
+    const [isDeletingSubtask, setIsDeletingSubtask] = useState(false);
+    const [columnToDelete, setColumnToDelete] = useState<{ col: ColumnDef; fallbackCol: ColumnDef; subtaskCount: number } | null>(null);
+    const [isDeletingColumn, setIsDeletingColumn] = useState(false);
 
     const subtaskIdParam = searchParams?.get("subtaskId") || searchParams?.get("subtask");
     const tabParam = searchParams?.get("tab");
@@ -271,7 +276,7 @@ export default function ProjectTaskDetailPage() {
     const canCreateSubtask = isProjectMember;
 
     // Build candidate assignees for subtasks:
-    // If manager/leader: main task squad + manager/leader
+    // If manager/leader: main task members + manager/leader
     // If regular member: strictly for themselves
     const candidateAssignees: any[] = [];
     const addedIds = new Set<string>();
@@ -670,14 +675,26 @@ export default function ProjectTaskDetailPage() {
     };
 
     // Delete subtask
-    const handleDeleteSubtask = async (subtaskId: string) => {
-        if (!window.confirm("Are you sure you want to delete this subtask?")) return;
+    const handleDeleteSubtask = (subtaskId: string) => {
+        const found = subtasks.find((s: any) => s.id === subtaskId);
+        setSubtaskToDelete(found || { id: subtaskId });
+    };
+
+    const handleConfirmDeleteSubtask = async () => {
+        if (!subtaskToDelete) return;
+        setIsDeletingSubtask(true);
         try {
-            await api.deleteProjectSubtask(projectId, taskId, subtaskId);
+            await api.deleteProjectSubtask(projectId, taskId, subtaskToDelete.id);
             toast.success("Subtask deleted");
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("project_data_updated", { detail: { projectId } }));
+            }
             loadProjectDetail();
+            setSubtaskToDelete(null);
         } catch (err: any) {
             toast.error(err.message || "Failed to delete subtask");
+        } finally {
+            setIsDeletingSubtask(false);
         }
     };
 
@@ -713,16 +730,22 @@ export default function ProjectTaskDetailPage() {
         const subtasksInThisCol = subtasks.filter((st) => getSubtaskColumnId(st) === col.id);
         const fallbackCol = columns.find((c) => c.id !== col.id) || DEFAULT_SUBTASK_COLUMNS[0];
 
-        const confirmMsg =
-            subtasksInThisCol.length > 0
-                ? `Column "${col.name}" contains ${subtasksInThisCol.length} subtasks. Moving them to "${fallbackCol.name}" before deleting. Proceed?`
-                : `Are you sure you want to delete column "${col.name}"?`;
+        setColumnToDelete({
+            col,
+            fallbackCol,
+            subtaskCount: subtasksInThisCol.length,
+        });
+    };
 
-        if (!window.confirm(confirmMsg)) return;
+    const handleConfirmDeleteColumn = async () => {
+        if (!columnToDelete) return;
+        const { col, fallbackCol, subtaskCount } = columnToDelete;
 
         try {
+            setIsDeletingColumn(true);
             // If subtasks exist, migrate them to fallback column
-            if (subtasksInThisCol.length > 0) {
+            if (subtaskCount > 0) {
+                const subtasksInThisCol = subtasks.filter((st) => getSubtaskColumnId(st) === col.id);
                 await Promise.all(
                     subtasksInThisCol.map((st) =>
                         api.updateProjectSubtask(projectId, taskId, st.id, {
@@ -735,13 +758,16 @@ export default function ProjectTaskDetailPage() {
 
             await api.deleteProjectColumn(projectId, col.id);
             toast.success(
-                subtasksInThisCol.length > 0
-                    ? `Column deleted. ${subtasksInThisCol.length} subtasks moved to ${fallbackCol.name}.`
+                subtaskCount > 0
+                    ? `Column deleted. ${subtaskCount} subtasks moved to ${fallbackCol.name}.`
                     : "Column deleted successfully."
             );
             loadProjectDetail();
+            setColumnToDelete(null);
         } catch (err: any) {
             toast.error(err.message || "Failed to delete column");
+        } finally {
+            setIsDeletingColumn(false);
         }
     };
 
@@ -847,7 +873,7 @@ export default function ProjectTaskDetailPage() {
                     </div>
                 </div>
 
-                {/* Right: Dates, Squad Avatars, Progress & Edit Button */}
+                {/* Right: Dates, Member Avatars, Progress & Edit Button */}
                 <div className="flex items-center gap-3 shrink-0 text-xs text-[var(--app-muted)]">
                     {/* Timeline Date Range */}
                     {(task.startDate || task.dueDate) && (
@@ -862,9 +888,9 @@ export default function ProjectTaskDetailPage() {
                         </div>
                     )}
 
-                    {/* Squad Avatars */}
+                    {/* Member Avatars */}
                     {task.assignees && task.assignees.length > 0 && (
-                        <div className="hidden lg:flex items-center -space-x-1.5 shrink-0" title={`Squad: ${task.assignees.map((a: any) => (a.user?.name || a.name || "User")).join(", ")}`}>
+                        <div className="hidden lg:flex items-center -space-x-1.5 shrink-0" title={`Members: ${task.assignees.map((a: any) => (a.user?.name || a.name || "User")).join(", ")}`}>
                             {(task.assignees || []).slice(0, 3).map((u: any, idx: number) => {
                                 const userObj = u.user || u;
                                 const name = userObj.name || userObj.fullName || "User";
@@ -1305,6 +1331,36 @@ export default function ProjectTaskDetailPage() {
                 canManageTasks={canManageTasks}
                 candidateAssignees={candidateAssignees}
                 onRefresh={loadProjectDetail}
+            />
+
+            {/* Subtask Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={Boolean(subtaskToDelete)}
+                title="Delete Subtask"
+                description={`Are you sure you want to permanently delete "${subtaskToDelete?.title || "this subtask"}"? This action cannot be undone.`}
+                confirmText="Delete Subtask"
+                cancelText="Cancel"
+                isDanger={true}
+                isLoading={isDeletingSubtask}
+                onConfirm={handleConfirmDeleteSubtask}
+                onClose={() => setSubtaskToDelete(null)}
+            />
+
+            {/* Column Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={Boolean(columnToDelete)}
+                title="Delete Column"
+                description={
+                    columnToDelete?.subtaskCount && columnToDelete.subtaskCount > 0
+                        ? `Column "${columnToDelete.col.name}" contains ${columnToDelete.subtaskCount} subtasks. They will be moved to "${columnToDelete.fallbackCol.name}" before deleting. Proceed?`
+                        : `Are you sure you want to delete column "${columnToDelete?.col.name}"?`
+                }
+                confirmText="Delete Column"
+                cancelText="Cancel"
+                isDanger={true}
+                isLoading={isDeletingColumn}
+                onConfirm={handleConfirmDeleteColumn}
+                onClose={() => setColumnToDelete(null)}
             />
 
             {/* Subtask Filters Modal (Priority & Date Range) */}

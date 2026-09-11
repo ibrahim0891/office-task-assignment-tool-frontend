@@ -510,7 +510,17 @@ export default function ProjectsPortfolio() {
     const [isArchiving, setIsArchiving] = useState(false);
     const [isManageMenuOpen, setIsManageMenuOpen] = useState(false);
     const manageMenuRef = useRef<HTMLDivElement>(null);
-    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem("projects_portfolio_view_mode");
+                if (saved === "list" || saved === "grid") {
+                    return saved;
+                }
+            } catch (e) {}
+        }
+        return "grid";
+    });
     const { summary, isLoading: isSummaryLoading } = usePortfolioSummary(currentTeam?.id, currentUser?.id);
 
     const handleConfirmArchive = async () => {
@@ -547,16 +557,6 @@ export default function ProjectsPortfolio() {
             return () => document.removeEventListener("mousedown", handleClickOutside);
         }
     }, [isManageMenuOpen]);
-
-    // Initialize preferred viewMode from localStorage
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem("projects_portfolio_view_mode");
-            if (saved === "list" || saved === "grid") {
-                setViewMode(saved);
-            }
-        } catch (e) {}
-    }, []);
 
     const handleViewModeChange = (mode: "grid" | "list") => {
         setViewMode(mode);

@@ -188,7 +188,7 @@ export default function CreateProjectTaskModal({
                         </h2>
                     </div>
                     <p className="text-[11px] text-[var(--app-muted)] leading-tight">
-                        Add a high-level main task to this project, schedule dates, and assign squad members.
+                        Add a high-level main task to this project, schedule dates, and assign members.
                     </p>
                 </div>
 
@@ -344,7 +344,7 @@ export default function CreateProjectTaskModal({
                     <div className="flex items-center justify-between">
                         <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
                             <Users className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                            <span>Assign Squad Members</span>
+                            <span>Assign Members</span>
                         </label>
                         <span className="text-[11px] text-[var(--app-muted)] font-medium tabular-nums">
                             {selectedAssigneeIds.length} assigned

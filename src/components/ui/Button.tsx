@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 
 export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: "default" | "primary" | "secondary" | "ghost" | "danger";
+    variant?: "default" | "primary" | "secondary" | "ghost" | "danger" | "accent";
     size?: "sm" | "md" | "lg";
     icon?: React.ReactNode;
     showDot?: boolean;
@@ -32,6 +32,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ) => {
         let variantClasses = "";
         switch (variant) {
+            case "accent":
+                variantClasses =
+                    "bg-[var(--color-accent)] hover:opacity-90 border border-[var(--color-accent)] text-white font-semibold shadow-xs";
+                break;
             case "primary":
                 variantClasses =
                     "bg-[var(--app-text)] hover:opacity-90 border border-[var(--app-text)] text-[var(--app-bg)] font-semibold shadow-xs";

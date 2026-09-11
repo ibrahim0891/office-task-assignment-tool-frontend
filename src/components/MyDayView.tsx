@@ -24,7 +24,23 @@ export default function MyDayView({
     onSelectTask,
     onToggleComplete,
 }: MyDayViewProps) {
-    const [viewTab, setViewTab] = useState<"my" | "team">("my");
+    const [viewTab, setViewTab] = useState<"my" | "team">(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem("myday_view_tab");
+                if (saved === "my" || saved === "team") return saved;
+            } catch {}
+        }
+        return "my";
+    });
+
+    React.useEffect(() => {
+        if (typeof window !== "undefined") {
+            try {
+                localStorage.setItem("myday_view_tab", viewTab);
+            } catch {}
+        }
+    }, [viewTab]);
     const todayStr = getLocalDateString();
 
     // Filter today's tasks for current user

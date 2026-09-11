@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { Calendar, Clock, Edit3, X } from "lucide-react";
+import { Calendar, Clock, Edit3, X, Check } from "lucide-react";
 import { api } from "../../api";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { EmojiPicker } from "../ui/EmojiPicker";
 import { Button } from "../ui/Button";
 import SideSheetWrapper from "../ui/SideSheetWrapper";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import { TipTapEditor } from "../ui/TipTapEditor";
 import { extractDateString, calculateDaySpan, formatDaySpan } from "../../utils/date";
 
@@ -36,6 +37,32 @@ export default function EditProjectModal({
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isUnsavedConfirmOpen, setIsUnsavedConfirmOpen] = useState(false);
+
+    const hasChanges = React.useMemo(() => {
+        if (!currentProject) return false;
+        const initialTitle = (currentProject.title || currentProject.name || "").trim();
+        const initialDesc = (currentProject.description || "").trim();
+        const initialEmoji = currentProject.emoji || "📁";
+        const initialStartDate = extractDateString(currentProject.startDate) || "";
+        const initialEndDate = extractDateString(currentProject.endDate) || "";
+
+        return (
+            title.trim() !== initialTitle ||
+            description.trim() !== initialDesc ||
+            emoji !== initialEmoji ||
+            startDate !== initialStartDate ||
+            endDate !== initialEndDate
+        );
+    }, [currentProject, title, description, emoji, startDate, endDate]);
+
+    const handleAttemptClose = () => {
+        if (hasChanges) {
+            setIsUnsavedConfirmOpen(true);
+        } else {
+            onClose();
+        }
+    };
 
     useEffect(() => {
         if (currentProject && isOpen) {
@@ -89,12 +116,12 @@ export default function EditProjectModal({
     return (
         <SideSheetWrapper
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleAttemptClose}
             width="md"
             className="flex flex-col h-full bg-[var(--app-card)] border-l border-[var(--app-border)] text-left select-none text-[var(--app-text)]"
         >
             {/* ── Header ── */}
-            <div className="flex items-center justify-between px-6 py-4.5 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0">
+            <div className="flex items-center justify-between px-6 py-4.5 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0 gap-3">
                 <div className="flex flex-col gap-0.5 min-w-0">
                     <div className="flex items-center gap-2">
                         <Edit3 className="w-4 h-4 text-[var(--color-accent)] shrink-0" />
@@ -106,14 +133,36 @@ export default function EditProjectModal({
                         Update project title, scope description, and timeline schedule.
                     </p>
                 </div>
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] w-7 h-7 rounded-[3px] flex items-center justify-center transition-colors cursor-pointer"
-                    title="Close"
-                >
-                    <X className="w-4 h-4" />
-                </button>
+
+                <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                        type="button"
+                        variant={hasChanges ? "accent" : "secondary"}
+                        size="sm"
+                        onClick={handleSubmit}
+                        isLoading={isSubmitting}
+                        loadingText="Saving..."
+                        icon={!isSubmitting ? <Check className="w-3.5 h-3.5" /> : undefined}
+                        disabled={isSubmitting || !title.trim()}
+                        className={`!h-[30px] !px-3 !text-xs transition-all ${
+                            hasChanges
+                                ? "!bg-[var(--color-accent)] !border-[var(--color-accent)] !text-white hover:!opacity-90 shadow-sm font-semibold"
+                                : "!bg-[var(--app-card)] !border-[var(--app-border)] !text-[var(--app-muted)] hover:!text-[var(--app-text)] font-medium"
+                        }`}
+                        title="Save Changes"
+                    >
+                        Save Changes
+                    </Button>
+
+                    <button
+                        type="button"
+                        onClick={handleAttemptClose}
+                        className="text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] w-7 h-7 rounded-[3px] flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                        title="Close (Esc)"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
             </div>
 
             {/* ── Scrollable Form Body ── */}
@@ -214,23 +263,42 @@ export default function EditProjectModal({
                 <div className="flex items-center justify-between px-6 py-3.5 border-t border-[var(--app-border)] bg-[var(--app-card)] shrink-0">
                     <Button
                         type="button"
-                        variant="ghost"
-                        onClick={onClose}
+                        variant="secondary"
+                        onClick={handleAttemptClose}
                         disabled={isSubmitting}
                     >
                         Cancel
                     </Button>
                     <Button
                         type="submit"
-                        variant="primary"
+                        variant={hasChanges ? "accent" : "secondary"}
                         disabled={isSubmitting || !title.trim()}
                         isLoading={isSubmitting}
                         loadingText="Saving..."
+                        className={`transition-all ${
+                            hasChanges
+                                ? "!bg-[var(--color-accent)] !border-[var(--color-accent)] !text-white hover:!opacity-90 shadow-sm font-semibold"
+                                : "!bg-[var(--app-card)] !border-[var(--app-border)] !text-[var(--app-muted)] hover:!text-[var(--app-text)] font-medium"
+                        }`}
                     >
                         Save Changes
                     </Button>
                 </div>
             </form>
+
+            <ConfirmDialog
+                isOpen={isUnsavedConfirmOpen}
+                title="Discard Unsaved Changes?"
+                description="You have unsaved changes in this project. Are you sure you want to close without saving?"
+                confirmText="Discard & Close"
+                cancelText="Keep Editing"
+                isDanger={true}
+                onConfirm={() => {
+                    setIsUnsavedConfirmOpen(false);
+                    onClose();
+                }}
+                onClose={() => setIsUnsavedConfirmOpen(false)}
+            />
         </SideSheetWrapper>
     );
 }
