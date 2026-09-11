@@ -13,51 +13,57 @@ import { calculateRemainingDays, calculateDaySpan } from "./date";
 export const STAGE_TAG_OPTIONS = [
     {
         id: "TODO",
-        label: "To Do / Backlog",
+        label: "Stage 1: To Do / Backlog",
         shortLabel: "To Do",
         weight: 0,
+        showWeight: false,
         color: "text-[var(--status-todo,#6B7280)]",
         bg: "bg-[var(--status-todo,#6B7280)]/10",
         border: "border-[var(--status-todo,#6B7280)]/30",
         dot: "bg-[var(--status-todo,#6B7280)]",
-        description: "Initial unstarted queue (0% progress)"
+        description: "Initial unstarted queue (0% progress)",
     },
     {
         id: "IN_PROGRESS",
-        label: "In Progress / Active",
+        label: "Stage 2: In Progress / Active",
         shortLabel: "In Progress",
         weight: 25,
+        showWeight: true,
         color: "text-[var(--status-in-progress,#7C3AED)]",
         bg: "bg-[var(--status-in-progress,#7C3AED)]/10",
         border: "border-[var(--status-in-progress,#7C3AED)]/30",
         dot: "bg-[var(--status-in-progress,#7C3AED)]",
-        description: "Active development or execution (25% progress)"
+        description: "Active development or execution (25% progress)",
     },
     {
         id: "IN_REVIEW",
-        label: "In Review / Testing",
+        label: "Stage 3: In Review / Testing",
         shortLabel: "In Review",
         weight: 75,
+        showWeight: true,
         color: "text-[var(--status-at-risk,#D97706)]",
         bg: "bg-[var(--status-at-risk,#D97706)]/10",
         border: "border-[var(--status-at-risk,#D97706)]/30",
         dot: "bg-[var(--status-at-risk,#D97706)]",
-        description: "QA verification, review, or testing (75% progress)"
+        description: "QA verification, review, or testing (75% progress)",
     },
     {
         id: "DONE",
-        label: "Done / Completed",
+        label: "Stage 4: Done / Completed",
         shortLabel: "Done",
         weight: 100,
+        showWeight: true,
         color: "text-[var(--status-completed,#15803D)]",
         bg: "bg-[var(--status-completed,#15803D)]/10",
         border: "border-[var(--status-completed,#15803D)]/30",
         dot: "bg-[var(--status-completed,#15803D)]",
-        description: "Finished and deployed milestone (100% progress)"
+        description: "Finished and deployed milestone (100% progress)",
     },
 ] as const;
 
 export const STAGE_PROGRESS_WEIGHTS: Record<string, number> = {
+    CUSTOM: 0,
+    UNWEIGHTED: 0,
     TODO: 0,
     IN_PROGRESS: 25,
     IN_REVIEW: 75,
@@ -76,10 +82,11 @@ export function getStageWeight(columnOrStatus: any): number {
 
     // Direct stage tag match
     const typeOrTag = (typeof columnOrStatus === "object" ? (columnOrStatus.type || columnOrStatus.stageTag || "") : "").toUpperCase();
+    if (typeOrTag === "CUSTOM" || typeOrTag === "UNWEIGHTED") return 0;
     if (typeOrTag === "DONE" || typeOrTag === "COMPLETED") return 100;
-    if (typeOrTag === "IN_REVIEW" || typeOrTag === "REVIEW") return 75;
+    if (typeOrTag === "IN_REVIEW" || typeOrTag === "REVIEW" || typeOrTag === "NEED_ATTENTION") return 75;
     if (typeOrTag === "IN_PROGRESS" || typeOrTag === "PROGRESS") return 25;
-    if (typeOrTag === "TODO" || typeOrTag === "TO_DO") return 0;
+    if (typeOrTag === "TODO" || typeOrTag === "TO_DO" || typeOrTag === "BACKLOG") return 0;
 
     const rawName = (typeof columnOrStatus === "object" ? (columnOrStatus.name || columnOrStatus.type || "") : String(columnOrStatus)).toLowerCase().trim();
 
@@ -102,29 +109,47 @@ export function getStageWeight(columnOrStatus: any): number {
 /**
  * Returns stage metadata and badge for a column
  */
-export function getStageMeta(column: any): { label: string; stageNumber: number; weight: number; isSystem: boolean; tagId: string } {
-    const weight = getStageWeight(column);
+export function getStageMeta(column: any): { label: string; stageNumber: number; weight: number; isSystem: boolean; tagId: string; showWeight: boolean } {
+    const rawTag = (typeof column === "object" ? (column?.type || column?.stageTag || "") : "").toUpperCase();
+    const isCustomUnweighted = rawTag === "CUSTOM" || rawTag === "UNWEIGHTED";
+
     const isSystem = column?.type === "SYSTEM" || ["col-todo", "col-progress", "col-review", "col-done"].includes(column?.id);
+    const weight = getStageWeight(column);
+
+    if (isCustomUnweighted && !column?.isComplete) {
+        return {
+            label: "No Stage (Unweighted)",
+            stageNumber: 0,
+            weight: 0,
+            isSystem,
+            tagId: "CUSTOM",
+            showWeight: false,
+        };
+    }
 
     let label = "Stage 1: To Do";
     let stageNumber = 1;
     let tagId = "TODO";
+    let showWeight = false;
 
-    if (weight === 100) {
+    if (weight === 100 || column?.isComplete) {
         label = "Stage 4: Completed";
         stageNumber = 4;
         tagId = "DONE";
-    } else if (weight === 75) {
+        showWeight = true;
+    } else if (weight === 75 || rawTag === "NEED_ATTENTION" || rawTag === "IN_REVIEW") {
         label = "Stage 3: Under Review";
         stageNumber = 3;
         tagId = "IN_REVIEW";
-    } else if (weight === 25) {
+        showWeight = true;
+    } else if (weight === 25 || rawTag === "IN_PROGRESS") {
         label = "Stage 2: In Progress";
         stageNumber = 2;
         tagId = "IN_PROGRESS";
+        showWeight = true;
     }
 
-    return { label, stageNumber, weight, isSystem, tagId };
+    return { label, stageNumber, weight, isSystem, tagId, showWeight };
 }
 
 /**

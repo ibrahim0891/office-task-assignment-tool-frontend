@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Loader2, Trash2, Shield, Check, Layers, Sparkles } from "lucide-react";
+import { X, Loader2, Trash2, Shield, Check, Layers } from "lucide-react";
 import toast from "react-hot-toast";
 import ModalWrapper from "../ui/ModalWrapper";
+import { Checkbox } from "../ui/Checkbox";
 import { STAGE_TAG_OPTIONS, getStageMeta, isSystemColumn } from "../../utils/projectProgress";
 
 interface ProjectColumnModalProps {
@@ -27,6 +28,7 @@ export default function ProjectColumnModal({
     initialData,
 }: ProjectColumnModalProps) {
     const [name, setName] = useState("");
+    const [isNoStage, setIsNoStage] = useState(false);
     const [selectedTag, setSelectedTag] = useState<string>("TODO");
     const [loading, setLoading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -34,10 +36,14 @@ export default function ProjectColumnModal({
     useEffect(() => {
         if (initialData) {
             setName(initialData.name || "");
+            const rawType = (initialData.type || "").toUpperCase();
             const meta = getStageMeta(initialData);
-            setSelectedTag(meta.tagId || "TODO");
+            const isUnweighted = (rawType === "CUSTOM" || rawType === "UNWEIGHTED") && !initialData.isComplete;
+            setIsNoStage(isUnweighted);
+            setSelectedTag(isUnweighted ? "TODO" : (meta.tagId || "TODO"));
         } else {
             setName("");
+            setIsNoStage(false);
             setSelectedTag("TODO");
         }
     }, [initialData, isOpen]);
@@ -54,10 +60,14 @@ export default function ProjectColumnModal({
 
         try {
             setLoading(true);
-            const isComplete = selectedTag === "DONE";
+            const targetType = isNoStage
+                ? "CUSTOM"
+                : (selectedTag === "DONE" ? "COMPLETED" : selectedTag === "IN_REVIEW" ? "NEED_ATTENTION" : selectedTag);
+            const isComplete = !isNoStage && (selectedTag === "DONE" || selectedTag === "COMPLETED");
+
             await onSave(
                 name.trim(), 
-                selectedTag, 
+                targetType, 
                 isComplete
             );
             onClose();
@@ -85,14 +95,16 @@ export default function ProjectColumnModal({
 
     const hasChanges = React.useMemo(() => {
         if (!initialData) {
-            return Boolean(name.trim() || selectedTag !== "TODO");
+            return Boolean(name.trim() || isNoStage || selectedTag !== "TODO");
         }
         const initialName = (initialData.name || "").trim();
+        const rawType = (initialData.type || "").toUpperCase();
+        const initialIsNoStage = (rawType === "CUSTOM" || rawType === "UNWEIGHTED") && !initialData.isComplete;
         const initialMeta = getStageMeta(initialData);
         const initialTag = initialMeta.tagId || "TODO";
 
-        return name.trim() !== initialName || selectedTag !== initialTag;
-    }, [initialData, name, selectedTag]);
+        return name.trim() !== initialName || isNoStage !== initialIsNoStage || (!isNoStage && selectedTag !== initialTag);
+    }, [initialData, name, isNoStage, selectedTag]);
 
     return (
         <ModalWrapper
@@ -139,12 +151,11 @@ export default function ProjectColumnModal({
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-5 bg-[var(--app-card)] text-[var(--app-text)]">
+            <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4.5 bg-[var(--app-card)] text-[var(--app-text)]">
                 {/* 1. Column Title */}
                 <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] font-semibold text-[var(--app-text)] flex items-center justify-between">
                         <span>Column Title <span className="text-[var(--color-error)]">*</span></span>
-                        <span className="text-[10px] text-[var(--app-muted)] font-normal">Customizable name for Kanban board</span>
                     </label>
                     <input
                         type="text"
@@ -157,69 +168,89 @@ export default function ProjectColumnModal({
                     />
                 </div>
 
-                {/* 2. Assign Workflow Stage Tag */}
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-semibold text-[var(--app-text)]">
-                            Assign Workflow Stage Tag <span className="text-[var(--color-error)]">*</span>
+                {/* 2. No Stage Checkbox */}
+                <div className="flex items-center justify-between p-3 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)] select-none">
+                    <div className="flex flex-col gap-0.5 pr-3">
+                        <label htmlFor="no-stage-toggle" className="text-xs font-semibold text-[var(--app-text)] cursor-pointer">
+                            No Stage (Unweighted)
                         </label>
-                        <span className="text-[10px] text-[var(--app-muted)] font-normal flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-[var(--color-accent)]" />
-                            Controls task % calculation
+                        <span className="text-[10.5px] text-[var(--app-muted)]">
+                            Do not assign progression weights or milestone tags to this column
                         </span>
                     </div>
+                    <Checkbox
+                        id="no-stage-toggle"
+                        checked={isNoStage}
+                        onChange={(checked) => setIsNoStage(checked)}
+                    />
+                </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {STAGE_TAG_OPTIONS.map((option) => {
-                            const isSelected = selectedTag === option.id;
-                            return (
-                                <div
-                                    key={option.id}
-                                    onClick={() => setSelectedTag(option.id)}
-                                    className={`p-3 rounded-[3px] border transition-all cursor-pointer flex flex-col gap-1.5 ${
-                                        isSelected
-                                            ? "bg-[var(--app-bg)] border-[var(--color-accent)] shadow-xs ring-1 ring-[var(--color-accent)]/20"
-                                            : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border-[var(--app-border)]"
-                                    }`}
-                                >
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-[2px] border flex items-center gap-1.5 ${option.color} ${option.bg} ${option.border}`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${option.dot}`} />
-                                            <span>{option.shortLabel}</span>
-                                        </span>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-[10px] font-bold text-[var(--app-text)] tabular-nums">
-                                                {option.weight}%
-                                            </span>
-                                            {isSelected && (
-                                                <div className="w-3.5 h-3.5 rounded-full bg-[var(--color-accent)] text-white flex items-center justify-center">
-                                                    <Check className="w-2.5 h-2.5" />
+                {/* 3. Assign Workflow Stage Tag (Hidden when No Stage is checked) */}
+                {!isNoStage && (
+                    <>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[11px] font-semibold text-[var(--app-text)]">
+                                    Assign Workflow Stage Tag <span className="text-[var(--color-error)]">*</span>
+                                </label>
+                                <span className="text-[10px] text-[var(--app-muted)] font-normal">
+                                    Controls task % calculation
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                {STAGE_TAG_OPTIONS.map((option) => {
+                                    const isSelected = selectedTag === option.id;
+                                    return (
+                                        <div
+                                            key={option.id}
+                                            onClick={() => setSelectedTag(option.id)}
+                                            className={`p-3 rounded-[3px] border transition-all cursor-pointer flex flex-col gap-1.5 ${
+                                                isSelected
+                                                    ? "bg-[var(--app-bg)] border-[var(--color-accent)] shadow-xs ring-1 ring-[var(--color-accent)]/20"
+                                                    : "bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border-[var(--app-border)]"
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-[2px] border flex items-center gap-1.5 ${option.color} ${option.bg} ${option.border}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${option.dot}`} />
+                                                    <span>{option.shortLabel}</span>
+                                                </span>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[10px] font-bold text-[var(--app-text)] tabular-nums">
+                                                        {option.weight}%
+                                                    </span>
+                                                    {isSelected && (
+                                                        <div className="w-3.5 h-3.5 rounded-full bg-[var(--color-accent)] text-white flex items-center justify-center shrink-0">
+                                                            <Check className="w-2.5 h-2.5" />
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
+                                            </div>
+                                            <p className="text-[10px] text-[var(--app-muted)] leading-relaxed">
+                                                {option.description}
+                                            </p>
                                         </div>
-                                    </div>
-                                    <p className="text-[10px] text-[var(--app-muted)] leading-relaxed">
-                                        {option.description}
-                                    </p>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
 
-                {/* Live Preview Bar */}
-                <div className="bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[3px] p-3 flex items-center justify-between text-[11px]">
-                    <span className="text-[var(--app-muted)] flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                        <span>Calculated Progress Weight:</span>
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <span className="font-semibold text-[var(--app-text)]">{activeStage.label}</span>
-                        <span className="text-[10.5px] font-bold bg-[var(--app-card)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] text-[var(--app-text)] tabular-nums">
-                            {activeStage.weight}%
-                        </span>
-                    </div>
-                </div>
+                        {/* Live Preview Bar */}
+                        <div className="bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[3px] p-3 flex items-center justify-between text-[11px]">
+                            <span className="text-[var(--app-muted)] flex items-center gap-1.5">
+                                <Layers className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                <span>Calculated Progress Weight:</span>
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-[var(--app-text)]">{activeStage.label}</span>
+                                <span className="text-[10.5px] font-bold bg-[var(--app-card)] px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] text-[var(--app-text)] tabular-nums">
+                                    {activeStage.weight}%
+                                </span>
+                            </div>
+                        </div>
+                    </>
+                )}
 
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--app-border)]">

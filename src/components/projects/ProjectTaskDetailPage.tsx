@@ -1157,9 +1157,11 @@ export default function ProjectTaskDetailPage() {
                                                         <span className="text-[11px] font-semibold text-[var(--app-text)] truncate">
                                                             {col.name}
                                                         </span>
-                                                        <span className="text-[8px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1 py-0.2 rounded-[1px] tabular-nums shrink-0" title={`Stage weight: ${stageMeta.weight}%`}>
-                                                            {stageMeta.weight}%
-                                                        </span>
+                                                        {stageMeta.showWeight && stageMeta.weight > 0 && (
+                                                            <span className="text-[8px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1 py-0.2 rounded-[1px] tabular-nums shrink-0" title={`Stage weight: ${stageMeta.weight}%`}>
+                                                                {stageMeta.weight}%
+                                                            </span>
+                                                        )}
                                                         <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px] tabular-nums shrink-0">
                                                             {colSubtasks.length}
                                                         </span>
