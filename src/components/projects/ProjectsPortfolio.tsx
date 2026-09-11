@@ -711,7 +711,7 @@ export default function ProjectsPortfolio() {
                                         )}
                                     </button>
 
-                                    {isLeader && (
+                                    {userRole !== "OBSERVER" && (
                                         <button
                                             type="button"
                                             onClick={() => {
