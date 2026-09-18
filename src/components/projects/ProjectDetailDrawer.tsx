@@ -19,6 +19,7 @@ import {
 import SideSheetWrapper from "../ui/SideSheetWrapper";
 import { Button } from "../ui/Button";
 import { UserAvatar } from "../ui/UserAvatar";
+import { useWorkspace } from "../../context/WorkspaceContext";
 import {
     calculateProjectProgress,
     calculateProjectHealth,
@@ -48,6 +49,7 @@ export default function ProjectDetailDrawer({
     canEdit = false,
     onEditClick,
 }: ProjectDetailDrawerProps) {
+    const { openMemberProfile } = useWorkspace();
     const lastProjectRef = React.useRef(incomingProject);
     if (incomingProject) {
         lastProjectRef.current = incomingProject;
@@ -85,6 +87,16 @@ export default function ProjectDetailDrawer({
             return String(dateInput);
         }
     };
+
+    // Check if description has actual text content (handling empty HTML markup like <p><br></p>)
+    const hasDescription = React.useMemo(() => {
+        if (!project?.description) return false;
+        const textContent = project.description
+            .replace(/<[^>]*>/g, "")
+            .replace(/&nbsp;/g, " ")
+            .trim();
+        return textContent.length > 0;
+    }, [project?.description]);
 
     return (
         <SideSheetWrapper
@@ -245,29 +257,28 @@ export default function ProjectDetailDrawer({
                     </div>
                 </div>
 
-                {/* ── Description Section ── */}
+
+                {/* ── Description Section (only shown when description exists) ── */}
+                {hasDescription && (
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2 pb-1 border-b border-[var(--app-border)]/60">
                         <AlignLeft className="w-3.5 h-3.5 text-[var(--color-accent)]" />
                         <h3 className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold">
-                            Description & Scope
+                            Description &amp; Scope
                         </h3>
                     </div>
 
-                    {project.description ? (
-                        <div className="p-4 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[3px] text-xs leading-relaxed text-[var(--app-text)]/90 prose prose-xs sm:prose-sm dark:prose-invert max-w-none break-words select-text [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-[var(--app-border)] [&_th]:p-2 [&_th]:bg-[var(--app-card)] [&_td]:border [&_td]:border-[var(--app-border)] [&_td]:p-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--color-accent)] [&_blockquote]:pl-3 [&_blockquote]:italic">
-                            <div
-                                dangerouslySetInnerHTML={{
-                                    __html: project.description,
-                                }}
-                            />
-                        </div>
-                    ) : (
-                        <div className="p-4 bg-[var(--app-bg)] border border-dashed border-[var(--app-border)] rounded-[3px] text-center text-xs text-[var(--app-muted)] italic">
-                            No description provided for this project.
-                        </div>
-                    )}
+                    <div className="p-4 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[3px] text-xs leading-relaxed text-[var(--app-text)]/90 prose prose-xs sm:prose-sm dark:prose-invert max-w-none break-words select-text [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-[var(--app-border)] [&_th]:p-2 [&_th]:bg-[var(--app-card)] [&_td]:border [&_td]:border-[var(--app-border)] [&_td]:p-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--color-accent)] [&_blockquote]:pl-3 [&_blockquote]:italic">
+                        <div
+                            dangerouslySetInnerHTML={{
+                                __html: project.description,
+                            }}
+                        />
+                    </div>
                 </div>
+                )}
+
+
 
                 {/* ── Project Members & Roles ── */}
                 <div className="flex flex-col gap-2.5">
@@ -294,28 +305,32 @@ export default function ProjectDetailDrawer({
                                 return (
                                     <div
                                         key={m.id || memberUser.id}
-                                        className="flex items-center justify-between p-2.5 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)]"
+                                        onClick={() => openMemberProfile(memberUser)}
+                                        className="flex items-center justify-between p-2.5 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] hover:bg-[var(--app-hover-bg)] cursor-pointer transition-colors group"
                                     >
                                         <div className="flex items-center gap-2.5 min-w-0">
                                             <UserAvatar
-                                                name={memberUser.fullName}
+                                                name={memberUser.fullName || memberUser.name}
                                                 avatarUrl={memberUser.avatarUrl}
                                                 size="sm"
+                                                onClick={() => openMemberProfile(memberUser)}
                                             />
                                             <div className="flex flex-col min-w-0">
-                                                <span className="text-xs font-semibold text-[var(--app-text)] truncate">
-                                                    {memberUser.fullName}
+                                                <span className="text-xs font-semibold text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors truncate">
+                                                    {memberUser.fullName || memberUser.name}
                                                 </span>
-                                                <span className="text-[10px] text-[var(--app-muted)] truncate">
-                                                    {memberUser.email}
-                                                </span>
+                                                {memberUser.email && (
+                                                    <span className="text-[10px] text-[var(--app-muted)] truncate">
+                                                        {memberUser.email}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
                                         <span
                                             className={`text-[10px] font-semibold px-2 py-0.5 rounded-[2px] border ${
                                                 isLeader
-                                                    ? "text-[#CB2431] bg-[#CB2431]/10 border-[#CB2431]/20"
+                                                    ? "text-[var(--color-error)] bg-[var(--color-error)]/10 border-[var(--color-error)]/20"
                                                     : "text-[var(--app-muted)] bg-[var(--app-card)] border-[var(--app-border)]"
                                             }`}
                                         >

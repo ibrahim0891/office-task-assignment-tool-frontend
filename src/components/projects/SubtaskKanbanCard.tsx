@@ -16,6 +16,7 @@ import {
     Check,
 } from "lucide-react";
 import { UserAvatar } from "../ui/UserAvatar";
+import { useWorkspace } from "../../context/WorkspaceContext";
 import { canModifySubtask } from "../../utils/projectPermissions";
 import { calculateDaySpan } from "../../utils/date";
 
@@ -100,6 +101,7 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
     onToggleComplete,
     isProjectMember = false,
 }) => {
+    const { openMemberProfile } = useWorkspace();
     const [cardMenuId, setCardMenuId] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -138,9 +140,11 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
     const commentsCount =
         subtask.commentsCount ||
         (Array.isArray(subtask.comments) ? subtask.comments.length : 0);
+    const checklistItems = Array.isArray(subtask.checklist) ? subtask.checklist : [];
     const checklistCount =
         subtask.checklistCount ||
-        (Array.isArray(subtask.checklist) ? subtask.checklist.length : 0);
+        checklistItems.length;
+    const checklistDone = checklistItems.filter((c: any) => c.isCompleted).length;
     const attachmentsCount =
         subtask.attachmentsCount ||
         (Array.isArray(subtask.attachments) ? subtask.attachments.length : 0);
@@ -291,7 +295,15 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                     <div className="pt-2 border-t border-[var(--app-border)] flex justify-between items-center gap-2 text-[10px] text-[var(--app-muted)]">
                         {/* Assignee Badge with (You) chip */}
                         <div
-                            className="flex items-center gap-1.5 min-w-0 max-w-[55%]"
+                            onClick={(e) => {
+                                if (subtask.assignedTo || subtask.assignedToId) {
+                                    e.stopPropagation();
+                                    openMemberProfile(subtask.assignedTo || subtask.assignedToId);
+                                }
+                            }}
+                            className={`flex items-center gap-1.5 min-w-0 max-w-[55%] ${
+                                subtask.assignedTo || subtask.assignedToId ? "cursor-pointer group/assignee" : ""
+                            }`}
                             title={isMySubtask ? `Assigned to you (${assigneeName})` : `Assigned to ${assigneeName}`}
                         >
                             <UserAvatar
@@ -299,9 +311,15 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                                 avatarUrl={subtask.assignedTo?.avatarUrl}
                                 size="xs"
                                 title={assigneeName}
+                                onClick={(e) => {
+                                    if (subtask.assignedTo || subtask.assignedToId) {
+                                        e.stopPropagation();
+                                        openMemberProfile(subtask.assignedTo || subtask.assignedToId);
+                                    }
+                                }}
                             />
                             <span
-                                className="truncate font-medium text-[var(--app-text)] text-[10px]"
+                                className="truncate font-medium text-[var(--app-text)] text-[10px] group-hover/assignee:text-[var(--color-accent)] group-hover/assignee:underline transition-colors"
                                 title={assigneeName}
                             >
                                 {assigneeName}
@@ -317,12 +335,16 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                         <div className="flex items-center gap-2 text-[10px] text-[var(--app-muted)] shrink-0">
                             {checklistCount > 0 && (
                                 <div
-                                    className="inline-flex items-center gap-1 leading-none"
-                                    title={`Checklist items: ${checklistCount}`}
+                                    className={`inline-flex items-center gap-1 leading-none ${
+                                        checklistItems.length > 0 && checklistDone === checklistCount
+                                            ? "text-[var(--color-success,#15803D)]"
+                                            : ""
+                                    }`}
+                                    title={`Checklist: ${checklistDone}/${checklistCount} completed`}
                                 >
                                     <CheckSquare className="w-3.5 h-3.5 shrink-0" />
                                     <span className="text-[10px] font-medium leading-none tabular-nums">
-                                        {checklistCount}
+                                        {checklistItems.length > 0 ? `${checklistDone}/${checklistCount}` : checklistCount}
                                     </span>
                                 </div>
                             )}

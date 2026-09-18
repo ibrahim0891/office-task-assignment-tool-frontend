@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import {
     X,
     Loader2,
@@ -31,7 +32,36 @@ import {
     RotateCcw,
     Edit3,
     Plus,
+    CheckSquare,
+    GripVertical,
 } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, DropResult, DraggableProvided, DraggableStateSnapshot } from "@hello-pangea/dnd";
+
+// Portal wrapper: renders the dragging clone on document.body so it escapes
+// side-sheet/fixed-position stacking contexts that would shift it away from the cursor.
+function PortalAwareDraggable({
+    provided,
+    snapshot,
+    children,
+}: {
+    provided: DraggableProvided;
+    snapshot: DraggableStateSnapshot;
+    children: React.ReactNode;
+}) {
+    const child = (
+        <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            style={provided.draggableProps.style}
+        >
+            {children}
+        </div>
+    );
+    if (snapshot.isDragging) {
+        return ReactDOM.createPortal(child, document.body);
+    }
+    return child;
+}
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { useProjectComments } from "../../hooks/useProjectSWR";
@@ -84,6 +114,26 @@ const compressImage30Percent = (file: File): Promise<string> => {
     });
 };
 
+const VALID_SUBTASK_TABS = ["description", "checklist", "comments", "activity", "attachments"] as const;
+export type SubtaskTab = (typeof VALID_SUBTASK_TABS)[number];
+
+export const getStoredSubtaskTab = (propInitialTab?: string): SubtaskTab => {
+    if (propInitialTab && VALID_SUBTASK_TABS.includes(propInitialTab as SubtaskTab)) {
+        return propInitialTab as SubtaskTab;
+    }
+    if (typeof window !== "undefined") {
+        try {
+            const saved = localStorage.getItem("subtask_active_tab") as SubtaskTab;
+            if (saved && VALID_SUBTASK_TABS.includes(saved)) {
+                return saved;
+            }
+        } catch {
+            // Ignore localStorage access errors
+        }
+    }
+    return "description";
+};
+
 interface ProjectSubtaskModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -93,7 +143,7 @@ interface ProjectSubtaskModalProps {
     subtask?: any | null; // If null, creates a new subtask. If provided, updates existing subtask.
     columns?: any[];
     initialColumnStatus?: string;
-    initialTab?: "description" | "comments" | "activity" | "attachments";
+    initialTab?: SubtaskTab;
     currentUser: any;
     canManageTasks: boolean;
     candidateAssignees: any[];
@@ -109,7 +159,7 @@ export default function ProjectSubtaskModal({
     subtask,
     columns = [],
     initialColumnStatus = "Backlog",
-    initialTab = "description",
+    initialTab,
     currentUser,
     canManageTasks,
     candidateAssignees,
@@ -183,10 +233,26 @@ export default function ProjectSubtaskModal({
         }
     };
 
-    // Active tab
-    const [activeTab, setActiveTab] = useState<
-        "description" | "comments" | "activity" | "attachments"
-    >(initialTab || "description");
+    // Active tab with synchronous localStorage restoration & persistence
+    const [activeTab, setActiveTab] = useState<SubtaskTab>(() => getStoredSubtaskTab(initialTab));
+
+    const handleTabChange = (tab: SubtaskTab) => {
+        setActiveTab(tab);
+        try {
+            localStorage.setItem("subtask_active_tab", tab);
+        } catch {
+            // Ignore
+        }
+    };
+
+    // Checklist state
+    const [checklistItems, setChecklistItems] = useState<any[]>([]);
+    const [newChecklistTitle, setNewChecklistTitle] = useState("");
+    const [isAddingChecklist, setIsAddingChecklist] = useState(false);
+    const [updatingChecklistId, setUpdatingChecklistId] = useState<string | null>(null);
+    const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
+    const [editingChecklistTitle, setEditingChecklistTitle] = useState("");
+    const checklistInputRef = useRef<HTMLInputElement>(null);
 
     // Comments state
     const [comments, setComments] = useState<any[]>([]);
@@ -460,9 +526,17 @@ export default function ProjectSubtaskModal({
             );
 
             setAttachments(Array.isArray(subtask.attachments) ? subtask.attachments : []);
+            setChecklistItems(Array.isArray(subtask.checklist) ? subtask.checklist : []);
+            setNewChecklistTitle("");
+            setEditingChecklistId(null);
+            setEditingChecklistTitle("");
         } else {
             setTitle("");
             setDescription("");
+            setChecklistItems([]);
+            setNewChecklistTitle("");
+            setEditingChecklistId(null);
+            setEditingChecklistTitle("");
             setPriority("MEDIUM");
             const defaultAssignee = !canManageTasks ? (currentUser?.id || "") : (candidateAssignees[0]?.id || currentUser?.id || "");
             setAssignedToId(defaultAssignee);
@@ -504,10 +578,17 @@ export default function ProjectSubtaskModal({
                 isCompleted: initialIsComp,
             });
         }
-        if (isOpen) {
-            setActiveTab(initialTab || "description");
+    }, [isOpen, subtask?.id, projectStartDate, projectEndDate]);
+
+    // Keep active tab in sync when modal opens or initialTab is explicitly specified
+    useEffect(() => {
+        if (!isOpen) return;
+        if (initialTab) {
+            setActiveTab(initialTab);
+        } else {
+            setActiveTab(getStoredSubtaskTab());
         }
-    }, [isOpen, subtask?.id, initialTab, projectStartDate, projectEndDate]);
+    }, [isOpen, initialTab]);
 
     const mapCommentData = (c: any) => ({
         id: c.id,
@@ -760,6 +841,30 @@ export default function ProjectSubtaskModal({
                 toast.success("Subtask updated successfully!");
             } else {
                 const createdSubtask = await api.createProjectSubtask(projectId, targetParentTaskId, subtaskPayload);
+                // Create any pending checklist items for the newly created subtask
+                for (const item of checklistItems) {
+                    if (item.title) {
+                        try {
+                            const createdItem = await api.addProjectSubtaskChecklistItem(
+                                projectId,
+                                targetParentTaskId,
+                                createdSubtask.id,
+                                item.title
+                            );
+                            if (item.isCompleted) {
+                                await api.updateProjectSubtaskChecklistItem(
+                                    projectId,
+                                    targetParentTaskId,
+                                    createdSubtask.id,
+                                    createdItem.id,
+                                    { isCompleted: true }
+                                );
+                            }
+                        } catch (e) {
+                            console.error("Failed to create checklist item:", e);
+                        }
+                    }
+                }
                 // Upload any pending attachments for the newly created subtask
                 const pending = attachments.filter((a) => a.isPending && a.rawBase64);
                 for (const p of pending) {
@@ -787,6 +892,210 @@ export default function ProjectSubtaskModal({
             toast.error(err.message || "Failed to save subtask");
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleAddChecklistItem = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!canModifyThisSubtask) {
+            toast.error("You don't have permission to add checklist items.");
+            return;
+        }
+        const trimmed = newChecklistTitle.trim();
+        if (!trimmed) return;
+
+        const targetTaskId = parentTask?.id || subtask?.parentTaskId;
+        if (!targetTaskId) return;
+
+        // If subtask is not yet created (new subtask mode)
+        if (!isEditMode || !subtask?.id) {
+            const tempItem = {
+                id: `temp-${Date.now()}`,
+                title: trimmed,
+                isCompleted: false,
+                createdAt: new Date().toISOString(),
+            };
+            setChecklistItems((prev) => [...prev, tempItem]);
+            setNewChecklistTitle("");
+            playFeedback("click");
+            return;
+        }
+
+        setIsAddingChecklist(true);
+        try {
+            const newItem = await api.addProjectSubtaskChecklistItem(
+                projectId,
+                targetTaskId,
+                subtask.id,
+                trimmed
+            );
+            setNewChecklistTitle("");
+            setChecklistItems((prev) => [...prev, newItem]);
+            toast.success("Checklist item added");
+            playFeedback("click");
+            if (onRefresh) onRefresh();
+            revalidateProjectDetail(projectId);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to add checklist item");
+        } finally {
+            setIsAddingChecklist(false);
+            setTimeout(() => {
+                checklistInputRef.current?.focus();
+            }, 0);
+        }
+    };
+
+    const handleToggleChecklistItem = async (itemId: string, checked: boolean) => {
+        if (!canModifyThisSubtask) {
+            toast.error("You don't have permission to modify checklist items.");
+            return;
+        }
+
+        const targetTaskId = parentTask?.id || subtask?.parentTaskId;
+        const previousItems = [...checklistItems];
+        const nextItems = checklistItems.map((item) =>
+            item.id === itemId ? { ...item, isCompleted: checked } : item
+        );
+        setChecklistItems(nextItems);
+
+        if (!isEditMode || !subtask?.id || itemId.startsWith("temp-") || !targetTaskId) {
+            playFeedback("click");
+            return;
+        }
+
+        setUpdatingChecklistId(itemId);
+        try {
+            await api.updateProjectSubtaskChecklistItem(
+                projectId,
+                targetTaskId,
+                subtask.id,
+                itemId,
+                { isCompleted: checked }
+            );
+            if (checked) {
+                triggerMicroCelebration({ intensity: "subtle" });
+                playFeedback("click");
+            } else {
+                playFeedback("click");
+            }
+            if (onRefresh) onRefresh();
+            revalidateProjectDetail(projectId);
+        } catch (err: any) {
+            setChecklistItems(previousItems);
+            toast.error(err.message || "Failed to update checklist item");
+        } finally {
+            setUpdatingChecklistId(null);
+        }
+    };
+
+    const handleSaveChecklistEdit = async (itemId: string) => {
+        if (!canModifyThisSubtask) return;
+        const trimmed = editingChecklistTitle.trim();
+        if (!trimmed) {
+            toast.error("Checklist title cannot be empty");
+            return;
+        }
+
+        const original = checklistItems.find((i) => i.id === itemId)?.title || "";
+        if (trimmed === original) {
+            setEditingChecklistId(null);
+            setEditingChecklistTitle("");
+            return;
+        }
+
+        const targetTaskId = parentTask?.id || subtask?.parentTaskId;
+        const previousItems = [...checklistItems];
+        setChecklistItems((prev) =>
+            prev.map((i) => (i.id === itemId ? { ...i, title: trimmed } : i))
+        );
+        setEditingChecklistId(null);
+        setEditingChecklistTitle("");
+
+        if (!isEditMode || !subtask?.id || itemId.startsWith("temp-") || !targetTaskId) {
+            return;
+        }
+
+        setUpdatingChecklistId(itemId);
+        try {
+            await api.updateProjectSubtaskChecklistItem(
+                projectId,
+                targetTaskId,
+                subtask.id,
+                itemId,
+                { title: trimmed }
+            );
+            toast.success("Checklist item updated");
+            playFeedback("click");
+            if (onRefresh) onRefresh();
+            revalidateProjectDetail(projectId);
+        } catch (err: any) {
+            setChecklistItems(previousItems);
+            toast.error(err.message || "Failed to update checklist item");
+        } finally {
+            setUpdatingChecklistId(null);
+        }
+    };
+
+    const handleDeleteChecklistItem = async (itemId: string) => {
+        if (!canModifyThisSubtask) {
+            toast.error("You don't have permission to delete checklist items.");
+            return;
+        }
+
+        const targetTaskId = parentTask?.id || subtask?.parentTaskId;
+        const previousItems = [...checklistItems];
+        setChecklistItems((prev) => prev.filter((i) => i.id !== itemId));
+
+        if (!isEditMode || !subtask?.id || itemId.startsWith("temp-") || !targetTaskId) {
+            playFeedback("click");
+            return;
+        }
+
+        try {
+            await api.deleteProjectSubtaskChecklistItem(
+                projectId,
+                targetTaskId,
+                subtask.id,
+                itemId
+            );
+            toast.success("Checklist item deleted");
+            playFeedback("click");
+            if (onRefresh) onRefresh();
+            revalidateProjectDetail(projectId);
+        } catch (err: any) {
+            setChecklistItems(previousItems);
+            toast.error(err.message || "Failed to delete checklist item");
+        }
+    };
+
+    const handleDragEndChecklist = async (result: DropResult) => {
+        if (!result.destination || !canModifyThisSubtask) return;
+        if (result.destination.index === result.source.index) return;
+
+        const items = Array.from(checklistItems);
+        const [reorderedItem] = items.splice(result.source.index, 1);
+        items.splice(result.destination.index, 0, reorderedItem);
+
+        // Optimistically update UI
+        setChecklistItems(items);
+        playFeedback("click");
+
+        const targetTaskId = parentTask?.id || subtask?.parentTaskId;
+        if (!isEditMode || !subtask?.id || !projectId || !targetTaskId) {
+            // For new unsaved subtasks, reordering stays in local state
+            return;
+        }
+
+        // Silently persist in database
+        const payload = items.map((item, index) => ({
+            id: item.id,
+            order: index,
+        }));
+
+        try {
+            await api.reorderProjectSubtaskChecklist(projectId, targetTaskId, subtask.id, payload);
+        } catch (err) {
+            console.error("Failed to reorder subtask checklist items silently:", err);
         }
     };
 
@@ -1235,7 +1544,7 @@ export default function ProjectSubtaskModal({
                         <div className="flex items-center gap-1 px-4 py-2 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0">
                             <button
                                 type="button"
-                                onClick={() => setActiveTab("description")}
+                                onClick={() => handleTabChange("description")}
                                 className={`px-3 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
                                     activeTab === "description"
                                         ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
@@ -1248,7 +1557,25 @@ export default function ProjectSubtaskModal({
 
                             <button
                                 type="button"
-                                onClick={() => setActiveTab("comments")}
+                                onClick={() => handleTabChange("checklist")}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
+                                    activeTab === "checklist"
+                                        ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                }`}
+                            >
+                                <CheckSquare className="w-3.5 h-3.5" />
+                                <span>Checklist</span>
+                                {checklistItems.length > 0 && (
+                                    <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
+                                        {checklistItems.filter((i: any) => i.isCompleted).length}/{checklistItems.length}
+                                    </span>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleTabChange("comments")}
                                 className={`px-3 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
                                     activeTab === "comments"
                                         ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
@@ -1266,20 +1593,7 @@ export default function ProjectSubtaskModal({
 
                             <button
                                 type="button"
-                                onClick={() => setActiveTab("activity")}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
-                                    activeTab === "activity"
-                                        ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
-                                }`}
-                            >
-                                <History className="w-3.5 h-3.5" />
-                                <span className="text-nowrap">Activity Log</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab("attachments")}
+                                onClick={() => handleTabChange("attachments")}
                                 className={`px-3 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
                                     activeTab === "attachments"
                                         ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
@@ -1293,6 +1607,19 @@ export default function ProjectSubtaskModal({
                                         {attachments.length}
                                     </span>
                                 )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleTabChange("activity")}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
+                                    activeTab === "activity"
+                                        ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
+                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                }`}
+                            >
+                                <History className="w-3.5 h-3.5" />
+                                <span className="text-nowrap">Activity Log</span>
                             </button>
                         </div>
 
@@ -1313,6 +1640,248 @@ export default function ProjectSubtaskModal({
                                             onChange={setDescription}
                                             disabled={!canModifyThisSubtask}
                                         />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TAB 2: CHECKLIST */}
+                            {activeTab === "checklist" && (
+                                <div className="flex-1 flex flex-col min-h-0 gap-3.5 overflow-hidden">
+                                    {/* Checklist Header & Progress Stats */}
+                                    <div className="flex flex-col gap-2 shrink-0">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <CheckSquare className="w-4 h-4 text-[var(--app-muted)]" />
+                                                <h4 className="text-xs font-semibold text-[var(--app-text)]">
+                                                    Subtask checklist
+                                                </h4>
+                                            </div>
+                                            {checklistItems.length > 0 && (
+                                                <span className="text-xs text-[var(--app-muted)] font-normal tabular-nums">
+                                                    {checklistItems.filter((i: any) => i.isCompleted).length} of {checklistItems.length} completed (
+                                                    {Math.round(
+                                                        (checklistItems.filter((i: any) => i.isCompleted).length / checklistItems.length) * 100
+                                                    )}
+                                                    %)
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Progress Bar */}
+                                        {checklistItems.length > 0 && (
+                                            <div className="w-full h-1 bg-[var(--app-hover-bg)] rounded-[2px] border border-[var(--app-border)] overflow-hidden">
+                                                <div
+                                                    className="h-full bg-[var(--app-text)] transition-all duration-300 rounded-[1px]"
+                                                    style={{
+                                                        width: `${
+                                                            (checklistItems.filter((i: any) => i.isCompleted).length / checklistItems.length) * 100
+                                                        }%`,
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Add Checklist Item Input Form */}
+                                    {canModifyThisSubtask && (
+                                        <form
+                                            onSubmit={handleAddChecklistItem}
+                                            className="flex items-center gap-2 shrink-0"
+                                        >
+                                            <input
+                                                ref={checklistInputRef}
+                                                type="text"
+                                                value={newChecklistTitle}
+                                                onChange={(e) => setNewChecklistTitle(e.target.value)}
+                                                placeholder="Add a checklist item (press Enter)..."
+                                                className="flex-1 px-3 py-1.5 text-xs bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] placeholder-[var(--app-muted)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)] transition-colors"
+                                                disabled={isAddingChecklist}
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={!newChecklistTitle.trim() || isAddingChecklist}
+                                                className="px-3 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border-strong)] text-xs font-semibold rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                                            >
+                                                {isAddingChecklist ? (
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                ) : (
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                )}
+                                                <span>Add</span>
+                                            </button>
+                                        </form>
+                                    )}
+
+                                    {/* Checklist Items Scrollable List */}
+                                    <div className="flex-1 overflow-y-auto flex flex-col gap-2 custom-scrollbar pr-1">
+                                        {checklistItems.length === 0 ? (
+                                            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center border border-dashed border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] my-auto min-h-[180px]">
+                                                <CheckSquare className="w-6 h-6 text-[var(--app-muted)] opacity-40 mb-2" />
+                                                <p className="text-xs font-medium text-[var(--app-text)]">No checklist items yet</p>
+                                                <p className="text-[11px] text-[var(--app-muted)] mt-0.5 max-w-xs">
+                                                    Break this subtask down into smaller actionable checklist items.
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <DragDropContext onDragEnd={handleDragEndChecklist}>
+                                                <Droppable droppableId="subtask-checklist-droppable">
+                                                    {(provided) => (
+                                                        <div
+                                                            ref={provided.innerRef}
+                                                            {...provided.droppableProps}
+                                                            className="flex flex-col gap-1.5 pb-2"
+                                                        >
+                                                            {checklistItems.map((item: any, index: number) => {
+                                                                const isEditingThis = editingChecklistId === item.id;
+                                                                const isUpdatingThis = updatingChecklistId === item.id;
+
+                                                                return (
+                                                                    <Draggable
+                                                                        key={item.id}
+                                                                        draggableId={item.id}
+                                                                        index={index}
+                                                                        isDragDisabled={!canModifyThisSubtask || isEditingThis}
+                                                                    >
+                                                                        {(dragProvided, dragSnapshot) => (
+                                                                            <PortalAwareDraggable provided={dragProvided} snapshot={dragSnapshot}>
+                                                                            <div
+                                                                                className={`group flex items-center justify-between p-2.5 rounded-[2px] border transition-all ${
+                                                                                    dragSnapshot.isDragging
+                                                                                        ? "shadow-md ring-1 ring-[var(--app-border-strong)] bg-[var(--app-card)] z-50 w-full"
+                                                                                        : item.isCompleted
+                                                                                        ? "bg-[var(--app-hover-bg)]/40 border-[var(--app-border)] opacity-80"
+                                                                                        : "bg-[var(--app-card)] border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
+                                                                                }`}
+                                                                            >
+                                                                                {isEditingThis ? (
+                                                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            value={editingChecklistTitle}
+                                                                                            onChange={(e) => setEditingChecklistTitle(e.target.value)}
+                                                                                            onKeyDown={(e) => {
+                                                                                                if (e.key === "Enter") {
+                                                                                                    e.preventDefault();
+                                                                                                    handleSaveChecklistEdit(item.id);
+                                                                                                } else if (e.key === "Escape") {
+                                                                                                    setEditingChecklistId(null);
+                                                                                                    setEditingChecklistTitle("");
+                                                                                                }
+                                                                                            }}
+                                                                                            autoFocus
+                                                                                            className="flex-1 px-2 py-1 text-xs bg-[var(--app-card)] border border-[var(--app-border-strong)] rounded-[2px] text-[var(--app-text)] focus:outline-none"
+                                                                                        />
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleSaveChecklistEdit(item.id)}
+                                                                                            disabled={!editingChecklistTitle.trim()}
+                                                                                            className="px-2.5 py-1 text-xs bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] font-semibold border border-[var(--app-border-strong)] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1"
+                                                                                        >
+                                                                                            <Check className="w-3.5 h-3.5" />
+                                                                                            <span>Save</span>
+                                                                                        </button>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => {
+                                                                                                setEditingChecklistId(null);
+                                                                                                setEditingChecklistTitle("");
+                                                                                            }}
+                                                                                            className="px-2 py-1 text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
+                                                                                        >
+                                                                                            Cancel
+                                                                                        </button>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                                                            {/* Drag Handle */}
+                                                                                            {canModifyThisSubtask && !isEditingThis && (
+                                                                                                <div
+                                                                                                    {...dragProvided.dragHandleProps}
+                                                                                                    className="text-[var(--app-muted)] hover:text-[var(--app-text)] cursor-grab active:cursor-grabbing p-0.5 -ml-1 rounded-[2px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                                                    title="Drag to reorder"
+                                                                                                >
+                                                                                                    <GripVertical className="w-3.5 h-3.5" />
+                                                                                                </div>
+                                                                                            )}
+
+                                                                                            {/* Themed Square Checkbox */}
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => handleToggleChecklistItem(item.id, !item.isCompleted)}
+                                                                                                disabled={!canModifyThisSubtask || isUpdatingThis}
+                                                                                                className="shrink-0 p-0 cursor-pointer disabled:cursor-not-allowed group/cb"
+                                                                                                title={item.isCompleted ? "Mark incomplete" : "Mark complete"}
+                                                                                            >
+                                                                                                <div
+                                                                                                    className={`w-4 h-4 rounded-[2px] flex items-center justify-center transition-all ${
+                                                                                                        item.isCompleted
+                                                                                                            ? "bg-[var(--color-accent)] border border-[var(--color-accent)] text-white shadow-2xs"
+                                                                                                            : "bg-[var(--app-card)] border border-[var(--app-border-strong)] group-hover/cb:border-[var(--color-accent)] group-hover/cb:bg-[var(--color-accent)]/5"
+                                                                                                    }`}
+                                                                                                >
+                                                                                                    {isUpdatingThis ? (
+                                                                                                        <Loader2 className="w-2.5 h-2.5 animate-spin text-[var(--app-muted)]" />
+                                                                                                    ) : item.isCompleted ? (
+                                                                                                        <Check className="w-3 h-3 text-white stroke-[2.5]" />
+                                                                                                    ) : null}
+                                                                                                </div>
+                                                                                            </button>
+
+                                                                                            <span
+                                                                                                onDoubleClick={() => {
+                                                                                                    if (canModifyThisSubtask) {
+                                                                                                        setEditingChecklistId(item.id);
+                                                                                                        setEditingChecklistTitle(item.title);
+                                                                                                    }
+                                                                                                }}
+                                                                                                className={`text-xs select-text break-words flex-1 cursor-text ${
+                                                                                                    item.isCompleted
+                                                                                                        ? "line-through text-[var(--app-muted)]"
+                                                                                                        : "text-[var(--app-text)] font-normal"
+                                                                                                }`}
+                                                                                            >
+                                                                                                {item.title}
+                                                                                            </span>
+                                                                                        </div>
+
+                                                                                        {canModifyThisSubtask && (
+                                                                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0 ml-2">
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={() => {
+                                                                                                        setEditingChecklistId(item.id);
+                                                                                                        setEditingChecklistTitle(item.title);
+                                                                                                    }}
+                                                                                                    className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
+                                                                                                    title="Edit item"
+                                                                                                >
+                                                                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                                                                </button>
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={() => handleDeleteChecklistItem(item.id)}
+                                                                                                    className="p-1 text-[var(--app-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-[2px] transition-colors cursor-pointer"
+                                                                                                    title="Delete item"
+                                                                                                >
+                                                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+                                                                            </PortalAwareDraggable>
+                                                                        )}
+                                                                    </Draggable>
+                                                                );
+                                                            })}
+                                                            {provided.placeholder}
+                                                        </div>
+                                                    )}
+                                                </Droppable>
+                                            </DragDropContext>
+                                        )}
                                     </div>
                                 </div>
                             )}

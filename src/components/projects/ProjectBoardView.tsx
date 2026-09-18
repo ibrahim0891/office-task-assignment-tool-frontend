@@ -150,6 +150,7 @@ function MainTaskGridCard({
     onEditTask: (task: any) => void;
     onViewDetails: (task: any) => void;
 }) {
+    const { openMemberProfile } = useWorkspace();
     const router = useRouter();
     const subtasks = task.subtasks || [];
     const doneSubtasks = subtasks.filter((s: any) => s.isCompleted || s.status === "Completed" || s.status === "Done").length;
@@ -303,12 +304,23 @@ function MainTaskGridCard({
                                 const name = user.name || user.fullName || "User";
                                 const avatarUrl = user.avatarUrl || user.user?.avatarUrl;
                                 return (
-                                    <div key={user.id || idx} className="relative ring-2 ring-[var(--app-card)] rounded-full hover:scale-110 hover:z-20 transition-transform shadow-xs shrink-0">
+                                    <div 
+                                        key={user.id || idx} 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            openMemberProfile(user);
+                                        }}
+                                        className="relative ring-2 ring-[var(--app-card)] rounded-full hover:scale-110 hover:z-20 transition-transform shadow-xs shrink-0 cursor-pointer"
+                                    >
                                         <UserAvatar
                                             name={name}
                                             avatarUrl={avatarUrl}
                                             size="sm"
                                             title={name}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openMemberProfile(user);
+                                            }}
                                         />
                                     </div>
                                 );
@@ -323,7 +335,13 @@ function MainTaskGridCard({
                         )}
                     </div>
                     {assigneesList.length === 1 && (
-                        <span className="text-xs text-[var(--app-text)] font-medium truncate max-w-[100px]">
+                        <span 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                openMemberProfile(assigneesList[0]);
+                            }}
+                            className="text-xs text-[var(--app-muted)] truncate max-w-[110px] cursor-pointer hover:underline hover:text-[var(--app-text)]"
+                        >
                             {assigneesList[0].name || assigneesList[0].fullName}
                         </span>
                     )}
@@ -381,6 +399,7 @@ function MainTaskListItem({
     onEditTask: (task: any) => void;
     onViewDetails: (task: any) => void;
 }) {
+    const { openMemberProfile } = useWorkspace();
     const router = useRouter();
     const subtasks = task.subtasks || [];
     const doneSubtasks = subtasks.filter((s: any) => s.isCompleted || s.status === "Completed" || s.status === "Done").length;
@@ -465,6 +484,10 @@ function MainTaskListItem({
                                         avatarUrl={avatarUrl}
                                         size="xs"
                                         title={name}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            openMemberProfile(user);
+                                        }}
                                     />
                                 );
                             })
@@ -478,7 +501,13 @@ function MainTaskListItem({
                         )}
                     </div>
                     {assigneesList.length === 1 && (
-                        <span className="text-[11px] text-[var(--app-text)] font-medium truncate max-w-[90px]">
+                        <span 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                openMemberProfile(assigneesList[0]);
+                            }}
+                            className="text-[11px] text-[var(--app-text)] font-medium truncate max-w-[90px] cursor-pointer hover:underline"
+                        >
                             {assigneesList[0].name || assigneesList[0].fullName}
                         </span>
                     )}
@@ -814,7 +843,7 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                     {canManageTasks && (
                         <Button
                             type="button"
-                            variant="default"
+                            variant="primary"
                             size="sm"
                             icon={<Plus className="w-3.5 h-3.5" />}
                             onClick={() => setIsCreateTaskModalOpen(true)}
@@ -1029,6 +1058,20 @@ export default function ProjectBoardView({ project, onRefresh }: ProjectBoardVie
                                 onViewDetails={handleOpenTaskDetail}
                             />
                         ))}
+
+                        {/* Add New Task Card */}
+                        {canManageTasks && (
+                            <button
+                                type="button"
+                                onClick={() => setIsCreateTaskModalOpen(true)}
+                                className="group h-full min-h-[190px] border border-dashed border-[var(--app-border)] hover:border-[var(--color-accent)] bg-[var(--app-card)]/40 hover:bg-[var(--app-hover-bg)] rounded-[3px] p-6 flex flex-col items-center justify-center gap-3 text-[var(--app-muted)] hover:text-[var(--color-accent)] transition-all cursor-pointer relative corner-brackets-4 shadow-3xs"
+                            >
+                                <div className="w-10 h-10 rounded-[3px] bg-[var(--app-bg)] group-hover:bg-[var(--color-accent)]/10 border border-[var(--app-border)] group-hover:border-[var(--color-accent)]/30 flex items-center justify-center text-[var(--app-muted)] group-hover:text-[var(--color-accent)] transition-all">
+                                    <Plus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                                </div>
+                                <span className="text-xs font-semibold tracking-tight">Add New Task</span>
+                            </button>
+                        )}
                     </div>
                 ) : (
                     /* List / Table View */

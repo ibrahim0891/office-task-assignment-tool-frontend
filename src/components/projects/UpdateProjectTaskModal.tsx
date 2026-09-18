@@ -255,35 +255,14 @@ export default function UpdateProjectTaskModal({
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                        type="button"
-                        variant={hasChanges ? "accent" : "secondary"}
-                        size="sm"
-                        onClick={handleSubmit}
-                        isLoading={loading}
-                        loadingText="Saving..."
-                        icon={!loading ? <Check className="w-3.5 h-3.5" /> : undefined}
-                        disabled={loading || isDeleting || !title.trim()}
-                        className={`!h-[30px] !px-3 !text-xs transition-all ${
-                            hasChanges
-                                ? "!bg-[var(--color-accent)] !border-[var(--color-accent)] !text-white hover:!opacity-90 shadow-sm font-semibold"
-                                : "!bg-[var(--app-card)] !border-[var(--app-border)] !text-[var(--app-muted)] hover:!text-[var(--app-text)] font-medium"
-                        }`}
-                        title="Save Changes"
-                    >
-                        Save Changes
-                    </Button>
-
-                    <button
-                        type="button"
-                        onClick={handleAttemptClose}
-                        className="text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] w-7 h-7 rounded-[3px] flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                        title="Close (Esc)"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    onClick={handleAttemptClose}
+                    className="text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] w-7 h-7 rounded-[3px] flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                    title="Close (Esc)"
+                >
+                    <X className="w-4 h-4" />
+                </button>
             </div>
 
             {/* Delete Confirmation Alert Banner */}

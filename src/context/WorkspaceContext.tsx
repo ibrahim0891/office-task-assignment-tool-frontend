@@ -68,7 +68,7 @@ interface WorkspaceContextType {
     setIsCreateTeamModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     profileModalUser: User | null;
     setProfileModalUser: (user: User | null) => void;
-    openMemberProfile: (user: User) => void;
+    openMemberProfile: (userOrId: any) => void;
 
     // Handlers
     loadTasks: (opts?: { isDateChange?: boolean }) => Promise<void>;
@@ -236,8 +236,69 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
     const [profileModalUser, setProfileModalUser] = useState<User | null>(null);
 
-    const openMemberProfile = (user: User) => {
-        setProfileModalUser(user);
+    const openMemberProfile = (userOrId: any) => {
+        if (!userOrId) return;
+
+        // If a string ID is passed
+        if (typeof userOrId === "string") {
+            const memberMatch = teamMembers.find((tm) => tm.user.id === userOrId)?.user;
+            const userMatch = users.find((u) => u.id === userOrId);
+            const initialUser = memberMatch || userMatch || {
+                id: userOrId,
+                fullName: "User",
+                name: "User",
+                email: "",
+            };
+            setProfileModalUser(initialUser as User);
+
+            api.getUserProfile(userOrId)
+                .then((fullProfile) => {
+                    if (fullProfile) setProfileModalUser(fullProfile);
+                })
+                .catch(() => {});
+            return;
+        }
+
+        // If an object is passed, unwrap .user if nested
+        const rawUser = userOrId.user || userOrId;
+        const normalized: User = {
+            id: rawUser.id,
+            fullName: rawUser.fullName || rawUser.name || rawUser.displayName || "User",
+            name: rawUser.name || rawUser.fullName || "User",
+            email: rawUser.email || "",
+            avatarUrl: rawUser.avatarUrl,
+            secondaryEmail: rawUser.secondaryEmail,
+            primaryPhone: rawUser.primaryPhone,
+            secondaryPhone: rawUser.secondaryPhone,
+            emergencyContact: rawUser.emergencyContact,
+            telegram: rawUser.telegram,
+            whatsapp: rawUser.whatsapp,
+            github: rawUser.github,
+            bloodGroup: rawUser.bloodGroup,
+            designation: rawUser.designation,
+            bio: rawUser.bio,
+        };
+
+        setProfileModalUser(normalized);
+
+        if (normalized.id) {
+            api.getUserProfile(normalized.id)
+                .then((fullProfile) => {
+                    if (fullProfile) {
+                        setProfileModalUser((prev) => {
+                            if (prev && prev.id === fullProfile.id) {
+                                return {
+                                    ...prev,
+                                    ...fullProfile,
+                                    fullName: fullProfile.fullName || fullProfile.name || prev.fullName,
+                                };
+                            }
+                            return prev;
+                        });
+                    }
+                })
+                .catch(() => {});
+        }
     };
 
     const activeMembership = teamMembers.find((tm) => tm.user.id === currentUser?.id);

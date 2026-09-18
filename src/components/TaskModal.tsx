@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useLayoutEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import toast from "react-hot-toast";
 import { CustomSelect } from "./ui/CustomSelect";
 import { CustomDatePicker } from "./ui/CustomDatePicker";
@@ -29,7 +30,35 @@ import {
     Plus,
     Pencil,
     ListTodo,
+    GripVertical,
 } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, DropResult, DraggableProvided, DraggableStateSnapshot } from "@hello-pangea/dnd";
+
+// Portal wrapper: renders the dragging clone on document.body so it escapes
+// modal/fixed-position stacking contexts that would shift it away from the cursor.
+function PortalAwareDraggable({
+    provided,
+    snapshot,
+    children,
+}: {
+    provided: DraggableProvided;
+    snapshot: DraggableStateSnapshot;
+    children: React.ReactNode;
+}) {
+    const child = (
+        <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            style={provided.draggableProps.style}
+        >
+            {children}
+        </div>
+    );
+    if (snapshot.isDragging) {
+        return ReactDOM.createPortal(child, document.body);
+    }
+    return child;
+}
 import SideSheetWrapper from "./ui/SideSheetWrapper";
 import ModalWrapper from "./ui/ModalWrapper";
 import { Button } from "./ui/Button";
@@ -120,6 +149,14 @@ export default function TaskModal({
     }
     const task = incomingTask || lastTaskRef.current;
 
+    const getTaskStartDate = (t: any): string => {
+        if (!t) return "";
+        if (t.startDate) return t.startDate.split("T")[0];
+        if (t.originalDate) return t.originalDate.split("T")[0];
+        if (t.date) return t.date.split("T")[0];
+        return "";
+    };
+
     const { openMemberProfile, commentUpdateTrigger } = useWorkspace();
     // Form Local State (prevents auto-saving on every keystroke)
     const [title, setTitle] = useState(task?.title || "");
@@ -127,9 +164,7 @@ export default function TaskModal({
     const [columnId, setColumnId] = useState(task?.columnId || "");
     const [priority, setPriority] = useState(task?.priority || "Medium");
     const [assignedToId, setAssignedToId] = useState(task?.assignedToId || "");
-    const [dateStr, setDateStr] = useState(
-        task?.date ? task.date.split("T")[0] : "",
-    );
+    const [dateStr, setDateStr] = useState(getTaskStartDate(task));
     const [dueDateStr, setDueDateStr] = useState(
         task?.dueDate ? task.dueDate.split("T")[0] : "",
     );
@@ -422,7 +457,7 @@ export default function TaskModal({
             setColumnId(task.columnId || "");
             setPriority(task.priority || "MEDIUM");
             setAssignedToId(task.assignedToId || "");
-            setDateStr(task.date ? task.date.split("T")[0] : "");
+            setDateStr(getTaskStartDate(task));
             setDueDateStr(task.dueDate ? task.dueDate.split("T")[0] : "");
             setChecklistItems(sortChecklist(task.checklist || []));
             setShowUnsavedWarning(false);
@@ -466,9 +501,9 @@ export default function TaskModal({
             if (assignedToId === prevTask.assignedToId) {
                 setAssignedToId(task.assignedToId || "");
             }
-            const prevDate = prevTask.date ? prevTask.date.split("T")[0] : "";
-            if (dateStr === prevDate) {
-                setDateStr(task.date ? task.date.split("T")[0] : "");
+            const prevStart = getTaskStartDate(prevTask);
+            if (dateStr === prevStart) {
+                setDateStr(getTaskStartDate(task));
             }
             const prevDueDate = prevTask.dueDate
                 ? prevTask.dueDate.split("T")[0]
@@ -521,15 +556,16 @@ export default function TaskModal({
             setHasMoreComments(res.hasMore);
             setCommentsPage(page);
         } catch (err: any) {
-            console.error(err);
-            toast.error("Failed to load comments.");
+            if (!silent) {
+                toast.error(err.message || "Failed to load comments.");
+            }
         } finally {
             if (!silent) {
                 setIsLoadingComments(false);
                 setIsLoadingMore(false);
             }
         }
-    }, [task.id]);
+    }, [task?.id]);
 
     useEffect(() => {
         if (isOpen && activeTab === "comments") {
@@ -570,7 +606,7 @@ export default function TaskModal({
     const isColumnDirty = columnId !== task.columnId;
     const isPriorityDirty = priority !== task.priority;
     const isAssigneeDirty = assignedToId !== task.assignedToId;
-    const isDateDirty = dateStr !== (task.date ? task.date.split("T")[0] : "");
+    const isDateDirty = dateStr !== getTaskStartDate(task);
     const isDueDateDirty =
         dueDateStr !== (task.dueDate ? task.dueDate.split("T")[0] : "");
 
@@ -701,6 +737,7 @@ export default function TaskModal({
                     columnId,
                     priority,
                     assignedToId,
+                    startDate: dateStr,
                     date: dateStr,
                     dueDate: dueDateStr || null,
                 },
@@ -726,6 +763,22 @@ export default function TaskModal({
             if (isNewDone && !isOldDone) {
                 triggerMicroCelebration({ intensity: "medium" });
             }
+
+            // Immediately sync prevTaskRef to the just-saved values so that
+            // when onRefresh() re-renders with the updated task prop the dirty
+            // comparisons all resolve to "no change" and isDirty becomes false.
+            prevTaskRef.current = {
+                ...task,
+                title,
+                description,
+                columnId,
+                priority,
+                assignedToId: assignedToId || null,
+                startDate: dateStr ? `${dateStr}T00:00:00.000Z` : null,
+                originalDate: dateStr ? `${dateStr}T00:00:00.000Z` : null,
+                date: dateStr ? `${dateStr}T00:00:00.000Z` : null,
+                dueDate: dueDateStr ? `${dueDateStr}T00:00:00.000Z` : null,
+            } as any;
 
             onRefresh();
             setShowUnsavedWarning(false);
@@ -1130,6 +1183,31 @@ export default function TaskModal({
             toast.error(err.message || "Failed to update checklist item");
         } finally {
             setIsUpdatingItemId(null);
+        }
+    };
+
+    const handleDragEndChecklist = async (result: DropResult) => {
+        if (!result.destination || isObserver) return;
+        if (result.destination.index === result.source.index) return;
+
+        const items = Array.from(checklistItems);
+        const [reorderedItem] = items.splice(result.source.index, 1);
+        items.splice(result.destination.index, 0, reorderedItem);
+
+        // Optimistically update UI
+        setChecklistItems(items);
+        playFeedback("click");
+
+        // Silently persist in database
+        const payload = items.map((item, index) => ({
+            id: item.id,
+            order: index,
+        }));
+
+        try {
+            await api.reorderChecklistItems(task.id, payload);
+        } catch (err) {
+            console.error("Failed to reorder checklist items silently:", err);
         }
     };
 
@@ -1947,130 +2025,165 @@ export default function TaskModal({
                                                 </span>
                                             </div>
                                         ) : (
-                                            <div className="flex flex-col gap-1.5 pb-2">
-                                                {checklistItems.map((item) => {
-                                                    const isEditing = editingItemId === item.id;
-                                                    const isUpdating = isUpdatingItemId === item.id;
-                                                    const isDeleting = isDeletingItemId === item.id;
-
-                                                    return (
+                                            <DragDropContext onDragEnd={handleDragEndChecklist}>
+                                                <Droppable droppableId="team-task-checklist-droppable">
+                                                    {(provided) => (
                                                         <div
-                                                            key={item.id}
-                                                            onClick={() => {
-                                                                if (!isEditing && !isObserver && !isUpdating) {
-                                                                    handleToggleSubtask(item.id, !item.isCompleted);
-                                                                }
-                                                            }}
-                                                            className={`group border rounded-[3px] p-2.5 transition-all flex items-center gap-2.5 ${
-                                                                !isEditing && !isObserver ? "cursor-pointer" : ""
-                                                            } ${
-                                                                item.isCompleted
-                                                                    ? "border-[#E5E5E3] bg-[#FAFAF9]"
-                                                                    : "border-[#E5E5E3] bg-white hover:border-[#DADAD6]"
-                                                            } ${isDeleting ? "opacity-40" : ""}`}
+                                                            ref={provided.innerRef}
+                                                            {...provided.droppableProps}
+                                                            className="flex flex-col gap-1.5 pb-2"
                                                         >
-                                                            {/* Checkbox */}
-                                                            <div
-                                                                className={`w-4 h-4 rounded-[3px] flex items-center justify-center transition-all shrink-0 ${
-                                                                    item.isCompleted
-                                                                        ? "bg-[#1A1A1A] border border-[#1A1A1A] text-white"
-                                                                        : "bg-white border border-[#DADAD6] group-hover:border-[#1A1A1A]"
-                                                                } ${isObserver ? "opacity-60" : ""}`}
-                                                            >
-                                                                {isUpdating ? (
-                                                                    <Loader2 className="w-2.5 h-2.5 animate-spin text-[#888883]" />
-                                                                ) : item.isCompleted ? (
-                                                                    <Check className="w-3 h-3" />
-                                                                ) : null}
-                                                            </div>
+                                                            {checklistItems.map((item, index) => {
+                                                                const isEditing = editingItemId === item.id;
+                                                                const isUpdating = isUpdatingItemId === item.id;
+                                                                const isDeleting = isDeletingItemId === item.id;
 
-                                                            {/* Item Title / Inline Edit */}
-                                                            {isEditing ? (
-                                                                <div
-                                                                    className="flex items-center gap-1.5 flex-1 min-w-0"
-                                                                    onClick={(e) => e.stopPropagation()}
-                                                                >
-                                                                    <input
-                                                                        type="text"
-                                                                        autoFocus
-                                                                        value={editingItemTitle}
-                                                                        onChange={(e) => setEditingItemTitle(e.target.value)}
-                                                                        onKeyDown={(e) => {
-                                                                            if (e.key === "Enter") {
-                                                                                e.preventDefault();
-                                                                                handleSaveEditedTitle(item.id);
-                                                                            } else if (e.key === "Escape") {
-                                                                                setEditingItemId(null);
-                                                                            }
-                                                                        }}
-                                                                        className="px-2 py-1 border border-[#1A1A1A] focus:outline-none text-[12px] bg-white rounded-[2px] w-full"
-                                                                        maxLength={300}
-                                                                    />
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleSaveEditedTitle(item.id)}
-                                                                        className="p-1 text-emerald-700 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
-                                                                        title="Save changes (Enter)"
+                                                                return (
+                                                                    <Draggable
+                                                                        key={item.id}
+                                                                        draggableId={item.id}
+                                                                        index={index}
+                                                                        isDragDisabled={isObserver || isEditing}
                                                                     >
-                                                                        <Check className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setEditingItemId(null)}
-                                                                        className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-gray-100 rounded transition-colors cursor-pointer"
-                                                                        title="Cancel (Esc)"
-                                                                    >
-                                                                        <X className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                </div>
-                                                            ) : (
-                                                                <span
-                                                                    className={`text-[12px] leading-relaxed break-words flex-1 select-none transition-colors ${
-                                                                        item.isCompleted
-                                                                            ? "line-through text-[#888883]"
-                                                                            : "text-[#1A1A1A] font-medium"
-                                                                    }`}
-                                                                >
-                                                                    {item.title}
-                                                                </span>
-                                                            )}
+                                                                        {(dragProvided, dragSnapshot) => (
+                                                                            <PortalAwareDraggable provided={dragProvided} snapshot={dragSnapshot}>
+                                                                            <div
+                                                                                onClick={() => {
+                                                                                    if (!isEditing && !isObserver && !isUpdating) {
+                                                                                        handleToggleSubtask(item.id, !item.isCompleted);
+                                                                                    }
+                                                                                }}
+                                                                                className={`group border rounded-[3px] p-2.5 transition-all flex items-center gap-2.5 ${
+                                                                                    !isEditing && !isObserver ? "cursor-pointer" : ""
+                                                                                } ${
+                                                                                    dragSnapshot.isDragging
+                                                                                        ? "shadow-md ring-1 ring-[var(--app-border-strong)] bg-white z-50 w-full"
+                                                                                        : item.isCompleted
+                                                                                        ? "border-[#E5E5E3] bg-[#FAFAF9]"
+                                                                                        : "border-[#E5E5E3] bg-white hover:border-[#DADAD6]"
+                                                                                } ${isDeleting ? "opacity-40" : ""}`}
+                                                                            >
+                                                                                {/* Drag Handle */}
+                                                                                {!isObserver && !isEditing && (
+                                                                                    <div
+                                                                                        {...dragProvided.dragHandleProps}
+                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                        className="text-[#B5B5B0] hover:text-[#1A1A1A] cursor-grab active:cursor-grabbing p-0.5 -ml-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                                        title="Drag to reorder"
+                                                                                    >
+                                                                                        <GripVertical className="w-3.5 h-3.5" />
+                                                                                    </div>
+                                                                                )}
 
-                                                            {/* Action Buttons (Edit & Delete) */}
-                                                            {!isObserver && !isEditing && (
-                                                                <div
-                                                                    className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                                                                    onClick={(e) => e.stopPropagation()}
-                                                                >
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setEditingItemId(item.id);
-                                                                            setEditingItemTitle(item.title);
-                                                                        }}
-                                                                        className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] rounded transition-colors cursor-pointer"
-                                                                        title="Edit item title"
-                                                                    >
-                                                                        <Pencil className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleDeleteSubtask(item.id)}
-                                                                        disabled={isDeleting}
-                                                                        className="p-1 text-[#888883] hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
-                                                                        title="Delete item"
-                                                                    >
-                                                                        {isDeleting ? (
-                                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                                        ) : (
-                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                                {/* Checkbox */}
+                                                                                <div
+                                                                                    className={`w-4 h-4 rounded-[2px] flex items-center justify-center transition-all shrink-0 ${
+                                                                                        item.isCompleted
+                                                                                            ? "bg-[var(--color-accent)] border border-[var(--color-accent)] text-white shadow-2xs"
+                                                                                            : "bg-[var(--app-card)] border border-[var(--app-border-strong)] hover:border-[var(--color-accent)]"
+                                                                                    } ${isObserver ? "opacity-60" : ""}`}
+                                                                                >
+                                                                                    {isUpdating ? (
+                                                                                        <Loader2 className="w-2.5 h-2.5 animate-spin text-[var(--app-muted)]" />
+                                                                                    ) : item.isCompleted ? (
+                                                                                        <Check className="w-3 h-3 text-white stroke-[2.5]" />
+                                                                                    ) : null}
+                                                                                </div>
+
+                                                                                {/* Item Title / Inline Edit */}
+                                                                                {isEditing ? (
+                                                                                    <div
+                                                                                        className="flex items-center gap-1.5 flex-1 min-w-0"
+                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                    >
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            autoFocus
+                                                                                            value={editingItemTitle}
+                                                                                            onChange={(e) => setEditingItemTitle(e.target.value)}
+                                                                                            onKeyDown={(e) => {
+                                                                                                if (e.key === "Enter") {
+                                                                                                    e.preventDefault();
+                                                                                                    handleSaveEditedTitle(item.id);
+                                                                                                } else if (e.key === "Escape") {
+                                                                                                    setEditingItemId(null);
+                                                                                                }
+                                                                                            }}
+                                                                                            className="px-2 py-1 border border-[#1A1A1A] focus:outline-none text-[12px] bg-white rounded-[2px] w-full"
+                                                                                            maxLength={300}
+                                                                                        />
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleSaveEditedTitle(item.id)}
+                                                                                            className="p-1 text-emerald-700 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
+                                                                                            title="Save changes (Enter)"
+                                                                                        >
+                                                                                            <Check className="w-3.5 h-3.5" />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => setEditingItemId(null)}
+                                                                                            className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                                                                                            title="Cancel (Esc)"
+                                                                                        >
+                                                                                            <X className="w-3.5 h-3.5" />
+                                                                                        </button>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <span
+                                                                                        className={`text-[12px] leading-relaxed break-words flex-1 select-none transition-colors ${
+                                                                                            item.isCompleted
+                                                                                                ? "line-through text-[#888883]"
+                                                                                                : "text-[#1A1A1A] font-medium"
+                                                                                        }`}
+                                                                                    >
+                                                                                        {item.title}
+                                                                                    </span>
+                                                                                )}
+
+                                                                                {/* Action Buttons (Edit & Delete) */}
+                                                                                {!isObserver && !isEditing && (
+                                                                                    <div
+                                                                                        className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                    >
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => {
+                                                                                                setEditingItemId(item.id);
+                                                                                                setEditingItemTitle(item.title);
+                                                                                            }}
+                                                                                            className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] rounded transition-colors cursor-pointer"
+                                                                                            title="Edit item title"
+                                                                                        >
+                                                                                            <Pencil className="w-3.5 h-3.5" />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleDeleteSubtask(item.id)}
+                                                                                            disabled={isDeleting}
+                                                                                            className="p-1 text-[#888883] hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                                                                            title="Delete item"
+                                                                                        >
+                                                                                            {isDeleting ? (
+                                                                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                                                            ) : (
+                                                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                                                            )}
+                                                                                        </button>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            </PortalAwareDraggable>
                                                                         )}
-                                                                    </button>
-                                                                </div>
-                                                            )}
+                                                                    </Draggable>
+                                                                );
+                                                            })}
+                                                            {provided.placeholder}
                                                         </div>
-                                                    );
-                                                })}
-                                            </div>
+                                                    )}
+                                                </Droppable>
+                                            </DragDropContext>
                                         )}
                                     </div>
                                 </div>

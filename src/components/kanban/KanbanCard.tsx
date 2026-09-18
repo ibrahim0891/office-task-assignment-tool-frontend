@@ -1,6 +1,7 @@
 import React from "react";
 import { Draggable } from "@hello-pangea/dnd";
 import { Task, User } from "../../api";
+import { useWorkspace } from "../../context/WorkspaceContext";
 import { MoreVertical, Edit2, Archive, MessageSquare, CheckSquare, Paperclip } from "lucide-react";
 
 interface KanbanCardProps {
@@ -32,6 +33,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
     getPriorityStyle,
     getPriorityBadge,
 }) => {
+    const { openMemberProfile } = useWorkspace();
     const isSameAssigneeAndCreator = Boolean(
         (task.createdById && task.assignedToId && task.createdById === task.assignedToId) ||
         (task.createdBy?.id && task.assignedTo?.id && task.createdBy.id === task.assignedTo.id) ||
@@ -172,17 +174,27 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                     </div>
 
                     {/* Section 3: Footer (Assignee on Left, Carry / Checklist / Comment / Attachment counts on Right) */}
-                    <div className="pt-2 border-t border-[#E5E5E3] flex justify-between items-center gap-2 text-[10px] text-[#888883]">
+                    <div className="pt-2 border-t border-[var(--app-border)] flex justify-between items-center gap-2 text-[10px] text-[var(--app-muted)]">
                         {/* Assignee */}
-                        <div className="flex items-center gap-1.5 min-w-0 max-w-[50%]">
+                        <div 
+                            onClick={(e) => {
+                                if (task.assignedTo) {
+                                    e.stopPropagation();
+                                    openMemberProfile(task.assignedTo);
+                                }
+                            }}
+                            className={`flex items-center gap-1.5 min-w-0 max-w-[50%] ${
+                                task.assignedTo ? "cursor-pointer group/assignee" : ""
+                            }`}
+                        >
                             {task.assignedTo?.avatarUrl ? (
                                 <img
                                     src={task.assignedTo.avatarUrl}
                                     alt={task.assignedTo.fullName}
-                                    className="w-4 h-4 rounded-[2px] object-cover border border-[#E5E5E3] shrink-0"
+                                    className="w-4 h-4 rounded-[2px] object-cover border border-[var(--app-border)] shrink-0 group-hover/assignee:scale-105 transition-transform"
                                 />
                             ) : (
-                                <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] font-bold text-[#1A1A1A] shrink-0">
+                                <div className="w-4 h-4 rounded-[2px] border border-[var(--app-border)] bg-[var(--app-bg)] flex items-center justify-center text-[7px] font-bold text-[var(--app-text)] shrink-0 group-hover/assignee:scale-105 transition-transform">
                                     {task.assignedTo?.fullName
                                         ? task.assignedTo.fullName
                                               .split(" ")
@@ -194,7 +206,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
                                 </div>
                             )}
                             <span
-                                className="truncate font-medium text-[#1A1A1A]"
+                                className="truncate font-medium text-[var(--app-text)] group-hover/assignee:underline group-hover/assignee:text-[var(--color-accent)] transition-colors"
                                 title={task.assignedTo?.fullName || "Unassigned"}
                             >
                                 {task.assignedTo?.fullName || "Unassigned"}

@@ -58,7 +58,7 @@ interface ProjectMembersViewProps {
 
 export default function ProjectMembersView({ project, onRefresh }: ProjectMembersViewProps) {
     const router = useRouter();
-    const { teamMembers, users, currentUser, currentTeam, userRole, setIsManageInvitationsOpen, projectInvitations } = useWorkspace();
+    const { teamMembers, users, currentUser, currentTeam, userRole, setIsManageInvitationsOpen, projectInvitations, openMemberProfile } = useWorkspace();
 
     // Check project-level leadership using centralized permissions
     const permissions = getProjectPermissions(project, currentUser, userRole, currentTeam);
@@ -313,18 +313,22 @@ export default function ProjectMembersView({ project, onRefresh }: ProjectMember
                                             >
                                                 {/* Member Info */}
                                                 <td className="py-3 px-4">
-                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div 
+                                                        onClick={() => openMemberProfile(member.user || member)}
+                                                        className="flex items-center gap-2.5 min-w-0 cursor-pointer group/member w-fit"
+                                                    >
                                                         <UserAvatar
                                                             name={member.user?.name || "User"}
                                                             avatarUrl={member.user?.avatarUrl}
                                                             size="md"
                                                             title={member.user?.name}
+                                                            onClick={() => openMemberProfile(member.user || member)}
                                                         />
                                                         <div className="min-w-0">
-                                                            <span className="font-medium text-[var(--app-text)] block text-[11px] truncate max-w-[220px]">
+                                                            <span className="font-medium text-[var(--app-text)] block text-[11px] truncate max-w-[220px] group-hover/member:text-[var(--color-accent)] group-hover/member:underline transition-colors">
                                                                 {member.user?.name || "Unknown User"}
                                                                 {isSelf && (
-                                                                    <span className="ml-1 text-[9px] text-[var(--app-muted)] font-normal">
+                                                                    <span className="ml-1 text-[9px] text-[var(--app-muted)] font-normal no-underline">
                                                                         (You)
                                                                     </span>
                                                                 )}

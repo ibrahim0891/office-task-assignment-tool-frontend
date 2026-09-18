@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -41,6 +41,8 @@ import {
     ShieldCheck,
     Shield,
     Eye,
+    Scale,
+    ArrowUpDown,
 } from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
@@ -48,6 +50,7 @@ import { triggerMicroCelebration } from "../../utils/confetti";
 import { playFeedback } from "../../utils/feedback";
 import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
 import ProjectColumnModal from "./ProjectColumnModal";
+import ProjectColumnWeightManagerModal from "./ProjectColumnWeightManagerModal";
 import ProjectSubtaskModal from "./ProjectSubtaskModal";
 import TaskFilterModal from "./TaskFilterModal";
 import { useProjectDetail } from "../../hooks/useProjectSWR";
@@ -58,7 +61,7 @@ import { Button } from "../ui/Button";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
-import { calculateTaskProgress, isSystemColumn, getStageMeta } from "../../utils/projectProgress";
+import { calculateTaskProgress, isSystemColumn, getStageMeta, calculateCumulativeColumnWeights } from "../../utils/projectProgress";
 import { getProjectPermissions, canModifySubtask } from "../../utils/projectPermissions";
 import { getLocalDateString, parseLocalDate, extractDateString, calculateDaySpan, formatDaySpan } from "../../utils/date";
 
@@ -77,6 +80,66 @@ function getPriorityBadge(priority: string) {
             return "text-[var(--priority-low)] bg-[var(--priority-low)]/10 border-[var(--priority-low)]/20";
     }
 }
+
+export type SortOptionType = "recent" | "custom" | "oldest" | "dueDate" | "priority";
+
+const SORT_OPTIONS: SelectOption[] = [
+    { value: "recent", label: "Newest First" },
+    { value: "custom", label: "Custom Order" },
+    { value: "oldest", label: "Oldest First" },
+    { value: "dueDate", label: "Due Date" },
+    { value: "priority", label: "Priority" },
+];
+
+const PRIORITY_RANK: Record<string, number> = {
+    URGENT: 4,
+    HIGH: 3,
+    MEDIUM: 2,
+    LOW: 1,
+};
+
+const getSortedSubtasks = (items: any[], mode: SortOptionType) => {
+    return [...items].sort((a, b) => {
+        if (mode === "recent") {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (timeB !== timeA) return timeB - timeA;
+            return (b.id || "").localeCompare(a.id || "");
+        }
+        if (mode === "oldest") {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (timeA !== timeB) return timeA - timeB;
+            return (a.id || "").localeCompare(b.id || "");
+        }
+        if (mode === "dueDate") {
+            const dueA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+            const dueB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+            if (dueA !== dueB) return dueA - dueB;
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeB - timeA;
+        }
+        if (mode === "priority") {
+            const prioA = PRIORITY_RANK[(a.priority || "MEDIUM").toUpperCase()] || 2;
+            const prioB = PRIORITY_RANK[(b.priority || "MEDIUM").toUpperCase()] || 2;
+            if (prioB !== prioA) return prioB - prioA;
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeB - timeA;
+        }
+        // "custom" mode
+        const orderA = typeof a.order === "number" ? a.order : 0;
+        const orderB = typeof b.order === "number" ? b.order : 0;
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+        // Backward compatibility for legacy subtasks where order is identical (e.g. 0): newest first
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+    });
+};
 
 interface ColumnDef {
     id: string;
@@ -99,10 +162,11 @@ export default function ProjectTaskDetailPage() {
     const params = useParams();
     const projectId = params.id as string;
     const taskId = params.taskId as string;
-    const { currentTeam, currentUser, userRole } = useWorkspace();
+    const { currentTeam, currentUser, userRole, openMemberProfile } = useWorkspace();
 
     const { project, isLoading, mutate: refreshProject } = useProjectDetail(projectId, currentTeam?.id);
     const [subtasks, setSubtasks] = useState<any[]>([]);
+    const [sortBy, setSortBy] = useState<SortOptionType>("recent");
 
     const task = React.useMemo(() => {
         return (project?.tasks || []).find((t: any) => t.id === taskId) || null;
@@ -117,11 +181,12 @@ export default function ProjectTaskDetailPage() {
     // Modals
     const [isEditMainTaskModalOpen, setIsEditMainTaskModalOpen] = useState(false);
     const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
+    const [isWeightManagerOpen, setIsWeightManagerOpen] = useState(false);
     const [columnModalInitialData, setColumnModalInitialData] = useState<any | null>(null);
     const [isSubtaskModalOpen, setIsSubtaskModalOpen] = useState(false);
     const [subtaskModalData, setSubtaskModalData] = useState<any | null>(null);
     const [subtaskModalInitialColStatus, setSubtaskModalInitialColStatus] = useState("Backlog");
-    const [subtaskModalInitialTab, setSubtaskModalInitialTab] = useState<"description" | "comments" | "activity" | "attachments">("description");
+    const [subtaskModalInitialTab, setSubtaskModalInitialTab] = useState<"description" | "checklist" | "comments" | "activity" | "attachments" | undefined>(undefined);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [subtaskToDelete, setSubtaskToDelete] = useState<{ id: string; title?: string } | null>(null);
     const [isDeletingSubtask, setIsDeletingSubtask] = useState(false);
@@ -137,7 +202,7 @@ export default function ProjectTaskDetailPage() {
         const targetSubtask = task.subtasks.find((s: any) => s.id === subtaskIdParam);
         if (targetSubtask) {
             setSubtaskModalData(targetSubtask);
-            setSubtaskModalInitialTab(tabParam === "comments" ? "comments" : "description");
+            setSubtaskModalInitialTab(tabParam ? (tabParam as any) : undefined);
             setIsSubtaskModalOpen(true);
         }
     }, [subtaskIdParam, tabParam, task?.subtasks]);
@@ -404,6 +469,10 @@ export default function ProjectTaskDetailPage() {
 
     const columns: ColumnDef[] = localColumns.length > 0 ? localColumns : (project?.columns || DEFAULT_SUBTASK_COLUMNS);
 
+    const cumulativeColumnWeights = useMemo(() => {
+        return calculateCumulativeColumnWeights(columns);
+    }, [columns]);
+
     useEffect(() => {
         checkScroll();
         window.addEventListener("resize", checkScroll);
@@ -566,9 +635,10 @@ export default function ProjectTaskDetailPage() {
             : draggedSubtask;
 
         // 1. Target column list
-        const targetList = subtasks
-            .filter((st) => st.id !== draggableId && getSubtaskColumnId(st) === targetColId)
-            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const targetList = getSortedSubtasks(
+            subtasks.filter((st) => st.id !== draggableId && getSubtaskColumnId(st) === targetColId),
+            sortBy === "custom" ? "custom" : sortBy
+        );
         targetList.splice(destination.index, 0, updatedSubtask);
 
         const targetOrders = targetList.map((st, idx) => ({
@@ -580,9 +650,10 @@ export default function ProjectTaskDetailPage() {
         // 2. Source column list (if moved across columns)
         let sourceOrders: { id: string; order: number; columnId: string }[] = [];
         if (isMovingAcross) {
-            const sourceList = subtasks
-                .filter((st) => st.id !== draggableId && getSubtaskColumnId(st) === sourceColId)
-                .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            const sourceList = getSortedSubtasks(
+                subtasks.filter((st) => st.id !== draggableId && getSubtaskColumnId(st) === sourceColId),
+                sortBy === "custom" ? "custom" : sortBy
+            );
             sourceOrders = sourceList.map((st, idx) => ({
                 id: st.id,
                 order: idx,
@@ -592,6 +663,9 @@ export default function ProjectTaskDetailPage() {
 
         const allOrders = [...targetOrders, ...sourceOrders];
         const orderMap = new Map(allOrders.map((item) => [item.id, item.order]));
+
+        // Switch sorting mode to 'custom' upon drag & reorder
+        setSortBy("custom");
 
         // Optimistic UI state update
         setSubtasks((prev) =>
@@ -714,6 +788,27 @@ export default function ProjectTaskDetailPage() {
             toast.success("Column added");
         }
         loadProjectDetail();
+    };
+
+    const handleSaveColumnWeights = async (
+        updatedWeights: { id: string; weight: number | null }[],
+        updatedOrders?: { id: string; order: number }[]
+    ) => {
+        await api.batchUpdateProjectColumnWeights(projectId, updatedWeights);
+        if (updatedOrders && updatedOrders.length > 0) {
+            await api.reorderProjectColumns(projectId, updatedOrders);
+        }
+        await loadProjectDetail();
+    };
+
+    const handleCreateColumnFromManager = async (name: string, weight?: number | null) => {
+        await api.createProjectColumn(projectId, name, "CUSTOM", false, weight);
+        await loadProjectDetail();
+    };
+
+    const handleRenameColumnFromManager = async (columnId: string, name: string) => {
+        await api.updateProjectColumn(projectId, columnId, { name });
+        await loadProjectDetail();
     };
 
     const handleDeleteColumn = async (col: ColumnDef) => {
@@ -896,12 +991,23 @@ export default function ProjectTaskDetailPage() {
                                 const name = userObj.name || userObj.fullName || "User";
                                 const avatarUrl = userObj.avatarUrl || u.avatarUrl;
                                 return (
-                                    <div key={userObj.id || idx} className="ring-1.5 ring-[var(--app-card)] rounded-full">
+                                    <div 
+                                        key={userObj.id || idx} 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            openMemberProfile(userObj);
+                                        }}
+                                        className="ring-1.5 ring-[var(--app-card)] rounded-full cursor-pointer hover:scale-110 hover:z-10 transition-transform"
+                                    >
                                         <UserAvatar
                                             name={name}
                                             avatarUrl={avatarUrl}
                                             size="xs"
                                             showBorder={false}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openMemberProfile(userObj);
+                                            }}
                                         />
                                     </div>
                                 );
@@ -930,7 +1036,7 @@ export default function ProjectTaskDetailPage() {
                             variant="secondary"
                             size="sm"
                             onClick={() => setIsEditMainTaskModalOpen(true)}
-                            icon={<Edit2 className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />}
+                            icon={<Edit2 className="w-3.5 h-3.5 shrink-0" />}
                             title="Edit Main Task"
                             className="shadow-2xs text-xs"
                         >
@@ -942,8 +1048,25 @@ export default function ProjectTaskDetailPage() {
 
             {/* Subtask Controls & Filters Bar */}
             <div className="shrink-0 px-5 py-2.5 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-wrap items-center justify-between gap-3 select-none">
-                {/* Left Side: Scope Toggle (All vs Today) + Add Subtask & Columns Buttons */}
+                {/* Left Side: Add Subtask (Filled) + Scope Toggle (All vs Today) + Columns Buttons */}
                 <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                    {/* Add Subtask Action Button (Filled) */}
+                    {canCreateSubtask && (
+                        <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            icon={<Plus className="w-3.5 h-3.5" />}
+                            onClick={() => {
+                                setSubtaskModalData(null);
+                                setSubtaskModalInitialColStatus(columns[0]?.id || columns[0]?.name || "To Do");
+                                setIsSubtaskModalOpen(true);
+                            }}
+                        >
+                            Add Subtask
+                        </Button>
+                    )}
+
                     {/* Scope Segmented Toggle */}
                     <div className="flex items-center h-[32px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-xs font-medium shrink-0">
                         <button
@@ -982,41 +1105,6 @@ export default function ProjectTaskDetailPage() {
                             )}
                         </button>
                     </div>
-
-                    {/* Add Subtask Action Button */}
-                    {canCreateSubtask && (
-                        <Button
-                            type="button"
-                            variant="default"
-                            size="sm"
-                            icon={<Plus className="w-3.5 h-3.5" />}
-                            onClick={() => {
-                                setSubtaskModalData(null);
-                                setSubtaskModalInitialColStatus(columns[0]?.id || columns[0]?.name || "To Do");
-                                setIsSubtaskModalOpen(true);
-                            }}
-                        >
-                            Add Subtask
-                        </Button>
-                    )}
-
-                    {/* Columns Management CTA */}
-                    {canManageTasks && (
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            icon={<SlidersHorizontal className="w-3.5 h-3.5 text-[var(--app-muted)]" />}
-                            onClick={() => {
-                                setColumnModalInitialData(null);
-                                setIsColumnModalOpen(true);
-                            }}
-                            title="Manage workflow columns"
-                            className="shadow-2xs text-xs"
-                        >
-                            Columns
-                        </Button>
-                    )}
                 </div>
 
                 {/* Right Side: Search, Assignee Filter, Modal Filter & Reset */}
@@ -1041,6 +1129,16 @@ export default function ProjectTaskDetailPage() {
                         placeholder="All Assignees"
                         buttonClassName="corner-brackets-4 text-xs h-[32px] !py-0 px-3 bg-[var(--app-card)]"
                         className="w-32 sm:w-40 h-[32px] shrink-0"
+                    />
+
+                    {/* Sort Selector */}
+                    <CustomSelect
+                        options={SORT_OPTIONS}
+                        value={sortBy}
+                        onChange={(val) => setSortBy(val as SortOptionType)}
+                        placeholder="Sort By"
+                        buttonClassName="corner-brackets-4 text-xs h-[32px] !py-0 px-2.5 bg-[var(--app-card)]"
+                        className="w-32 sm:w-36 h-[32px] shrink-0"
                     />
 
                     {/* Filter Modal Trigger Button */}
@@ -1109,9 +1207,10 @@ export default function ProjectTaskDetailPage() {
                             className="flex-1 p-4 flex gap-4 overflow-x-auto overflow-y-hidden"
                         >
                             {columns.map((col, colIndex) => {
-                                const colSubtasks = filteredSubtasks
-                                    .filter((st) => getSubtaskColumnId(st) === col.id)
-                                    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+                                const rawColSubtasks = filteredSubtasks.filter(
+                                    (st) => getSubtaskColumnId(st) === col.id
+                                );
+                                const colSubtasks = getSortedSubtasks(rawColSubtasks, sortBy);
                                 const isDoneCol = Boolean(col.isComplete || col.name.toLowerCase().includes("done") || col.name.toLowerCase().includes("completed"));
                                 const isProgressCol = col.name.toLowerCase().includes("progress") || col.name.toLowerCase().includes("doing");
                                 const isReviewCol = col.name.toLowerCase().includes("review") || col.name.toLowerCase().includes("qa");
@@ -1124,7 +1223,8 @@ export default function ProjectTaskDetailPage() {
                                     ? "border-t-2 border-t-[var(--status-at-risk,#D97706)]"
                                     : "border-t-2 border-t-[var(--status-todo,#6B7280)]";
 
-                                const stageMeta = getStageMeta(col);
+                                const colCumulativeInfo = cumulativeColumnWeights[col.id];
+                                const stageMeta = getStageMeta(col, colCumulativeInfo?.cumulativeWeight);
 
                                 return (
                                     <Draggable
@@ -1157,9 +1257,18 @@ export default function ProjectTaskDetailPage() {
                                                         <span className="text-[11px] font-semibold text-[var(--app-text)] truncate">
                                                             {col.name}
                                                         </span>
-                                                        {stageMeta.showWeight && stageMeta.weight > 0 && (
-                                                            <span className="text-[8px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1 py-0.2 rounded-[1px] tabular-nums shrink-0" title={`Stage weight: ${stageMeta.weight}%`}>
-                                                                {stageMeta.weight}%
+                                                        {colCumulativeInfo && (
+                                                            <span
+                                                                className={`text-[8.5px] font-bold px-1.5 py-0.2 rounded-[2px] border tabular-nums shrink-0 ${
+                                                                    colCumulativeInfo.cumulativeWeight === 100
+                                                                        ? "bg-[var(--status-completed,#15803D)]/10 text-[var(--status-completed,#15803D)] border-[var(--status-completed,#15803D)]/30"
+                                                                        : colCumulativeInfo.cumulativeWeight >= 50
+                                                                        ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border-[var(--color-accent)]/30"
+                                                                        : "bg-[var(--app-bg)] text-[var(--app-muted)] border-[var(--app-border)]"
+                                                                }`}
+                                                                title={`Step Contribution: +${colCumulativeInfo.stepWeight}% | Milestone Progress: ${colCumulativeInfo.cumulativeWeight}%`}
+                                                            >
+                                                                {colCumulativeInfo.cumulativeWeight}%
                                                             </span>
                                                         )}
                                                         <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px] tabular-nums shrink-0">
@@ -1311,7 +1420,19 @@ export default function ProjectTaskDetailPage() {
                 }}
                 onSave={handleSaveColumn}
                 onDelete={handleDeleteColumn}
+                onOpenWeightManager={() => setIsWeightManagerOpen(true)}
                 initialData={columnModalInitialData}
+            />
+
+            {/* Central Column Weight & Workflow Manager Modal */}
+            <ProjectColumnWeightManagerModal
+                isOpen={isWeightManagerOpen}
+                onClose={() => setIsWeightManagerOpen(false)}
+                columns={columns}
+                onSaveWeights={handleSaveColumnWeights}
+                onCreateColumn={handleCreateColumnFromManager}
+                onDeleteColumn={handleDeleteColumn}
+                onRenameColumn={handleRenameColumnFromManager}
             />
 
             {/* Full Subtask Modal (Create & Edit) */}
@@ -1320,7 +1441,7 @@ export default function ProjectTaskDetailPage() {
                 onClose={() => {
                     setIsSubtaskModalOpen(false);
                     setSubtaskModalData(null);
-                    setSubtaskModalInitialTab("description");
+                    setSubtaskModalInitialTab(undefined);
                 }}
                 projectId={projectId}
                 parentTask={task}

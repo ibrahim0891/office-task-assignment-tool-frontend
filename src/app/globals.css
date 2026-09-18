@@ -26,6 +26,9 @@ html {
   --color-warning: #B08800;
   --color-accent: #1A1A1A;
 
+  /* Button theme tokens */
+  --btn-primary-text: #FFFFFF;
+
   /* Typography */
   --font-serif: var(--font-secondary, var(--font-instrument-serif), 'Georgia', serif);
   --font-sans: var(--font-primary, var(--font-inter), 'Inter', -apple-system, system-ui, sans-serif);
@@ -90,6 +93,8 @@ html[data-theme="nord-dark"] {
   --color-warning: #EBCB8B;     /* Nord Aurora Yellow nord13 */
   --color-accent: #88C0D0;      /* Nord Frost Cyan nord8 */
 
+  --btn-primary-text: #2E3440;
+
   --app-select-bg: #434C5E;     /* Nord Polar Night nord2 selection */
   --app-hover-bg: #3E4554;      /* Subtle hover */
 
@@ -111,6 +116,8 @@ html[data-theme="amoled-dark"] {
   --color-error: #EF4444;
   --color-warning: #F59E0B;
   --color-accent: #3B82F6;
+
+  --btn-primary-text: #FFFFFF;
 
   --app-select-bg: #1F1F1F;     /* Subtle active item background */
   --app-hover-bg: #161616;      /* Subtle hover */
@@ -134,6 +141,8 @@ html[data-theme="lws-dark"] {
   --color-error: #F43F5E;       /* Rose Red */
   --color-warning: #EAB308;     /* Amber */
   --color-accent: #00D26A;      /* LWS Emerald Green Accent */
+
+  --btn-primary-text: #0F172A;
 
   --app-select-bg: #334155;     /* Slate 700 selection background */
   --app-hover-bg: #273142;      /* Subtle hover */
@@ -410,11 +419,13 @@ html[data-ui="modern"] button.corner-brackets-4::after {
   display: none !important;
 }
 /* Primary variant: accent fill */
+html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"],
 html[data-ui="modern"] button[class*="bg-[var(--app-text)]"] {
   background-color: var(--color-accent) !important;
   border-color: var(--color-accent) !important;
-  color: #fff !important;
+  color: var(--btn-primary-text, #fff) !important;
 }
+html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"]:hover,
 html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:hover {
   background-color: color-mix(in srgb, var(--color-accent) 85%, black) !important;
   border-color: color-mix(in srgb, var(--color-accent) 85%, black) !important;

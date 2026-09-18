@@ -34,6 +34,7 @@ export default function TeamDetailsPage() {
         teamMembers,
         tasks,
         columns,
+        openMemberProfile,
     } = useWorkspace();
 
     if (!currentTeam || !currentUser) {
@@ -98,13 +99,14 @@ export default function TeamDetailsPage() {
     };
 
     const renderMemberCard = (member: { user: any; role: string }) => {
-        const { user } = member;
-        const initials = getInitials(user.fullName);
+        const { user, role } = member;
+        const initials = getInitials(user.fullName || user.name || "User");
         
         return (
             <div 
                 key={user.id}
-                className="group relative bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] p-4 flex flex-col items-center text-center justify-between gap-3 rounded-[3px] transition-all hover:shadow-float shadow-3xs min-h-[200px]"
+                onClick={() => openMemberProfile(user)}
+                className="group relative bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] p-4 flex flex-col items-center text-center justify-between gap-3 rounded-[3px] transition-all hover:shadow-float shadow-3xs min-h-[200px] cursor-pointer hover:bg-[var(--app-hover-bg)]/40"
             >
                 {/* Top: Avatar & User Info */}
                 <div className="flex flex-col items-center w-full gap-2.5 min-w-0">
@@ -113,7 +115,7 @@ export default function TeamDetailsPage() {
                         {user.avatarUrl ? (
                             <img 
                                 src={user.avatarUrl} 
-                                alt={user.fullName}
+                                alt={user.fullName || user.name}
                                 className="w-16 h-16 sm:w-18 sm:h-18 rounded-[4px] object-cover border border-[var(--app-border)] shadow-xs group-hover:scale-105 transition-transform"
                             />
                         ) : (
@@ -126,21 +128,27 @@ export default function TeamDetailsPage() {
                     {/* Name & Email */}
                     <div className="flex flex-col items-center w-full min-w-0 px-1">
                         <h4 
-                            className="font-heading text-sm sm:text-[15px] font-bold text-[var(--app-text)] leading-snug line-clamp-2 w-full break-words text-center"
-                            title={user.fullName}
+                            className="font-heading text-sm sm:text-[15px] font-bold text-[var(--app-text)] leading-snug line-clamp-2 w-full break-words text-center group-hover:text-[var(--color-accent)] transition-colors"
+                            title={user.fullName || user.name}
                         >
-                            {user.fullName}
+                            {user.fullName || user.name}
                         </h4>
                         <a 
                             href={`mailto:${user.email}`}
                             title={user.email}
-                            className="text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] truncate w-full mt-1 transition-colors block text-center"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] truncate w-full mt-1 transition-colors block text-center hover:underline"
                         >
                             {user.email}
                         </a>
                         {user.designation && (
                             <span className="text-[11px] text-[var(--app-muted)]/80 truncate w-full mt-0.5 block text-center">
                                 {user.designation}
+                            </span>
+                        )}
+                        {role && (
+                            <span className="text-[9px] font-mono font-semibold px-2 py-0.5 bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-muted)] rounded-[2px] mt-1.5 capitalize">
+                                {role.toLowerCase()}
                             </span>
                         )}
                     </div>
@@ -162,6 +170,7 @@ export default function TeamDetailsPage() {
                                 target="_blank"
                                 rel="noreferrer"
                                 title={`GitHub: ${user.github}`}
+                                onClick={(e) => e.stopPropagation()}
                                 className="text-[var(--app-muted)] hover:text-[var(--app-text)] p-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] transition-colors"
                             >
                                 <GithubIcon className="w-3.5 h-3.5" />
@@ -173,6 +182,7 @@ export default function TeamDetailsPage() {
                                 target="_blank"
                                 rel="noreferrer"
                                 title={`Telegram: ${user.telegram}`}
+                                onClick={(e) => e.stopPropagation()}
                                 className="text-[var(--app-muted)] hover:text-sky-500 p-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] transition-colors"
                             >
                                 <MessageSquare className="w-3.5 h-3.5" />
@@ -184,6 +194,7 @@ export default function TeamDetailsPage() {
                                 target="_blank"
                                 rel="noreferrer"
                                 title={`WhatsApp: ${user.whatsapp}`}
+                                onClick={(e) => e.stopPropagation()}
                                 className="text-[var(--app-muted)] hover:text-emerald-500 p-1 rounded-[2px] hover:bg-[var(--app-hover-bg)] transition-colors"
                             >
                                 <Phone className="w-3.5 h-3.5" />

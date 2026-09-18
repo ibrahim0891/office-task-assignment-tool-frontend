@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import { UserAvatar } from "../ui/UserAvatar";
+import { useWorkspace } from "../../context/WorkspaceContext";
 import {
     calculateRemainingDays,
     extractDateString,
@@ -95,6 +96,7 @@ export function ProjectCard({
     canArchive = false,
     onViewDetails,
 }: TaskCardProps) {
+    const { openMemberProfile } = useWorkspace();
     const health = useMemo(() => {
         return calculateProjectHealth({
             status,
@@ -304,8 +306,26 @@ export function ProjectCard({
                     {assignees.length > 0 && (
                         <div className="flex items-center -space-x-1.5 overflow-visible shrink-0 ml-auto" title={assignees.map((a) => a.name).join(", ")}>
                             {assignees.slice(0, 3).map((a, i) => (
-                                <div key={a.id || i} className="relative ring-1.5 ring-[var(--app-card)] rounded-full hover:scale-110 hover:z-20 transition-transform shadow-xs shrink-0">
-                                    <UserAvatar name={a.name} avatarUrl={a.avatarUrl} size="xs" showBorder={false} />
+                                <div 
+                                    key={a.id || i} 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        openMemberProfile(a);
+                                    }}
+                                    className="relative ring-1.5 ring-[var(--app-card)] rounded-full hover:scale-110 hover:z-20 transition-transform shadow-xs shrink-0 cursor-pointer"
+                                >
+                                    <UserAvatar 
+                                        name={a.name} 
+                                        avatarUrl={a.avatarUrl} 
+                                        size="xs" 
+                                        showBorder={false} 
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            openMemberProfile(a);
+                                        }}
+                                    />
                                 </div>
                             ))}
                             {assignees.length > 3 && (

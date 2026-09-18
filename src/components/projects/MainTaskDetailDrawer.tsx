@@ -19,6 +19,7 @@ import {
 import SideSheetWrapper from "../ui/SideSheetWrapper";
 import { Button } from "../ui/Button";
 import { UserAvatar } from "../ui/UserAvatar";
+import { useWorkspace } from "../../context/WorkspaceContext";
 import { calculateTaskProgress } from "../../utils/projectProgress";
 import { calculateRemainingDays, calculateDaySpan, formatDaySpan } from "../../utils/date";
 
@@ -109,6 +110,7 @@ export default function MainTaskDetailDrawer({
     onEditClick,
     onOpenBoard,
 }: MainTaskDetailDrawerProps) {
+    const { openMemberProfile } = useWorkspace();
     const lastTaskRef = React.useRef(incomingTask);
     if (incomingTask) {
         lastTaskRef.current = incomingTask;
@@ -146,6 +148,16 @@ export default function MainTaskDetailDrawer({
             else assigneesList.push(a);
         });
     }
+
+    // Check if description has actual text content (handling empty HTML markup like <p><br></p>)
+    const hasDescription = React.useMemo(() => {
+        if (!task?.description) return false;
+        const textContent = task.description
+            .replace(/<[^>]*>/g, "")
+            .replace(/&nbsp;/g, " ")
+            .trim();
+        return textContent.length > 0;
+    }, [task?.description]);
 
     return (
         <SideSheetWrapper
@@ -323,16 +335,16 @@ export default function MainTaskDetailDrawer({
                     </div>
                 </div>
 
-                {/* ── Description Section (TipTap Rendered) ── */}
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2 pb-1 border-b border-[var(--app-border)]/60">
-                        <AlignLeft className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                        <h3 className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold">
-                            Description & Scope
-                        </h3>
-                    </div>
+                {/* ── Description Section (only shown when description exists) ── */}
+                {hasDescription && (
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 pb-1 border-b border-[var(--app-border)]/60">
+                            <AlignLeft className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                            <h3 className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold">
+                                Description & Scope
+                            </h3>
+                        </div>
 
-                    {task.description ? (
                         <div className="p-4 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[3px] text-xs leading-relaxed text-[var(--app-text)]/90 prose prose-xs sm:prose-sm dark:prose-invert max-w-none break-words select-text [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-[var(--app-border)] [&_th]:p-2 [&_th]:bg-[var(--app-card)] [&_td]:border [&_td]:border-[var(--app-border)] [&_td]:p-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--color-accent)] [&_blockquote]:pl-3 [&_blockquote]:italic">
                             <div
                                 dangerouslySetInnerHTML={{
@@ -340,84 +352,8 @@ export default function MainTaskDetailDrawer({
                                 }}
                             />
                         </div>
-                    ) : (
-                        <div className="p-4 bg-[var(--app-bg)] border border-dashed border-[var(--app-border)] rounded-[3px] text-center text-xs text-[var(--app-muted)] italic">
-                            No description provided for this task.
-                        </div>
-                    )}
-                </div>
-
-                {/* ── Subtasks Breakdown List ── */}
-                <div className="flex flex-col gap-2.5">
-                    <div className="flex items-center justify-between pb-1 border-b border-[var(--app-border)]/60">
-                        <div className="flex items-center gap-2">
-                            <CheckSquare className="w-3.5 h-3.5 text-[var(--color-accent)]" />
-                            <h3 className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold">
-                                Subtasks Checklist ({subtasks.length})
-                            </h3>
-                        </div>
-                        {subtasks.length > 0 && (
-                            <span className="text-[11px] text-[var(--app-muted)] font-medium">
-                                {doneSubtasks}/{totalSubtasks} completed
-                            </span>
-                        )}
                     </div>
-
-                    {subtasks.length === 0 ? (
-                        <div className="p-3 bg-[var(--app-bg)] border border-dashed border-[var(--app-border)] rounded-[3px] text-center text-xs text-[var(--app-muted)] italic">
-                            No subtasks created yet for this main task.
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto custom-scrollbar">
-                            {subtasks.map((st: any) => {
-                                const isSubtaskDone =
-                                    st.isCompleted || st.status === "Completed" || st.status === "Done";
-                                return (
-                                    <div
-                                        key={st.id}
-                                        className="flex items-center justify-between p-2.5 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)] text-xs"
-                                    >
-                                        <div className="flex items-center gap-2.5 min-w-0">
-                                            {isSubtaskDone ? (
-                                                <CheckCircle2 className="w-4 h-4 text-[var(--color-success,#15803D)] shrink-0" />
-                                            ) : (
-                                                <Circle className="w-4 h-4 text-[var(--app-muted)] shrink-0" />
-                                            )}
-                                            <span
-                                                className={`font-medium truncate ${
-                                                    isSubtaskDone
-                                                        ? "line-through text-[var(--app-muted)]"
-                                                        : "text-[var(--app-text)]"
-                                                }`}
-                                            >
-                                                {st.title}
-                                            </span>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            {st.assignedTo && (
-                                                <UserAvatar
-                                                    name={st.assignedTo.name || st.assignedTo.fullName}
-                                                    avatarUrl={st.assignedTo.avatarUrl}
-                                                    size="xs"
-                                                    title={st.assignedTo.name || st.assignedTo.fullName}
-                                                />
-                                            )}
-                                            {st.dueDate && (
-                                                <span className="text-[10px] text-[var(--app-muted)] tabular-nums">
-                                                    {new Date(st.dueDate).toLocaleDateString(undefined, {
-                                                        month: "numeric",
-                                                        day: "numeric",
-                                                    })}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
+                )}
 
                 {/* ── Assigned Members ── */}
                 <div className="flex flex-col gap-2.5">
@@ -443,16 +379,18 @@ export default function MainTaskDetailDrawer({
                                 return (
                                     <div
                                         key={user.id || idx}
-                                        className="flex items-center justify-between p-2.5 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)]"
+                                        onClick={() => openMemberProfile(user)}
+                                        className="flex items-center justify-between p-2.5 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] hover:bg-[var(--app-hover-bg)] cursor-pointer transition-colors group"
                                     >
                                         <div className="flex items-center gap-2.5 min-w-0">
                                             <UserAvatar
                                                 name={name}
                                                 avatarUrl={avatarUrl}
                                                 size="sm"
+                                                onClick={() => openMemberProfile(user)}
                                             />
                                             <div className="flex flex-col min-w-0">
-                                                <span className="text-xs font-semibold text-[var(--app-text)] truncate">
+                                                <span className="text-xs font-semibold text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors truncate">
                                                     {name}
                                                 </span>
                                                 {user.email && (
@@ -463,8 +401,8 @@ export default function MainTaskDetailDrawer({
                                             </div>
                                         </div>
                                         {user.role && (
-                                            <span className="text-[10px] font-medium px-2 py-0.5 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-[var(--app-muted)]">
-                                                {user.role}
+                                            <span className="text-[10px] font-medium px-2 py-0.5 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-[var(--app-muted)] capitalize">
+                                                {user.role.toLowerCase()}
                                             </span>
                                         )}
                                     </div>

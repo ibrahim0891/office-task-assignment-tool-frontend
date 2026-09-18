@@ -108,6 +108,15 @@ export interface ChecklistItem {
   updatedAt?: string;
 }
 
+export interface ProjectSubtaskChecklistItem {
+  id: string;
+  subtaskId: string;
+  title: string;
+  isCompleted: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Comment {
   id: string;
   taskId: string;
@@ -144,6 +153,7 @@ export interface Task {
   description?: string;
   columnId: string;
   priority: string;
+  startDate?: string;
   dueDate?: string;
   date: string;
   originalDate: string;
@@ -628,6 +638,19 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Failed to update checklist item.');
+    }
+    return res.json();
+  },
+
+  async reorderChecklistItems(taskId: string, items: { id: string; order: number }[]): Promise<any> {
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/checklist/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to reorder checklist items.');
     }
     return res.json();
   },
@@ -1207,11 +1230,11 @@ export const api = {
     return res.json();
   },
 
-  async createProjectColumn(projectId: string, name: string, type: string = "CUSTOM", isComplete: boolean = false): Promise<any> {
+  async createProjectColumn(projectId: string, name: string, type: string = "CUSTOM", isComplete: boolean = false, weight?: number | null): Promise<any> {
     const res = await fetch(`${API_BASE}/projects/${projectId}/columns`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, type, isComplete })
+      body: JSON.stringify({ name, type, isComplete, weight })
     });
     if (!res.ok) {
       const err = await res.json();
@@ -1220,7 +1243,7 @@ export const api = {
     return res.json();
   },
 
-  async updateProjectColumn(projectId: string, columnId: string, data: { name?: string; type?: string; isComplete?: boolean }): Promise<any> {
+  async updateProjectColumn(projectId: string, columnId: string, data: { name?: string; type?: string; isComplete?: boolean; weight?: number | null }): Promise<any> {
     const res = await fetch(`${API_BASE}/projects/${projectId}/columns/${columnId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -1229,6 +1252,19 @@ export const api = {
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || 'Failed to update project column.');
+    }
+    return res.json();
+  },
+
+  async batchUpdateProjectColumnWeights(projectId: string, weights: { id: string; weight: number | null }[]): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/columns/weights`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weights })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update column weights.');
     }
     return res.json();
   },
@@ -1345,6 +1381,71 @@ export const api = {
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || 'Failed to delete attachment.');
+    }
+    return res.json();
+  },
+
+  async addProjectSubtaskChecklistItem(projectId: string, taskId: string, subtaskId: string, title: string): Promise<ProjectSubtaskChecklistItem> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/checklist`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to add subtask checklist item.');
+    }
+    return res.json();
+  },
+
+  async updateProjectSubtaskChecklistItem(
+    projectId: string,
+    taskId: string,
+    subtaskId: string,
+    itemId: string,
+    isCompletedOrData: boolean | { isCompleted?: boolean; title?: string }
+  ): Promise<ProjectSubtaskChecklistItem> {
+    const payload =
+      typeof isCompletedOrData === "boolean"
+        ? { isCompleted: isCompletedOrData }
+        : isCompletedOrData;
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/checklist/${itemId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to update subtask checklist item.');
+    }
+    return res.json();
+  },
+
+  async deleteProjectSubtaskChecklistItem(projectId: string, taskId: string, subtaskId: string, itemId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/checklist/${itemId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to delete subtask checklist item.');
+    }
+    return res.json();
+  },
+
+  async reorderProjectSubtaskChecklist(
+    projectId: string,
+    taskId: string,
+    subtaskId: string,
+    items: { id: string; order: number }[]
+  ): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/checklist/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to reorder subtask checklist items.');
     }
     return res.json();
   },

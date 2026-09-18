@@ -33,12 +33,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         let variantClasses = "";
         switch (variant) {
             case "accent":
-                variantClasses =
-                    "bg-[var(--color-accent)] hover:opacity-90 border border-[var(--color-accent)] text-white font-semibold shadow-xs";
-                break;
             case "primary":
                 variantClasses =
-                    "bg-[var(--app-text)] hover:opacity-90 border border-[var(--app-text)] text-[var(--app-bg)] font-semibold shadow-xs";
+                    "bg-[var(--color-accent)] hover:opacity-90 border border-[var(--color-accent)] text-[var(--btn-primary-text,#FFFFFF)] [&_svg]:text-[var(--btn-primary-text,#FFFFFF)] font-semibold shadow-xs";
                 break;
             case "danger":
                 variantClasses =

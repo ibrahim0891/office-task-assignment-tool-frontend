@@ -7,7 +7,7 @@ import {
     LayoutGrid, Users, Calendar, BarChart2, 
     Settings, ChevronLeft, FolderKanban, 
     Building2, FolderGit2, FolderArchive,
-    Info,
+    Info, Scale,
 } from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
@@ -20,6 +20,7 @@ import ProjectSettingsView from "./ProjectSettingsView";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import EditProjectModal from "./EditProjectModal";
 import ProjectDetailDrawer from "./ProjectDetailDrawer";
+import ProjectColumnWeightManagerModal from "./ProjectColumnWeightManagerModal";
 import { useProjectDetail } from "../../hooks/useProjectSWR";
 import ProjectDetailSkeleton from "./ProjectDetailSkeleton";
 import { Button } from "../ui/Button";
@@ -53,10 +54,45 @@ export default function ProjectDetail() {
     });
     const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
     const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
+    const [isWeightManagerOpen, setIsWeightManagerOpen] = useState(false);
 
     const loadProjectDetail = React.useCallback(async () => {
         await refreshProject();
     }, [refreshProject]);
+
+    const handleSaveColumnWeights = async (
+        updatedWeights: { id: string; weight: number | null }[],
+        updatedOrders?: { id: string; order: number }[]
+    ) => {
+        const targetId = project?.id || projectId;
+        if (!targetId) return;
+        if (updatedOrders && updatedOrders.length > 0) {
+            await api.reorderProjectColumns(targetId, updatedOrders);
+        }
+        await api.batchUpdateProjectColumnWeights(targetId, updatedWeights);
+        await loadProjectDetail();
+    };
+
+    const handleCreateColumn = async (name: string, weight?: number | null) => {
+        const targetId = project?.id || projectId;
+        if (!targetId) return;
+        await api.createProjectColumn(targetId, name, "CUSTOM", false, weight);
+        await loadProjectDetail();
+    };
+
+    const handleRenameColumn = async (columnId: string, name: string) => {
+        const targetId = project?.id || projectId;
+        if (!targetId) return;
+        await api.updateProjectColumn(targetId, columnId, { name });
+        await loadProjectDetail();
+    };
+
+    const handleDeleteColumn = async (col: any) => {
+        const targetId = project?.id || projectId;
+        if (!targetId || !col?.id) return;
+        await api.deleteProjectColumn(targetId, col.id);
+        await loadProjectDetail();
+    };
 
     useEffect(() => {
         localStorage.setItem(`project-active-tab-${projectId}`, activeTab);
@@ -217,10 +253,25 @@ export default function ProjectDetail() {
                             </div>
                         )}
 
+                        {/* Manage Columns / Workflow Stages Button (Primary) */}
+                        {canManageTasks && (
+                            <Button
+                                type="button"
+                                variant="primary"
+                                size="sm"
+                                onClick={() => setIsWeightManagerOpen(true)}
+                                icon={<Scale className="w-3.5 h-3.5 shrink-0" />}
+                                title="Manage project workflow stages, columns & progression weights"
+                                className="shadow-2xs text-xs"
+                            >
+                                Manage Columns
+                            </Button>
+                        )}
+
                         {/* View Details Button (Opens Slide-In Drawer) */}
                         <Button
                             type="button"
-                            variant="primary"
+                            variant="secondary"
                             size="sm"
                             onClick={() => setIsDetailDrawerOpen(true)}
                             icon={<Info className="w-3.5 h-3.5 shrink-0" />}
@@ -324,8 +375,19 @@ export default function ProjectDetail() {
             <ProjectInvitationsTray
                 isOpen={isManageInvitationsOpen}
                 onClose={() => setIsManageInvitationsOpen(false)}
-                activeProjectId={project.id}
+                activeProjectId={project?.id || projectId}
                 onRefresh={loadProjectDetail}
+            />
+
+            {/* Central Project Workflow Stages & Column Manager SideSheet */}
+            <ProjectColumnWeightManagerModal
+                isOpen={isWeightManagerOpen}
+                onClose={() => setIsWeightManagerOpen(false)}
+                columns={project?.columns || []}
+                onSaveWeights={handleSaveColumnWeights}
+                onCreateColumn={handleCreateColumn}
+                onRenameColumn={handleRenameColumn}
+                onDeleteColumn={handleDeleteColumn}
             />
         </div>
     );
