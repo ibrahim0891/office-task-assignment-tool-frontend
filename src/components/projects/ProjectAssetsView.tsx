@@ -20,6 +20,7 @@ import ModalWrapper from "../ui/ModalWrapper";
 export interface ProjectCategory {
     id: string;
     name: string;
+    type?: 'DOC' | 'LINK';
     color?: string;
     createdAt: string;
 }
@@ -81,6 +82,11 @@ function getFaviconUrl(url?: string): string {
     } catch {
         return "";
     }
+}
+
+function normalizeContent(html?: string | null): string {
+    const trimmed = (html || "").trim();
+    return trimmed === "<p></p>" ? "" : trimmed;
 }
 
 export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsViewProps) {
@@ -159,6 +165,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
     const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
     const [editingCategory, setEditingCategory] = useState<ProjectCategory | null>(null);
+    const [categoryType, setCategoryType] = useState<'DOC' | 'LINK'>('DOC');
 
     const [isAddLinkOpen, setIsAddLinkOpen] = useState(false);
     const [editingLink, setEditingLink] = useState<ProjectLink | null>(null);
@@ -171,13 +178,30 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
     const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
     const [sidebarTab, setSidebarTab] = useState<'docs' | 'links'>('docs');
 
-    const categoryOptions: SelectOption[] = useMemo(() => [
+    // Separate folders for Docs and Links
+    const docCategories = useMemo(() => {
+        return localCategories.filter((c) => !c.type || c.type === 'DOC');
+    }, [localCategories]);
+
+    const linkCategories = useMemo(() => {
+        return localCategories.filter((c) => c.type === 'LINK');
+    }, [localCategories]);
+
+    const docCategoryOptions: SelectOption[] = useMemo(() => [
         { value: "uncategorized", label: "📁 Uncategorized" },
-        ...localCategories.map((c) => ({
+        ...docCategories.map((c) => ({
             value: c.id,
             label: `📁 ${c.name}`,
         })),
-    ], [localCategories]);
+    ], [docCategories]);
+
+    const linkCategoryOptions: SelectOption[] = useMemo(() => [
+        { value: "uncategorized", label: "📁 Uncategorized" },
+        ...linkCategories.map((c) => ({
+            value: c.id,
+            label: `📁 ${c.name}`,
+        })),
+    ], [linkCategories]);
 
     // Initialize first doc if available
     useEffect(() => {
@@ -361,12 +385,13 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
     /* CATEGORY MANAGEMENT & FALLBACK MECHANISM                                  */
     /* ------------------------------------------------------------------------- */
 
-    const handleOpenAddCategory = () => {
+    const handleOpenAddCategory = (type?: 'DOC' | 'LINK') => {
         if (!canCreate) {
-            toast.error("Viewers do not have permission to manage categories.");
+            toast.error("Viewers do not have permission to manage folders.");
             return;
         }
         setEditingCategory(null);
+        setCategoryType(type || (sidebarTab === 'links' ? 'LINK' : 'DOC'));
         setNewCategoryName("");
         setIsAddCategoryOpen(true);
     };
@@ -374,7 +399,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
     const handleCreateOrUpdateCategory = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newCategoryName.trim()) {
-            toast.error("Please enter a category name");
+            toast.error("Please enter a folder name");
             return;
         }
 
@@ -385,17 +410,21 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                     name: newCategoryName.trim(),
                 });
                 setLocalCategories((prev) => prev.map((c) => c.id === editingCategory.id ? { ...c, ...updated } : c));
-                toast.success("Category renamed!");
+                toast.success("Folder renamed!");
                 notifyRefresh("category_updated");
             } else {
-                const created = await api.createProjectCategory(project.id, { name: newCategoryName.trim() });
+                const targetType = categoryType;
+                const created = await api.createProjectCategory(project.id, {
+                    name: newCategoryName.trim(),
+                    type: targetType,
+                });
                 setLocalCategories((prev) => [...prev, created]);
                 setExpandedCategories((prev) => ({ ...prev, [created.id]: true }));
-                toast.success("Category created!");
+                toast.success("Folder created!");
                 notifyRefresh("category_created");
             }
         } catch (err: any) {
-            toast.error(err.message || "Failed to save category.");
+            toast.error(err.message || "Failed to save folder.");
         } finally {
             setIsSaving(false);
         }
@@ -636,17 +665,27 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
         });
 
         filteredDocs.forEach((doc) => {
-            const catId = doc.categoryId && groups[doc.categoryId] ? doc.categoryId : "uncategorized";
-            groups[catId].docs.push(doc);
+            const isDocCat = doc.categoryId && docCategories.some((c) => c.id === doc.categoryId);
+            const catId = isDocCat ? doc.categoryId! : "uncategorized";
+            if (groups[catId]) {
+                groups[catId].docs.push(doc);
+            } else {
+                groups.uncategorized.docs.push(doc);
+            }
         });
 
         filteredLinks.forEach((link) => {
-            const catId = link.categoryId && groups[link.categoryId] ? link.categoryId : "uncategorized";
-            groups[catId].links.push(link);
+            const isLinkCat = link.categoryId && linkCategories.some((c) => c.id === link.categoryId);
+            const catId = isLinkCat ? link.categoryId! : "uncategorized";
+            if (groups[catId]) {
+                groups[catId].links.push(link);
+            } else {
+                groups.uncategorized.links.push(link);
+            }
         });
 
         return groups;
-    }, [localCategories, filteredDocs, filteredLinks]);
+    }, [localCategories, docCategories, linkCategories, filteredDocs, filteredLinks]);
 
     const toggleCategory = (catId: string) => {
         setExpandedCategories((prev) => ({
@@ -726,20 +765,22 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                 {/* ── DOCUMENTS SECTION ── */}
                 {sidebarTab === 'docs' && (
                 <div className="flex flex-col pb-3">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--app-muted)] flex items-center gap-1.5">
-                            <FileText className="w-3 h-3" />
-                            Documents
-                            <span className="font-mono normal-case tracking-normal">({filteredDocs.length})</span>
-                        </span>
+                    {/* Header: Title first, then actions on the next line */}
+                    <div className="flex flex-col px-3 pt-3 pb-2.5 border-b border-[var(--app-border)]/60 mb-1">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--app-muted)] flex items-center gap-1.5">
+                                <FileText className="w-3.5 h-3.5 text-[var(--color-accent,#4F46E5)]" />
+                                Documents
+                                <span className="font-mono normal-case tracking-normal text-[var(--app-muted)]">({filteredDocs.length})</span>
+                            </span>
+                        </div>
                         {canCreate && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1.5 mt-2">
                                 <button
                                     type="button"
-                                    onClick={handleOpenAddCategory}
-                                    className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[2px] bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-bg)] transition-colors cursor-pointer"
-                                    title="Create New Category Folder"
+                                    onClick={() => handleOpenAddCategory('DOC')}
+                                    className="flex-1 flex items-center justify-center gap-1 text-[11px] font-semibold py-1 px-2 rounded-[2px] bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-bg)] transition-colors cursor-pointer shadow-xs"
+                                    title="Create New Document Folder"
                                 >
                                     <FolderPlus className="w-3 h-3 text-[#D97706]" />
                                     <span>+ Folder</span>
@@ -747,7 +788,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                                 <button
                                     type="button"
                                     onClick={() => handleCreateDocument()}
-                                    className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[2px] bg-[var(--color-accent,#4F46E5)]/10 text-[var(--color-accent,#4F46E5)] hover:bg-[var(--color-accent,#4F46E5)]/20 transition-colors cursor-pointer"
+                                    className="flex-1 flex items-center justify-center gap-1 text-[11px] font-semibold py-1 px-2 rounded-[2px] bg-[var(--color-accent,#4F46E5)]/10 text-[var(--color-accent,#4F46E5)] hover:bg-[var(--color-accent,#4F46E5)]/20 transition-colors cursor-pointer"
                                     title="New Document"
                                 >
                                     <Plus className="w-3 h-3" />
@@ -759,8 +800,8 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
 
                     {/* Category + Doc Tree */}
                     <div className="px-2 pb-2 flex flex-col gap-0.5">
-                        {/* Custom categories */}
-                        {localCategories.map((cat) => {
+                        {/* Custom Doc categories */}
+                        {docCategories.map((cat) => {
                             const isExpanded = expandedCategories[cat.id] !== false;
                             const group = categoryGroups[cat.id] || { docs: [], links: [] };
                             return (
@@ -781,7 +822,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                                             )}
                                             {isLeaderOrManager && (
                                                 <>
-                                                    <button type="button" onClick={() => { setEditingCategory(cat); setNewCategoryName(cat.name); setIsAddCategoryOpen(true); }}
+                                                    <button type="button" onClick={() => { setEditingCategory(cat); setCategoryType('DOC'); setNewCategoryName(cat.name); setIsAddCategoryOpen(true); }}
                                                         className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer" title="Rename">
                                                         <Edit3 className="w-3 h-3" />
                                                     </button>
@@ -811,7 +852,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                         {(() => {
                             const isExpanded = expandedCategories["uncategorized"] !== false;
                             const uncatDocs = categoryGroups.uncategorized?.docs || [];
-                            if (localCategories.length === 0 && uncatDocs.length === 0 && !searchQuery) {
+                            if (docCategories.length === 0 && uncatDocs.length === 0 && !searchQuery) {
                                 return (
                                     <div className="flex flex-col items-center gap-2 py-6 px-4 text-center">
                                         <FileText className="w-7 h-7 text-[var(--app-muted)] opacity-40" />
@@ -822,19 +863,19 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                                                     className="text-[11px] font-semibold text-[var(--color-accent,#4F46E5)] hover:underline cursor-pointer">
                                                     + Create your first document
                                                 </button>
-                                                <button type="button" onClick={handleOpenAddCategory}
+                                                <button type="button" onClick={() => handleOpenAddCategory('DOC')}
                                                     className="text-[11px] font-semibold text-[var(--app-muted)] hover:text-[var(--app-text)] hover:underline cursor-pointer">
-                                                    + Create a category folder
+                                                    + Create a folder
                                                 </button>
                                             </div>
                                         )}
                                     </div>
                                 );
                             }
-                            if (localCategories.length > 0 && uncatDocs.length === 0) return null;
+                            if (docCategories.length > 0 && uncatDocs.length === 0) return null;
                             return (
                                 <div className="flex flex-col">
-                                    {localCategories.length > 0 && (
+                                    {docCategories.length > 0 && (
                                         <div onClick={() => toggleCategory("uncategorized")}
                                             className="flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-[var(--app-bg)] rounded-[2px] transition-colors">
                                             {isExpanded ? <ChevronDown className="w-3 h-3 text-[var(--app-muted)] shrink-0" /> : <ChevronRight className="w-3 h-3 text-[var(--app-muted)] shrink-0" />}
@@ -843,8 +884,8 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                                             <span className="text-[10px] text-[var(--app-muted)] font-mono">({uncatDocs.length})</span>
                                         </div>
                                     )}
-                                    {(localCategories.length === 0 || isExpanded) && (
-                                        <div className={localCategories.length > 0 ? "pl-5 flex flex-col gap-0.5 border-l border-[var(--app-border)]/50 ml-3.5 my-0.5" : "flex flex-col gap-0.5"}>
+                                    {(docCategories.length === 0 || isExpanded) && (
+                                        <div className={docCategories.length > 0 ? "pl-5 flex flex-col gap-0.5 border-l border-[var(--app-border)]/50 ml-3.5 my-0.5" : "flex flex-col gap-0.5"}>
                                             {uncatDocs.map((doc) => (
                                                 <DocumentTreeItem key={doc.id} doc={doc} isActive={activeDocId === doc.id}
                                                     onOpen={() => handleOpenDocInTab(doc)} onDelete={() => handleDeleteDoc(doc)}
@@ -862,20 +903,22 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                 {/* ── LINKS SECTION ── */}
                 {sidebarTab === 'links' && (
                 <div className="flex flex-col pb-3">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--app-muted)] flex items-center gap-1.5">
-                            <Link2 className="w-3 h-3" />
-                            Links & Resources
-                            <span className="font-mono normal-case tracking-normal">({filteredLinks.length})</span>
-                        </span>
+                    {/* Header: Title first, then actions on the next line */}
+                    <div className="flex flex-col px-3 pt-3 pb-2.5 border-b border-[var(--app-border)]/60 mb-1">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--app-muted)] flex items-center gap-1.5">
+                                <Link2 className="w-3.5 h-3.5 text-[#2563EB]" />
+                                Links & Resources
+                                <span className="font-mono normal-case tracking-normal text-[var(--app-muted)]">({filteredLinks.length})</span>
+                            </span>
+                        </div>
                         {canCreate && (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1.5 mt-2">
                                 <button
                                     type="button"
-                                    onClick={handleOpenAddCategory}
-                                    className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[2px] bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-bg)] transition-colors cursor-pointer"
-                                    title="Create New Category Folder"
+                                    onClick={() => handleOpenAddCategory('LINK')}
+                                    className="flex-1 flex items-center justify-center gap-1 text-[11px] font-semibold py-1 px-2 rounded-[2px] bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-bg)] transition-colors cursor-pointer shadow-xs"
+                                    title="Create New Link Folder"
                                 >
                                     <FolderPlus className="w-3 h-3 text-[#D97706]" />
                                     <span>+ Folder</span>
@@ -890,7 +933,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                                         setLinkCategoryId("uncategorized");
                                         setIsAddLinkOpen(true);
                                     }}
-                                    className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[2px] bg-[#2563EB]/10 text-[#2563EB] hover:bg-[#2563EB]/20 transition-colors cursor-pointer"
+                                    className="flex-1 flex items-center justify-center gap-1 text-[11px] font-semibold py-1 px-2 rounded-[2px] bg-[#2563EB]/10 text-[#2563EB] hover:bg-[#2563EB]/20 transition-colors cursor-pointer"
                                     title="Add Link"
                                 >
                                     <Plus className="w-3 h-3" />
@@ -902,8 +945,8 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
 
                     {/* Category + Link Tree */}
                     <div className="px-2 pb-2 flex flex-col gap-0.5">
-                        {/* Custom categories */}
-                        {localCategories.map((cat) => {
+                        {/* Custom Link categories */}
+                        {linkCategories.map((cat) => {
                             const isExpanded = expandedCategories[cat.id] !== false;
                             const group = categoryGroups[cat.id] || { docs: [], links: [] };
                             return (
@@ -939,6 +982,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                                                         type="button"
                                                         onClick={() => {
                                                             setEditingCategory(cat);
+                                                            setCategoryType('LINK');
                                                             setNewCategoryName(cat.name);
                                                             setIsAddCategoryOpen(true);
                                                         }}
@@ -992,7 +1036,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                         {(() => {
                             const isExpanded = expandedCategories["uncategorized"] !== false;
                             const uncatLinks = categoryGroups.uncategorized?.links || [];
-                            if (localCategories.length === 0 && uncatLinks.length === 0 && !searchQuery) {
+                            if (linkCategories.length === 0 && uncatLinks.length === 0 && !searchQuery) {
                                 return (
                                     <div className="flex flex-col items-center gap-2 py-8 px-4 text-center">
                                         <Link2 className="w-8 h-8 text-[var(--app-muted)] opacity-30" />
@@ -1015,20 +1059,20 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={handleOpenAddCategory}
+                                                    onClick={() => handleOpenAddCategory('LINK')}
                                                     className="text-[11px] font-semibold text-[var(--app-muted)] hover:text-[var(--app-text)] hover:underline cursor-pointer"
                                                 >
-                                                    + Create a category folder
+                                                    + Create a folder
                                                 </button>
                                             </div>
                                         )}
                                     </div>
                                 );
                             }
-                            if (localCategories.length > 0 && uncatLinks.length === 0) return null;
+                            if (linkCategories.length > 0 && uncatLinks.length === 0) return null;
                             return (
                                 <div className="flex flex-col">
-                                    {localCategories.length > 0 && (
+                                    {linkCategories.length > 0 && (
                                         <div
                                             onClick={() => toggleCategory("uncategorized")}
                                             className="flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-[var(--app-bg)] rounded-[2px] transition-colors"
@@ -1043,8 +1087,8 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                                             <span className="text-[10px] text-[var(--app-muted)] font-mono">({uncatLinks.length})</span>
                                         </div>
                                     )}
-                                    {(localCategories.length === 0 || isExpanded) && (
-                                        <div className={localCategories.length > 0 ? "pl-5 flex flex-col gap-0.5 border-l border-[var(--app-border)]/50 ml-3.5 my-0.5" : "flex flex-col gap-0.5"}>
+                                    {(linkCategories.length === 0 || isExpanded) && (
+                                        <div className={linkCategories.length > 0 ? "pl-5 flex flex-col gap-0.5 border-l border-[var(--app-border)]/50 ml-3.5 my-0.5" : "flex flex-col gap-0.5"}>
                                             {uncatLinks.map((link) => (
                                                 <LinkTreeItem
                                                     key={link.id}
@@ -1142,17 +1186,24 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                                     disabled={!canEditActiveDoc}
                                     onChange={(e) => {
                                         const newTitle = e.target.value;
-                                        setActiveDocDrafts((prev) => ({
-                                            ...prev,
-                                            [activeDocId]: {
-                                                ...(prev[activeDocId] || {
-                                                    content: activeDoc?.content || "",
-                                                    categoryId: activeDoc?.categoryId || "uncategorized",
-                                                }),
-                                                title: newTitle,
-                                                isDirty: true,
-                                            },
-                                        }));
+                                        setActiveDocDrafts((prev) => {
+                                            const current = prev[activeDocId];
+                                            const content = current?.content ?? (activeDoc?.content || "");
+                                            const categoryId = current?.categoryId ?? (activeDoc?.categoryId || "uncategorized");
+                                            const isDirty =
+                                                newTitle.trim() !== (activeDoc?.title || "Untitled Document").trim() ||
+                                                normalizeContent(content) !== normalizeContent(activeDoc?.content) ||
+                                                categoryId !== (activeDoc?.categoryId || "uncategorized");
+                                            return {
+                                                ...prev,
+                                                [activeDocId]: {
+                                                    title: newTitle,
+                                                    content,
+                                                    categoryId,
+                                                    isDirty,
+                                                },
+                                            };
+                                        });
                                     }}
                                     placeholder="Document title..."
                                     className="font-bold text-sm sm:text-base text-[var(--app-text)] bg-transparent border-b border-transparent hover:border-[var(--app-border)] focus:border-[var(--color-accent,#1A1A1A)] focus:outline-none transition-colors px-1 py-0.5 flex-1 min-w-0"
@@ -1160,21 +1211,28 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
 
                                 {/* Category Assignment Select */}
                                 <CustomSelect
-                                    options={categoryOptions}
+                                    options={docCategoryOptions}
                                     value={activeDraft.categoryId || "uncategorized"}
                                     disabled={!canEditActiveDoc}
                                     onChange={(newCatId) => {
-                                        setActiveDocDrafts((prev) => ({
-                                            ...prev,
-                                            [activeDocId]: {
-                                                ...(prev[activeDocId] || {
-                                                    title: activeDoc?.title || "Untitled Document",
-                                                    content: activeDoc?.content || "",
-                                                }),
-                                                categoryId: newCatId,
-                                                isDirty: true,
-                                            },
-                                        }));
+                                        setActiveDocDrafts((prev) => {
+                                            const current = prev[activeDocId];
+                                            const title = current?.title ?? (activeDoc?.title || "Untitled Document");
+                                            const content = current?.content ?? (activeDoc?.content || "");
+                                            const isDirty =
+                                                newCatId !== (activeDoc?.categoryId || "uncategorized") ||
+                                                title.trim() !== (activeDoc?.title || "Untitled Document").trim() ||
+                                                normalizeContent(content) !== normalizeContent(activeDoc?.content);
+                                            return {
+                                                ...prev,
+                                                [activeDocId]: {
+                                                    title,
+                                                    content,
+                                                    categoryId: newCatId,
+                                                    isDirty,
+                                                },
+                                            };
+                                        });
                                     }}
                                     buttonClassName="!py-1 !px-2 !text-xs !h-7 !min-h-0"
                                     className="w-40"
@@ -1234,17 +1292,24 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                                 value={activeDraft.content}
                                 borderless={true}
                                 onChange={(newHtml) => {
-                                    setActiveDocDrafts((prev) => ({
-                                        ...prev,
-                                        [activeDocId]: {
-                                            ...(prev[activeDocId] || {
-                                                title: activeDoc?.title || "Untitled Document",
-                                                categoryId: activeDoc?.categoryId || "uncategorized",
-                                            }),
-                                            content: newHtml,
-                                            isDirty: true,
-                                        },
-                                    }));
+                                    setActiveDocDrafts((prev) => {
+                                        const current = prev[activeDocId];
+                                        const title = current?.title ?? (activeDoc?.title || "Untitled Document");
+                                        const categoryId = current?.categoryId ?? (activeDoc?.categoryId || "uncategorized");
+                                        const isDirty =
+                                            normalizeContent(newHtml) !== normalizeContent(activeDoc?.content) ||
+                                            title.trim() !== (activeDoc?.title || "Untitled Document").trim() ||
+                                            categoryId !== (activeDoc?.categoryId || "uncategorized");
+                                        return {
+                                            ...prev,
+                                            [activeDocId]: {
+                                                title,
+                                                categoryId,
+                                                content: newHtml,
+                                                isDirty,
+                                            },
+                                        };
+                                    });
                                 }}
                                 disabled={!canEditActiveDoc}
                             />
@@ -1292,7 +1357,9 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
             >
                 <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-3">
                     <h3 className="text-sm font-bold text-[var(--app-text)] font-heading">
-                        {editingCategory ? "Rename Category" : "New Category"}
+                        {editingCategory
+                            ? "Rename Folder"
+                            : (categoryType === 'LINK' ? "New Links Folder" : "New Documents Folder")}
                     </h3>
                     <button
                         type="button"
@@ -1305,12 +1372,12 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
 
                 <form onSubmit={handleCreateOrUpdateCategory} className="flex flex-col gap-3">
                     <div className="flex flex-col gap-1">
-                        <label className="text-[11px] font-semibold text-[var(--app-muted)]">Category Name</label>
+                        <label className="text-[11px] font-semibold text-[var(--app-muted)]">Folder Name</label>
                         <input
                             type="text"
                             value={newCategoryName}
                             onChange={(e) => setNewCategoryName(e.target.value)}
-                            placeholder="e.g. Design & UI, API Specs, Meeting Notes"
+                            placeholder={categoryType === 'LINK' ? "e.g. Design & UI, Useful Tools, Reference Sites" : "e.g. Architecture, Meeting Notes, Specs"}
                             className="w-full bg-[var(--app-card)] border border-[var(--app-border)] focus:border-[var(--color-accent,#1A1A1A)] px-3 py-2 rounded-[2px] text-xs text-[var(--app-text)] focus:outline-none transition-colors"
                             autoFocus
                             required
@@ -1381,7 +1448,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                     <div className="flex flex-col gap-1">
                         <label className="text-[11px] font-semibold text-[var(--app-muted)]">Category / Folder</label>
                         <CustomSelect
-                            options={categoryOptions}
+                            options={linkCategoryOptions}
                             value={linkCategoryId}
                             onChange={(val) => setLinkCategoryId(val)}
                             className="w-full text-xs"

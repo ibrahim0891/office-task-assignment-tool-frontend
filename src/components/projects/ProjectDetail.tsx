@@ -33,8 +33,8 @@ type Tab = "main-board" | "members" | "timeline" | "analytics" | "assets" | "set
 const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "main-board", label: "Main Tasks", icon: LayoutGrid },
     { id: "members", label: "Members", icon: Users },
-    { id: "timeline", label: "Timeline", icon: Calendar },
-    { id: "analytics", label: "Analytics", icon: BarChart2 },
+    // { id: "timeline", label: "Timeline", icon: Calendar },
+    // { id: "analytics", label: "Analytics", icon: BarChart2 },
     { id: "assets", label: "Assets & Docs", icon: FolderGit2 },
     { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -52,7 +52,7 @@ export default function ProjectDetail() {
     const [activeTab, setActiveTab] = useState<Tab>(() => {
         if (typeof window !== "undefined") {
             const saved = localStorage.getItem(`project-active-tab-${projectId}`);
-            if (saved) return saved as Tab;
+            if (saved && saved !== "timeline" && saved !== "analytics") return saved as Tab;
         }
         return "main-board";
     });

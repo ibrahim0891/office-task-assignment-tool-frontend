@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Edit3, Users, Calendar, Clock, Loader2, Trash2, X, AlertTriangle, Check, Layers, Lock, Folder } from "lucide-react";
+import { Edit3, Users, Calendar, Clock, Loader2, Trash2, X, AlertTriangle, Check, Layers, Lock, Folder, Flag } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { CustomSelect } from "../ui/CustomSelect";
@@ -331,99 +331,52 @@ export default function UpdateProjectTaskModal({
                     />
                 </div>
 
-                {/* Column Selection */}
-                {columns.length > 0 && (
-                    <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between">
+
+
+                {/* Folder & Priority Selection (Side by Side) */}
+                <div className={`grid gap-3 ${taskFolders.length > 0 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+                    {taskFolders.length > 0 && (
+                        <div className="flex flex-col gap-1.5">
                             <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
-                                <Layers className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                                <span>Workflow Stage / Column</span>
+                                <Folder className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                <span>Folder (Optional)</span>
                             </label>
-                            {hasSubtasks && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--color-accent,#00D26A)] bg-[var(--color-accent,#00D26A)]/10 px-2 py-0.5 rounded-[2px] border border-[var(--color-accent,#00D26A)]/20">
-                                    <Lock className="w-2.5 h-2.5" />
-                                    <span>Dynamic ({progressPercent}% subtasks)</span>
-                                </span>
-                            )}
-                        </div>
-                        {hasSubtasks ? (
-                            <div className="flex flex-col gap-1.5 p-2.5 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)] text-xs">
-                                <div className="flex items-center justify-between">
-                                    <span className="font-semibold text-[var(--app-text)]">
-                                        {columns.find((c: any) => c.id === columnId)?.name || "Current Stage"}
-                                    </span>
-                                    <span className="text-[11px] font-mono text-[var(--app-muted)]">
-                                        {progressPercent}% Complete
-                                    </span>
-                                </div>
-                                <p className="text-[11px] text-[var(--app-muted)] leading-relaxed">
-                                    Status is dynamically updated based on the percentage of completed subtasks and cannot be modified manually.
-                                </p>
-                            </div>
-                        ) : (
                             <CustomSelect
-                                options={columns.map((col: any) => ({
-                                    value: col.id,
-                                    label: col.name,
-                                }))}
-                                value={columnId}
-                                onChange={(val) => setColumnId(val)}
+                                options={[
+                                    { value: "", label: "No Folder (Common Space)" },
+                                    ...taskFolders.map((f: any) => ({
+                                        value: f.id,
+                                        label: `${f.emoji || "📁"} ${f.name}`,
+                                    })),
+                                ]}
+                                value={folderId}
+                                onChange={(val) => setFolderId(val)}
                                 className="w-full"
                             />
-                        )}
-                    </div>
-                )}
+                        </div>
+                    )}
 
-                {/* Folder Selection */}
-                {taskFolders.length > 0 && (
+                    {/* Priority selection */}
                     <div className="flex flex-col gap-1.5">
                         <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
-                            <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                            <span>Folder (Optional)</span>
+                            <Flag className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                            <span>Priority Level</span>
                         </label>
                         <CustomSelect
                             options={[
-                                { value: "", label: "No Folder (Common Space)" },
-                                ...taskFolders.map((f: any) => ({
-                                    value: f.id,
-                                    label: `${f.emoji || "📁"} ${f.name}`,
-                                })),
+                                { value: "LOW", label: "Low Priority" },
+                                { value: "MEDIUM", label: "Medium Priority" },
+                                { value: "HIGH", label: "High Priority" },
+                                { value: "URGENT", label: "Urgent Priority" },
                             ]}
-                            value={folderId}
-                            onChange={(val) => setFolderId(val)}
+                            value={priority}
+                            onChange={(val) => setPriority(val)}
                             className="w-full"
                         />
                     </div>
-                )}
-
-                {/* Priority selection */}
-                <div className="flex flex-col gap-1.5">
-                    <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold">
-                        Priority Level
-                    </label>
-                    <CustomSelect
-                        options={[
-                            { value: "LOW", label: "Low Priority" },
-                            { value: "MEDIUM", label: "Medium Priority" },
-                            { value: "HIGH", label: "High Priority" },
-                            { value: "URGENT", label: "Urgent Priority" },
-                        ]}
-                        value={priority}
-                        onChange={(val) => setPriority(val)}
-                        className="w-full"
-                    />
                 </div>
 
-                {/* Description - TipTap Editor */}
-                <div className="flex flex-col gap-1.5">
-                    <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold">
-                        Description & Scope
-                    </label>
-                    <TipTapEditor
-                        value={description}
-                        onChange={(html) => setDescription(html)}
-                    />
-                </div>
+
 
                 {/* Start Date & Due Date Grid */}
                 <div className="flex flex-col gap-2">
@@ -568,6 +521,17 @@ export default function UpdateProjectTaskModal({
                         </div>
                     )}
                 </div>
+
+                {/* Description - TipTap Editor */}
+                <div className="flex flex-col gap-1.5">
+                    <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold">
+                        Description & Scope
+                    </label>
+                    <TipTapEditor
+                        value={description}
+                        onChange={(html) => setDescription(html)}
+                    />
+                </div>
             </form>
 
             {/* ── Fixed Footer Action Bar ── */}
@@ -602,11 +566,10 @@ export default function UpdateProjectTaskModal({
                         loadingText="Saving..."
                         icon={<Check className="w-4 h-4" />}
                         disabled={loading || isDeleting || !title.trim()}
-                        className={`transition-all ${
-                            hasChanges
-                                ? "!bg-[var(--color-accent)] !border-[var(--color-accent)] !text-white hover:!opacity-90 shadow-sm font-semibold"
-                                : "!bg-[var(--app-card)] !border-[var(--app-border)] !text-[var(--app-muted)] hover:!text-[var(--app-text)] font-medium"
-                        }`}
+                        className={`transition-all ${hasChanges
+                            ? "!bg-[var(--color-accent)] !border-[var(--color-accent)] !text-white hover:!opacity-90 shadow-sm font-semibold"
+                            : "!bg-[var(--app-card)] !border-[var(--app-border)] !text-[var(--app-muted)] hover:!text-[var(--app-text)] font-medium"
+                            }`}
                     >
                         Save Changes
                     </Button>

@@ -74,14 +74,18 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
     });
 
     useEffect(() => {
-        if (editor) {
-            editor.setEditable(!disabled);
+        if (editor && editor.isEditable !== !disabled) {
+            editor.setEditable(!disabled, false);
         }
     }, [disabled, editor]);
 
     useEffect(() => {
         if (editor && value !== editor.getHTML()) {
-            editor.commands.setContent(value || "");
+            const currentHTML = editor.getHTML();
+            const isBothEmpty = (!value || value === "<p></p>") && (!currentHTML || currentHTML === "<p></p>");
+            if (!isBothEmpty) {
+                editor.commands.setContent(value || "", { emitUpdate: false });
+            }
         }
     }, [value, editor]);
 

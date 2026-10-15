@@ -1033,14 +1033,28 @@ export const api = {
   // ----------------------------------------------------
   // PROJECT MODULE API METHODS
   // ----------------------------------------------------
-  async getProjects(teamId: string, userId?: string): Promise<any[]> {
-    const headers: Record<string, string> = {
-      'x-team-id': teamId,
-    };
+  async getProjects(teamId?: string, userId?: string, allTeams: boolean = true): Promise<any[]> {
+    const headers: Record<string, string> = {};
+    if (teamId) {
+      headers['x-team-id'] = teamId;
+    }
     if (userId) {
       headers['x-user-id'] = userId;
     }
-    const res = await fetch(`${API_BASE}/projects?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`, {
+    if (allTeams) {
+      headers['x-all-teams'] = 'true';
+    }
+    const params = new URLSearchParams();
+    if (allTeams) {
+      params.append('allTeams', 'true');
+    } else if (teamId) {
+      params.append('teamId', teamId);
+    }
+    if (userId) {
+      params.append('userId', userId);
+    }
+    const query = params.toString();
+    const res = await fetch(`${API_BASE}/projects${query ? `?${query}` : ''}`, {
       headers,
     });
     if (!res.ok) {
@@ -1050,14 +1064,28 @@ export const api = {
     return res.json();
   },
 
-  async getPortfolioSummary(teamId: string, userId?: string): Promise<any> {
-    const headers: Record<string, string> = {
-      'x-team-id': teamId,
-    };
+  async getPortfolioSummary(teamId?: string, userId?: string, allTeams: boolean = true): Promise<any> {
+    const headers: Record<string, string> = {};
+    if (teamId) {
+      headers['x-team-id'] = teamId;
+    }
     if (userId) {
       headers['x-user-id'] = userId;
     }
-    const res = await fetch(`${API_BASE}/projects/summary?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`, {
+    if (allTeams) {
+      headers['x-all-teams'] = 'true';
+    }
+    const params = new URLSearchParams();
+    if (allTeams) {
+      params.append('allTeams', 'true');
+    } else if (teamId) {
+      params.append('teamId', teamId);
+    }
+    if (userId) {
+      params.append('userId', userId);
+    }
+    const query = params.toString();
+    const res = await fetch(`${API_BASE}/projects/summary${query ? `?${query}` : ''}`, {
       headers,
     });
     if (!res.ok) {
@@ -1783,16 +1811,17 @@ export const api = {
   // PROJECT CATEGORIES
   // ==========================================
 
-  async getProjectCategories(projectId: string, query?: { search?: string }): Promise<any[]> {
+  async getProjectCategories(projectId: string, query?: { search?: string; type?: 'DOC' | 'LINK' }): Promise<any[]> {
     const params = new URLSearchParams();
     if (query?.search) params.append('search', query.search);
+    if (query?.type) params.append('type', query.type);
     const qs = params.toString() ? `?${params.toString()}` : '';
     const res = await fetch(`${API_BASE}/projects/${projectId}/categories${qs}`);
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to fetch project categories.'); }
     return res.json();
   },
 
-  async createProjectCategory(projectId: string, data: { name: string; color?: string }): Promise<any> {
+  async createProjectCategory(projectId: string, data: { name: string; color?: string; type?: 'DOC' | 'LINK' }): Promise<any> {
     const res = await fetch(`${API_BASE}/projects/${projectId}/categories`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

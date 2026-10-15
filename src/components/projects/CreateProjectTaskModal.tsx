@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Users, Calendar, Clock, Loader2, Check, X, Layers, Folder } from "lucide-react";
+import { Plus, Users, Calendar, Clock, Loader2, Check, X, Layers, Folder, Flag } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { CustomSelect } from "../ui/CustomSelect";
@@ -242,44 +242,47 @@ export default function CreateProjectTaskModal({
                     </div>
                 )}
 
-                {/* Folder Selection */}
-                {taskFolders.length > 0 && (
+                {/* Folder & Priority Selection (Side by Side) */}
+                <div className={`grid gap-3 ${taskFolders.length > 0 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+                    {taskFolders.length > 0 && (
+                        <div className="flex flex-col gap-1.5">
+                            <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
+                                <Folder className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                <span>Folder (Optional)</span>
+                            </label>
+                            <CustomSelect
+                                options={[
+                                    { value: "", label: "No Folder (Common Space)" },
+                                    ...taskFolders.map((f: any) => ({
+                                        value: f.id,
+                                        label: `${f.emoji || "📁"} ${f.name}`,
+                                    })),
+                                ]}
+                                value={folderId}
+                                onChange={(val) => setFolderId(val)}
+                                className="w-full"
+                            />
+                        </div>
+                    )}
+
+                    {/* Priority selection */}
                     <div className="flex flex-col gap-1.5">
                         <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
-                            <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                            <span>Folder (Optional)</span>
+                            <Flag className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                            <span>Priority Level</span>
                         </label>
                         <CustomSelect
                             options={[
-                                { value: "", label: "No Folder (Common Space)" },
-                                ...taskFolders.map((f: any) => ({
-                                    value: f.id,
-                                    label: `${f.emoji || "📁"} ${f.name}`,
-                                })),
+                                { value: "LOW", label: "Low Priority" },
+                                { value: "MEDIUM", label: "Medium Priority" },
+                                { value: "HIGH", label: "High Priority" },
+                                { value: "URGENT", label: "Urgent Priority" },
                             ]}
-                            value={folderId}
-                            onChange={(val) => setFolderId(val)}
+                            value={priority}
+                            onChange={(val) => setPriority(val)}
                             className="w-full"
                         />
                     </div>
-                )}
-
-                {/* Priority selection */}
-                <div className="flex flex-col gap-1.5">
-                    <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold">
-                        Priority Level
-                    </label>
-                    <CustomSelect
-                        options={[
-                            { value: "LOW", label: "Low Priority" },
-                            { value: "MEDIUM", label: "Medium Priority" },
-                            { value: "HIGH", label: "High Priority" },
-                            { value: "URGENT", label: "Urgent Priority" },
-                        ]}
-                        value={priority}
-                        onChange={(val) => setPriority(val)}
-                        className="w-full"
-                    />
                 </div>
 
                 {/* Description - TipTap Editor */}

@@ -14,15 +14,22 @@ export default function CalendarPage() {
         setActiveDateStr,
         currentTeam,
         currentUser,
+        userRole,
     } = useWorkspace();
 
     const [calendarTasks, setCalendarTasks] = useState<Task[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
+    const isLeader = userRole === "LEADER";
+
     const loadCalendarTasks = useCallback(async () => {
         if (!currentTeam?.id) return;
         try {
-            const data = await api.getTasks({ teamId: currentTeam.id }, currentUser?.id);
+            const params: any = { teamId: currentTeam.id };
+            if (!isLeader && currentUser?.id) {
+                params.userId = currentUser.id;
+            }
+            const data = await api.getTasks(params, currentUser?.id);
             if (Array.isArray(data)) {
                 setCalendarTasks(data);
             }
@@ -31,7 +38,7 @@ export default function CalendarPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [currentTeam?.id, currentUser?.id]);
+    }, [currentTeam?.id, currentUser?.id, isLeader]);
 
     useEffect(() => {
         loadCalendarTasks();

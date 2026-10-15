@@ -23,9 +23,12 @@ export default function CalendarView({
         columns,
         teamMembers,
         currentUser,
+        userRole,
         selectedMemberFilter,
         setSelectedMemberFilter,
     } = useWorkspace();
+    const isLeader = userRole === "LEADER";
+
     const [currentMonth, setCurrentMonth] = useState(new Date());
     // popover: { dateStr, rect } | null
     const [popover, setPopover] = useState<{
@@ -36,7 +39,9 @@ export default function CalendarView({
     const popoverRef = useRef<HTMLDivElement>(null);
 
     const activeTasks = tasks.filter((t) => !t.isSoftDeleted && !t.isArchived);
-    const filteredTasks = selectedMemberFilter
+    const filteredTasks = !isLeader
+        ? activeTasks.filter((t) => t.assignedToId === currentUser?.id)
+        : selectedMemberFilter
         ? activeTasks.filter((t) => t.assignedToId === selectedMemberFilter)
         : activeTasks;
 
@@ -231,8 +236,8 @@ export default function CalendarView({
                 </div>
 
                 <div className="flex items-center gap-2.5 flex-wrap">
-                    {/* Member Filter */}
-                    {teamMembers && teamMembers.length > 0 && (
+                    {/* Member Filter - Only visible to team leader */}
+                    {isLeader && teamMembers && teamMembers.length > 0 && (
                         <div className="flex items-center gap-1.5">
                             <span className="text-[11px] text-[#888883] font-medium hidden sm:inline">
                                 Member:
