@@ -163,8 +163,9 @@ export default function ProjectDetailSkeleton() {
                             <table className="w-full text-left text-xs border-collapse">
                                 <thead>
                                     <tr className="border-b border-[var(--app-border)] bg-[var(--app-bg)] text-[10px] font-medium text-[var(--app-muted)]">
-                                        <th className="py-3 px-4 font-semibold">Status</th>
+                                        <th className="py-3 px-3 font-semibold text-center w-12">#</th>
                                         <th className="py-3 px-4 font-semibold">Task & Category</th>
+                                        <th className="py-3 px-4 font-semibold">Status</th>
                                         <th className="py-3 px-4 font-semibold">Priority</th>
                                         <th className="py-3 px-4 font-semibold">Members</th>
                                         <th className="py-3 px-4 font-semibold">Due Date</th>
@@ -175,14 +176,17 @@ export default function ProjectDetailSkeleton() {
                                 <tbody>
                                     {[1, 2, 3, 4, 5, 6].map((i) => (
                                         <tr key={i} className="border-b border-[var(--app-border)]">
-                                            <td className="py-3.5 px-4">
-                                                <Skeleton className="w-20 h-5 rounded-[2px]" />
+                                            <td className="py-3.5 px-3 text-center w-12">
+                                                <Skeleton className="w-4 h-4 mx-auto rounded-[2px]" />
                                             </td>
                                             <td className="py-3.5 px-4">
                                                 <div className="flex flex-col gap-1">
                                                     <Skeleton className="w-48 h-4 rounded-[2px]" />
                                                     <Skeleton className="w-32 h-3 rounded-[2px]" />
                                                 </div>
+                                            </td>
+                                            <td className="py-3.5 px-4">
+                                                <Skeleton className="w-16 h-4 rounded-[2px]" />
                                             </td>
                                             <td className="py-3.5 px-4">
                                                 <Skeleton className="w-16 h-4 rounded-[2px]" />

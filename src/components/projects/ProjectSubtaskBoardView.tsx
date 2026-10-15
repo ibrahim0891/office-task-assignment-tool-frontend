@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Circle, User, Layers, Calendar, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
+import PrioritySelectBadge from "./PrioritySelectBadge";
 
 function getInitials(name: string) {
     if (!name) return "";
@@ -150,6 +151,23 @@ export default function ProjectSubtaskBoardView({ project, onRefresh }: ProjectS
                                         </p>
                                     )}
 
+                                    {/* Priority Badge */}
+                                    <div className="flex items-center justify-between">
+                                        <PrioritySelectBadge
+                                            priority={st.priority}
+                                            size="xs"
+                                            onUpdate={async (newP) => {
+                                                try {
+                                                    await api.updateProjectSubtask(project.id, st.parentTaskId, st.id, { priority: newP });
+                                                    toast.success(`Priority updated to ${newP.toLowerCase()}`);
+                                                    if (onRefresh) onRefresh();
+                                                } catch (err: any) {
+                                                    toast.error(err.message || "Failed to update subtask priority");
+                                                }
+                                            }}
+                                        />
+                                    </div>
+
                                     {/* Single Assignee Footer */}
                                     <div className="flex items-center justify-between pt-2 border-t border-[var(--app-border)]">
                                         {st.assignedTo ? (
@@ -221,6 +239,23 @@ export default function ProjectSubtaskBoardView({ project, onRefresh }: ProjectS
                                     <h5 className="text-[11px] font-medium text-[var(--app-text)] line-through leading-snug">
                                         {st.title}
                                     </h5>
+
+                                    {/* Priority Badge */}
+                                    <div className="flex items-center justify-between">
+                                        <PrioritySelectBadge
+                                            priority={st.priority}
+                                            size="xs"
+                                            onUpdate={async (newP) => {
+                                                try {
+                                                    await api.updateProjectSubtask(project.id, st.parentTaskId, st.id, { priority: newP });
+                                                    toast.success(`Priority updated to ${newP.toLowerCase()}`);
+                                                    if (onRefresh) onRefresh();
+                                                } catch (err: any) {
+                                                    toast.error(err.message || "Failed to update subtask priority");
+                                                }
+                                            }}
+                                        />
+                                    </div>
 
                                     <div className="flex items-center justify-between pt-2 border-t border-[var(--app-border)]">
                                         {st.assignedTo ? (

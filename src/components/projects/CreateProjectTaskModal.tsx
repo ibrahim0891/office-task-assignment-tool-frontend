@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Users, Calendar, Clock, Loader2, Check, X, Layers } from "lucide-react";
+import { Plus, Users, Calendar, Clock, Loader2, Check, X, Layers, Folder } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { CustomSelect } from "../ui/CustomSelect";
@@ -36,6 +36,7 @@ export default function CreateProjectTaskModal({
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [columnId, setColumnId] = useState("");
+    const [folderId, setFolderId] = useState("");
     const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>([]);
     const [priority, setPriority] = useState("MEDIUM");
     const [startDate, setStartDate] = useState("");
@@ -43,6 +44,7 @@ export default function CreateProjectTaskModal({
     const [loading, setLoading] = useState(false);
 
     const columns = (currentProject?.columns || []).slice().sort((a: any, b: any) => a.order - b.order);
+    const taskFolders = currentProject?.taskFolders || [];
 
     // Calculate project bounds (YYYY-MM-DD)
     const projMinDate = currentProject?.startDate ? new Date(currentProject.startDate).toISOString().split("T")[0] : "";
@@ -154,6 +156,7 @@ export default function CreateProjectTaskModal({
                 title: title.trim(),
                 description: description.trim(),
                 columnId: targetColId,
+                folderId: folderId || null,
                 assigneeIds: selectedAssigneeIds,
                 startDate,
                 dueDate,
@@ -234,6 +237,28 @@ export default function CreateProjectTaskModal({
                             }))}
                             value={columnId}
                             onChange={(val) => setColumnId(val)}
+                            className="w-full"
+                        />
+                    </div>
+                )}
+
+                {/* Folder Selection */}
+                {taskFolders.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                        <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
+                            <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                            <span>Folder (Optional)</span>
+                        </label>
+                        <CustomSelect
+                            options={[
+                                { value: "", label: "No Folder (Common Space)" },
+                                ...taskFolders.map((f: any) => ({
+                                    value: f.id,
+                                    label: `${f.emoji || "📁"} ${f.name}`,
+                                })),
+                            ]}
+                            value={folderId}
+                            onChange={(val) => setFolderId(val)}
                             className="w-full"
                         />
                     </div>

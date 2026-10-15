@@ -56,6 +56,15 @@ export default function ProjectDetailDrawer({
     }
     const project = incomingProject || lastProjectRef.current;
 
+    // Check if description has actual text content (handling empty HTML markup like <p><br></p>)
+    const hasDescription = Boolean(
+        project?.description &&
+        project.description
+            .replace(/<[^>]*>/g, "")
+            .replace(/&nbsp;/g, " ")
+            .trim().length > 0
+    );
+
     if (!project) return null;
 
     const status = calculateProjectHealth(project);
@@ -87,16 +96,6 @@ export default function ProjectDetailDrawer({
             return String(dateInput);
         }
     };
-
-    // Check if description has actual text content (handling empty HTML markup like <p><br></p>)
-    const hasDescription = React.useMemo(() => {
-        if (!project?.description) return false;
-        const textContent = project.description
-            .replace(/<[^>]*>/g, "")
-            .replace(/&nbsp;/g, " ")
-            .trim();
-        return textContent.length > 0;
-    }, [project?.description]);
 
     return (
         <SideSheetWrapper

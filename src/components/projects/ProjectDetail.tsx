@@ -44,7 +44,11 @@ export default function ProjectDetail() {
     const projectId = params.id as string;
     const { currentTeam, currentUser, userRole, isManageInvitationsOpen, setIsManageInvitationsOpen, projectInvitations } = useWorkspace();
 
-    const { project, isLoading, mutate: refreshProject } = useProjectDetail(projectId, currentTeam?.id);
+    const [statusFilter, setStatusFilter] = useState<string>("ALL");
+    const filters = React.useMemo(() => {
+        return statusFilter !== "ALL" ? { status: statusFilter } : undefined;
+    }, [statusFilter]);
+    const { project, isLoading, mutate: refreshProject } = useProjectDetail(projectId, currentTeam?.id, filters);
     const [activeTab, setActiveTab] = useState<Tab>(() => {
         if (typeof window !== "undefined") {
             const saved = localStorage.getItem(`project-active-tab-${projectId}`);
@@ -253,22 +257,22 @@ export default function ProjectDetail() {
                             </div>
                         )}
 
-                        {/* Manage Columns / Workflow Stages Button (Primary) */}
+                        {/* Manage Columns / Workflow Stages Button (Outline) */}
                         {canManageTasks && (
                             <Button
                                 type="button"
-                                variant="primary"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => setIsWeightManagerOpen(true)}
-                                icon={<Scale className="w-3.5 h-3.5 shrink-0" />}
+                                icon={<Scale className="w-3.5 h-3.5 shrink-0 text-[var(--color-accent)]" />}
                                 title="Manage project workflow stages, columns & progression weights"
-                                className="shadow-2xs text-xs"
+                                className="shadow-2xs text-xs !bg-transparent !text-[var(--color-accent)] !border-[var(--color-accent)] hover:!bg-[var(--color-accent)]/10"
                             >
                                 Manage Columns
                             </Button>
                         )}
 
-                        {/* View Details Button (Opens Slide-In Drawer) */}
+                        {/* View Details Button (Secondary) */}
                         <Button
                             type="button"
                             variant="secondary"
@@ -343,7 +347,14 @@ export default function ProjectDetail() {
 
                 {/* Tab Content */}
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    {activeTab === "main-board" && <ProjectBoardView project={project} onRefresh={loadProjectDetail} />}
+                    {activeTab === "main-board" && (
+                        <ProjectBoardView
+                            project={project}
+                            onRefresh={loadProjectDetail}
+                            statusFilter={statusFilter}
+                            onStatusFilterChange={setStatusFilter}
+                        />
+                    )}
                     {activeTab === "members" && <ProjectMembersView project={project} onRefresh={loadProjectDetail} />}
                     {activeTab === "timeline" && <ProjectTimelineView project={project} />}
                     {activeTab === "analytics" && <ProjectAnalyticsView project={project} />}

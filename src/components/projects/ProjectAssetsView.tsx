@@ -479,7 +479,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                 const updated = await api.updateProjectLink(project.id, editingLink.id, {
                     title: linkTitle.trim(),
                     url: linkUrl.trim(),
-                    description: linkDescription.trim() || undefined,
+                    description: linkDescription.trim(),
                     categoryId: catId,
                 });
 
@@ -499,7 +499,7 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                 const created = await api.createProjectLink(project.id, {
                     title: linkTitle.trim(),
                     url: linkUrl.trim(),
-                    description: linkDescription.trim() || undefined,
+                    description: linkDescription.trim(),
                     categoryId: catId,
                 });
 
@@ -863,75 +863,211 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                 {sidebarTab === 'links' && (
                 <div className="flex flex-col pb-3">
                     {/* Header */}
-                    <div className="flex items-center justify-between px-3 pt-3 pb-2">
+                    <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--app-muted)] flex items-center gap-1.5">
                             <Link2 className="w-3 h-3" />
                             Links & Resources
                             <span className="font-mono normal-case tracking-normal">({filteredLinks.length})</span>
                         </span>
                         {canCreate && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setEditingLink(null);
-                                    setLinkTitle("");
-                                    setLinkUrl("");
-                                    setLinkDescription("");
-                                    setLinkCategoryId("uncategorized");
-                                    setIsAddLinkOpen(true);
-                                }}
-                                className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[2px] bg-[#2563EB]/10 text-[#2563EB] hover:bg-[#2563EB]/20 transition-colors cursor-pointer"
-                                title="Add Link"
-                            >
-                                <Plus className="w-3 h-3" />
-                                <span>Add Link</span>
-                            </button>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    onClick={handleOpenAddCategory}
+                                    className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[2px] bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-bg)] transition-colors cursor-pointer"
+                                    title="Create New Category Folder"
+                                >
+                                    <FolderPlus className="w-3 h-3 text-[#D97706]" />
+                                    <span>+ Folder</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setEditingLink(null);
+                                        setLinkTitle("");
+                                        setLinkUrl("");
+                                        setLinkDescription("");
+                                        setLinkCategoryId("uncategorized");
+                                        setIsAddLinkOpen(true);
+                                    }}
+                                    className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[2px] bg-[#2563EB]/10 text-[#2563EB] hover:bg-[#2563EB]/20 transition-colors cursor-pointer"
+                                    title="Add Link"
+                                >
+                                    <Plus className="w-3 h-3" />
+                                    <span>Add Link</span>
+                                </button>
+                            </div>
                         )}
                     </div>
 
-                    {/* Flat Link List */}
-                    <div className="px-2 flex flex-col gap-1">
-                        {filteredLinks.length === 0 ? (
-                            <div className="flex flex-col items-center gap-2 py-8 px-4 text-center">
-                                <Link2 className="w-8 h-8 text-[var(--app-muted)] opacity-30" />
-                                <p className="text-xs text-[var(--app-muted)]">No links or resources yet</p>
-                                {canCreate && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setEditingLink(null);
-                                            setLinkTitle("");
-                                            setLinkUrl("");
-                                            setLinkDescription("");
-                                            setLinkCategoryId("uncategorized");
-                                            setIsAddLinkOpen(true);
-                                        }}
-                                        className="text-xs font-semibold text-[#2563EB] hover:underline cursor-pointer mt-1"
-                                    >
-                                        + Add your first link
-                                    </button>
-                                )}
-                            </div>
-                        ) : (
-                            filteredLinks.map((link) => (
-                                <LinkTreeItem
-                                    key={link.id}
-                                    link={link}
-                                    onCopy={() => handleCopyUrl(link.url, link.id)}
-                                    isCopied={copiedLinkId === link.id}
-                                    onEdit={canModifyItem(link.createdById) ? () => {
-                                        setEditingLink(link);
-                                        setLinkTitle(link.title);
-                                        setLinkUrl(link.url);
-                                        setLinkDescription(link.description || "");
-                                        setLinkCategoryId("uncategorized");
-                                        setIsAddLinkOpen(true);
-                                    } : undefined}
-                                    onDelete={() => handleDeleteLink(link)}
-                                    canModify={canModifyItem(link.createdById)}
-                                />
-                            ))
-                        )}
+                    {/* Category + Link Tree */}
+                    <div className="px-2 pb-2 flex flex-col gap-0.5">
+                        {/* Custom categories */}
+                        {localCategories.map((cat) => {
+                            const isExpanded = expandedCategories[cat.id] !== false;
+                            const group = categoryGroups[cat.id] || { docs: [], links: [] };
+                            return (
+                                <div key={cat.id} className="flex flex-col">
+                                    <div className="group flex items-center justify-between px-2 py-1 rounded-[2px] hover:bg-[var(--app-bg)] transition-colors">
+                                        <div onClick={() => toggleCategory(cat.id)} className="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer">
+                                            {isExpanded ? <ChevronDown className="w-3 h-3 text-[var(--app-muted)] shrink-0" /> : <ChevronRight className="w-3 h-3 text-[var(--app-muted)] shrink-0" />}
+                                            <Folder className="w-3.5 h-3.5 text-[#D97706] shrink-0" />
+                                            <span className="text-xs font-semibold text-[var(--app-text)] truncate">{cat.name}</span>
+                                            <span className="text-[10px] text-[var(--app-muted)] font-mono">({group.links.length})</span>
+                                        </div>
+                                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            {canCreate && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditingLink(null);
+                                                        setLinkTitle("");
+                                                        setLinkUrl("");
+                                                        setLinkDescription("");
+                                                        setLinkCategoryId(cat.id);
+                                                        setIsAddLinkOpen(true);
+                                                    }}
+                                                    className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer"
+                                                    title={`Add link in ${cat.name}`}
+                                                >
+                                                    <Plus className="w-3 h-3" />
+                                                </button>
+                                            )}
+                                            {isLeaderOrManager && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setEditingCategory(cat);
+                                                            setNewCategoryName(cat.name);
+                                                            setIsAddCategoryOpen(true);
+                                                        }}
+                                                        className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[2px] transition-colors cursor-pointer"
+                                                        title="Rename"
+                                                    >
+                                                        <Edit3 className="w-3 h-3" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteCategory(cat)}
+                                                        className="p-1 text-[var(--app-muted)] hover:text-[var(--color-error)] rounded-[2px] transition-colors cursor-pointer"
+                                                        title="Delete category"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {isExpanded && (
+                                        <div className="pl-5 flex flex-col gap-0.5 border-l border-[var(--app-border)]/50 ml-3.5 my-0.5">
+                                            {group.links.map((link) => (
+                                                <LinkTreeItem
+                                                    key={link.id}
+                                                    link={link}
+                                                    onCopy={() => handleCopyUrl(link.url, link.id)}
+                                                    isCopied={copiedLinkId === link.id}
+                                                    onEdit={canModifyItem(link.createdById) ? () => {
+                                                        setEditingLink(link);
+                                                        setLinkTitle(link.title);
+                                                        setLinkUrl(link.url);
+                                                        setLinkDescription(link.description || "");
+                                                        setLinkCategoryId(link.categoryId || "uncategorized");
+                                                        setIsAddLinkOpen(true);
+                                                    } : undefined}
+                                                    onDelete={() => handleDeleteLink(link)}
+                                                    canModify={canModifyItem(link.createdById)}
+                                                />
+                                            ))}
+                                            {group.links.length === 0 && (
+                                                <span className="text-[10px] text-[var(--app-muted)] italic py-1 pl-2">No links in this folder</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+
+                        {/* Uncategorized links */}
+                        {(() => {
+                            const isExpanded = expandedCategories["uncategorized"] !== false;
+                            const uncatLinks = categoryGroups.uncategorized?.links || [];
+                            if (localCategories.length === 0 && uncatLinks.length === 0 && !searchQuery) {
+                                return (
+                                    <div className="flex flex-col items-center gap-2 py-8 px-4 text-center">
+                                        <Link2 className="w-8 h-8 text-[var(--app-muted)] opacity-30" />
+                                        <p className="text-xs text-[var(--app-muted)]">No links or resources yet</p>
+                                        {canCreate && (
+                                            <div className="flex flex-col items-center gap-1.5 mt-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditingLink(null);
+                                                        setLinkTitle("");
+                                                        setLinkUrl("");
+                                                        setLinkDescription("");
+                                                        setLinkCategoryId("uncategorized");
+                                                        setIsAddLinkOpen(true);
+                                                    }}
+                                                    className="text-xs font-semibold text-[#2563EB] hover:underline cursor-pointer"
+                                                >
+                                                    + Add your first link
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleOpenAddCategory}
+                                                    className="text-[11px] font-semibold text-[var(--app-muted)] hover:text-[var(--app-text)] hover:underline cursor-pointer"
+                                                >
+                                                    + Create a category folder
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+                            if (localCategories.length > 0 && uncatLinks.length === 0) return null;
+                            return (
+                                <div className="flex flex-col">
+                                    {localCategories.length > 0 && (
+                                        <div
+                                            onClick={() => toggleCategory("uncategorized")}
+                                            className="flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-[var(--app-bg)] rounded-[2px] transition-colors"
+                                        >
+                                            {isExpanded ? (
+                                                <ChevronDown className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
+                                            ) : (
+                                                <ChevronRight className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
+                                            )}
+                                            <Folder className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                            <span className="text-xs font-semibold text-[var(--app-muted)] truncate">Uncategorized</span>
+                                            <span className="text-[10px] text-[var(--app-muted)] font-mono">({uncatLinks.length})</span>
+                                        </div>
+                                    )}
+                                    {(localCategories.length === 0 || isExpanded) && (
+                                        <div className={localCategories.length > 0 ? "pl-5 flex flex-col gap-0.5 border-l border-[var(--app-border)]/50 ml-3.5 my-0.5" : "flex flex-col gap-0.5"}>
+                                            {uncatLinks.map((link) => (
+                                                <LinkTreeItem
+                                                    key={link.id}
+                                                    link={link}
+                                                    onCopy={() => handleCopyUrl(link.url, link.id)}
+                                                    isCopied={copiedLinkId === link.id}
+                                                    onEdit={canModifyItem(link.createdById) ? () => {
+                                                        setEditingLink(link);
+                                                        setLinkTitle(link.title);
+                                                        setLinkUrl(link.url);
+                                                        setLinkDescription(link.description || "");
+                                                        setLinkCategoryId(link.categoryId || "uncategorized");
+                                                        setIsAddLinkOpen(true);
+                                                    } : undefined}
+                                                    onDelete={() => handleDeleteLink(link)}
+                                                    canModify={canModifyItem(link.createdById)}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
                 )}
@@ -1242,7 +1378,15 @@ export default function ProjectAssetsView({ project, onRefresh }: ProjectAssetsV
                         />
                     </div>
 
-
+                    <div className="flex flex-col gap-1">
+                        <label className="text-[11px] font-semibold text-[var(--app-muted)]">Category / Folder</label>
+                        <CustomSelect
+                            options={categoryOptions}
+                            value={linkCategoryId}
+                            onChange={(val) => setLinkCategoryId(val)}
+                            className="w-full text-xs"
+                        />
+                    </div>
 
                     <div className="flex flex-col gap-1">
                         <label className="text-[11px] font-semibold text-[var(--app-muted)]">Note / Description (Optional)</label>

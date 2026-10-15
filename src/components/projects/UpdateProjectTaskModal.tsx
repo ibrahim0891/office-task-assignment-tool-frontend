@@ -1,7 +1,6 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
-import { Edit3, Users, Calendar, Clock, Loader2, Trash2, X, AlertTriangle, Check, Layers } from "lucide-react";
+import { Edit3, Users, Calendar, Clock, Loader2, Trash2, X, AlertTriangle, Check, Layers, Lock, Folder } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../api";
 import { CustomSelect } from "../ui/CustomSelect";
@@ -12,6 +11,7 @@ import ConfirmDialog from "../ui/ConfirmDialog";
 import { Button } from "../ui/Button";
 import { UserAvatar } from "../ui/UserAvatar";
 import { calculateDaySpan, formatDaySpan } from "../../utils/date";
+import { calculateTaskProgress } from "../../utils/projectProgress";
 
 interface UpdateProjectTaskModalProps {
     isOpen: boolean;
@@ -56,6 +56,7 @@ export default function UpdateProjectTaskModal({
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [columnId, setColumnId] = useState("");
+    const [folderId, setFolderId] = useState("");
     const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>([]);
     const [priority, setPriority] = useState("MEDIUM");
     const [startDate, setStartDate] = useState("");
@@ -66,6 +67,7 @@ export default function UpdateProjectTaskModal({
     const [isUnsavedConfirmOpen, setIsUnsavedConfirmOpen] = useState(false);
 
     const columns = (currentProject?.columns || []).slice().sort((a: any, b: any) => a.order - b.order);
+    const taskFolders = currentProject?.taskFolders || [];
 
     const projMinDate = currentProject?.startDate ? formatDateInput(currentProject.startDate) : "";
     const projMaxDate = currentProject?.endDate ? formatDateInput(currentProject.endDate) : "";
@@ -99,6 +101,14 @@ export default function UpdateProjectTaskModal({
         });
     }
 
+    const subtasks = currentTask?.subtasks || [];
+    const hasSubtasks = subtasks.length > 0;
+    const progressPercent = React.useMemo(() => {
+        const columnMap: Record<string, any> = {};
+        columns.forEach((c: any) => { columnMap[c.id] = c; });
+        return calculateTaskProgress(currentTask, columnMap);
+    }, [currentTask, columns]);
+
     const initialAssigneeIds = React.useMemo(() => {
         if (!currentTask || !Array.isArray(currentTask.assignees)) return [];
         return currentTask.assignees.map((a: any) => a.userId || a.user?.id || a.id).filter(Boolean);
@@ -109,6 +119,7 @@ export default function UpdateProjectTaskModal({
         const initialTitle = (currentTask.title || "").trim();
         const initialDesc = (currentTask.description || "").trim();
         const initialCol = currentTask.columnId || (columns[0]?.id || "");
+        const initialFolder = currentTask.folderId || currentTask.folder?.id || "";
         const initialPriority = currentTask.priority || "MEDIUM";
         const initialStartDate = formatDateInput(currentTask.startDate);
         const initialDueDate = formatDateInput(currentTask.dueDate);
@@ -121,12 +132,13 @@ export default function UpdateProjectTaskModal({
             title.trim() !== initialTitle ||
             description.trim() !== initialDesc ||
             columnId !== initialCol ||
+            folderId !== initialFolder ||
             priority !== initialPriority ||
             startDate !== initialStartDate ||
             dueDate !== initialDueDate ||
             assigneesChanged
         );
-    }, [currentTask, title, description, columnId, priority, startDate, dueDate, selectedAssigneeIds, initialAssigneeIds, columns]);
+    }, [currentTask, title, description, columnId, folderId, priority, startDate, dueDate, selectedAssigneeIds, initialAssigneeIds, columns]);
 
     const handleAttemptClose = () => {
         if (hasChanges) {
@@ -141,6 +153,7 @@ export default function UpdateProjectTaskModal({
             setTitle(currentTask.title || "");
             setDescription(currentTask.description || "");
             setColumnId(currentTask.columnId || (columns[0]?.id || ""));
+            setFolderId(currentTask.folderId || currentTask.folder?.id || "");
             setPriority(currentTask.priority || "MEDIUM");
             setStartDate(formatDateInput(currentTask.startDate));
             setDueDate(formatDateInput(currentTask.dueDate));
@@ -198,6 +211,7 @@ export default function UpdateProjectTaskModal({
                 title: title.trim(),
                 description: description.trim(),
                 columnId: targetColId,
+                folderId: folderId || null,
                 assigneeIds: selectedAssigneeIds,
                 startDate: startDate || null,
                 dueDate: dueDate || null,
@@ -320,17 +334,63 @@ export default function UpdateProjectTaskModal({
                 {/* Column Selection */}
                 {columns.length > 0 && (
                     <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                            <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
+                                <Layers className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                                <span>Workflow Stage / Column</span>
+                            </label>
+                            {hasSubtasks && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--color-accent,#00D26A)] bg-[var(--color-accent,#00D26A)]/10 px-2 py-0.5 rounded-[2px] border border-[var(--color-accent,#00D26A)]/20">
+                                    <Lock className="w-2.5 h-2.5" />
+                                    <span>Dynamic ({progressPercent}% subtasks)</span>
+                                </span>
+                            )}
+                        </div>
+                        {hasSubtasks ? (
+                            <div className="flex flex-col gap-1.5 p-2.5 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)] text-xs">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-[var(--app-text)]">
+                                        {columns.find((c: any) => c.id === columnId)?.name || "Current Stage"}
+                                    </span>
+                                    <span className="text-[11px] font-mono text-[var(--app-muted)]">
+                                        {progressPercent}% Complete
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-[var(--app-muted)] leading-relaxed">
+                                    Status is dynamically updated based on the percentage of completed subtasks and cannot be modified manually.
+                                </p>
+                            </div>
+                        ) : (
+                            <CustomSelect
+                                options={columns.map((col: any) => ({
+                                    value: col.id,
+                                    label: col.name,
+                                }))}
+                                value={columnId}
+                                onChange={(val) => setColumnId(val)}
+                                className="w-full"
+                            />
+                        )}
+                    </div>
+                )}
+
+                {/* Folder Selection */}
+                {taskFolders.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
                         <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
-                            <Layers className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                            <span>Workflow Stage / Column</span>
+                            <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                            <span>Folder (Optional)</span>
                         </label>
                         <CustomSelect
-                            options={columns.map((col: any) => ({
-                                value: col.id,
-                                label: col.name,
-                            }))}
-                            value={columnId}
-                            onChange={(val) => setColumnId(val)}
+                            options={[
+                                { value: "", label: "No Folder (Common Space)" },
+                                ...taskFolders.map((f: any) => ({
+                                    value: f.id,
+                                    label: `${f.emoji || "📁"} ${f.name}`,
+                                })),
+                            ]}
+                            value={folderId}
+                            onChange={(val) => setFolderId(val)}
                             className="w-full"
                         />
                     </div>

@@ -523,7 +523,12 @@ export const api = {
     const res = await fetch(`${API_BASE}/tasks?${query.toString()}`, {
       headers
     });
-    return res.json();
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to fetch tasks.');
+    }
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   },
 
   async getTask(taskId: string, teamId?: string): Promise<Task> {
@@ -534,6 +539,10 @@ export const api = {
     const res = await fetch(`${API_BASE}/tasks/${taskId}`, {
       headers
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to fetch task.');
+    }
     return res.json();
   },
 
@@ -1058,8 +1067,18 @@ export const api = {
     return res.json();
   },
 
-  async getProjectDetail(projectId: string, teamId?: string): Promise<any> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}`, {
+  async getProjectDetail(
+    projectId: string,
+    teamId?: string,
+    filters?: { status?: string; priority?: string; columnId?: string }
+  ): Promise<any> {
+    const query = new URLSearchParams();
+    if (filters?.status && filters.status !== 'ALL') query.append('status', filters.status);
+    if (filters?.priority && filters.priority !== 'ALL') query.append('priority', filters.priority);
+    if (filters?.columnId && filters.columnId !== 'ALL') query.append('columnId', filters.columnId);
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+
+    const res = await fetch(`${API_BASE}/projects/${projectId}${queryString}`, {
       headers: teamId ? { 'x-team-id': teamId } : undefined,
     });
     if (!res.ok) {
@@ -1206,11 +1225,17 @@ export const api = {
     return res.json();
   },
 
-  async updateProjectTask(projectId: string, taskId: string, data: any): Promise<any> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}`, {
+  async updateProjectTask(projectId: string, taskIdOrData: string | any, maybeData?: any): Promise<any> {
+    const isSingleWithId = typeof taskIdOrData === 'string' && maybeData !== undefined;
+    const url = isSingleWithId
+      ? `${API_BASE}/projects/${projectId}/tasks/${taskIdOrData}`
+      : `${API_BASE}/projects/${projectId}/tasks`;
+    const payload = isSingleWithId ? maybeData : taskIdOrData;
+
+    const res = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const err = await res.json();
@@ -1873,4 +1898,55 @@ export const api = {
     return res.json();
   },
 
+  // ==========================================
+  // PROJECT TASK FOLDERS (MAIN TASK FOLDERS)
+  // ==========================================
+
+  async getProjectTaskFolders(projectId: string): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/task-folders`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch task folders.');
+    }
+    return res.json();
+  },
+
+  async createProjectTaskFolder(projectId: string, data: { name: string; emoji?: string }): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/task-folders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create task folder.');
+    }
+    return res.json();
+  },
+
+  async updateProjectTaskFolder(projectId: string, folderId: string, data: { name?: string; emoji?: string; order?: number }): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/task-folders/${folderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update task folder.');
+    }
+    return res.json();
+  },
+
+  async deleteProjectTaskFolder(projectId: string, folderId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/task-folders/${folderId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete task folder.');
+    }
+    return res.json();
+  },
+
 };
+

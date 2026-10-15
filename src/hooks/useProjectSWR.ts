@@ -8,8 +8,21 @@ export const PROJECT_KEYS = {
         teamId ? (["projects", teamId, userId || "all"] as const) : null,
     portfolioSummary: (teamId?: string, userId?: string) =>
         teamId ? (["portfolio-summary", teamId, userId || "all"] as const) : null,
-    projectDetail: (projectId?: string, teamId?: string) =>
-        projectId ? (["project-detail", projectId, teamId || "default"] as const) : null,
+    projectDetail: (
+        projectId?: string,
+        teamId?: string,
+        filters?: { status?: string; priority?: string; columnId?: string }
+    ) =>
+        projectId
+            ? ([
+                  "project-detail",
+                  projectId,
+                  teamId || "default",
+                  filters?.status || "ALL",
+                  filters?.priority || "ALL",
+                  filters?.columnId || "ALL",
+              ] as const)
+            : null,
     projectAnalytics: (projectId?: string, startDate?: string) =>
         projectId ? (["project-analytics", projectId, startDate || "all"] as const) : null,
     projectInvitations: (teamId?: string) =>
@@ -74,11 +87,16 @@ export function usePortfolioSummary(teamId?: string, userId?: string, config?: S
 /**
  * Hook to fetch and cache a single project detail by ID.
  */
-export function useProjectDetail(projectId?: string, teamId?: string, config?: SWRConfiguration) {
-    const key = PROJECT_KEYS.projectDetail(projectId, teamId);
+export function useProjectDetail(
+    projectId?: string,
+    teamId?: string,
+    filters?: { status?: string; priority?: string; columnId?: string },
+    config?: SWRConfiguration
+) {
+    const key = PROJECT_KEYS.projectDetail(projectId, teamId, filters);
     const { data, error, isLoading, isValidating, mutate } = useSWR<any>(
         key,
-        () => (projectId ? api.getProjectDetail(projectId, teamId) : Promise.resolve(null)),
+        () => (projectId ? api.getProjectDetail(projectId, teamId, filters) : Promise.resolve(null)),
         { ...DEFAULT_SWR_OPTIONS, ...config }
     );
 

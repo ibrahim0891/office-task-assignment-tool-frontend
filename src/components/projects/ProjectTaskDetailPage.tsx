@@ -56,6 +56,7 @@ import TaskFilterModal from "./TaskFilterModal";
 import { useProjectDetail } from "../../hooks/useProjectSWR";
 import { SubtaskKanbanCard } from "./SubtaskKanbanCard";
 import ProjectSubtaskDetailSkeleton from "./ProjectSubtaskDetailSkeleton";
+import PrioritySelectBadge from "./PrioritySelectBadge";
 import { UserAvatar } from "../ui/UserAvatar";
 import { Button } from "../ui/Button";
 import ConfirmDialog from "../ui/ConfirmDialog";
@@ -748,6 +749,34 @@ export default function ProjectTaskDetailPage() {
         }
     };
 
+    // Update subtask priority directly
+    const handleUpdateSubtaskPriority = async (subtaskId: string, newPriority: string) => {
+        try {
+            await api.updateProjectSubtask(projectId, taskId, subtaskId, {
+                priority: newPriority,
+            });
+            toast.success(`Subtask priority updated to ${newPriority.toLowerCase()}`);
+            loadProjectDetail();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update subtask priority");
+            throw err;
+        }
+    };
+
+    // Update main task priority directly
+    const handleUpdateMainTaskPriority = async (newPriority: string) => {
+        try {
+            await api.updateProjectTask(projectId, taskId, {
+                priority: newPriority,
+            });
+            toast.success(`Task priority updated to ${newPriority.toLowerCase()}`);
+            loadProjectDetail();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update task priority");
+            throw err;
+        }
+    };
+
     // Delete subtask
     const handleDeleteSubtask = (subtaskId: string) => {
         const found = subtasks.find((s: any) => s.id === subtaskId);
@@ -962,9 +991,12 @@ export default function ProjectTaskDetailPage() {
                         )}
 
                         {/* Priority Badge */}
-                        <span className="text-[11px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[3px] border border-[var(--app-border)] shrink-0" title={`Priority: ${task.priority}`}>
-                            {task.priority || "Medium"}
-                        </span>
+                        <PrioritySelectBadge
+                            priority={task.priority}
+                            canEdit={canManageTasks}
+                            size="sm"
+                            onUpdate={handleUpdateMainTaskPriority}
+                        />
                     </div>
                 </div>
 
@@ -1362,6 +1394,7 @@ export default function ProjectTaskDetailPage() {
                                                                         onDeleteSubtask={handleDeleteSubtask}
                                                                         onReassignSubtask={handleReassignSubtask}
                                                                         onToggleComplete={handleToggleComplete}
+                                                                        onUpdatePriority={handleUpdateSubtaskPriority}
                                                                     />
                                                                 ))
                                                             )}

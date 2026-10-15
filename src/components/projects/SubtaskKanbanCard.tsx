@@ -19,6 +19,7 @@ import { UserAvatar } from "../ui/UserAvatar";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { canModifySubtask } from "../../utils/projectPermissions";
 import { calculateDaySpan } from "../../utils/date";
+import PrioritySelectBadge from "./PrioritySelectBadge";
 
 function getInitials(name: string) {
     if (!name) return "";
@@ -85,6 +86,7 @@ interface SubtaskKanbanCardProps {
     onDeleteSubtask?: (subtaskId: string) => void;
     onReassignSubtask?: (subtaskId: string, newAssigneeId: string) => Promise<void>;
     onToggleComplete?: (subtask: any) => void;
+    onUpdatePriority?: (subtaskId: string, newPriority: string) => Promise<void> | void;
     isProjectMember?: boolean;
 }
 
@@ -99,6 +101,7 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
     onDeleteSubtask,
     onReassignSubtask,
     onToggleComplete,
+    onUpdatePriority,
     isProjectMember = false,
 }) => {
     const { openMemberProfile } = useWorkspace();
@@ -266,7 +269,12 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                     {/* Section 3: Priority Badge & Estimated Days / Reviewer Attribution */}
                     <div className="flex items-center justify-between gap-2 text-[10px]">
                         <div className="flex items-center gap-1.5 min-w-0">
-                            {getPriorityBadge(subtask.priority)}
+                            <PrioritySelectBadge
+                                priority={subtask.priority}
+                                canEdit={canModifyThisSubtask}
+                                size="xs"
+                                onUpdate={onUpdatePriority ? (newP) => onUpdatePriority(subtask.id, newP) : undefined}
+                            />
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">

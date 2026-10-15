@@ -22,6 +22,9 @@ import { UserAvatar } from "../ui/UserAvatar";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { calculateTaskProgress } from "../../utils/projectProgress";
 import { calculateRemainingDays, calculateDaySpan, formatDaySpan } from "../../utils/date";
+import PrioritySelectBadge from "./PrioritySelectBadge";
+import { api } from "../../api";
+import toast from "react-hot-toast";
 
 interface MainTaskDetailDrawerProps {
     isOpen: boolean;
@@ -32,6 +35,7 @@ interface MainTaskDetailDrawerProps {
     canEdit?: boolean;
     onEditClick?: () => void;
     onOpenBoard?: () => void;
+    onRefresh?: (silent?: boolean) => void;
 }
 
 function getPriorityDetails(priority: string) {
@@ -109,19 +113,49 @@ export default function MainTaskDetailDrawer({
     canEdit = false,
     onEditClick,
     onOpenBoard,
+    onRefresh,
 }: MainTaskDetailDrawerProps) {
     const { openMemberProfile } = useWorkspace();
+    const [localPriority, setLocalPriority] = React.useState<string>("");
+
     const lastTaskRef = React.useRef(incomingTask);
     if (incomingTask) {
         lastTaskRef.current = incomingTask;
     }
     const task = incomingTask || lastTaskRef.current;
 
+    React.useEffect(() => {
+        if (task?.priority) {
+            setLocalPriority(task.priority);
+        }
+    }, [task?.priority]);
+
+    const handleUpdatePriority = async (newPriority: string) => {
+        try {
+            await api.updateProjectTask(project.id, task.id, { priority: newPriority });
+            setLocalPriority(newPriority);
+            toast.success(`Priority updated to ${newPriority.toLowerCase()}`);
+            if (onRefresh) onRefresh(true);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update priority");
+            throw err;
+        }
+    };
+
     const lastProjectRef = React.useRef(incomingProject);
     if (incomingProject) {
         lastProjectRef.current = incomingProject;
     }
     const project = incomingProject || lastProjectRef.current;
+
+    // Check if description has actual text content (handling empty HTML markup like <p><br></p>)
+    const hasDescription = Boolean(
+        task?.description &&
+        task.description
+            .replace(/<[^>]*>/g, "")
+            .replace(/&nbsp;/g, " ")
+            .trim().length > 0
+    );
 
     if (!task) return null;
 
@@ -148,16 +182,6 @@ export default function MainTaskDetailDrawer({
             else assigneesList.push(a);
         });
     }
-
-    // Check if description has actual text content (handling empty HTML markup like <p><br></p>)
-    const hasDescription = React.useMemo(() => {
-        if (!task?.description) return false;
-        const textContent = task.description
-            .replace(/<[^>]*>/g, "")
-            .replace(/&nbsp;/g, " ")
-            .trim();
-        return textContent.length > 0;
-    }, [task?.description]);
 
     return (
         <SideSheetWrapper
@@ -220,17 +244,26 @@ export default function MainTaskDetailDrawer({
                             </span>
 
                             {/* Priority Badge */}
-                            <span
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-[3px] border text-xs font-semibold ${priorityDetails.badgeCls}`}
-                            >
-                                <span>Priority: {priorityDetails.label}</span>
-                            </span>
+                            <PrioritySelectBadge
+                                priority={localPriority || task.priority}
+                                canEdit={canEdit}
+                                size="sm"
+                                onUpdate={handleUpdatePriority}
+                            />
 
                             {/* Column / Stage Badge */}
                             {column && (
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[3px] border border-[var(--app-border)] bg-[var(--app-card)] text-xs text-[var(--app-muted)]">
                                     <Layers className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                                     <span>{column.name}</span>
+                                </span>
+                            )}
+
+                            {/* Folder Badge */}
+                            {task.folder && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[3px] border border-[var(--app-border)] bg-[var(--app-card)] text-xs text-[var(--app-muted)]">
+                                    <span className="text-xs">{task.folder.emoji || "📁"}</span>
+                                    <span>{task.folder.name}</span>
                                 </span>
                             )}
                         </div>

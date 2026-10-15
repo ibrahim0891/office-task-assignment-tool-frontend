@@ -418,17 +418,30 @@ html[data-ui="modern"] button.corner-brackets-4::before,
 html[data-ui="modern"] button.corner-brackets-4::after {
   display: none !important;
 }
-/* Primary variant: accent fill */
-html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"],
-html[data-ui="modern"] button[class*="bg-[var(--app-text)]"] {
+/* Primary variant: accent fill (exclude outline buttons with bg-transparent) */
+html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"]:not([class*="bg-transparent"]):not(.btn-outline),
+html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:not([class*="bg-transparent"]):not(.btn-outline) {
   background-color: var(--color-accent) !important;
   border-color: var(--color-accent) !important;
   color: var(--btn-primary-text, #fff) !important;
 }
-html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"]:hover,
-html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:hover {
+html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"]:not([class*="bg-transparent"]):not(.btn-outline):hover,
+html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:not([class*="bg-transparent"]):not(.btn-outline):hover {
   background-color: color-mix(in srgb, var(--color-accent) 85%, black) !important;
   border-color: color-mix(in srgb, var(--color-accent) 85%, black) !important;
+}
+
+/* Outline variant in Modern mode: transparent fill with accent border and text */
+html[data-ui="modern"] button[class*="border-[var(--color-accent)]"][class*="bg-transparent"],
+html[data-ui="modern"] button.btn-outline {
+  background-color: transparent !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+html[data-ui="modern"] button[class*="border-[var(--color-accent)]"][class*="bg-transparent"]:hover,
+html[data-ui="modern"] button.btn-outline:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 12%, transparent) !important;
+  color: var(--color-accent) !important;
 }
 /* showDot indicator → accent colour */
 html[data-ui="modern"] button span[class*="bg-[var(--app-muted)]"],
