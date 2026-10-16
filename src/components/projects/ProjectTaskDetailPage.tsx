@@ -62,6 +62,7 @@ import { Button } from "../ui/Button";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
+import BulkUpdateSubtasksModal from "./BulkUpdateSubtasksModal";
 import { calculateTaskProgress, isSystemColumn, getStageMeta, calculateCumulativeColumnWeights } from "../../utils/projectProgress";
 import { getProjectPermissions, canModifySubtask } from "../../utils/projectPermissions";
 import { getLocalDateString, parseLocalDate, extractDateString, calculateDaySpan, formatDaySpan } from "../../utils/date";
@@ -193,6 +194,44 @@ export default function ProjectTaskDetailPage() {
     const [isDeletingSubtask, setIsDeletingSubtask] = useState(false);
     const [columnToDelete, setColumnToDelete] = useState<{ col: ColumnDef; fallbackCol: ColumnDef; subtaskCount: number } | null>(null);
     const [isDeletingColumn, setIsDeletingColumn] = useState(false);
+
+    // Bulk subtask selection
+    const [selectedSubtaskIds, setSelectedSubtaskIds] = useState<Set<string>>(new Set());
+    const [isBulkSubtaskModalOpen, setIsBulkSubtaskModalOpen] = useState(false);
+
+    const handleToggleSubtaskSelect = (subtaskId: string) => {
+        setSelectedSubtaskIds((prev) => {
+            const next = new Set(prev);
+            next.has(subtaskId) ? next.delete(subtaskId) : next.add(subtaskId);
+            return next;
+        });
+    };
+
+    const handleBulkUpdateSubtasks = async (data: {
+        startDate?: string;
+        dueDate?: string;
+        assignedToId?: string;
+    }) => {
+        const subtaskIds = Array.from(selectedSubtaskIds);
+        if (subtaskIds.length === 0) return;
+        try {
+            await api.batchUpdateProjectSubtasks(projectId, taskId, subtaskIds, data);
+
+            const parts: string[] = [];
+            if (data.startDate) parts.push(`start → ${new Date(data.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`);
+            if (data.dueDate) parts.push(`due → ${new Date(data.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`);
+            if (data.assignedToId) {
+                const m = candidateAssignees.find((a) => a.id === data.assignedToId);
+                parts.push(`assigned to ${m?.name ?? "member"}`);
+            }
+            toast.success(`Updated ${subtaskIds.length} ${subtaskIds.length === 1 ? "subtask" : "subtasks"}: ${parts.join(", ")}`);
+            setSelectedSubtaskIds(new Set());
+            loadProjectDetail();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to bulk update subtasks");
+            throw err;
+        }
+    };
 
     const subtaskIdParam = searchParams?.get("subtaskId") || searchParams?.get("subtask");
     const tabParam = searchParams?.get("tab");
@@ -1395,6 +1434,8 @@ export default function ProjectTaskDetailPage() {
                                                                         onReassignSubtask={handleReassignSubtask}
                                                                         onToggleComplete={handleToggleComplete}
                                                                         onUpdatePriority={handleUpdateSubtaskPriority}
+                                                                        isSelected={selectedSubtaskIds.has(st.id)}
+                                                                        onToggleSelect={canManageTasks ? handleToggleSubtaskSelect : undefined}
                                                                     />
                                                                 ))
                                                             )}
@@ -1433,6 +1474,48 @@ export default function ProjectTaskDetailPage() {
                     )}
                 </Droppable>
             </DragDropContext>
+
+            {/* Bulk Subtask Action Bar */}
+            {selectedSubtaskIds.size > 0 && canManageTasks && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[var(--app-card)] text-[var(--app-text)] border border-[var(--app-border-strong)] shadow-2xl rounded-[4px] px-4 py-2.5 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+                    <div className="flex items-center gap-2 pr-3 border-r border-[var(--app-border)]">
+                        <span className="w-5 h-5 rounded-full bg-[var(--color-accent)] text-white text-[11px] font-bold flex items-center justify-center">
+                            {selectedSubtaskIds.size}
+                        </span>
+                        <span className="text-xs font-semibold">
+                            {selectedSubtaskIds.size === 1 ? "1 subtask selected" : `${selectedSubtaskIds.size} subtasks selected`}
+                        </span>
+                    </div>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setIsBulkSubtaskModalOpen(true)}
+                        icon={<CalendarRange className="w-3.5 h-3.5" />}
+                        className="!h-8 !text-xs font-semibold"
+                    >
+                        Dates & Assignee
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedSubtaskIds(new Set())}
+                        className="!h-8 !text-xs text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                    >
+                        Deselect All
+                    </Button>
+                </div>
+            )}
+
+            {/* Bulk Update Subtasks Modal */}
+            <BulkUpdateSubtasksModal
+                isOpen={isBulkSubtaskModalOpen}
+                onClose={() => setIsBulkSubtaskModalOpen(false)}
+                subtaskCount={selectedSubtaskIds.size}
+                candidateAssignees={candidateAssignees}
+                projectStartDate={project?.startDate}
+                projectEndDate={project?.endDate}
+                onUpdate={handleBulkUpdateSubtasks}
+            />
 
             {/* Update Main Task Modal */}
             <UpdateProjectTaskModal

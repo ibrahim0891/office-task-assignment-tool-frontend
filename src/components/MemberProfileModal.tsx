@@ -130,35 +130,35 @@ export default function MemberProfileModal({
                 </div>
 
                 {/* Header Information */}
-                <div className="p-5 relative border-b border-[var(--app-border)] shrink-0 bg-[var(--app-card)]">
+                <div className="p-6 relative border-b border-[var(--app-border)] shrink-0 bg-[var(--app-card)]">
                     <div className="flex items-start gap-4">
                         {user.avatarUrl ? (
                             <img
                                 src={user.avatarUrl}
                                 alt={displayName}
-                                className="w-16 h-16 rounded-[3px] object-cover border border-[var(--app-border)] bg-[var(--app-bg)] shrink-0 shadow-xs"
+                                className="w-16 h-16 rounded-xl object-cover border border-[var(--app-border)] bg-[var(--app-bg)] shrink-0 shadow-xs"
                             />
                         ) : (
-                            <div className="w-16 h-16 rounded-[3px] border border-[var(--app-border)] bg-[var(--app-select-bg)] flex items-center justify-center text-xl font-heading text-[var(--app-text)] font-bold shadow-xs shrink-0">
+                            <div className="w-16 h-16 rounded-xl border border-[var(--app-border)] bg-[var(--app-select-bg)] flex items-center justify-center text-xl text-[var(--app-text)] font-bold shadow-xs shrink-0">
                                 {initials}
                             </div>
                         )}
 
                         <div className="flex flex-col gap-1 min-w-0 pr-8">
-                            <h2 className="font-heading text-xl md:text-2xl text-[var(--app-text)] font-bold truncate">
+                            <h2 className="text-xl md:text-2xl text-[var(--app-text)] font-bold truncate">
                                 {displayName}
                             </h2>
                             {user.email && (
-                                <span className="text-[11px] text-[var(--app-muted)] truncate">{user.email}</span>
+                                <span className="text-xs text-[var(--app-muted)] truncate">{user.email}</span>
                             )}
 
                             <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                <span className={`px-2 py-0.5 rounded-[2px] border text-[9px] font-semibold font-mono capitalize ${getRoleBadge(userRole)}`}>
-                                    {userRole}
+                                <span className={`px-2.5 py-0.5 rounded-full border text-xs font-medium capitalize ${getRoleBadge(userRole)}`}>
+                                    {userRole.toLowerCase()}
                                 </span>
                                 {user.designation && (
-                                    <span className="text-[10px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-2 py-0.5 rounded-[2px] flex items-center gap-1">
-                                        <Briefcase className="w-3 h-3 text-[var(--app-muted)]" />
+                                    <span className="text-xs font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                        <Briefcase className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                                         {user.designation}
                                     </span>
                                 )}
@@ -167,45 +167,45 @@ export default function MemberProfileModal({
                     </div>
 
                     {user.bio && (
-                        <div className="mt-3.5 text-[11px] text-[var(--app-muted)] italic leading-relaxed text-center w-full px-2">
+                        <div className="mt-3.5 text-xs text-[var(--app-muted)] italic leading-relaxed text-center w-full px-2">
                             "{user.bio.replace(/^["']|["']$/g, "")}"
                         </div>
                     )}
                 </div>
 
                 {/* Content Body */}
-                <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 bg-[var(--app-bg)] scrollbar-none rounded-b-[2px]">
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-[var(--app-bg)] scrollbar-none rounded-b-lg">
 
                     {/* Merged Single Container Card */}
-                    <div className="bg-[var(--app-card)] border border-[var(--app-border)] corner-brackets flex flex-col rounded-[2px]">
+                    <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-lg flex flex-col shadow-2xs">
 
                         {/* Section 1: Performance Stats */}
                         <div className="p-4 flex flex-col gap-3">
-                            <span className="text-[10px] font-semibold text-[var(--app-muted)] uppercase tracking-wider block border-b border-[var(--app-border)] pb-1.5">
+                            <span className="text-xs font-semibold text-[var(--app-muted)] block border-b border-[var(--app-border)] pb-2">
                                 Task Statistics
                             </span>
                             <div className="grid grid-cols-3 divide-x divide-[var(--app-border)] text-center">
                                 <div className="flex flex-col gap-0.5">
-                                    <span className="text-xl font-heading text-[var(--app-text)] tabular-nums font-semibold">
+                                    <span className="text-2xl font-bold text-[var(--app-text)]">
                                         {userTasks.length}
                                     </span>
-                                    <span className="text-[9px] text-[var(--app-muted)] font-semibold capitalize">
+                                    <span className="text-xs text-[var(--app-muted)] font-medium capitalize">
                                         Total
                                     </span>
                                 </div>
                                 <div className="flex flex-col gap-0.5">
-                                    <span className="text-xl font-heading text-[var(--color-success)] tabular-nums font-semibold">
+                                    <span className="text-2xl font-bold text-[var(--color-success)]">
                                         {completedTasks.length}
                                     </span>
-                                    <span className="text-[9px] text-[var(--app-muted)] font-semibold capitalize">
+                                    <span className="text-xs text-[var(--app-muted)] font-medium capitalize">
                                         Completed
                                     </span>
                                 </div>
                                 <div className="flex flex-col gap-0.5">
-                                    <span className="text-xl font-heading text-[var(--color-warning)] tabular-nums font-semibold">
+                                    <span className="text-2xl font-bold text-[var(--color-warning)]">
                                         {pendingTasks.length}
                                     </span>
-                                    <span className="text-[9px] text-[var(--app-muted)] font-semibold capitalize">
+                                    <span className="text-xs text-[var(--app-muted)] font-medium capitalize">
                                         Pending
                                     </span>
                                 </div>
@@ -214,17 +214,17 @@ export default function MemberProfileModal({
 
                         {/* Section 2: Contact & Professional Details */}
                         <div className="p-4 flex flex-col gap-3 border-t border-[var(--app-border)]">
-                            <span className="text-[10px] font-semibold text-[var(--app-muted)] uppercase tracking-wider block border-b border-[var(--app-border)] pb-1.5">
+                            <span className="text-xs font-semibold text-[var(--app-muted)] block border-b border-[var(--app-border)] pb-2">
                                 Profile Details
                             </span>
-                            <div className="flex flex-col gap-2 text-[11px]">
+                            <div className="flex flex-col gap-2.5 text-xs">
                                 {user.email && (
                                     <div className="flex items-center justify-between py-1 border-b border-[var(--app-border)]/50">
                                         <span className="text-[var(--app-muted)] flex items-center gap-1.5">
                                             <Mail className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                                             Email
                                         </span>
-                                        <span className="text-[var(--app-text)] font-mono font-medium truncate max-w-[200px]" title={user.email}>
+                                        <span className="text-[var(--app-text)] font-medium truncate max-w-[220px]" title={user.email}>
                                             {user.email}
                                         </span>
                                     </div>
@@ -235,7 +235,7 @@ export default function MemberProfileModal({
                                             <Phone className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                                             Phone
                                         </span>
-                                        <span className="text-[var(--app-text)] font-mono font-medium">
+                                        <span className="text-[var(--app-text)] font-medium">
                                             {user.primaryPhone}
                                         </span>
                                     </div>
@@ -250,7 +250,7 @@ export default function MemberProfileModal({
                                             href={`https://github.com/${user.github.replace("@", "")}`}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="text-[var(--app-text)] font-mono font-medium hover:underline hover:text-[var(--color-accent)]"
+                                            className="text-[var(--app-text)] font-medium hover:underline hover:text-[var(--color-accent)]"
                                         >
                                             github.com/{user.github.replace("@", "")}
                                         </a>
@@ -262,7 +262,7 @@ export default function MemberProfileModal({
                                             <Send className="w-3.5 h-3.5 text-[var(--app-muted)]" />
                                             Telegram
                                         </span>
-                                        <span className="text-[var(--app-text)] font-mono font-medium">
+                                        <span className="text-[var(--app-text)] font-medium">
                                             {user.telegram}
                                         </span>
                                     </div>
@@ -273,7 +273,7 @@ export default function MemberProfileModal({
                                             <Droplet className="w-3.5 h-3.5 text-[var(--color-error)]" />
                                             Blood Group
                                         </span>
-                                        <span className="text-[var(--color-error)] font-mono font-semibold">
+                                        <span className="text-[var(--color-error)] font-semibold">
                                             {user.bloodGroup}
                                         </span>
                                     </div>
@@ -284,10 +284,10 @@ export default function MemberProfileModal({
                         {/* Section 3: Assigned Tasks list (if any exist) */}
                         {userTasks.length > 0 && (
                             <div className="p-4 flex flex-col gap-3 border-t border-[var(--app-border)]">
-                                <span className="text-[10px] font-semibold text-[var(--app-muted)] uppercase tracking-wider block border-b border-[var(--app-border)] pb-1.5">
+                                <span className="text-xs font-semibold text-[var(--app-muted)] block border-b border-[var(--app-border)] pb-2">
                                     Active Tasks ({userTasks.length})
                                 </span>
-                                <div className="flex flex-col divide-y divide-[var(--app-border)] max-h-44 overflow-y-auto pr-1 custom-scrollbar">
+                                <div className="flex flex-col divide-y divide-[var(--app-border)] max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                                     {userTasks.map((task) => (
                                         <div
                                             key={task.id}
@@ -297,18 +297,18 @@ export default function MemberProfileModal({
                                                     onSelectTask(task.id);
                                                 }
                                             }}
-                                            className="group py-2 flex justify-between items-center cursor-pointer hover:bg-[var(--app-hover-bg)] px-1.5 rounded-[2px] transition-colors"
+                                            className="group py-2.5 flex justify-between items-center cursor-pointer hover:bg-[var(--app-hover-bg)] px-2 rounded-md transition-colors"
                                         >
                                             <div className="min-w-0 pr-3">
-                                                <span className="text-[12px] font-medium text-[var(--app-text)] group-hover:underline block truncate">
+                                                <span className="text-xs font-medium text-[var(--app-text)] group-hover:underline block truncate">
                                                     {task.title}
                                                 </span>
-                                                <span className="text-[9px] text-[var(--app-muted)] font-mono block capitalize mt-0.5">
+                                                <span className="text-xs text-[var(--app-muted)] block capitalize mt-0.5">
                                                     {task.column?.name}
                                                 </span>
                                             </div>
-                                            <span className={`text-[9px] font-mono font-semibold px-1.5 py-0.2 rounded-[2px] border ${getPriorityStyles(task.priority)}`}>
-                                                {task.priority}
+                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${getPriorityStyles(task.priority)}`}>
+                                                {task.priority.toLowerCase()}
                                             </span>
                                         </div>
                                     ))}
