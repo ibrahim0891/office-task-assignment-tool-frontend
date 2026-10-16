@@ -418,15 +418,15 @@ html[data-ui="modern"] button.corner-brackets-4::before,
 html[data-ui="modern"] button.corner-brackets-4::after {
   display: none !important;
 }
-/* Primary variant: accent fill (exclude outline buttons with bg-transparent) */
-html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"]:not([class*="bg-transparent"]):not(.btn-outline),
-html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:not([class*="bg-transparent"]):not(.btn-outline) {
+/* Primary variant: accent fill (exclude outline buttons and opacity-tinted buttons) */
+html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"]:not([class*="bg-[var(--color-accent)]/"]):not([class*="bg-transparent"]):not(.btn-outline),
+html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:not([class*="bg-[var(--app-text)]/"]):not([class*="bg-transparent"]):not(.btn-outline) {
   background-color: var(--color-accent) !important;
   border-color: var(--color-accent) !important;
   color: var(--btn-primary-text, #fff) !important;
 }
-html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"]:not([class*="bg-transparent"]):not(.btn-outline):hover,
-html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:not([class*="bg-transparent"]):not(.btn-outline):hover {
+html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"]:not([class*="bg-[var(--color-accent)]/"]):not([class*="bg-transparent"]):not(.btn-outline):hover,
+html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:not([class*="bg-[var(--app-text)]/"]):not([class*="bg-transparent"]):not(.btn-outline):hover {
   background-color: color-mix(in srgb, var(--color-accent) 85%, black) !important;
   border-color: color-mix(in srgb, var(--color-accent) 85%, black) !important;
 }
@@ -467,13 +467,13 @@ html[data-ui="modern"] div[class*="corner-brackets-4"] {
   border-radius: var(--radius-card, 4px) !important;
 }
 
-html[data-ui="modern"] .kanban-task-card {
+html[data-ui="modern"] .kanban-task-card:not([data-selected="true"]):not(.is-selected) {
   background-color: var(--app-card) !important;
   border: 1px solid var(--app-border) !important;
   border-radius: var(--radius-card, 4px) !important;
   box-shadow: var(--shadow-card);
 }
-html[data-ui="modern"] .kanban-task-card:hover {
+html[data-ui="modern"] .kanban-task-card:not([data-selected="true"]):not(.is-selected):hover {
   box-shadow: var(--shadow-float);
   border-color: var(--app-border-strong) !important;
 }
@@ -828,12 +828,28 @@ html[data-ui="modern"] [class*="bg-[#1A1A1A]"][class*="h-2"] {
   background-color: var(--color-accent) !important;
 }
 
-/* 32. Accent glow on active kanban card (optional flair) */
+/* 32. Accented border and subtle accent background on active / selected kanban card */
+.kanban-task-card[data-selected="true"],
+.kanban-task-card.is-selected,
 html[data-ui="modern"] .kanban-task-card.active,
-html[data-ui="modern"] .kanban-task-card[data-selected="true"] {
-  border-color: var(--color-accent) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent),
-              var(--shadow-float) !important;
+html[data-ui="modern"] .kanban-task-card[data-selected="true"],
+html[data-ui="modern"] .kanban-task-card.is-selected {
+  border-color: color-mix(in srgb, var(--color-accent) 70%, var(--app-border)) !important;
+  border-left-width: 1px !important;
+  background-color: color-mix(in srgb, var(--color-accent) 2.5%, var(--app-card)) !important;
+  box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  position: relative;
+  z-index: 2;
+}
+
+.kanban-task-card[data-selected="true"]:hover,
+.kanban-task-card.is-selected:hover,
+html[data-ui="modern"] .kanban-task-card.active:hover,
+html[data-ui="modern"] .kanban-task-card[data-selected="true"]:hover,
+html[data-ui="modern"] .kanban-task-card.is-selected:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 4.5%, var(--app-card)) !important;
+  border-color: color-mix(in srgb, var(--color-accent) 85%, var(--app-border)) !important;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.10), 0 2px 4px rgba(0, 0, 0, 0.05) !important;
 }
 
 /* ─── End Modern SaaS UI Design System ──────────────────────────────────── */
@@ -1076,7 +1092,7 @@ html[data-theme*="dark"] {
   }
 
   /* Component specific overrides */
-  .kanban-task-card {
+  .kanban-task-card:not([data-selected="true"]):not(.is-selected) {
     background-color: var(--app-card) !important;
     border-color: var(--app-border) !important;
     color: var(--app-text) !important;

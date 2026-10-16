@@ -11,7 +11,7 @@ export default function ProjectDetailSkeleton() {
                 if (saved === "grid" || saved === "list") return saved;
             } catch {}
         }
-        return "grid";
+        return "list";
     });
 
     return (
