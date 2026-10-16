@@ -639,27 +639,27 @@ export default function ListView({
                 <div className="shrink-0 border-b border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FFFFFF)] select-none">
                     <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-[var(--app-border,#E5E5E3)]">
                         {/* Active Tasks */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted,#888883)] tracking-wider uppercase">Active Tasks</span>
+                                <span className="text-xs font-medium text-[var(--app-muted,#888883)]">Active Tasks</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text,#1A1A1A)] tabular-nums">
+                                    <span className="text-xl font-bold tracking-tight text-[var(--app-text,#1A1A1A)]">
                                         {totalActiveTasks}
                                     </span>
-                                    <span className="text-[11px] text-[var(--app-muted,#888883)] font-normal">in view</span>
+                                    <span className="text-xs text-[var(--app-muted,#888883)] font-normal">in view</span>
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
-                                <Layers className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
+                                <Layers className="w-4 h-4" />
                             </div>
                         </div>
 
                         {/* Completion Rate */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted,#888883)] tracking-wider uppercase">Completion Rate</span>
+                                <span className="text-xs font-medium text-[var(--app-muted,#888883)]">Completion Rate</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                    <span className={`text-xl font-bold tracking-tight ${
                                         completionRate < 50
                                             ? "text-[var(--color-error,#CB2431)]"
                                             : completionRate < 80
@@ -668,45 +668,45 @@ export default function ListView({
                                     }`}>
                                         {completionRate}%
                                     </span>
-                                    <span className="text-[11px] text-[var(--app-muted,#888883)] font-normal">{doneTasksCount} done</span>
+                                    <span className="text-xs text-[var(--app-muted,#888883)] font-normal">{doneTasksCount} done</span>
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
-                                <TrendingUp className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
+                                <TrendingUp className="w-4 h-4" />
                             </div>
                         </div>
 
                         {/* Overdue Tasks */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted,#888883)] tracking-wider uppercase">Overdue Tasks</span>
+                                <span className="text-xs font-medium text-[var(--app-muted,#888883)]">Overdue Tasks</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                    <span className={`text-xl font-bold tracking-tight ${
                                         overdueTasksCount > 0 ? "text-[var(--color-error,#CB2431)]" : "text-[var(--app-text,#1A1A1A)]"
                                     }`}>
                                         {overdueTasksCount}
                                     </span>
-                                    <span className="text-[11px] text-[var(--app-muted,#888883)] font-normal">requires attention</span>
+                                    <span className="text-xs text-[var(--app-muted,#888883)] font-normal">requires attention</span>
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
-                                <AlertCircle className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
+                                <AlertCircle className="w-4 h-4" />
                             </div>
                         </div>
 
                         {/* Due Today */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted,#888883)] tracking-wider uppercase">Due Today</span>
+                                <span className="text-xs font-medium text-[var(--app-muted,#888883)]">Due Today</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text,#1A1A1A)] tabular-nums">
+                                    <span className="text-xl font-bold tracking-tight text-[var(--app-text,#1A1A1A)]">
                                         {dueTodayTasksCount}
                                     </span>
-                                    <span className="text-[11px] text-[var(--app-muted,#888883)] font-normal">scheduled today</span>
+                                    <span className="text-xs text-[var(--app-muted,#888883)] font-normal">scheduled today</span>
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
-                                <Clock className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
+                                <Clock className="w-4 h-4" />
                             </div>
                         </div>
                     </div>

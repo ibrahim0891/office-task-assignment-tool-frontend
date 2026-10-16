@@ -119,22 +119,22 @@ export default function BulkUpdateTasksModal({
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--app-border)] bg-[var(--app-bg)]">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-[3px] bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center shrink-0">
                             {activeTab === "dates"
                                 ? <CalendarRange className="w-4 h-4" />
                                 : <Users className="w-4 h-4" />}
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-[var(--app-text)]">
+                            <h3 className="text-sm font-semibold text-[var(--app-text)]">
                                 Bulk Update — {taskCount} {taskCount === 1 ? "Task" : "Tasks"}
                             </h3>
-                            <p className="text-[11px] text-[var(--app-muted)]">
+                            <p className="text-xs text-[var(--app-muted)] mt-0.5">
                                 Update dates or assignees for all selected tasks
                             </p>
                         </div>
                     </div>
                     <button type="button" onClick={onClose}
-                        className="p-1 rounded-[2px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors">
+                        className="p-1 rounded-md text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer">
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -146,9 +146,9 @@ export default function BulkUpdateTasksModal({
                             key={tab}
                             type="button"
                             onClick={() => setActiveTab(tab)}
-                            className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+                            className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors cursor-pointer ${
                                 activeTab === tab
-                                    ? "border-[var(--color-accent)] text-[var(--app-text)]"
+                                    ? "border-[var(--color-accent)] text-[var(--app-text)] font-semibold"
                                     : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]"
                             }`}
                         >
@@ -163,7 +163,7 @@ export default function BulkUpdateTasksModal({
                     {activeTab === "dates" && (
                         <div className="p-5 flex flex-col gap-4">
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-semibold text-[var(--app-muted)] uppercase tracking-wide">
+                                <label className="text-xs font-medium text-[var(--app-text)]">
                                     Start Date
                                 </label>
                                 <CustomDatePicker
@@ -176,7 +176,7 @@ export default function BulkUpdateTasksModal({
                                 />
                             </div>
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-semibold text-[var(--app-muted)] uppercase tracking-wide">
+                                <label className="text-xs font-medium text-[var(--app-text)]">
                                     Due Date
                                 </label>
                                 <CustomDatePicker
@@ -189,7 +189,7 @@ export default function BulkUpdateTasksModal({
                                 />
                             </div>
                             {projMin && projMax && (
-                                <p className="text-[10px] text-[var(--app-muted)] bg-[var(--app-hover-bg)] border border-[var(--app-border)] rounded-[3px] px-3 py-2">
+                                <p className="text-xs text-[var(--app-muted)] bg-[var(--app-hover-bg)] border border-[var(--app-border)] rounded-md px-3 py-2">
                                     Must be within project range:{" "}
                                     <span className="font-semibold text-[var(--app-text)]">{projMin}</span>
                                     {" – "}
@@ -203,11 +203,11 @@ export default function BulkUpdateTasksModal({
                     {activeTab === "assignees" && (
                         <div className="p-5 flex flex-col gap-4">
                             {/* Assign / Unassign mode toggle */}
-                            <div className="flex items-center bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[3px] p-0.5 gap-0.5 text-xs font-semibold">
+                            <div className="flex items-center bg-[var(--app-bg)] border border-[var(--app-border)] rounded-md p-0.5 gap-0.5 text-xs font-semibold">
                                 <button
                                     type="button"
                                     onClick={() => setAssignMode("assign")}
-                                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-[2px] transition-colors cursor-pointer ${
+                                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-sm transition-colors cursor-pointer ${
                                         assignMode === "assign"
                                             ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border)]"
                                             : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
@@ -219,7 +219,7 @@ export default function BulkUpdateTasksModal({
                                 <button
                                     type="button"
                                     onClick={() => setAssignMode("unassign")}
-                                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-[2px] transition-colors cursor-pointer ${
+                                    className={`flex-1 flex items-center justify-center gap-1.5 h-7 rounded-sm transition-colors cursor-pointer ${
                                         assignMode === "unassign"
                                             ? "bg-[var(--app-card)] text-[var(--app-text)] shadow-xs border border-[var(--app-border)]"
                                             : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
@@ -243,13 +243,20 @@ export default function BulkUpdateTasksModal({
                                         const name = user.name || user.fullName || "Unknown";
                                         const isSelected = selectedUserIds.has(userId);
                                         return (
-                                            <button
+                                            <div
                                                 key={userId}
-                                                type="button"
+                                                role="button"
+                                                tabIndex={0}
                                                 onClick={() => toggleUser(userId)}
-                                                className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-[3px] border text-left transition-all cursor-pointer ${
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        toggleUser(userId);
+                                                    }
+                                                }}
+                                                className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-md border text-left transition-all cursor-pointer select-none ${
                                                     isSelected
-                                                        ? "bg-[var(--color-accent)]/5 border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/20"
+                                                        ? "bg-[var(--app-select-bg)] border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/20"
                                                         : "bg-[var(--app-card)] border-[var(--app-border)] hover:bg-[var(--app-hover-bg)]"
                                                 }`}
                                             >
@@ -265,7 +272,7 @@ export default function BulkUpdateTasksModal({
                                                             {name}
                                                         </span>
                                                         {user.designation && (
-                                                            <span className="text-[10px] text-[var(--app-muted)] truncate">
+                                                            <span className="text-xs text-[var(--app-muted)] truncate">
                                                                 {user.designation}
                                                             </span>
                                                         )}
@@ -278,14 +285,14 @@ export default function BulkUpdateTasksModal({
                                                 }`}>
                                                     {isSelected && <Check className="w-2.5 h-2.5" />}
                                                 </div>
-                                            </button>
+                                            </div>
                                         );
                                     })}
                                 </div>
                             )}
 
                             {selectedUserIds.size > 0 && (
-                                <p className="text-[11px] text-[var(--app-muted)] text-center">
+                                <p className="text-xs text-[var(--app-muted)] text-center">
                                     {selectedUserIds.size} {selectedUserIds.size === 1 ? "person" : "people"} selected
                                     {assignMode === "assign"
                                         ? ` will be added to all ${taskCount} tasks`
