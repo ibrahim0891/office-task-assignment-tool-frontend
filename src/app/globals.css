@@ -1756,6 +1756,32 @@ html[data-ui="modern"] .font-heading {
   margin: 0.85rem 0;
 }
 
+/* ─── Hyperlink Styling for Tiptap & Prose ─── */
+.ProseMirror a,
+.prose-content a,
+.tiptap-link {
+  color: #2563eb !important;
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 2.5px !important;
+  cursor: pointer;
+  word-break: break-word;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+[data-theme="dark"] .ProseMirror a,
+[data-theme="dark"] .prose-content a,
+[data-theme="dark"] .tiptap-link {
+  color: #60a5fa !important;
+}
+
+.ProseMirror a:hover,
+.prose-content a:hover,
+.tiptap-link:hover {
+  opacity: 0.8;
+  text-decoration-thickness: 1.5px !important;
+}
+
 /* ─── Print Styles — Clean Full-Width Printable Document ─── */
 @page {
   size: A4 portrait;

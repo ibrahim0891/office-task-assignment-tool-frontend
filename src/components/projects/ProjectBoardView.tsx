@@ -36,6 +36,7 @@ import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
 import MainTaskDetailDrawer from "./MainTaskDetailDrawer";
 import ManageProjectTaskFoldersDrawer from "./ManageProjectTaskFoldersDrawer";
 import MoveTasksToFolderModal from "./MoveTasksToFolderModal";
+import BulkUpdateTasksModal from "./BulkUpdateTasksModal";
 import PrioritySelectBadge from "./PrioritySelectBadge";
 import { api } from "../../api";
 import toast from "react-hot-toast";
@@ -160,6 +161,8 @@ function MainTaskGridCard({
     onEditTask,
     onViewDetails,
     onUpdatePriority,
+    isSelected = false,
+    onToggleSelect,
 }: {
     task: any;
     projectId: string;
@@ -168,6 +171,8 @@ function MainTaskGridCard({
     onEditTask: (task: any) => void;
     onViewDetails: (task: any) => void;
     onUpdatePriority?: (taskId: string, newPriority: string) => Promise<void> | void;
+    isSelected?: boolean;
+    onToggleSelect?: (taskId: string) => void;
 }) {
     const { openMemberProfile } = useWorkspace();
     const router = useRouter();
@@ -211,9 +216,24 @@ function MainTaskGridCard({
 
     return (
         <div
-            className={`group relative bg-[var(--app-card)] border border-[var(--app-border)] ${priorityDetails.accentBorder} hover:border-[var(--app-border-strong)] rounded-[3px] p-5 flex flex-col justify-between gap-4.5 transition-all duration-200 cursor-pointer shadow-subtle hover:shadow-float corner-brackets`}
+            className={`group relative bg-[var(--app-card)] border ${isSelected ? "border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/30" : "border-[var(--app-border)]"} ${priorityDetails.accentBorder} hover:border-[var(--app-border-strong)] rounded-[3px] p-5 flex flex-col justify-between gap-4.5 transition-all duration-200 cursor-pointer shadow-subtle hover:shadow-float corner-brackets`}
             onClick={() => onViewDetails(task)}
         >
+            {/* Selection checkbox — top-left, only visible on hover or when selected */}
+            {canManageTasks && onToggleSelect && (
+                <div
+                    className={`absolute top-3 left-3 z-10 transition-opacity ${isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                    onClick={(e) => { e.stopPropagation(); onToggleSelect(task.id); }}
+                >
+                    <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onToggleSelect(task.id)}
+                        className="cursor-pointer rounded border-[var(--app-border)] w-3.5 h-3.5 accent-[var(--color-accent)]"
+                        title={isSelected ? "Deselect task" : "Select task"}
+                    />
+                </div>
+            )}
             <div className="flex flex-col gap-3">
                 {/* Card Header: Title & Edit Button */}
                 <div className="flex items-start justify-between gap-2.5">
@@ -746,6 +766,7 @@ export default function ProjectBoardView({
 
     const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
     const [isMoveTasksModalOpen, setIsMoveTasksModalOpen] = useState(false);
+    const [isBulkDateModalOpen, setIsBulkDateModalOpen] = useState(false);
 
     const handleToggleTaskSelect = (taskId: string) => {
         setSelectedTaskIds((prev) => {
@@ -803,6 +824,35 @@ export default function ProjectBoardView({
             }
         } catch (err: any) {
             toast.error(err.message || "Failed to move tasks");
+            throw err;
+        }
+    };
+
+    const handleBulkUpdateDates = async (data: { startDate?: string; dueDate?: string; assigneeIds?: string[]; assignMode?: "assign" | "unassign" }) => {
+        const taskIds = Array.from(selectedTaskIds);
+        if (taskIds.length === 0) return;
+
+        try {
+            await api.updateProjectTask(project.id, { taskIds, ...data });
+
+            // Build a readable success message
+            if (data.assigneeIds && data.assigneeIds.length > 0) {
+                const verb = data.assignMode === "unassign" ? "Unassigned" : "Assigned";
+                const people = `${data.assigneeIds.length} ${data.assigneeIds.length === 1 ? "person" : "people"}`;
+                const tasks = `${taskIds.length} ${taskIds.length === 1 ? "task" : "tasks"}`;
+                const prep = data.assignMode === "unassign" ? "from" : "to";
+                toast.success(`${verb} ${people} ${prep} ${tasks}`);
+            } else {
+                const parts: string[] = [];
+                if (data.startDate) parts.push(`start → ${new Date(data.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`);
+                if (data.dueDate) parts.push(`due → ${new Date(data.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`);
+                toast.success(`Updated ${taskIds.length} ${taskIds.length === 1 ? "task" : "tasks"}: ${parts.join(", ")}`);
+            }
+
+            setSelectedTaskIds(new Set());
+            if (onRefresh) onRefresh(true);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update tasks");
             throw err;
         }
     };
@@ -1545,6 +1595,8 @@ export default function ProjectBoardView({
                                                         onEditTask={handleOpenEditTask}
                                                         onViewDetails={handleOpenTaskDetail}
                                                         onUpdatePriority={handleUpdateTaskPriority}
+                                                        isSelected={selectedTaskIds.has(task.id)}
+                                                        onToggleSelect={canManageTasks ? handleToggleTaskSelect : undefined}
                                                     />
                                                 ))}
                                             </div>
@@ -1566,6 +1618,8 @@ export default function ProjectBoardView({
                                             onEditTask={handleOpenEditTask}
                                             onViewDetails={handleOpenTaskDetail}
                                             onUpdatePriority={handleUpdateTaskPriority}
+                                            isSelected={selectedTaskIds.has(task.id)}
+                                            onToggleSelect={canManageTasks ? handleToggleTaskSelect : undefined}
                                         />
                                     ))}
                                 </div>
@@ -1583,6 +1637,8 @@ export default function ProjectBoardView({
                                     onEditTask={handleOpenEditTask}
                                     onViewDetails={handleOpenTaskDetail}
                                     onUpdatePriority={handleUpdateTaskPriority}
+                                    isSelected={selectedTaskIds.has(task.id)}
+                                    onToggleSelect={canManageTasks ? handleToggleTaskSelect : undefined}
                                 />
                             ))}
 
@@ -1826,6 +1882,17 @@ export default function ProjectBoardView({
                 onOpenManageFolders={() => setIsManageFoldersOpen(true)}
             />
 
+            {/* Bulk Update Dates Modal */}
+            <BulkUpdateTasksModal
+                isOpen={isBulkDateModalOpen}
+                onClose={() => setIsBulkDateModalOpen(false)}
+                taskCount={selectedTaskIds.size}
+                members={project?.members || []}
+                projectStartDate={project?.startDate}
+                projectEndDate={project?.endDate}
+                onUpdate={handleBulkUpdateDates}
+            />
+
             {/* Bulk Action Bar (when tasks are selected) */}
             {selectedTaskIds.size > 0 && (
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[var(--app-card)] text-[var(--app-text)] border border-[var(--app-border-strong)] shadow-2xl rounded-[4px] px-4 py-2.5 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
@@ -1847,6 +1914,18 @@ export default function ProjectBoardView({
                             className="!h-8 !text-xs font-semibold"
                         >
                             Move to Folder
+                        </Button>
+                    )}
+
+                    {canManageTasks && (
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setIsBulkDateModalOpen(true)}
+                            icon={<CalendarRange className="w-3.5 h-3.5" />}
+                            className="!h-8 !text-xs font-semibold"
+                        >
+                            Update Dates
                         </Button>
                     )}
 

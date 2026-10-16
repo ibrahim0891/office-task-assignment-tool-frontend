@@ -26,6 +26,8 @@ import {
 import { CustomSelect, SelectOption } from "./CustomSelect";
 import { TipTapTableMenu } from "./TipTapTableMenu";
 import { TipTapTableOperations } from "./TipTapTableOperations";
+import { TipTapLinkMenu } from "./TipTapLinkMenu";
+import { Link as TipTapLink } from "@tiptap/extension-link";
 
 interface TipTapEditorProps {
     value: string;
@@ -64,6 +66,17 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
             TableRow,
             TableHeader,
             TableCell,
+            TipTapLink.configure({
+                openOnClick: false,
+                autolink: true,
+                defaultProtocol: "https",
+                protocols: ["http", "https", "mailto", "tel"],
+                HTMLAttributes: {
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    class: "tiptap-link",
+                },
+            }),
         ],
         content: value || "",
         editable: !disabled,
@@ -217,6 +230,8 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     >
                         <Strikethrough className="w-3.5 h-3.5" />
                     </button>
+
+                    <TipTapLinkMenu editor={editor} />
 
                     <div className="w-px h-3.5 bg-[var(--app-border)] mx-0.5" />
 
