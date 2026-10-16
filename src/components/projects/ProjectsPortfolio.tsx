@@ -774,72 +774,72 @@ export default function ProjectsPortfolio() {
                 <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] select-none">
                     <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-[var(--app-border)]">
                         {/* 1. Total Projects (Anchor) */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Total Projects</span>
+                                <span className="text-xs font-medium text-[var(--app-muted)]">Total Projects</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text)] tabular-nums">
+                                    <span className="text-xl font-bold tracking-tight text-[var(--app-text)]">
                                         {summary.totalProjects}
                                     </span>
-                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">in portfolio</span>
+                                    <span className="text-xs text-[var(--app-muted)] font-normal">in portfolio</span>
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
-                                <FolderKanban className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <FolderKanban className="w-4 h-4" />
                             </div>
                         </div>
 
                         {/* 2. Active Projects */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Active</span>
+                                <span className="text-xs font-medium text-[var(--app-muted)]">Active</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text)] tabular-nums">
+                                    <span className="text-xl font-bold tracking-tight text-[var(--app-text)]">
                                         {summary.activeProjects}
                                     </span>
-                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">in progress</span>
+                                    <span className="text-xs text-[var(--app-muted)] font-normal">in progress</span>
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
-                                <TrendingUp className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <TrendingUp className="w-4 h-4" />
                             </div>
                         </div>
 
                         {/* 3. Overdue Tasks */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Overdue</span>
+                                <span className="text-xs font-medium text-[var(--app-muted)]">Overdue</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                    <span className={`text-xl font-bold tracking-tight ${
                                         summary.criticalSLABreaches > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"
                                     }`}>
                                         {summary.criticalSLABreaches}
                                     </span>
-                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">
+                                    <span className="text-xs text-[var(--app-muted)] font-normal">
                                         {summary.criticalSLABreaches > 0 ? "needs attention" : "no breaches"}
                                     </span>
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
-                                <AlertCircle className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <AlertCircle className="w-4 h-4" />
                             </div>
                         </div>
 
                         {/* 4. On-Time Rate */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">On-Time Rate</span>
+                                <span className="text-xs font-medium text-[var(--app-muted)]">On-Time Rate</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
                                     {summary.totalProjects === 0 || summary.onTimeRate === null || summary.onTimeRate === undefined ? (
                                         <>
-                                            <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-muted)] tabular-nums">
+                                            <span className="text-xl font-bold tracking-tight text-[var(--app-muted)]">
                                                 —
                                             </span>
-                                            <span className="text-[11px] text-[var(--app-muted)] font-normal">Not enough data yet</span>
+                                            <span className="text-xs text-[var(--app-muted)] font-normal">Not enough data yet</span>
                                         </>
                                     ) : (
                                         <>
-                                            <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                            <span className={`text-xl font-bold tracking-tight ${
                                                 summary.onTimeRate < 50
                                                     ? "text-[var(--color-error)]"
                                                     : summary.onTimeRate < 80
@@ -848,15 +848,15 @@ export default function ProjectsPortfolio() {
                                             }`}>
                                                 {summary.onTimeRate}%
                                             </span>
-                                            <span className="text-[11px] text-[var(--app-muted)] font-normal">
+                                            <span className="text-xs text-[var(--app-muted)] font-normal">
                                                 {summary.onTimeRate >= 80 ? "on track" : summary.onTimeRate >= 50 ? "moderate" : "delayed"}
                                             </span>
                                         </>
                                     )}
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <CheckCircle2 className="w-4 h-4" />
                             </div>
                         </div>
                     </div>

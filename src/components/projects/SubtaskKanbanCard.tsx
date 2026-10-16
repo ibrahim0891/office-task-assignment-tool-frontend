@@ -61,19 +61,6 @@ function getPriorityBadge(priority: string) {
     }
 }
 
-function getPriorityStyle(priority: string) {
-    const p = (priority || "MEDIUM").toUpperCase();
-    switch (p) {
-        case "URGENT":
-            return "border-l-[3px] border-l-[var(--priority-urgent)]";
-        case "HIGH":
-            return "border-l-[3px] border-l-[var(--priority-high)]";
-        case "MEDIUM":
-            return "border-l-[3px] border-l-[var(--priority-medium)]";
-        default:
-            return "border-l-[3px] border-l-[var(--priority-low)]";
-    }
-}
 
 interface SubtaskKanbanCardProps {
     subtask: any;
@@ -88,6 +75,8 @@ interface SubtaskKanbanCardProps {
     onToggleComplete?: (subtask: any) => void;
     onUpdatePriority?: (subtaskId: string, newPriority: string) => Promise<void> | void;
     isProjectMember?: boolean;
+    isSelected?: boolean;
+    onToggleSelect?: (subtaskId: string) => void;
 }
 
 export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
@@ -103,6 +92,8 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
     onToggleComplete,
     onUpdatePriority,
     isProjectMember = false,
+    isSelected = false,
+    onToggleSelect,
 }) => {
     const { openMemberProfile } = useWorkspace();
     const [cardMenuId, setCardMenuId] = useState<string | null>(null);
@@ -164,7 +155,8 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                     {...dragProvided.draggableProps}
                     {...dragProvided.dragHandleProps}
                     data-task-card-id={subtask.id}
-                    onClick={() => onSelectSubtask(subtask)}
+                    data-selected={isSelected ? "true" : undefined}
+                    onClick={() => onToggleSelect ? onToggleSelect(subtask.id) : onSelectSubtask(subtask)}
                     style={{
                         ...dragProvided.draggableProps.style,
                         ...(dragSnapshot.isDragging && !dragSnapshot.isDropAnimating
@@ -175,28 +167,31 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                               }
                             : {}),
                     }}
-                    className={`kanban-task-card group relative p-2.5 bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] flex flex-col gap-2 transition-colors text-left corner-brackets-4 ${getPriorityStyle(
-                        subtask.priority || "MEDIUM"
-                    )} ${
+                    className={`kanban-task-card group relative p-2.5 border flex flex-col gap-2 transition-all text-left rounded-md ${
+                        isSelected
+                            ? "is-selected !border-[color-mix(in_srgb,var(--color-accent)_70%,var(--app-border))] !bg-[color-mix(in_srgb,var(--color-accent)_2.5%,var(--app-card))] shadow-sm z-[2]"
+                            : "bg-[var(--app-card)] border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
+                    } ${
                         dragSnapshot.isDragging
-                            ? "border-[var(--app-text)] bg-[var(--app-bg)] ring-1 ring-[var(--app-border-strong)]"
+                            ? "!border-[var(--app-text)] !bg-[var(--app-bg)] ring-1 ring-[var(--app-border-strong)] shadow-2xl"
                             : ""
-                    } ${
-                        subtask.isCompleted ? "opacity-75" : ""
-                    } ${
-                        !isDragDisabled
-                            ? "cursor-grab active:cursor-grabbing"
-                            : "cursor-pointer"
+                    } ${subtask.isCompleted ? "opacity-75" : ""} ${
+                        !isDragDisabled ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
                     }`}
                 >
                     {/* Section 1: Title & 3-dot Menu */}
                     <div className="flex items-start justify-between gap-2">
                         <h4
-                            className={`text-[14px] font-semibold text-[var(--app-text)] leading-snug line-clamp-2 min-w-0 flex-1 capitalize ${
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectSubtask(subtask);
+                            }}
+                            className={`text-[14px] font-semibold text-[var(--app-text)] leading-snug line-clamp-2 min-w-0 flex-1 capitalize cursor-pointer hover:text-[var(--color-accent)] hover:underline transition-colors ${
                                 subtask.isCompleted
                                     ? "line-through text-[var(--app-muted)] font-normal"
                                     : ""
                             }`}
+                            title="Open details"
                         >
                             {subtask.title}
                         </h4>
