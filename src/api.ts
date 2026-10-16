@@ -1386,6 +1386,24 @@ export const api = {
     return res.json();
   },
 
+  async batchUpdateProjectSubtasks(
+    projectId: string,
+    taskId: string,
+    subtaskIds: string[],
+    data: { startDate?: string; dueDate?: string; assignedToId?: string }
+  ): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subtaskIds, ...data })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to bulk update subtasks.');
+    }
+    return res.json();
+  },
+
   async reorderProjectSubtasks(projectId: string, taskId: string, subtaskOrders: { id: string; order: number; columnId?: string }[]): Promise<any> {
     const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/reorder`, {
       method: 'PUT',
