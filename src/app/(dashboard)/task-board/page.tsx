@@ -22,9 +22,10 @@ export default function KanbanPage() {
         handleAddQuickTask,
         currentTeam,
         setDraggingCardId,
+        isTasksLoading,
     } = useWorkspace();
 
-    if (!currentTeam || columns.length === 0) {
+    if (!currentTeam || columns.length === 0 || isTasksLoading) {
         return <SkeletonBoard />;
     }
 

@@ -68,7 +68,7 @@ interface WorkspaceContextType {
     setIsCreateTeamModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     profileModalUser: User | null;
     setProfileModalUser: (user: User | null) => void;
-    openMemberProfile: (user: User) => void;
+    openMemberProfile: (userOrId: any) => void;
 
     // Handlers
     loadTasks: (opts?: { isDateChange?: boolean }) => Promise<void>;
@@ -88,7 +88,7 @@ interface WorkspaceContextType {
     handleRejectProjectInvitation: (invitationId: string) => Promise<void>;
     handleCancelProjectInvitation: (invitationId: string) => Promise<void>;
     handleSendProjectInvitation: (projectId: string, data: { userId?: string; email?: string; role?: string; dailyCapacity?: number }) => Promise<any>;
-    handleCreateFolder: (name: string, emoji?: string) => Promise<void>;
+    handleCreateFolder: (name: string, emoji?: string) => Promise<any>;
     handleUpdateFolder: (id: string, name?: string, emoji?: string) => Promise<void>;
     handleDeleteFolder: (id: string) => Promise<void>;
     isManageFoldersOpen: boolean;
@@ -236,8 +236,69 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
     const [profileModalUser, setProfileModalUser] = useState<User | null>(null);
 
-    const openMemberProfile = (user: User) => {
-        setProfileModalUser(user);
+    const openMemberProfile = (userOrId: any) => {
+        if (!userOrId) return;
+
+        // If a string ID is passed
+        if (typeof userOrId === "string") {
+            const memberMatch = teamMembers.find((tm) => tm.user.id === userOrId)?.user;
+            const userMatch = users.find((u) => u.id === userOrId);
+            const initialUser = memberMatch || userMatch || {
+                id: userOrId,
+                fullName: "User",
+                name: "User",
+                email: "",
+            };
+            setProfileModalUser(initialUser as User);
+
+            api.getUserProfile(userOrId)
+                .then((fullProfile) => {
+                    if (fullProfile) setProfileModalUser(fullProfile);
+                })
+                .catch(() => {});
+            return;
+        }
+
+        // If an object is passed, unwrap .user if nested
+        const rawUser = userOrId.user || userOrId;
+        const normalized: User = {
+            id: rawUser.id,
+            fullName: rawUser.fullName || rawUser.name || rawUser.displayName || "User",
+            name: rawUser.name || rawUser.fullName || "User",
+            email: rawUser.email || "",
+            avatarUrl: rawUser.avatarUrl,
+            secondaryEmail: rawUser.secondaryEmail,
+            primaryPhone: rawUser.primaryPhone,
+            secondaryPhone: rawUser.secondaryPhone,
+            emergencyContact: rawUser.emergencyContact,
+            telegram: rawUser.telegram,
+            whatsapp: rawUser.whatsapp,
+            github: rawUser.github,
+            bloodGroup: rawUser.bloodGroup,
+            designation: rawUser.designation,
+            bio: rawUser.bio,
+        };
+
+        setProfileModalUser(normalized);
+
+        if (normalized.id) {
+            api.getUserProfile(normalized.id)
+                .then((fullProfile) => {
+                    if (fullProfile) {
+                        setProfileModalUser((prev) => {
+                            if (prev && prev.id === fullProfile.id) {
+                                return {
+                                    ...prev,
+                                    ...fullProfile,
+                                    fullName: fullProfile.fullName || fullProfile.name || prev.fullName,
+                                };
+                            }
+                            return prev;
+                        });
+                    }
+                })
+                .catch(() => {});
+        }
     };
 
     const activeMembership = teamMembers.find((tm) => tm.user.id === currentUser?.id);
@@ -290,17 +351,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                         }
 
                         // Load initial columns, tasks and folders for the active workspace before finishing initialization
-                        const initialView = getViewFromPath(pathname || "/");
-                        const initialTaskParams: any = { teamId: matched.id };
-                        if (
-                            initialView === "kanban" ||
-                            initialView === "list" ||
-                            initialView === "myday" ||
-                            initialView === "dashboard" ||
-                            initialView === "map"
-                        ) {
-                            initialTaskParams.date = activeDateStr || getLocalDateString();
-                        }
+                        const initialTaskParams: any = {
+                            teamId: matched.id,
+                            date: activeDateStr || getLocalDateString(),
+                        };
 
                         const [cols, initialTasks, initialFolders] = await Promise.all([
                             api.getColumns(matched.id).catch(() => []),
@@ -390,9 +444,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     const handleCreateFolder = async (name: string, emoji?: string) => {
         if (!currentTeam) return;
         try {
-            await api.createFolder(currentTeam.id, name, emoji);
+            const res = await api.createFolder(currentTeam.id, name, emoji);
             toast.success(`Folder "${name}" created successfully!`);
             await loadFolders();
+            return res;
         } catch (err: any) {
             toast.error(err.message || "Failed to create folder");
             throw err;
@@ -532,16 +587,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             setIsTasksLoading(true);
         }
         try {
-            const params: any = { teamId: currentTeam.id };
-            if (
-                currentView === "kanban" ||
-                currentView === "list" ||
-                currentView === "myday" ||
-                currentView === "dashboard" ||
-                currentView === "map"
-            ) {
-                params.date = activeDateStr;
-            }
+            const params: any = {
+                teamId: currentTeam.id,
+                date: activeDateStr || getLocalDateString(),
+            };
             if (searchQuery) {
                 params.search = searchQuery;
             }
@@ -566,7 +615,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
                 setIsTasksLoading(false);
             }
         }
-    }, [currentTeam?.id, activeDateStr, currentView, searchQuery, currentUser]);
+    }, [currentTeam?.id, activeDateStr, searchQuery, currentUser]);
 
     const pendingColumnUpdatesRef = React.useRef<Record<string, { timeoutId: NodeJS.Timeout; previousTasks: any[]; targetColumnId: string }>>({});
     const moveVersionRef = useRef<Record<string, number>>({});
@@ -621,16 +670,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     isSwitchingTeamRef.current = isSwitchingTeam;
 
     const prevDateRef = useRef<string>(activeDateStr);
-    const prevViewRef = useRef<string>(currentView);
 
     useEffect(() => {
         if (isSwitchingTeamRef.current) return;
         const isDateChange = prevDateRef.current !== activeDateStr;
-        const isViewChange = prevViewRef.current !== currentView;
         prevDateRef.current = activeDateStr;
-        prevViewRef.current = currentView;
-        loadTasks({ isDateChange: isDateChange || isViewChange });
-    }, [loadTasks, activeDateStr, currentView]);
+        if (isDateChange) {
+            loadTasks({ isDateChange: true });
+        }
+    }, [loadTasks, activeDateStr]);
 
     // Parse URL search parameters on load/redirect to automatically open task modal (e.g., from desktop notifications)
     useEffect(() => {

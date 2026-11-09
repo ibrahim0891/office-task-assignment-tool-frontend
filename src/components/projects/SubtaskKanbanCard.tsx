@@ -16,8 +16,10 @@ import {
     Check,
 } from "lucide-react";
 import { UserAvatar } from "../ui/UserAvatar";
+import { useWorkspace } from "../../context/WorkspaceContext";
 import { canModifySubtask } from "../../utils/projectPermissions";
 import { calculateDaySpan } from "../../utils/date";
+import PrioritySelectBadge from "./PrioritySelectBadge";
 
 function getInitials(name: string) {
     if (!name) return "";
@@ -59,19 +61,6 @@ function getPriorityBadge(priority: string) {
     }
 }
 
-function getPriorityStyle(priority: string) {
-    const p = (priority || "MEDIUM").toUpperCase();
-    switch (p) {
-        case "URGENT":
-            return "border-l-[3px] border-l-[var(--priority-urgent)]";
-        case "HIGH":
-            return "border-l-[3px] border-l-[var(--priority-high)]";
-        case "MEDIUM":
-            return "border-l-[3px] border-l-[var(--priority-medium)]";
-        default:
-            return "border-l-[3px] border-l-[var(--priority-low)]";
-    }
-}
 
 interface SubtaskKanbanCardProps {
     subtask: any;
@@ -84,6 +73,10 @@ interface SubtaskKanbanCardProps {
     onDeleteSubtask?: (subtaskId: string) => void;
     onReassignSubtask?: (subtaskId: string, newAssigneeId: string) => Promise<void>;
     onToggleComplete?: (subtask: any) => void;
+    onUpdatePriority?: (subtaskId: string, newPriority: string) => Promise<void> | void;
+    isProjectMember?: boolean;
+    isSelected?: boolean;
+    onToggleSelect?: (subtaskId: string) => void;
 }
 
 export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
@@ -97,7 +90,12 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
     onDeleteSubtask,
     onReassignSubtask,
     onToggleComplete,
+    onUpdatePriority,
+    isProjectMember = false,
+    isSelected = false,
+    onToggleSelect,
 }) => {
+    const { openMemberProfile } = useWorkspace();
     const [cardMenuId, setCardMenuId] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -105,7 +103,8 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
         subtask.assignedToId === currentUser?.id ||
         subtask.assignedTo?.id === currentUser?.id;
     const canModifyThisSubtask = canModifySubtask(subtask, currentUser, canManageTasks);
-    const isDragDisabled = !canModifyThisSubtask;
+    // Any project collaborator can reorder tasks in the board
+    const isDragDisabled = !(canModifyThisSubtask || isProjectMember);
 
     const assigneeName =
         subtask.assignedTo?.name ||
@@ -135,9 +134,11 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
     const commentsCount =
         subtask.commentsCount ||
         (Array.isArray(subtask.comments) ? subtask.comments.length : 0);
+    const checklistItems = Array.isArray(subtask.checklist) ? subtask.checklist : [];
     const checklistCount =
         subtask.checklistCount ||
-        (Array.isArray(subtask.checklist) ? subtask.checklist.length : 0);
+        checklistItems.length;
+    const checklistDone = checklistItems.filter((c: any) => c.isCompleted).length;
     const attachmentsCount =
         subtask.attachmentsCount ||
         (Array.isArray(subtask.attachments) ? subtask.attachments.length : 0);
@@ -154,7 +155,8 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                     {...dragProvided.draggableProps}
                     {...dragProvided.dragHandleProps}
                     data-task-card-id={subtask.id}
-                    onClick={() => onSelectSubtask(subtask)}
+                    data-selected={isSelected ? "true" : undefined}
+                    onClick={() => onToggleSelect ? onToggleSelect(subtask.id) : onSelectSubtask(subtask)}
                     style={{
                         ...dragProvided.draggableProps.style,
                         ...(dragSnapshot.isDragging && !dragSnapshot.isDropAnimating
@@ -165,34 +167,37 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                               }
                             : {}),
                     }}
-                    className={`kanban-task-card group relative p-2.5 bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] flex flex-col gap-2 transition-all text-left corner-brackets-4 ${getPriorityStyle(
-                        subtask.priority || "MEDIUM"
-                    )} ${
+                    className={`kanban-task-card group relative p-2.5 border flex flex-col gap-2 transition-all text-left rounded-md ${
+                        isSelected
+                            ? "is-selected !border-[color-mix(in_srgb,var(--color-accent)_70%,var(--app-border))] !bg-[color-mix(in_srgb,var(--color-accent)_2.5%,var(--app-card))] shadow-sm z-[2]"
+                            : "bg-[var(--app-card)] border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
+                    } ${
                         dragSnapshot.isDragging
-                            ? "border-[var(--app-text)] bg-[var(--app-bg)] ring-1 ring-[var(--app-border-strong)]"
+                            ? "!border-[var(--app-text)] !bg-[var(--app-bg)] ring-1 ring-[var(--app-border-strong)] shadow-2xl"
                             : ""
-                    } ${
-                        subtask.isCompleted ? "opacity-75" : ""
-                    } ${
-                        !isDragDisabled
-                            ? "cursor-grab active:cursor-grabbing"
-                            : "cursor-pointer"
+                    } ${subtask.isCompleted ? "opacity-75" : ""} ${
+                        !isDragDisabled ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
                     }`}
                 >
                     {/* Section 1: Title & 3-dot Menu */}
                     <div className="flex items-start justify-between gap-2">
                         <h4
-                            className={`text-[14px] font-semibold text-[var(--app-text)] leading-snug line-clamp-2 min-w-0 flex-1 capitalize ${
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectSubtask(subtask);
+                            }}
+                            className={`text-[14px] font-semibold text-[var(--app-text)] leading-snug line-clamp-2 min-w-0 flex-1 capitalize cursor-pointer hover:text-[var(--color-accent)] hover:underline transition-colors ${
                                 subtask.isCompleted
                                     ? "line-through text-[var(--app-muted)] font-normal"
                                     : ""
                             }`}
+                            title="Open details"
                         >
                             {subtask.title}
                         </h4>
 
                         {/* 3-dot menu trigger visible on hover */}
-                        {canModifyThisSubtask && (
+                        {(canModifyThisSubtask || isProjectMember) && (
                             <div
                                 className="relative shrink-0 -mt-0.5 -mr-1"
                                 ref={menuRef}
@@ -225,7 +230,9 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                                             <span>Open Details</span>
                                         </button>
 
-                                        {onDeleteSubtask && (
+
+
+                                        {onDeleteSubtask && canModifyThisSubtask && (
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -257,7 +264,12 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                     {/* Section 3: Priority Badge & Estimated Days / Reviewer Attribution */}
                     <div className="flex items-center justify-between gap-2 text-[10px]">
                         <div className="flex items-center gap-1.5 min-w-0">
-                            {getPriorityBadge(subtask.priority)}
+                            <PrioritySelectBadge
+                                priority={subtask.priority}
+                                canEdit={canModifyThisSubtask}
+                                size="xs"
+                                onUpdate={onUpdatePriority ? (newP) => onUpdatePriority(subtask.id, newP) : undefined}
+                            />
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
@@ -286,7 +298,15 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                     <div className="pt-2 border-t border-[var(--app-border)] flex justify-between items-center gap-2 text-[10px] text-[var(--app-muted)]">
                         {/* Assignee Badge with (You) chip */}
                         <div
-                            className="flex items-center gap-1.5 min-w-0 max-w-[55%]"
+                            onClick={(e) => {
+                                if (subtask.assignedTo || subtask.assignedToId) {
+                                    e.stopPropagation();
+                                    openMemberProfile(subtask.assignedTo || subtask.assignedToId);
+                                }
+                            }}
+                            className={`flex items-center gap-1.5 min-w-0 max-w-[55%] ${
+                                subtask.assignedTo || subtask.assignedToId ? "cursor-pointer group/assignee" : ""
+                            }`}
                             title={isMySubtask ? `Assigned to you (${assigneeName})` : `Assigned to ${assigneeName}`}
                         >
                             <UserAvatar
@@ -294,9 +314,15 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                                 avatarUrl={subtask.assignedTo?.avatarUrl}
                                 size="xs"
                                 title={assigneeName}
+                                onClick={(e) => {
+                                    if (subtask.assignedTo || subtask.assignedToId) {
+                                        e.stopPropagation();
+                                        openMemberProfile(subtask.assignedTo || subtask.assignedToId);
+                                    }
+                                }}
                             />
                             <span
-                                className="truncate font-medium text-[var(--app-text)] text-[10px]"
+                                className="truncate font-medium text-[var(--app-text)] text-[10px] group-hover/assignee:text-[var(--color-accent)] group-hover/assignee:underline transition-colors"
                                 title={assigneeName}
                             >
                                 {assigneeName}
@@ -312,12 +338,16 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                         <div className="flex items-center gap-2 text-[10px] text-[var(--app-muted)] shrink-0">
                             {checklistCount > 0 && (
                                 <div
-                                    className="inline-flex items-center gap-1 leading-none"
-                                    title={`Checklist items: ${checklistCount}`}
+                                    className={`inline-flex items-center gap-1 leading-none ${
+                                        checklistItems.length > 0 && checklistDone === checklistCount
+                                            ? "text-[var(--color-success,#15803D)]"
+                                            : ""
+                                    }`}
+                                    title={`Checklist: ${checklistDone}/${checklistCount} completed`}
                                 >
                                     <CheckSquare className="w-3.5 h-3.5 shrink-0" />
                                     <span className="text-[10px] font-medium leading-none tabular-nums">
-                                        {checklistCount}
+                                        {checklistItems.length > 0 ? `${checklistDone}/${checklistCount}` : checklistCount}
                                     </span>
                                 </div>
                             )}

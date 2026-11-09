@@ -22,6 +22,7 @@ interface CustomSelectProps {
     searchable?: boolean;
     align?: "left" | "right";
     renderSelected?: (selected: SelectOption) => React.ReactNode;
+    renderFooter?: (closeDropdown: () => void) => React.ReactNode;
 }
 
 export function CustomSelect({
@@ -35,6 +36,7 @@ export function CustomSelect({
     searchable = false,
     align,
     renderSelected,
+    renderFooter,
 }: CustomSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -63,13 +65,14 @@ export function CustomSelect({
             const rect = triggerRef.current.getBoundingClientRect();
             const spaceBelow = window.innerHeight - rect.bottom;
             const openUp = spaceBelow < 220 && rect.top > 220;
-            const width = Math.max(rect.width, 120);
+            const minDropdownWidth = renderFooter ? 220 : 120;
+            const width = Math.max(rect.width, minDropdownWidth);
 
             // Determine horizontal placement (align right if explicitly set or if near right edge)
             let left = rect.left;
             const shouldAlignRight =
                 align === "right" ||
-                (align === undefined && rect.right > window.innerWidth - 120);
+                (align === undefined && rect.right > window.innerWidth - minDropdownWidth);
 
             if (shouldAlignRight) {
                 left = rect.right - width;
@@ -135,6 +138,7 @@ export function CustomSelect({
                 ref={triggerRef}
                 type="button"
                 disabled={disabled}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={handleToggle}
                 className={`w-full h-full bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--color-accent)] rounded-[3px] px-2.5 py-1.5 text-[11px] text-[var(--app-text)] flex items-center justify-between gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                     isOpen
@@ -182,6 +186,7 @@ export function CustomSelect({
                 createPortal(
                     <div
                         ref={dropdownRef}
+                        onMouseDown={(e) => e.preventDefault()}
                         style={{
                             position: "fixed",
                             left: `${coords.left}px`,
@@ -263,6 +268,18 @@ export function CustomSelect({
                                 })
                             )}
                         </div>
+
+                        {renderFooter && (
+                            <div
+                                className="pt-1 mt-0.5 border-t border-[var(--app-border)] shrink-0"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            >
+                                {renderFooter(() => {
+                                    setIsOpen(false);
+                                    setSearch("");
+                                })}
+                            </div>
+                        )}
                     </div>,
                     document.body,
                 )}

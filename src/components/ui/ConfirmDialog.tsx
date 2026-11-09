@@ -1,4 +1,7 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2 } from "lucide-react";
 
 interface ConfirmDialogProps {
@@ -24,35 +27,56 @@ export default function ConfirmDialog({
     onConfirm,
     onClose,
 }: ConfirmDialogProps) {
-    if (!isOpen) return null;
+    const [mounted, setMounted] = useState(false);
 
-    return (
-        <div className="fixed inset-0 z-[100] overflow-hidden flex justify-center items-center p-4 select-none">
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Close on Escape key
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && !isLoading) {
+                onClose();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen, isLoading, onClose]);
+
+    if (!isOpen || !mounted || typeof document === "undefined") return null;
+
+    const content = (
+        <div className="fixed inset-0 z-[99999] overflow-hidden flex justify-center items-center p-4 select-none animate-fade-in">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/40 transition-opacity animate-fade-in"
-                onClick={onClose}
+                className="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity"
+                onClick={!isLoading ? onClose : undefined}
             />
 
             {/* Dialog Box with Corner Decoration */}
             <div
-                className="relative bg-white border border-[#E5E5E3] p-5 w-full max-w-sm flex flex-col gap-3.5 animate-fade-in corner-brackets text-left shadow-2xl z-10"
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-[var(--app-card)] border border-[var(--app-border-strong)] p-5 w-full max-w-sm flex flex-col gap-3.5 animate-fade-in corner-brackets-4 text-left shadow-2xl z-10 text-[var(--app-text)]"
             >
                 <div className="flex flex-col gap-1">
-                    <h3 className="font-heading text-base text-[#1A1A1A]">
+                    <h3 className="font-heading text-base font-bold text-[var(--app-text)] tracking-tight">
                         {title}
                     </h3>
-                    <p className="text-[11px] text-[#888883] leading-relaxed">
+                    <p className="text-xs text-[var(--app-muted)] leading-relaxed">
                         {description}
                     </p>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-[#E5E5E3]">
+                <div className="flex justify-end gap-2 pt-2 border-t border-[var(--app-border)]">
                     <button
                         type="button"
                         onClick={onClose}
                         disabled={isLoading}
-                        className="px-3.5 py-1.5 border border-[#E5E5E3] hover:bg-[#FAFAF9] text-[11px] font-medium text-[#888883] rounded-[3px] transition-colors cursor-pointer disabled:opacity-50"
+                        className="px-3.5 py-1.5 border border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] text-xs font-medium text-[var(--app-muted)] hover:text-[var(--app-text)] rounded-[3px] transition-colors cursor-pointer disabled:opacity-50"
                     >
                         {cancelText}
                     </button>
@@ -60,10 +84,10 @@ export default function ConfirmDialog({
                         type="button"
                         onClick={onConfirm}
                         disabled={isLoading}
-                        className={`px-4 py-1.5 text-white font-medium text-[11px] rounded-[3px] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5 ${
+                        className={`px-4 py-1.5 text-white font-medium text-xs rounded-[3px] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-xs ${
                             isDanger
-                                ? "bg-[#CB2431] hover:bg-[#A01B26]"
-                                : "bg-[#1A1A1A] hover:bg-[#333]"
+                                ? "bg-[var(--color-error,#DC2626)] hover:opacity-90"
+                                : "bg-[var(--color-accent)] hover:opacity-90"
                         }`}
                     >
                         {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
@@ -73,4 +97,6 @@ export default function ConfirmDialog({
             </div>
         </div>
     );
+
+    return createPortal(content, document.body);
 }

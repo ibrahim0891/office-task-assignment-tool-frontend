@@ -2,12 +2,15 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { Skeleton } from "./Skeleton";
 
 interface EmojiPickerProps {
     value: string;
     onChange: (emoji: string) => void;
     disabled?: boolean;
     buttonClassName?: string;
+    className?: string;
+    renderTrigger?: (emoji: string, isOpen: boolean) => React.ReactNode;
 }
 
 interface FetchedEmoji {
@@ -59,6 +62,8 @@ export function EmojiPicker({
     onChange,
     disabled = false,
     buttonClassName,
+    className = "",
+    renderTrigger,
 }: EmojiPickerProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -88,9 +93,15 @@ export function EmojiPicker({
                 topPosition = rect.top + window.scrollY - popoverHeight - 12;
             }
 
+            let leftPosition = rect.left + window.scrollX;
+            const popoverWidth = 350;
+            if (leftPosition + popoverWidth > window.innerWidth - 12) {
+                leftPosition = Math.max(12, window.innerWidth - popoverWidth - 12);
+            }
+
             setCoords({
                 top: topPosition,
-                left: rect.left + window.scrollX,
+                left: leftPosition,
             });
         }
     };
@@ -194,7 +205,7 @@ export function EmojiPicker({
     );
 
     return (
-        <div ref={containerRef} className="relative inline-block text-left">
+        <div ref={containerRef} className={`relative text-left ${className || "inline-block"}`}>
             <button
                 ref={buttonRef}
                 type="button"
@@ -202,7 +213,7 @@ export function EmojiPicker({
                 onClick={() => setIsOpen(!isOpen)}
                 className={`rounded-[2px] border border-[var(--app-border)] bg-[var(--app-card)] hover:border-[var(--color-accent)] hover:bg-[var(--app-hover-bg)] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed relative emoji-font ${buttonClassName || "w-[46px] h-[46px] text-lg corner-brackets-4"}`}
             >
-                {value}
+                {renderTrigger ? renderTrigger(value, isOpen) : value}
             </button>
 
             {isOpen && mounted && typeof document !== "undefined" && createPortal(
@@ -228,7 +239,13 @@ export function EmojiPicker({
                     </div>
 
                     {/* Category Tabs (hidden during search) */}
-                    {!searchQuery && !isLoading && (
+                    {isLoading ? (
+                        <div className="flex gap-1.5 overflow-x-auto border-b border-[var(--app-border)] pb-2 scrollbar-none shrink-0 select-none">
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <Skeleton key={i} className="w-8 h-8 rounded-[2px] shrink-0" />
+                            ))}
+                        </div>
+                    ) : !searchQuery ? (
                         <div className="flex gap-1.5 overflow-x-auto border-b border-[var(--app-border)] pb-2 scrollbar-none shrink-0 select-none">
                             {(Object.keys(fetchedCategories).length > 0
                                 ? Object.keys(fetchedCategories)
@@ -252,21 +269,29 @@ export function EmojiPicker({
                                 );
                             })}
                         </div>
-                    )}
+                    ) : null}
 
                     {/* Category Title */}
                     <div className="text-left shrink-0">
-                        <span className="text-[8px] font-bold capitalize   text-[var(--app-muted)]">
-                            {searchQuery ? "Search Results" : formatCategoryName(activeTab)}
-                        </span>
+                        {isLoading ? (
+                            <Skeleton className="w-24 h-2.5 rounded-[2px]" />
+                        ) : (
+                            <span className="text-[8px] font-bold capitalize text-[var(--app-muted)]">
+                                {searchQuery ? "Search Results" : formatCategoryName(activeTab)}
+                            </span>
+                        )}
                     </div>
 
                     {/* Scrollable Emojis Grid */}
                     <div className="flex-1 min-h-0">
                         {isLoading ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-[10px] text-[var(--app-muted)] gap-2">
-                                <div className="w-4 h-4 border-2 border-[var(--app-muted)] border-t-transparent rounded-full animate-spin" />
-                                <span>Loading all emojis...</span>
+                            <div className="grid grid-cols-8 gap-1 overflow-hidden max-h-[190px] pr-0.5">
+                                {Array.from({ length: 32 }).map((_, i) => (
+                                    <Skeleton
+                                        key={i}
+                                        className="w-[34px] h-[34px] rounded-[2px]"
+                                    />
+                                ))}
                             </div>
                         ) : (
                             <div className="grid grid-cols-8 gap-1 overflow-y-auto max-h-[190px] pr-0.5 scrollbar-thin">

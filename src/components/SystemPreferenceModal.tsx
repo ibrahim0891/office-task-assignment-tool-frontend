@@ -15,6 +15,9 @@ import {
     Sliders,
     Volume2,
     SlidersHorizontal,
+    PanelLeft,
+    PanelTop,
+    Layout,
 } from "lucide-react";
 import { HexColorPicker } from "react-colorful";
 import SideSheetWrapper from "./ui/SideSheetWrapper";
@@ -45,6 +48,8 @@ interface SystemPreferenceModalProps {
     setUiMode: (mode: "editorial" | "modern") => void;
     modernTheme: "modern-light" | "modern-dark";
     setModernTheme: (theme: "modern-light" | "modern-dark") => void;
+    navLayout: "sidebar" | "topbar";
+    setNavLayout: (layout: "sidebar" | "topbar") => void;
     primaryFont: string;
     setPrimaryFont: (font: string) => void;
     secondaryFont: string;
@@ -63,6 +68,8 @@ export default function SystemPreferenceModal({
     setUiMode,
     modernTheme,
     setModernTheme,
+    navLayout,
+    setNavLayout,
     primaryFont,
     setPrimaryFont,
     secondaryFont,
@@ -232,6 +239,8 @@ export default function SystemPreferenceModal({
         localStorage.removeItem("sys_corner_radius");
         localStorage.removeItem("sys_ui_mode");
         localStorage.removeItem("sys_modern_theme");
+        localStorage.removeItem("sys_nav_layout");
+        setNavLayout("sidebar");
         setLightAccent(LIGHT_ACCENT_OPTIONS[0].value);
         setDarkAccent(DARK_ACCENT_OPTIONS[0].value);
         setModernLightAccent(MODERN_LIGHT_ACCENT_OPTIONS[0].value);
@@ -251,11 +260,11 @@ export default function SystemPreferenceModal({
 
     const scaleOptions = [
         { value: "0.85", label: "85% (Very Small)" },
-        { value: "1.00", label: "100% (Normal - Default)" },
-        { value: "1.15", label: "115% (Large)" },
-        { value: "1.25", label: "125% (Extra Large)" },
-        { value: "1.40", label: "140% (Double XL)" },
-        { value: "1.50", label: "150% (Huge)" },
+        { value: "1.00", label: "100% (Compact)" },
+        { value: "1.15", label: "115% (Medium)" },
+        { value: "1.30", label: "130% (Default)" },
+        { value: "1.40", label: "140% (Large)" },
+        { value: "1.50", label: "150% (Extra Large)" },
     ];
 
     const closestScaleOption = scaleOptions.reduce((prev, curr) => {
@@ -263,7 +272,7 @@ export default function SystemPreferenceModal({
             Math.abs(parseFloat(prev.value) - fontScale)
             ? curr
             : prev;
-    }, scaleOptions[1]);
+    }, scaleOptions[3]);
 
     const styledFontOptions = FONT_OPTIONS.map((opt) => ({
         ...opt,
@@ -287,7 +296,7 @@ export default function SystemPreferenceModal({
                         </h2>
                     </div>
                     <p className="text-[11px] text-[var(--app-muted,#888883)] leading-tight">
-                        Customize visual design language, color palette, typography & feedback.
+                        Customize layout, design language, color palette, typography & feedback.
                     </p>
                 </div>
                 <button
@@ -302,6 +311,103 @@ export default function SystemPreferenceModal({
 
             {/* ── Scrollable All-in-One Settings Body ── */}
             <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 flex flex-col gap-6 custom-scrollbar">
+
+                {/* ── SECTION 0: NAVIGATION & APP SHELL LAYOUT ── */}
+                <section className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 pb-1 border-b border-[var(--app-border,#E5E5E3)]/50">
+                        <Layout className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                        <h3 className="eyebrow text-[10px] tracking-wider text-[var(--app-text,#1A1A1A)] font-bold">
+                            Navigation Layout
+                        </h3>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                        {/* Sidebar Navigation Card */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setNavLayout("sidebar");
+                                localStorage.setItem("sys_nav_layout", "sidebar");
+                                toast.success("Sidebar navigation activated");
+                            }}
+                            className={`relative flex flex-col gap-2 p-3 border rounded-[3px] text-left cursor-pointer transition-all ${
+                                navLayout === "sidebar"
+                                    ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--app-card))] shadow-xs"
+                                    : "border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)]"
+                            }`}
+                        >
+                            {navLayout === "sidebar" && (
+                                <span className="absolute top-2.5 right-2.5">
+                                    <Check className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                                </span>
+                            )}
+                            <div className="flex items-center gap-1.5">
+                                <PanelLeft className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                                <span className="text-[12px] font-semibold text-[var(--app-text)]">
+                                    Sidebar
+                                </span>
+                            </div>
+                            {/* Visual mini-wireframe */}
+                            <div className="w-full h-10 border border-[var(--app-border)] rounded-[2px] bg-[var(--app-bg)] flex p-1 gap-1">
+                                <div className="w-1/4 h-full bg-[var(--app-card)] border border-[var(--app-border)] rounded-[1px] flex flex-col gap-0.5 p-0.5">
+                                    <div className="w-full h-1 bg-[var(--color-accent)] rounded-[0.5px]" />
+                                    <div className="w-2/3 h-1 bg-[var(--app-muted)]/40 rounded-[0.5px]" />
+                                    <div className="w-full h-1 bg-[var(--app-muted)]/20 rounded-[0.5px]" />
+                                </div>
+                                <div className="flex-1 h-full bg-[var(--app-card)] border border-[var(--app-border)] rounded-[1px] p-1 flex flex-col gap-0.5">
+                                    <div className="w-full h-1 bg-[var(--app-hover-bg)] rounded-[0.5px]" />
+                                    <div className="w-3/4 h-1.5 bg-[var(--app-hover-bg)] rounded-[0.5px]" />
+                                </div>
+                            </div>
+                            <span className="text-[10px] text-[var(--app-muted)] leading-tight">
+                                Vertical collapsible sidebar with quick workspace switcher.
+                            </span>
+                        </button>
+
+                        {/* Desktop Topbar Navigation Card */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setNavLayout("topbar");
+                                localStorage.setItem("sys_nav_layout", "topbar");
+                                toast.success("Desktop Topbar layout activated");
+                            }}
+                            className={`relative flex flex-col gap-2 p-3 border rounded-[3px] text-left cursor-pointer transition-all ${
+                                navLayout === "topbar"
+                                    ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_10%,var(--app-card))] shadow-xs"
+                                    : "border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)]"
+                            }`}
+                        >
+                            {navLayout === "topbar" && (
+                                <span className="absolute top-2.5 right-2.5">
+                                    <Check className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                                </span>
+                            )}
+                            <div className="flex items-center gap-1.5">
+                                <PanelTop className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                                <span className="text-[12px] font-semibold text-[var(--app-text)]">
+                                    Desktop Topbar
+                                </span>
+                            </div>
+                            {/* Visual mini-wireframe */}
+                            <div className="w-full h-10 border border-[var(--app-border)] rounded-[2px] bg-[var(--app-bg)] flex flex-col p-1 gap-0.5">
+                                <div className="w-full h-2 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[1px] flex items-center px-1 gap-1 justify-between">
+                                    <div className="w-2 h-0.5 bg-[var(--color-accent)] rounded-[0.5px]" />
+                                    <div className="w-6 h-0.5 bg-[var(--app-muted)]/30 rounded-[0.5px]" />
+                                    <div className="w-2 h-0.5 bg-[var(--app-muted)]/40 rounded-[0.5px]" />
+                                </div>
+                                <div className="w-full flex-1 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[1px] p-0.5 flex gap-1">
+                                    <div className="flex-1 h-full bg-[var(--app-hover-bg)] rounded-[0.5px]" />
+                                    <div className="flex-1 h-full bg-[var(--app-hover-bg)] rounded-[0.5px]" />
+                                    <div className="flex-1 h-full bg-[var(--app-hover-bg)] rounded-[0.5px]" />
+                                </div>
+                            </div>
+                            <span className="text-[10px] text-[var(--app-muted)] leading-tight">
+                                2-tier horizontal desktop ribbon. Full-width canvas.
+                            </span>
+                        </button>
+                    </div>
+                </section>
 
                 {/* ── SECTION 1: UI DESIGN LANGUAGE & THEME ── */}
                 <section className="flex flex-col gap-3">

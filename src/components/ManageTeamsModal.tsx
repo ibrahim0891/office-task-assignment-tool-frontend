@@ -6,6 +6,7 @@ import { Button } from "./ui/Button";
 import { X, Edit2, Trash2, Check, Plus, ShieldAlert, LogOut, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { EmojiPicker } from "./ui/EmojiPicker";
+import ConfirmDialog from "./ui/ConfirmDialog";
 
 interface ManageTeamsModalProps {
     isOpen: boolean;
@@ -52,6 +53,7 @@ export default function ManageTeamsModal({
     const [deletingTeam, setDeletingTeam] = useState<Team | null>(null);
     const [confirmationInput, setConfirmationInput] = useState("");
     const [passwordInput, setPasswordInput] = useState("");
+    const [teamToLeave, setTeamToLeave] = useState<Team | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     if (!isOpen) return null;
@@ -132,11 +134,10 @@ export default function ManageTeamsModal({
     };
 
     const handleLeave = async (team: Team) => {
-        const confirmed = window.confirm(`Are you sure you want to leave the workspace "${team.name}"? Your active tasks in this workspace will be reassigned to the team leader and marked as Need Attention.`);
-        if (!confirmed) return;
         try {
             setIsSubmitting(true);
             await onLeaveTeam(team.id);
+            setTeamToLeave(null);
         } catch (err) {
             // error handled in context
         } finally {
@@ -521,7 +522,7 @@ export default function ManageTeamsModal({
                                                                 </button>
                                                             ) : (
                                                                 <button
-                                                                    onClick={() => handleLeave(t)}
+                                                                    onClick={() => setTeamToLeave(t)}
                                                                     className="p-2 border border-[#E5E5E3] bg-white hover:bg-[#FFF5F5] hover:border-[#CB2431] text-[#888883] hover:text-[#CB2431] rounded-[2px] transition-colors cursor-pointer"
                                                                     title="Leave workspace"
                                                                 >
@@ -540,6 +541,22 @@ export default function ManageTeamsModal({
                     )}
                 </div>
             </div>
+
+            <ConfirmDialog
+                isOpen={Boolean(teamToLeave)}
+                title="Leave Workspace"
+                description={`Are you sure you want to leave the workspace "${teamToLeave?.name}"? Your active tasks in this workspace will be reassigned to the team leader and marked as Need Attention.`}
+                confirmText="Leave Workspace"
+                cancelText="Cancel"
+                isDanger={true}
+                isLoading={isSubmitting}
+                onConfirm={() => {
+                    if (teamToLeave) {
+                        handleLeave(teamToLeave);
+                    }
+                }}
+                onClose={() => setTeamToLeave(null)}
+            />
         </div>
     );
 }

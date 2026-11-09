@@ -581,10 +581,28 @@ function SolarMapInner({
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const [isInteractive, setIsInteractive] = useState(true);
-    const [layoutMode, setLayoutMode] = useState<LayoutMode>("hierarchy");
+    const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem("solarmap_layout_mode");
+                if (saved === "hierarchy" || saved === "stages" || saved === "projects") {
+                    return saved;
+                }
+            } catch {}
+        }
+        return "hierarchy";
+    });
     const [showChecklists, setShowChecklists] = useState(true);
     const [collapsedTaskIds, setCollapsedTaskIds] = useState<Set<string>>(new Set());
     const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            try {
+                localStorage.setItem("solarmap_layout_mode", layoutMode);
+            } catch {}
+        }
+    }, [layoutMode]);
 
     const { fitView, zoomIn, zoomOut } = useReactFlow();
 

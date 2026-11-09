@@ -108,6 +108,15 @@ export interface ChecklistItem {
   updatedAt?: string;
 }
 
+export interface ProjectSubtaskChecklistItem {
+  id: string;
+  subtaskId: string;
+  title: string;
+  isCompleted: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Comment {
   id: string;
   taskId: string;
@@ -144,6 +153,7 @@ export interface Task {
   description?: string;
   columnId: string;
   priority: string;
+  startDate?: string;
   dueDate?: string;
   date: string;
   originalDate: string;
@@ -513,7 +523,12 @@ export const api = {
     const res = await fetch(`${API_BASE}/tasks?${query.toString()}`, {
       headers
     });
-    return res.json();
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to fetch tasks.');
+    }
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   },
 
   async getTask(taskId: string, teamId?: string): Promise<Task> {
@@ -524,6 +539,10 @@ export const api = {
     const res = await fetch(`${API_BASE}/tasks/${taskId}`, {
       headers
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to fetch task.');
+    }
     return res.json();
   },
 
@@ -628,6 +647,19 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Failed to update checklist item.');
+    }
+    return res.json();
+  },
+
+  async reorderChecklistItems(taskId: string, items: { id: string; order: number }[]): Promise<any> {
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/checklist/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to reorder checklist items.');
     }
     return res.json();
   },
@@ -1001,14 +1033,28 @@ export const api = {
   // ----------------------------------------------------
   // PROJECT MODULE API METHODS
   // ----------------------------------------------------
-  async getProjects(teamId: string, userId?: string): Promise<any[]> {
-    const headers: Record<string, string> = {
-      'x-team-id': teamId,
-    };
+  async getProjects(teamId?: string, userId?: string, allTeams: boolean = true): Promise<any[]> {
+    const headers: Record<string, string> = {};
+    if (teamId) {
+      headers['x-team-id'] = teamId;
+    }
     if (userId) {
       headers['x-user-id'] = userId;
     }
-    const res = await fetch(`${API_BASE}/projects?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`, {
+    if (allTeams) {
+      headers['x-all-teams'] = 'true';
+    }
+    const params = new URLSearchParams();
+    if (allTeams) {
+      params.append('allTeams', 'true');
+    } else if (teamId) {
+      params.append('teamId', teamId);
+    }
+    if (userId) {
+      params.append('userId', userId);
+    }
+    const query = params.toString();
+    const res = await fetch(`${API_BASE}/projects${query ? `?${query}` : ''}`, {
       headers,
     });
     if (!res.ok) {
@@ -1018,14 +1064,28 @@ export const api = {
     return res.json();
   },
 
-  async getPortfolioSummary(teamId: string, userId?: string): Promise<any> {
-    const headers: Record<string, string> = {
-      'x-team-id': teamId,
-    };
+  async getPortfolioSummary(teamId?: string, userId?: string, allTeams: boolean = true): Promise<any> {
+    const headers: Record<string, string> = {};
+    if (teamId) {
+      headers['x-team-id'] = teamId;
+    }
     if (userId) {
       headers['x-user-id'] = userId;
     }
-    const res = await fetch(`${API_BASE}/projects/summary?teamId=${teamId}${userId ? `&userId=${userId}` : ''}`, {
+    if (allTeams) {
+      headers['x-all-teams'] = 'true';
+    }
+    const params = new URLSearchParams();
+    if (allTeams) {
+      params.append('allTeams', 'true');
+    } else if (teamId) {
+      params.append('teamId', teamId);
+    }
+    if (userId) {
+      params.append('userId', userId);
+    }
+    const query = params.toString();
+    const res = await fetch(`${API_BASE}/projects/summary${query ? `?${query}` : ''}`, {
       headers,
     });
     if (!res.ok) {
@@ -1035,8 +1095,18 @@ export const api = {
     return res.json();
   },
 
-  async getProjectDetail(projectId: string, teamId?: string): Promise<any> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}`, {
+  async getProjectDetail(
+    projectId: string,
+    teamId?: string,
+    filters?: { status?: string; priority?: string; columnId?: string }
+  ): Promise<any> {
+    const query = new URLSearchParams();
+    if (filters?.status && filters.status !== 'ALL') query.append('status', filters.status);
+    if (filters?.priority && filters.priority !== 'ALL') query.append('priority', filters.priority);
+    if (filters?.columnId && filters.columnId !== 'ALL') query.append('columnId', filters.columnId);
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+
+    const res = await fetch(`${API_BASE}/projects/${projectId}${queryString}`, {
       headers: teamId ? { 'x-team-id': teamId } : undefined,
     });
     if (!res.ok) {
@@ -1082,6 +1152,41 @@ export const api = {
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || 'Failed to delete project.');
+    }
+    return res.json();
+  },
+
+  async permanentlyDeleteProject(projectId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/permanent`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to permanently delete project.');
+    }
+    return res.json();
+  },
+
+  async restoreProject(projectId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/restore`, {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to restore project.');
+    }
+    return res.json();
+  },
+
+  async getArchivedProjects(teamId: string): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/projects/archived?teamId=${teamId}`, {
+      headers: {
+        'x-team-id': teamId
+      }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch archived projects.');
     }
     return res.json();
   },
@@ -1148,11 +1253,17 @@ export const api = {
     return res.json();
   },
 
-  async updateProjectTask(projectId: string, taskId: string, data: any): Promise<any> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}`, {
+  async updateProjectTask(projectId: string, taskIdOrData: string | any, maybeData?: any): Promise<any> {
+    const isSingleWithId = typeof taskIdOrData === 'string' && maybeData !== undefined;
+    const url = isSingleWithId
+      ? `${API_BASE}/projects/${projectId}/tasks/${taskIdOrData}`
+      : `${API_BASE}/projects/${projectId}/tasks`;
+    const payload = isSingleWithId ? maybeData : taskIdOrData;
+
+    const res = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const err = await res.json();
@@ -1172,11 +1283,11 @@ export const api = {
     return res.json();
   },
 
-  async createProjectColumn(projectId: string, name: string, type: string = "CUSTOM", isComplete: boolean = false): Promise<any> {
+  async createProjectColumn(projectId: string, name: string, type: string = "CUSTOM", isComplete: boolean = false, weight?: number | null): Promise<any> {
     const res = await fetch(`${API_BASE}/projects/${projectId}/columns`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, type, isComplete })
+      body: JSON.stringify({ name, type, isComplete, weight })
     });
     if (!res.ok) {
       const err = await res.json();
@@ -1185,7 +1296,7 @@ export const api = {
     return res.json();
   },
 
-  async updateProjectColumn(projectId: string, columnId: string, data: { name?: string; type?: string; isComplete?: boolean }): Promise<any> {
+  async updateProjectColumn(projectId: string, columnId: string, data: { name?: string; type?: string; isComplete?: boolean; weight?: number | null }): Promise<any> {
     const res = await fetch(`${API_BASE}/projects/${projectId}/columns/${columnId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -1194,6 +1305,19 @@ export const api = {
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || 'Failed to update project column.');
+    }
+    return res.json();
+  },
+
+  async batchUpdateProjectColumnWeights(projectId: string, weights: { id: string; weight: number | null }[]): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/columns/weights`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weights })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update column weights.');
     }
     return res.json();
   },
@@ -1262,6 +1386,37 @@ export const api = {
     return res.json();
   },
 
+  async batchUpdateProjectSubtasks(
+    projectId: string,
+    taskId: string,
+    subtaskIds: string[],
+    data: { startDate?: string; dueDate?: string; assignedToId?: string }
+  ): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subtaskIds, ...data })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to bulk update subtasks.');
+    }
+    return res.json();
+  },
+
+  async reorderProjectSubtasks(projectId: string, taskId: string, subtaskOrders: { id: string; order: number; columnId?: string }[]): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subtaskOrders })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to reorder subtasks.');
+    }
+    return res.json();
+  },
+
   async deleteProjectSubtask(projectId: string, taskId: string, subtaskId: string): Promise<any> {
     const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}`, {
       method: 'DELETE'
@@ -1269,6 +1424,99 @@ export const api = {
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || 'Failed to delete subtask.');
+    }
+    return res.json();
+  },
+
+  async uploadProjectSubtaskImage(projectId: string, taskId: string, subtaskId: string, imageBase64: string, filename: string, userId: string): Promise<Attachment> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/attachments/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': userId
+      },
+      body: JSON.stringify({ imageBase64, filename, userId })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to upload subtask image.');
+    }
+    return res.json();
+  },
+
+  async deleteProjectSubtaskAttachment(projectId: string, taskId: string, subtaskId: string, attachmentId: string, userId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/attachments/${attachmentId}`, {
+      method: 'DELETE',
+      headers: { 'x-user-id': userId }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete attachment.');
+    }
+    return res.json();
+  },
+
+  async addProjectSubtaskChecklistItem(projectId: string, taskId: string, subtaskId: string, title: string): Promise<ProjectSubtaskChecklistItem> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/checklist`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to add subtask checklist item.');
+    }
+    return res.json();
+  },
+
+  async updateProjectSubtaskChecklistItem(
+    projectId: string,
+    taskId: string,
+    subtaskId: string,
+    itemId: string,
+    isCompletedOrData: boolean | { isCompleted?: boolean; title?: string }
+  ): Promise<ProjectSubtaskChecklistItem> {
+    const payload =
+      typeof isCompletedOrData === "boolean"
+        ? { isCompleted: isCompletedOrData }
+        : isCompletedOrData;
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/checklist/${itemId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to update subtask checklist item.');
+    }
+    return res.json();
+  },
+
+  async deleteProjectSubtaskChecklistItem(projectId: string, taskId: string, subtaskId: string, itemId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/checklist/${itemId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to delete subtask checklist item.');
+    }
+    return res.json();
+  },
+
+  async reorderProjectSubtaskChecklist(
+    projectId: string,
+    taskId: string,
+    subtaskId: string,
+    items: { id: string; order: number }[]
+  ): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/tasks/${taskId}/subtasks/${subtaskId}/checklist/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to reorder subtask checklist items.');
     }
     return res.json();
   },
@@ -1581,16 +1829,17 @@ export const api = {
   // PROJECT CATEGORIES
   // ==========================================
 
-  async getProjectCategories(projectId: string, query?: { search?: string }): Promise<any[]> {
+  async getProjectCategories(projectId: string, query?: { search?: string; type?: 'DOC' | 'LINK' }): Promise<any[]> {
     const params = new URLSearchParams();
     if (query?.search) params.append('search', query.search);
+    if (query?.type) params.append('type', query.type);
     const qs = params.toString() ? `?${params.toString()}` : '';
     const res = await fetch(`${API_BASE}/projects/${projectId}/categories${qs}`);
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to fetch project categories.'); }
     return res.json();
   },
 
-  async createProjectCategory(projectId: string, data: { name: string; color?: string }): Promise<any> {
+  async createProjectCategory(projectId: string, data: { name: string; color?: string; type?: 'DOC' | 'LINK' }): Promise<any> {
     const res = await fetch(`${API_BASE}/projects/${projectId}/categories`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1696,4 +1945,55 @@ export const api = {
     return res.json();
   },
 
+  // ==========================================
+  // PROJECT TASK FOLDERS (MAIN TASK FOLDERS)
+  // ==========================================
+
+  async getProjectTaskFolders(projectId: string): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/task-folders`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to fetch task folders.');
+    }
+    return res.json();
+  },
+
+  async createProjectTaskFolder(projectId: string, data: { name: string; emoji?: string }): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/task-folders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create task folder.');
+    }
+    return res.json();
+  },
+
+  async updateProjectTaskFolder(projectId: string, folderId: string, data: { name?: string; emoji?: string; order?: number }): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/task-folders/${folderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update task folder.');
+    }
+    return res.json();
+  },
+
+  async deleteProjectTaskFolder(projectId: string, folderId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/task-folders/${folderId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete task folder.');
+    }
+    return res.json();
+  },
+
 };
+

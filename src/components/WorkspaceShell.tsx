@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
+import DesktopTopbar from "./navigation/DesktopTopbar";
 import toast from "react-hot-toast";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { RotateCcw, Loader2 } from "lucide-react";
@@ -79,7 +80,8 @@ export default function WorkspaceShell({
     );
     const [primaryFont, setPrimaryFont] = useState("Outfit");
     const [secondaryFont, setSecondaryFont] = useState("Lora");
-    const [fontScale, setFontScale] = useState(1.00);
+    const [fontScale, setFontScale] = useState(1.30);
+    const [navLayout, setNavLayout] = useState<"sidebar" | "topbar">("sidebar");
 
     const handlePrimaryFontChange = (font: string) => {
         setPrimaryFont(font);
@@ -112,11 +114,11 @@ export default function WorkspaceShell({
 
     const scaleOptions = [
         { value: "0.85", label: "85% (Very Small)" },
-        { value: "1.00", label: "100% (Normal - Default)" },
-        { value: "1.15", label: "115% (Large)" },
-        { value: "1.25", label: "125% (Extra Large)" },
-        { value: "1.40", label: "140% (Double XL)" },
-        { value: "1.50", label: "150% (Huge)" },
+        { value: "1.00", label: "100% (Compact)" },
+        { value: "1.15", label: "115% (Medium)" },
+        { value: "1.30", label: "130% (Default)" },
+        { value: "1.40", label: "140% (Large)" },
+        { value: "1.50", label: "150% (Extra Large)" },
     ];
 
     const closestScaleOption = scaleOptions.reduce((prev, curr) => {
@@ -124,23 +126,25 @@ export default function WorkspaceShell({
             Math.abs(parseFloat(prev.value) - fontScale)
             ? curr
             : prev;
-    }, scaleOptions[1]);
+    }, scaleOptions[3]);
 
     // Reset settings handler
     const handleResetSettings = () => {
         handlePrimaryFontChange("Outfit");
         handleSecondaryFontChange("Lora");
-        handleFontScaleChange(1.00);
+        handleFontScaleChange(1.30);
         localStorage.removeItem("sys_corner_radius");
         localStorage.removeItem("sys_accent_modern_light");
         localStorage.removeItem("sys_accent_modern_dark");
         localStorage.removeItem("sys_ui_mode");
         localStorage.removeItem("sys_modern_theme");
+        localStorage.removeItem("sys_nav_layout");
+        setNavLayout("sidebar");
         applyCornerRadius(DEFAULT_RADIUS_PX);
         const root = document.documentElement;
         root.style.zoom = "100%";
-        root.style.setProperty("--font-scale", "1.00");
-        toast.success("Settings reset to Outfit & Lora");
+        root.style.setProperty("--font-scale", "1.30");
+        toast.success("Settings reset to Outfit & Lora (130% Scale)");
     };
 
     // Load saved preferences from localStorage on initial render
@@ -150,6 +154,10 @@ export default function WorkspaceShell({
         const savedSecondary = localStorage.getItem("sys_secondary_font");
         const savedScale = localStorage.getItem("sys_font_scale");
         const savedRadius = localStorage.getItem("sys_corner_radius");
+        const savedNavLayout = localStorage.getItem("sys_nav_layout") as "sidebar" | "topbar";
+        if (savedNavLayout) {
+            setNavLayout(savedNavLayout);
+        }
         if (savedPrimary) {
             setPrimaryFont(savedPrimary);
             if (fontMap[savedPrimary]) {
@@ -171,7 +179,8 @@ export default function WorkspaceShell({
             setFontScale(parsed);
             document.documentElement.style.setProperty("--font-scale", String(parsed));
         } else {
-            setFontScale(1.00);
+            setFontScale(1.30);
+            document.documentElement.style.setProperty("--font-scale", "1.30");
         }
         applyCornerRadius(savedRadius !== null ? parseFloat(savedRadius) : DEFAULT_RADIUS_PX);
     }, []);
@@ -438,43 +447,79 @@ export default function WorkspaceShell({
         return "Workspace";
     })();
 
-    const renderAppContent = () => (
-        <div className="flex h-screen bg-[#FAFAF9] font-sans text-[#1A1A1A] overflow-hidden">
-            {/* Sidebar navigation — Persistent at Layout level */}
-            <Sidebar
-                currentUser={currentUser}
-                onLogout={handleLogout}
-                teams={teams}
-                currentTeam={currentTeam}
-                setCurrentTeam={setCurrentTeam}
-                onCreateTeamClick={() => setIsCreateTeamModalOpen(true)}
-                currentView={pathname.replace("/", "") || "kanban"}
-                toggleConfigModal={() => setIsConfigModalOpen(true)}
-                userRole={userRole}
-                theme={theme}
-                onToggleTheme={handleToggleTheme}
-            />
+    const renderAppContent = () => {
+        if (navLayout === "topbar") {
+            return (
+                <div className="flex flex-col h-screen bg-[var(--app-bg,#FAFAF9)] font-sans text-[var(--app-text,#1A1A1A)] overflow-hidden">
+                    {/* Desktop 2-Tier Topbar */}
+                    <DesktopTopbar
+                        currentUser={currentUser}
+                        onLogout={handleLogout}
+                        teams={teams}
+                        currentTeam={currentTeam}
+                        setCurrentTeam={setCurrentTeam}
+                        onCreateTeamClick={() => setIsCreateTeamModalOpen(true)}
+                        currentView={pathname.replace("/", "") || "kanban"}
+                        setCurrentView={undefined}
+                        toggleConfigModal={() => setIsConfigModalOpen(true)}
+                        userRole={userRole}
+                        theme={theme}
+                        onToggleTheme={handleToggleTheme}
+                        onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
+                        onOpenSpotlight={() => setIsSpotlightOpen(true)}
+                        isStandalone={isStandalone}
+                        onOpenPwaInstall={() => setIsPwaModalOpen(true)}
+                        viewLabel={viewLabel}
+                    />
 
-            {/* Main Workspace Frame */}
-            <main className="flex-1 flex flex-col overflow-hidden relative">
-                {/* Global Header Toolbar */}
-                <WorkspaceHeader
-                    viewLabel={viewLabel}
+                    {/* Main Workspace Frame — Full Screen Width */}
+                    <main className="flex-1 flex flex-col overflow-hidden relative">
+                        <div className="flex-1 flex flex-col overflow-hidden relative border-t border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FFFFFF)]">
+                            {children}
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        return (
+            <div className="flex h-screen bg-[var(--app-bg,#FAFAF9)] font-sans text-[var(--app-text,#1A1A1A)] overflow-hidden">
+                {/* Sidebar navigation — Persistent at Layout level */}
+                <Sidebar
+                    currentUser={currentUser}
+                    onLogout={handleLogout}
+                    teams={teams}
+                    currentTeam={currentTeam}
+                    setCurrentTeam={setCurrentTeam}
+                    onCreateTeamClick={() => setIsCreateTeamModalOpen(true)}
+                    currentView={pathname.replace("/", "") || "kanban"}
+                    toggleConfigModal={() => setIsConfigModalOpen(true)}
+                    userRole={userRole}
                     theme={theme}
                     onToggleTheme={handleToggleTheme}
-                    onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
-                    onOpenSpotlight={() => setIsSpotlightOpen(true)}
-                    isStandalone={isStandalone}
-                    onOpenPwaInstall={() => setIsPwaModalOpen(true)}
                 />
 
-                {/* Page Content Slot */}
-                <div className="flex-1 flex flex-col overflow-hidden relative border border-[#E5E5E3] bg-white corner-brackets rounded-none">
-                    {children}
-                </div>
-            </main>
-        </div>
-    );
+                {/* Main Workspace Frame */}
+                <main className="flex-1 flex flex-col overflow-hidden relative">
+                    {/* Global Header Toolbar */}
+                    <WorkspaceHeader
+                        viewLabel={viewLabel}
+                        theme={theme}
+                        onToggleTheme={handleToggleTheme}
+                        onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
+                        onOpenSpotlight={() => setIsSpotlightOpen(true)}
+                        isStandalone={isStandalone}
+                        onOpenPwaInstall={() => setIsPwaModalOpen(true)}
+                    />
+
+                    {/* Page Content Slot */}
+                    <div className="flex-1 flex flex-col overflow-hidden relative border border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FFFFFF)] corner-brackets rounded-none">
+                        {children}
+                    </div>
+                </main>
+            </div>
+        );
+    };
 
     const is3DActive = cubeState !== "IDLE";
 
@@ -554,6 +599,8 @@ export default function WorkspaceShell({
                     // Apply accent for the new sub-theme immediately
                     applyAccentColor(mt);
                 }}
+                navLayout={navLayout}
+                setNavLayout={setNavLayout}
                 primaryFont={primaryFont}
                 setPrimaryFont={handlePrimaryFontChange}
                 secondaryFont={secondaryFont}

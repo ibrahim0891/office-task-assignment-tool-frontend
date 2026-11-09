@@ -95,7 +95,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                             type="button"
                             onClick={onSave}
                             disabled={isSaving}
-                            className="relative corner-brackets-4 bg-[#1A1A1A] hover:bg-[#333333] text-white text-[11px] font-medium px-4 py-2 rounded-[2px] transition-colors cursor-pointer shrink-0 shadow-xs flex items-center gap-1.5"
+                            className="relative corner-brackets-4 bg-[var(--color-accent)] hover:opacity-90 border border-[var(--color-accent)] text-white text-[11px] font-semibold px-4 py-2 rounded-[2px] transition-all cursor-pointer shrink-0 shadow-xs flex items-center gap-1.5"
                         >
                             {isSaving ? "Saving…" : "Save Changes"}
                         </button>

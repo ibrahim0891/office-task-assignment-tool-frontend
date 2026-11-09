@@ -6,7 +6,8 @@ import { useParams } from "next/navigation";
 import { 
     LayoutGrid, Users, Calendar, BarChart2, 
     Settings, ChevronLeft, FolderKanban, 
-    Building2, Edit2, FolderGit2
+    Building2, FolderGit2, FolderArchive,
+    Info, Scale,
 } from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
@@ -18,6 +19,8 @@ import ProjectAssetsView from "./ProjectAssetsView";
 import ProjectSettingsView from "./ProjectSettingsView";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import EditProjectModal from "./EditProjectModal";
+import ProjectDetailDrawer from "./ProjectDetailDrawer";
+import ProjectColumnWeightManagerModal from "./ProjectColumnWeightManagerModal";
 import { useProjectDetail } from "../../hooks/useProjectSWR";
 import ProjectDetailSkeleton from "./ProjectDetailSkeleton";
 import { Button } from "../ui/Button";
@@ -30,8 +33,8 @@ type Tab = "main-board" | "members" | "timeline" | "analytics" | "assets" | "set
 const tabs: { id: Tab; label: string; icon: any }[] = [
     { id: "main-board", label: "Main Tasks", icon: LayoutGrid },
     { id: "members", label: "Members", icon: Users },
-    { id: "timeline", label: "Timeline", icon: Calendar },
-    { id: "analytics", label: "Analytics", icon: BarChart2 },
+    // { id: "timeline", label: "Timeline", icon: Calendar },
+    // { id: "analytics", label: "Analytics", icon: BarChart2 },
     { id: "assets", label: "Assets & Docs", icon: FolderGit2 },
     { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -41,19 +44,59 @@ export default function ProjectDetail() {
     const projectId = params.id as string;
     const { currentTeam, currentUser, userRole, isManageInvitationsOpen, setIsManageInvitationsOpen, projectInvitations } = useWorkspace();
 
-    const { project, isLoading, mutate: refreshProject } = useProjectDetail(projectId, currentTeam?.id);
+    const [statusFilter, setStatusFilter] = useState<string>("ALL");
+    const filters = React.useMemo(() => {
+        return statusFilter !== "ALL" ? { status: statusFilter } : undefined;
+    }, [statusFilter]);
+    const { project, isLoading, mutate: refreshProject } = useProjectDetail(projectId, currentTeam?.id, filters);
     const [activeTab, setActiveTab] = useState<Tab>(() => {
         if (typeof window !== "undefined") {
             const saved = localStorage.getItem(`project-active-tab-${projectId}`);
-            if (saved) return saved as Tab;
+            if (saved && saved !== "timeline" && saved !== "analytics") return saved as Tab;
         }
         return "main-board";
     });
     const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
+    const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
+    const [isWeightManagerOpen, setIsWeightManagerOpen] = useState(false);
 
     const loadProjectDetail = React.useCallback(async () => {
         await refreshProject();
     }, [refreshProject]);
+
+    const handleSaveColumnWeights = async (
+        updatedWeights: { id: string; weight: number | null }[],
+        updatedOrders?: { id: string; order: number }[]
+    ) => {
+        const targetId = project?.id || projectId;
+        if (!targetId) return;
+        if (updatedOrders && updatedOrders.length > 0) {
+            await api.reorderProjectColumns(targetId, updatedOrders);
+        }
+        await api.batchUpdateProjectColumnWeights(targetId, updatedWeights);
+        await loadProjectDetail();
+    };
+
+    const handleCreateColumn = async (name: string, weight?: number | null) => {
+        const targetId = project?.id || projectId;
+        if (!targetId) return;
+        await api.createProjectColumn(targetId, name, "CUSTOM", false, weight);
+        await loadProjectDetail();
+    };
+
+    const handleRenameColumn = async (columnId: string, name: string) => {
+        const targetId = project?.id || projectId;
+        if (!targetId) return;
+        await api.updateProjectColumn(targetId, columnId, { name });
+        await loadProjectDetail();
+    };
+
+    const handleDeleteColumn = async (col: any) => {
+        const targetId = project?.id || projectId;
+        if (!targetId || !col?.id) return;
+        await api.deleteProjectColumn(targetId, col.id);
+        await loadProjectDetail();
+    };
 
     useEffect(() => {
         localStorage.setItem(`project-active-tab-${projectId}`, activeTab);
@@ -90,6 +133,38 @@ export default function ProjectDetail() {
                     >
                         ← Back to Projects
                     </Link>
+                </div>
+            </div>
+        );
+    }
+
+    if (project.isDeleted) {
+        return (
+            <div className="flex-1 flex items-center justify-center p-5 bg-[var(--app-bg)]">
+                <div className="text-center flex flex-col items-center gap-3 max-w-sm">
+                    <div className="w-12 h-12 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[var(--app-muted)]">
+                        <FolderArchive className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-[var(--app-text)]">
+                        This Project is Archived
+                    </h2>
+                    <p className="text-xs text-[var(--app-muted)] leading-relaxed">
+                        This project was soft-deleted and moved to the workspace archive. It can be restored or permanently purged from the archive.
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                        <Link
+                            href="/trash"
+                            className="px-3 py-1.5 rounded-[2px] bg-[var(--app-card)] border border-[var(--app-border)] text-xs font-medium text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                        >
+                            Open Archive
+                        </Link>
+                        <Link
+                            href="/projects"
+                            className="px-3 py-1.5 rounded-[2px] text-xs font-medium text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                        >
+                            ← Back to Projects
+                        </Link>
+                    </div>
                 </div>
             </div>
         );
@@ -167,8 +242,8 @@ export default function ProjectDetail() {
                         </div>
                     </div>
 
-                    {/* Right: Dates & Primary Action */}
-                    <div className="flex items-center gap-3 shrink-0 text-xs text-[var(--app-muted)]">
+                    {/* Right: Dates & Actions */}
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0 text-xs text-[var(--app-muted)]">
                         {/* Timeline Date Range */}
                         {(project.startDate || project.endDate) && (
                             <div
@@ -182,32 +257,35 @@ export default function ProjectDetail() {
                             </div>
                         )}
 
-                        {/* Edit Project Button */}
+                        {/* Manage Columns / Workflow Stages Button (Outline) */}
                         {canManageTasks && (
                             <Button
                                 type="button"
-                                variant="secondary"
+                                variant="outline"
                                 size="sm"
-                                onClick={() => setIsEditProjectModalOpen(true)}
-                                icon={<Edit2 className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />}
-                                title="Edit Project Configuration"
-                                className="shadow-2xs text-xs"
+                                onClick={() => setIsWeightManagerOpen(true)}
+                                icon={<Scale className="w-3.5 h-3.5 shrink-0 text-[var(--color-accent)]" />}
+                                title="Manage project workflow stages, columns & progression weights"
+                                className="shadow-2xs text-xs !bg-transparent !text-[var(--color-accent)] !border-[var(--color-accent)] hover:!bg-[var(--color-accent)]/10"
                             >
-                                Edit Project
+                                Manage Columns
                             </Button>
                         )}
+
+                        {/* View Details Button (Secondary) */}
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setIsDetailDrawerOpen(true)}
+                            icon={<Info className="w-3.5 h-3.5 shrink-0" />}
+                            title="View Project Scope, Description & Members"
+                            className="shadow-2xs text-xs"
+                        >
+                            View Details
+                        </Button>
                     </div>
                 </div>
-
-                {/* Project Description (Dynamic TipTap HTML with Max Height and Scroll) */}
-                {project.description && (
-                    <div className="shrink-0 px-5 py-2.5 bg-[var(--app-card)]/30 border-b border-[var(--app-border)] select-text">
-                        <div
-                            className="max-h-24 sm:max-h-28 overflow-y-auto pr-2 text-xs leading-relaxed text-[var(--app-text)]/85 prose prose-xs dark:prose-invert max-w-none"
-                            dangerouslySetInnerHTML={{ __html: project.description }}
-                        />
-                    </div>
-                )}
 
                 {/* Level 2: Navigation Tabs & Progress Gauge */}
                 <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] px-5 flex items-center justify-between gap-4 select-none">
@@ -269,7 +347,14 @@ export default function ProjectDetail() {
 
                 {/* Tab Content */}
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    {activeTab === "main-board" && <ProjectBoardView project={project} onRefresh={loadProjectDetail} />}
+                    {activeTab === "main-board" && (
+                        <ProjectBoardView
+                            project={project}
+                            onRefresh={loadProjectDetail}
+                            statusFilter={statusFilter}
+                            onStatusFilterChange={setStatusFilter}
+                        />
+                    )}
                     {activeTab === "members" && <ProjectMembersView project={project} onRefresh={loadProjectDetail} />}
                     {activeTab === "timeline" && <ProjectTimelineView project={project} />}
                     {activeTab === "analytics" && <ProjectAnalyticsView project={project} />}
@@ -277,6 +362,17 @@ export default function ProjectDetail() {
                     {activeTab === "settings" && <ProjectSettingsView project={project} onRefresh={loadProjectDetail} />}
                 </div>
             </div>
+
+            {/* Project Overview & Full Details Slide-In Drawer */}
+            <ProjectDetailDrawer
+                isOpen={isDetailDrawerOpen}
+                onClose={() => setIsDetailDrawerOpen(false)}
+                project={project}
+                currentUser={currentUser}
+                userRole={userRole}
+                canEdit={canManageTasks}
+                onEditClick={() => setIsEditProjectModalOpen(true)}
+            />
 
             {/* Edit Project Configuration Modal */}
             <EditProjectModal
@@ -290,8 +386,19 @@ export default function ProjectDetail() {
             <ProjectInvitationsTray
                 isOpen={isManageInvitationsOpen}
                 onClose={() => setIsManageInvitationsOpen(false)}
-                activeProjectId={project.id}
+                activeProjectId={project?.id || projectId}
                 onRefresh={loadProjectDetail}
+            />
+
+            {/* Central Project Workflow Stages & Column Manager SideSheet */}
+            <ProjectColumnWeightManagerModal
+                isOpen={isWeightManagerOpen}
+                onClose={() => setIsWeightManagerOpen(false)}
+                columns={project?.columns || []}
+                onSaveWeights={handleSaveColumnWeights}
+                onCreateColumn={handleCreateColumn}
+                onRenameColumn={handleRenameColumn}
+                onDeleteColumn={handleDeleteColumn}
             />
         </div>
     );

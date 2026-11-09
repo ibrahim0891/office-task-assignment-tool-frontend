@@ -39,12 +39,12 @@ export const Checkbox: React.FC<CheckboxProps> = ({
                 <div
                     className={`w-4 h-4 rounded-[2px] border transition-all duration-150 flex items-center justify-center ${
                         checked
-                            ? "bg-[var(--app-text)] border-[var(--app-text)] text-[var(--app-card)]"
-                            : "bg-[var(--app-card)] border-[var(--app-border)] hover:border-[var(--app-text)]"
+                            ? "bg-[var(--color-accent)] border-[var(--color-accent)] text-white shadow-2xs"
+                            : "bg-[var(--app-card)] border-[var(--app-border)] hover:border-[var(--color-accent)]"
                     }`}
                 >
                     {checked && (
-                        <Check className="w-3 h-3 text-[var(--app-card)] stroke-[2.5] animate-fade-in" />
+                        <Check className="w-3 h-3 text-white stroke-[2.5] animate-fade-in" />
                     )}
                 </div>
             </div>

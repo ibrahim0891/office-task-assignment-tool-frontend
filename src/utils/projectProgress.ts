@@ -13,51 +13,57 @@ import { calculateRemainingDays, calculateDaySpan } from "./date";
 export const STAGE_TAG_OPTIONS = [
     {
         id: "TODO",
-        label: "To Do / Backlog",
+        label: "Stage 1: To Do / Backlog",
         shortLabel: "To Do",
         weight: 0,
+        showWeight: false,
         color: "text-[var(--status-todo,#6B7280)]",
         bg: "bg-[var(--status-todo,#6B7280)]/10",
         border: "border-[var(--status-todo,#6B7280)]/30",
         dot: "bg-[var(--status-todo,#6B7280)]",
-        description: "Initial unstarted queue (0% progress)"
+        description: "Initial unstarted queue (0% progress)",
     },
     {
         id: "IN_PROGRESS",
-        label: "In Progress / Active",
+        label: "Stage 2: In Progress / Active",
         shortLabel: "In Progress",
         weight: 25,
+        showWeight: true,
         color: "text-[var(--status-in-progress,#7C3AED)]",
         bg: "bg-[var(--status-in-progress,#7C3AED)]/10",
         border: "border-[var(--status-in-progress,#7C3AED)]/30",
         dot: "bg-[var(--status-in-progress,#7C3AED)]",
-        description: "Active development or execution (25% progress)"
+        description: "Active development or execution (25% progress)",
     },
     {
         id: "IN_REVIEW",
-        label: "In Review / Testing",
+        label: "Stage 3: In Review / Testing",
         shortLabel: "In Review",
         weight: 75,
+        showWeight: true,
         color: "text-[var(--status-at-risk,#D97706)]",
         bg: "bg-[var(--status-at-risk,#D97706)]/10",
         border: "border-[var(--status-at-risk,#D97706)]/30",
         dot: "bg-[var(--status-at-risk,#D97706)]",
-        description: "QA verification, review, or testing (75% progress)"
+        description: "QA verification, review, or testing (75% progress)",
     },
     {
         id: "DONE",
-        label: "Done / Completed",
+        label: "Stage 4: Done / Completed",
         shortLabel: "Done",
         weight: 100,
+        showWeight: true,
         color: "text-[var(--status-completed,#15803D)]",
         bg: "bg-[var(--status-completed,#15803D)]/10",
         border: "border-[var(--status-completed,#15803D)]/30",
         dot: "bg-[var(--status-completed,#15803D)]",
-        description: "Finished and deployed milestone (100% progress)"
+        description: "Finished and deployed milestone (100% progress)",
     },
 ] as const;
 
 export const STAGE_PROGRESS_WEIGHTS: Record<string, number> = {
+    CUSTOM: 0,
+    UNWEIGHTED: 0,
     TODO: 0,
     IN_PROGRESS: 25,
     IN_REVIEW: 75,
@@ -65,10 +71,15 @@ export const STAGE_PROGRESS_WEIGHTS: Record<string, number> = {
 };
 
 /**
- * Returns the progress weight (0, 25, 75, 100) for a column or status name.
+ * Returns the progress weight (0 - 100) for a column or status name.
  */
 export function getStageWeight(columnOrStatus: any): number {
     if (!columnOrStatus) return 0;
+
+    // Explicit custom column weight if configured (0 - 100)
+    if (typeof columnOrStatus === "object" && columnOrStatus.weight !== undefined && columnOrStatus.weight !== null) {
+        return Math.max(0, Math.min(100, Number(columnOrStatus.weight)));
+    }
 
     // Direct object or string input
     const isComplete = typeof columnOrStatus === "object" ? Boolean(columnOrStatus.isComplete) : false;
@@ -76,10 +87,11 @@ export function getStageWeight(columnOrStatus: any): number {
 
     // Direct stage tag match
     const typeOrTag = (typeof columnOrStatus === "object" ? (columnOrStatus.type || columnOrStatus.stageTag || "") : "").toUpperCase();
+    if (typeOrTag === "CUSTOM" || typeOrTag === "UNWEIGHTED") return 0;
     if (typeOrTag === "DONE" || typeOrTag === "COMPLETED") return 100;
-    if (typeOrTag === "IN_REVIEW" || typeOrTag === "REVIEW") return 75;
+    if (typeOrTag === "IN_REVIEW" || typeOrTag === "REVIEW" || typeOrTag === "NEED_ATTENTION") return 75;
     if (typeOrTag === "IN_PROGRESS" || typeOrTag === "PROGRESS") return 25;
-    if (typeOrTag === "TODO" || typeOrTag === "TO_DO") return 0;
+    if (typeOrTag === "TODO" || typeOrTag === "TO_DO" || typeOrTag === "BACKLOG") return 0;
 
     const rawName = (typeof columnOrStatus === "object" ? (columnOrStatus.name || columnOrStatus.type || "") : String(columnOrStatus)).toLowerCase().trim();
 
@@ -100,31 +112,162 @@ export function getStageWeight(columnOrStatus: any): number {
 }
 
 /**
+ * Calculates cumulative progress percentage for each column in an ordered list of columns.
+ * Cumulative progress is the sum of step weights from the beginning up to the current column,
+ * capped at 100%.
+ */
+export function calculateCumulativeColumnWeights(
+    columns: any[] = []
+): Record<string, { stepWeight: number; cumulativeWeight: number }> {
+    if (!Array.isArray(columns) || columns.length === 0) return {};
+
+    const hasAnyExplicitWeight = columns.some(
+        (col) => col.weight !== undefined && col.weight !== null
+    );
+
+    const result: Record<string, { stepWeight: number; cumulativeWeight: number }> = {};
+    let runningTotal = 0;
+
+    columns.forEach((col, idx) => {
+        if (!col?.id) return;
+
+        if (hasAnyExplicitWeight) {
+            const step =
+                col.weight !== undefined && col.weight !== null
+                    ? Math.max(0, Math.min(100, Number(col.weight)))
+                    : 0;
+            runningTotal = Math.min(100, runningTotal + step);
+            result[col.id] = {
+                stepWeight: step,
+                cumulativeWeight: col.isComplete ? 100 : runningTotal,
+            };
+        } else {
+            // Legacy fallback based on stage tags
+            const legacyWeight = getStageWeight(col);
+            const prevWeight = idx === 0 ? 0 : getStageWeight(columns[idx - 1]);
+            result[col.id] = {
+                stepWeight: Math.max(0, legacyWeight - prevWeight),
+                cumulativeWeight: legacyWeight,
+            };
+        }
+    });
+
+    return result;
+}
+
+/**
  * Returns stage metadata and badge for a column
  */
-export function getStageMeta(column: any): { label: string; stageNumber: number; weight: number; isSystem: boolean; tagId: string } {
-    const weight = getStageWeight(column);
-    const isSystem = column?.type === "SYSTEM" || ["col-todo", "col-progress", "col-review", "col-done"].includes(column?.id);
+export function getStageMeta(
+    column: any,
+    cumulativeWeight?: number
+): {
+    label: string;
+    stageNumber: number;
+    weight: number;
+    cumulativeWeight: number;
+    stepWeight: number;
+    isSystem: boolean;
+    tagId: string;
+    showWeight: boolean;
+} {
+    const rawTag = (
+        typeof column === "object" ? column?.type || column?.stageTag || "" : ""
+    ).toUpperCase();
+    const isCustomUnweighted = rawTag === "CUSTOM" || rawTag === "UNWEIGHTED";
 
-    let label = "Stage 1: To Do";
-    let stageNumber = 1;
-    let tagId = "TODO";
+    const isSystem =
+        column?.type === "SYSTEM" ||
+        ["col-todo", "col-progress", "col-review", "col-done"].includes(column?.id);
 
-    if (weight === 100) {
-        label = "Stage 4: Completed";
-        stageNumber = 4;
-        tagId = "DONE";
-    } else if (weight === 75) {
-        label = "Stage 3: Under Review";
-        stageNumber = 3;
-        tagId = "IN_REVIEW";
-    } else if (weight === 25) {
-        label = "Stage 2: In Progress";
-        stageNumber = 2;
-        tagId = "IN_PROGRESS";
+    const stepWeight =
+        column && column.weight !== undefined && column.weight !== null
+            ? Math.max(0, Math.min(100, Number(column.weight)))
+            : getStageWeight(column);
+
+    const effectiveCumulative =
+        cumulativeWeight !== undefined
+            ? cumulativeWeight
+            : column?.isComplete
+            ? 100
+            : stepWeight;
+
+    if (column && column.weight !== undefined && column.weight !== null) {
+        if (column.weight === 0 && effectiveCumulative === 0) {
+            return {
+                label: "Weightless (0%)",
+                stageNumber: 0,
+                weight: 0,
+                cumulativeWeight: 0,
+                stepWeight: 0,
+                isSystem,
+                tagId: "CUSTOM",
+                showWeight: false,
+            };
+        }
+        return {
+            label: `${effectiveCumulative}%`,
+            stageNumber:
+                effectiveCumulative === 100 ? 4 : effectiveCumulative >= 50 ? 3 : 2,
+            weight: effectiveCumulative,
+            cumulativeWeight: effectiveCumulative,
+            stepWeight,
+            isSystem,
+            tagId:
+                effectiveCumulative === 100
+                    ? "DONE"
+                    : effectiveCumulative >= 50
+                    ? "IN_REVIEW"
+                    : "IN_PROGRESS",
+            showWeight: true,
+        };
     }
 
-    return { label, stageNumber, weight, isSystem, tagId };
+    if (isCustomUnweighted && !column?.isComplete) {
+        return {
+            label: "No Stage (Unweighted)",
+            stageNumber: 0,
+            weight: 0,
+            cumulativeWeight: 0,
+            stepWeight: 0,
+            isSystem,
+            tagId: "CUSTOM",
+            showWeight: false,
+        };
+    }
+
+    let label = "Stage 1: To Do (0%)";
+    let stageNumber = 1;
+    let tagId = "TODO";
+    let showWeight = false;
+
+    if (effectiveCumulative === 100 || column?.isComplete) {
+        label = "100% Completed";
+        stageNumber = 4;
+        tagId = "DONE";
+        showWeight = true;
+    } else if (effectiveCumulative >= 75 || rawTag === "NEED_ATTENTION" || rawTag === "IN_REVIEW") {
+        label = `${effectiveCumulative}% In Review`;
+        stageNumber = 3;
+        tagId = "IN_REVIEW";
+        showWeight = true;
+    } else if (effectiveCumulative >= 25 || rawTag === "IN_PROGRESS") {
+        label = `${effectiveCumulative}% In Progress`;
+        stageNumber = 2;
+        tagId = "IN_PROGRESS";
+        showWeight = true;
+    }
+
+    return {
+        label,
+        stageNumber,
+        weight: effectiveCumulative,
+        cumulativeWeight: effectiveCumulative,
+        stepWeight,
+        isSystem,
+        tagId,
+        showWeight,
+    };
 }
 
 /**
@@ -140,7 +283,11 @@ export function isSystemColumn(column: any): boolean {
 /**
  * Calculates fine-grained progress percentage (0 - 100%) for a main task
  */
-export function calculateTaskProgress(task: any, columnMap: Record<string, any> = {}): number {
+export function calculateTaskProgress(
+    task: any,
+    columnMap: Record<string, any> = {},
+    cumulativeMap: Record<string, { stepWeight: number; cumulativeWeight: number }> = {}
+): number {
     if (!task) return 0;
 
     const subtasks = task.subtasks || [];
@@ -150,8 +297,13 @@ export function calculateTaskProgress(task: any, columnMap: Record<string, any> 
             if (st.isCompleted) {
                 totalWeight += 100;
             } else {
-                const col = st.columnId ? columnMap[st.columnId] : null;
-                totalWeight += getStageWeight(col || st.status);
+                const colId = st.columnId;
+                if (colId && cumulativeMap[colId]) {
+                    totalWeight += cumulativeMap[colId].cumulativeWeight;
+                } else {
+                    const col = colId ? columnMap[colId] : null;
+                    totalWeight += getStageWeight(col || st.status);
+                }
             }
         });
         return Math.round(totalWeight / subtasks.length);
@@ -159,7 +311,11 @@ export function calculateTaskProgress(task: any, columnMap: Record<string, any> 
 
     // Single task without subtasks
     if (task.isCompleted) return 100;
-    const taskCol = task.columnId ? columnMap[task.columnId] : (task.column || null);
+    const colId = task.columnId;
+    if (colId && cumulativeMap[colId]) {
+        return cumulativeMap[colId].cumulativeWeight;
+    }
+    const taskCol = colId ? columnMap[colId] : (task.column || null);
     return getStageWeight(taskCol || task.status);
 }
 
@@ -176,9 +332,11 @@ export function calculateProjectProgress(tasks: any[] = [], columns: any[] = [])
         });
     }
 
+    const cumulativeMap = calculateCumulativeColumnWeights(columns);
+
     let sum = 0;
     tasks.forEach((t) => {
-        sum += calculateTaskProgress(t, columnMap);
+        sum += calculateTaskProgress(t, columnMap, cumulativeMap);
     });
 
     return Math.round(sum / tasks.length);

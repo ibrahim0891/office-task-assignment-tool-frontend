@@ -20,10 +20,19 @@ import {
     CheckCircle2,
     SlidersHorizontal,
     ChevronDown,
-    MoreHorizontal
+    MoreHorizontal,
+    MoreVertical,
+    Pencil,
+    FolderArchive,
+    Info
 } from "lucide-react";
+import toast from "react-hot-toast";
+import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import CreateProjectModal from "./CreateProjectModal";
+import EditProjectModal from "./EditProjectModal";
+import ProjectDetailDrawer from "./ProjectDetailDrawer";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import ManageFoldersTray from "../ManageFoldersTray";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import { usePortfolioSummary } from "../../hooks/useProjectSWR";
@@ -45,35 +54,42 @@ function formatDate(dateInput: any) {
 
 function ProjectCardSkeleton() {
     return (
-        <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[var(--radius-card,6px)] p-4 flex flex-col justify-between gap-3.5 animate-pulse">
-            {/* Top & Middle: Title, Meta and Description */}
-            <div className="flex flex-col gap-2">
-                {/* 1. Title */}
-                <div className="flex items-center gap-2">
+        <div className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] p-4 flex flex-col justify-between gap-3.5 animate-pulse">
+            {/* Top Zone */}
+            <div className="flex flex-col gap-2.5">
+                {/* 1. Header Row */}
+                <div className="flex items-center gap-2.5">
                     <div className="w-6 h-6 rounded-[2px] bg-[var(--app-border)]/60 shrink-0" />
-                    <div className="h-5 w-3/4 bg-[var(--app-border)]/70 rounded-[2px]" />
+                    <div className="h-4.5 w-3/4 bg-[var(--app-border)]/70 rounded-[2px]" />
                 </div>
 
-                {/* 2. Minimal Text Meta (Team Left, Status Right) */}
+                {/* 2. Team & Status */}
                 <div className="flex items-center justify-between gap-2">
-                    <div className="h-3 w-20 bg-[var(--app-border)]/50 rounded-[2px]" />
-                    <div className="h-3 w-16 bg-[var(--app-border)]/40 rounded-[2px]" />
+                    <div className="h-3.5 w-24 bg-[var(--app-border)]/50 rounded-[2px]" />
+                    <div className="h-3.5 w-16 bg-[var(--app-border)]/40 rounded-[2px]" />
                 </div>
 
-                {/* 3. Description */}
-                <div className="h-3 w-full bg-[var(--app-border)]/30 rounded-[2px]" />
+                {/* 3. Description Lines */}
+                <div className="flex flex-col gap-1">
+                    <div className="h-3 w-full bg-[var(--app-border)]/40 rounded-[2px]" />
+                    <div className="h-3 w-4/5 bg-[var(--app-border)]/30 rounded-[2px]" />
+                </div>
+
+                {/* 4. Timeline, Tasks & Assignees */}
+                <div className="flex items-center justify-between pt-0.5">
+                    <div className="h-4 w-28 bg-[var(--app-border)]/40 rounded-[2px]" />
+                    <div className="h-3 w-16 bg-[var(--app-border)]/40 rounded-[2px]" />
+                    <div className="flex items-center -space-x-1.5 ml-auto">
+                        <div className="w-4 h-4 rounded-full bg-[var(--app-border)]/50" />
+                        <div className="w-4 h-4 rounded-full bg-[var(--app-border)]/40" />
+                    </div>
+                </div>
             </div>
 
-            {/* Bottom: Footer Zone */}
-            <div className="pt-2.5 border-t border-[var(--app-border)] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="h-4 w-20 bg-[var(--app-border)]/40 rounded-[2px]" />
-                    <div className="h-4 w-14 bg-[var(--app-border)]/40 rounded-[2px]" />
-                </div>
-                <div className="flex items-center -space-x-1.5">
-                    <div className="w-4 h-4 rounded-full bg-[var(--app-border)]/50" />
-                    <div className="w-4 h-4 rounded-full bg-[var(--app-border)]/40" />
-                </div>
+            {/* Bottom: Action Buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--app-border)]">
+                <div className="h-[32px] bg-[var(--app-border)]/40 rounded-[2px]" />
+                <div className="h-[32px] bg-[var(--app-border)]/70 rounded-[2px]" />
             </div>
         </div>
     );
@@ -101,7 +117,19 @@ function ProjectRowSkeleton() {
     );
 }
 
-function ProjectCardWrapper({ project }: { project: any }) {
+function ProjectCardWrapper({
+    project,
+    onEdit,
+    onArchive,
+    canArchive = false,
+    onViewDetails,
+}: {
+    project: any;
+    onEdit?: () => void;
+    onArchive?: () => void;
+    canArchive?: boolean;
+    onViewDetails?: () => void;
+}) {
     const totalTasks = project.totalTasks !== undefined ? project.totalTasks : (project.tasks?.length || 0);
     const doneTasks = project.doneTasks !== undefined ? project.doneTasks : (project.tasks?.filter((t: any) => t.column?.isComplete || t.status === "Completed" || t.status === "Done").length || 0);
     const overdueTasks = project.overdueTasks !== undefined ? project.overdueTasks : (project.tasks?.filter((t: any) => t.riskLevel === "OVERDUE" || t.riskLevel === "CRITICAL_SLA" || t.riskLevel === "Overdue" || t.riskLevel === "CriticalSLA").length || 0);
@@ -157,11 +185,40 @@ function ProjectCardWrapper({ project }: { project: any }) {
             tasks={project.tasks}
             columns={project.columns}
             assignees={allMembers}
+            onEdit={onEdit}
+            onArchive={onArchive}
+            canArchive={canArchive}
+            onViewDetails={onViewDetails}
         />
     );
 }
 
-function ProjectListItem({ project }: { project: any }) {
+function ProjectListItem({
+    project,
+    onEdit,
+    onArchive,
+    canArchive = false,
+    onViewDetails,
+}: {
+    project: any;
+    onEdit?: () => void;
+    onArchive?: () => void;
+    canArchive?: boolean;
+    onViewDetails?: () => void;
+}) {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!isMenuOpen) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isMenuOpen]);
     const status = calculateProjectHealth(project);
     const totalTasks = project.totalTasks !== undefined ? project.totalTasks : (project.tasks?.length || 0);
     const doneTasks = project.doneTasks !== undefined ? project.doneTasks : (project.tasks?.filter((t: any) => t.column?.isComplete || t.status === "Completed" || t.status === "Done").length || 0);
@@ -229,12 +286,6 @@ function ProjectListItem({ project }: { project: any }) {
                                     )}
                                     <span className="truncate max-w-[130px]">{project.team.name}</span>
                                 </span>
-                            )}
-                            {project.description && (
-                                <span
-                                    className="text-[13px] text-[var(--app-text)]/80 line-clamp-1 max-w-[240px] [&_p]:inline [&_p]:m-0 [&_div]:inline"
-                                    dangerouslySetInnerHTML={{ __html: project.description }}
-                                />
                             )}
                         </div>
                     </div>
@@ -350,13 +401,87 @@ function ProjectListItem({ project }: { project: any }) {
 
             {/* Action */}
             <td className="py-4 px-4 text-right whitespace-nowrap">
-                <Link
-                    href={`/projects/${project.id}`}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] hover:text-[var(--color-accent)] text-xs font-semibold rounded-[3px] transition-colors"
-                >
-                    <span>Open</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </Link>
+                <div className="flex items-center justify-end gap-1.5">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (onViewDetails) onViewDetails();
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] text-[var(--app-text)] text-xs font-medium rounded-[3px] transition-colors cursor-pointer shadow-3xs"
+                        title="View Project Details & Scope"
+                    >
+                        <Info className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+                        <span>Details</span>
+                    </button>
+
+                    <Link
+                        href={`/projects/${project.id}`}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-[var(--app-text)] hover:opacity-90 border border-[var(--app-text)] text-[var(--app-bg)] text-xs font-semibold rounded-[3px] transition-all shadow-xs group/open"
+                    >
+                        <span>Open</span>
+                        <ArrowRight className="w-3.5 h-3.5 group-hover/open:translate-x-0.5 transition-transform" />
+                    </Link>
+
+                    {onEdit && (
+                        <div className="relative inline-block text-left" ref={menuRef}>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setIsMenuOpen((prev) => !prev);
+                                }}
+                                className="p-1.5 rounded-[3px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] border border-transparent hover:border-[var(--app-border)] transition-colors cursor-pointer"
+                                title="Project options"
+                                aria-label="Project options"
+                            >
+                                <MoreVertical className="w-3.5 h-3.5" />
+                            </button>
+
+                            {isMenuOpen && (
+                                <div
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                    }}
+                                    className="absolute right-0 top-full mt-1 z-30 min-w-[150px] bg-[var(--app-card)] border border-[var(--app-border-strong)] rounded-[4px] shadow-float py-1 text-xs select-none text-left whitespace-nowrap text-nowrap"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setIsMenuOpen(false);
+                                            onEdit();
+                                        }}
+                                        className="w-full text-left px-3 py-1.5 flex items-center gap-2 text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer whitespace-nowrap text-nowrap"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                        <span className="whitespace-nowrap text-nowrap">Edit Project</span>
+                                    </button>
+
+                                    {canArchive && onArchive && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setIsMenuOpen(false);
+                                                onArchive();
+                                            }}
+                                            className="w-full text-left px-3 py-1.5 flex items-center gap-2 text-[var(--color-error)] hover:bg-[var(--color-error)]/10 transition-colors cursor-pointer border-t border-[var(--app-border)] mt-0.5 pt-1.5 whitespace-nowrap text-nowrap"
+                                        >
+                                            <FolderArchive className="w-3.5 h-3.5 text-[var(--color-error)] shrink-0" />
+                                            <span className="whitespace-nowrap text-nowrap">Archive Project</span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </td>
         </tr>
     );
@@ -379,10 +504,39 @@ export default function ProjectsPortfolio() {
     } = useWorkspace();
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [projectToEdit, setProjectToEdit] = useState<any | null>(null);
+    const [projectToArchive, setProjectToArchive] = useState<any | null>(null);
+    const [projectForDetail, setProjectForDetail] = useState<any | null>(null);
+    const [isArchiving, setIsArchiving] = useState(false);
     const [isManageMenuOpen, setIsManageMenuOpen] = useState(false);
     const manageMenuRef = useRef<HTMLDivElement>(null);
-    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const saved = localStorage.getItem("projects_portfolio_view_mode");
+                if (saved === "list" || saved === "grid") {
+                    return saved;
+                }
+            } catch (e) {}
+        }
+        return "grid";
+    });
     const { summary, isLoading: isSummaryLoading } = usePortfolioSummary(currentTeam?.id, currentUser?.id);
+
+    const handleConfirmArchive = async () => {
+        if (!projectToArchive) return;
+        setIsArchiving(true);
+        try {
+            await api.deleteProject(projectToArchive.id);
+            toast.success(`Project "${projectToArchive.title || projectToArchive.name}" moved to archive.`);
+            setProjectToArchive(null);
+            await loadProjects();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to archive project.");
+        } finally {
+            setIsArchiving(false);
+        }
+    };
     
     // Filter & Search states
     const [searchQuery, setSearchQuery] = useState("");
@@ -403,16 +557,6 @@ export default function ProjectsPortfolio() {
             return () => document.removeEventListener("mousedown", handleClickOutside);
         }
     }, [isManageMenuOpen]);
-
-    // Initialize preferred viewMode from localStorage
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem("projects_portfolio_view_mode");
-            if (saved === "list" || saved === "grid") {
-                setViewMode(saved);
-            }
-        } catch (e) {}
-    }, []);
 
     const handleViewModeChange = (mode: "grid" | "list") => {
         setViewMode(mode);
@@ -590,7 +734,7 @@ export default function ProjectsPortfolio() {
                                         )}
                                     </button>
 
-                                    {isLeader && (
+                                    {userRole !== "OBSERVER" && (
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -630,72 +774,72 @@ export default function ProjectsPortfolio() {
                 <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-card)] select-none">
                     <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-[var(--app-border)]">
                         {/* 1. Total Projects (Anchor) */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Total Projects</span>
+                                <span className="text-xs font-medium text-[var(--app-muted)]">Total Projects</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text)] tabular-nums">
+                                    <span className="text-xl font-bold tracking-tight text-[var(--app-text)]">
                                         {summary.totalProjects}
                                     </span>
-                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">in portfolio</span>
+                                    <span className="text-xs text-[var(--app-muted)] font-normal">in portfolio</span>
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
-                                <FolderKanban className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <FolderKanban className="w-4 h-4" />
                             </div>
                         </div>
 
                         {/* 2. Active Projects */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Active</span>
+                                <span className="text-xs font-medium text-[var(--app-muted)]">Active</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-text)] tabular-nums">
+                                    <span className="text-xl font-bold tracking-tight text-[var(--app-text)]">
                                         {summary.activeProjects}
                                     </span>
-                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">in progress</span>
+                                    <span className="text-xs text-[var(--app-muted)] font-normal">in progress</span>
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
-                                <TrendingUp className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <TrendingUp className="w-4 h-4" />
                             </div>
                         </div>
 
                         {/* 3. Overdue Tasks */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">Overdue</span>
+                                <span className="text-xs font-medium text-[var(--app-muted)]">Overdue</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                    <span className={`text-xl font-bold tracking-tight ${
                                         summary.criticalSLABreaches > 0 ? "text-[var(--color-error)]" : "text-[var(--app-text)]"
                                     }`}>
                                         {summary.criticalSLABreaches}
                                     </span>
-                                    <span className="text-[11px] text-[var(--app-muted)] font-normal">
+                                    <span className="text-xs text-[var(--app-muted)] font-normal">
                                         {summary.criticalSLABreaches > 0 ? "needs attention" : "no breaches"}
                                     </span>
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
-                                <AlertCircle className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <AlertCircle className="w-4 h-4" />
                             </div>
                         </div>
 
                         {/* 4. On-Time Rate */}
-                        <div className="px-5 py-2.5 flex items-center justify-between gap-3 bg-[var(--app-card)]">
+                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card)]">
                             <div className="flex flex-col min-w-0">
-                                <span className="eyebrow text-[10px] text-[var(--app-muted)] tracking-wider uppercase">On-Time Rate</span>
+                                <span className="text-xs font-medium text-[var(--app-muted)]">On-Time Rate</span>
                                 <div className="flex items-baseline gap-1.5 mt-0.5">
                                     {summary.totalProjects === 0 || summary.onTimeRate === null || summary.onTimeRate === undefined ? (
                                         <>
-                                            <span className="text-xl font-heading font-bold tracking-tight text-[var(--app-muted)] tabular-nums">
+                                            <span className="text-xl font-bold tracking-tight text-[var(--app-muted)]">
                                                 —
                                             </span>
-                                            <span className="text-[11px] text-[var(--app-muted)] font-normal">Not enough data yet</span>
+                                            <span className="text-xs text-[var(--app-muted)] font-normal">Not enough data yet</span>
                                         </>
                                     ) : (
                                         <>
-                                            <span className={`text-xl font-heading font-bold tracking-tight tabular-nums ${
+                                            <span className={`text-xl font-bold tracking-tight ${
                                                 summary.onTimeRate < 50
                                                     ? "text-[var(--color-error)]"
                                                     : summary.onTimeRate < 80
@@ -704,15 +848,15 @@ export default function ProjectsPortfolio() {
                                             }`}>
                                                 {summary.onTimeRate}%
                                             </span>
-                                            <span className="text-[11px] text-[var(--app-muted)] font-normal">
+                                            <span className="text-xs text-[var(--app-muted)] font-normal">
                                                 {summary.onTimeRate >= 80 ? "on track" : summary.onTimeRate >= 50 ? "moderate" : "delayed"}
                                             </span>
                                         </>
                                     )}
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-[var(--radius-sm,4px)] bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
+                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shrink-0">
+                                <CheckCircle2 className="w-4 h-4" />
                             </div>
                         </div>
                     </div>
@@ -927,9 +1071,37 @@ export default function ProjectsPortfolio() {
                             </div>
                         ) : viewMode === "grid" ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {filteredProjects.map((project) => (
-                                    <ProjectCardWrapper key={project.id} project={project} />
-                                ))}
+                                {filteredProjects.map((project) => {
+                                    const isManager = Boolean(
+                                        currentUser?.id && (
+                                            project.managerId === currentUser.id ||
+                                            project.manager?.id === currentUser.id ||
+                                            project.creatorId === currentUser.id
+                                        )
+                                    );
+
+                                    const isLeader = Boolean(
+                                        (userRole || "").toUpperCase() === "LEADER" ||
+                                        project.members?.some((m: any) => 
+                                            (m.userId === currentUser?.id || m.user?.id === currentUser?.id) && 
+                                            (m.role === "LEADER" || m.role === "Leader")
+                                        )
+                                    );
+
+                                    const canEdit = isManager || isLeader;
+                                    const canArchive = isManager;
+
+                                    return (
+                                        <ProjectCardWrapper
+                                            key={project.id}
+                                            project={project}
+                                            onEdit={canEdit ? () => setProjectToEdit(project) : undefined}
+                                            onArchive={canArchive ? () => setProjectToArchive(project) : undefined}
+                                            canArchive={canArchive}
+                                            onViewDetails={() => setProjectForDetail(project)}
+                                        />
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div className="border border-[var(--app-border)] rounded-[var(--radius-md,8px)] bg-[var(--app-card)] overflow-hidden shadow-card">
@@ -946,9 +1118,37 @@ export default function ProjectsPortfolio() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredProjects.map((project) => (
-                                            <ProjectListItem key={project.id} project={project} />
-                                        ))}
+                                        {filteredProjects.map((project) => {
+                                            const isManager = Boolean(
+                                                currentUser?.id && (
+                                                    project.managerId === currentUser.id ||
+                                                    project.manager?.id === currentUser.id ||
+                                                    project.creatorId === currentUser.id
+                                                )
+                                            );
+
+                                            const isLeader = Boolean(
+                                                (userRole || "").toUpperCase() === "LEADER" ||
+                                                project.members?.some((m: any) => 
+                                                    (m.userId === currentUser?.id || m.user?.id === currentUser?.id) && 
+                                                    (m.role === "LEADER" || m.role === "Leader")
+                                                )
+                                            );
+
+                                            const canEdit = isManager || isLeader;
+                                            const canArchive = isManager;
+
+                                            return (
+                                                <ProjectListItem
+                                                    key={project.id}
+                                                    project={project}
+                                                    onEdit={canEdit ? () => setProjectToEdit(project) : undefined}
+                                                    onArchive={canArchive ? () => setProjectToArchive(project) : undefined}
+                                                    canArchive={canArchive}
+                                                    onViewDetails={() => setProjectForDetail(project)}
+                                                />
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -956,10 +1156,64 @@ export default function ProjectsPortfolio() {
                 </div>
             </div>
 
-            {/* Create Project Modal */}
+            {/* Create Project Modal (Slide-out SideSheet) */}
             <CreateProjectModal
                 isOpen={isCreateOpen}
                 onClose={() => setIsCreateOpen(false)}
+            />
+
+            {/* Edit Project Modal (Slide-out SideSheet) */}
+            <EditProjectModal
+                isOpen={Boolean(projectToEdit)}
+                onClose={() => setProjectToEdit(null)}
+                project={projectToEdit}
+                onSaved={async () => {
+                    setProjectToEdit(null);
+                    await loadProjects();
+                }}
+            />
+
+            {/* Project Details Drawer (Slide-out SideSheet) */}
+            <ProjectDetailDrawer
+                isOpen={Boolean(projectForDetail)}
+                onClose={() => setProjectForDetail(null)}
+                project={projectForDetail}
+                currentUser={currentUser}
+                userRole={userRole || "MEMBER"}
+                canEdit={
+                    Boolean(
+                        currentUser?.id && (
+                            projectForDetail?.managerId === currentUser.id ||
+                            projectForDetail?.manager?.id === currentUser.id ||
+                            projectForDetail?.creatorId === currentUser.id
+                        )
+                    ) ||
+                    Boolean(
+                        (userRole || "").toUpperCase() === "LEADER" ||
+                        projectForDetail?.members?.some((m: any) => 
+                            (m.userId === currentUser?.id || m.user?.id === currentUser?.id) && 
+                            (m.role === "LEADER" || m.role === "Leader")
+                        )
+                    )
+                }
+                onEditClick={() => {
+                    const p = projectForDetail;
+                    setProjectForDetail(null);
+                    setProjectToEdit(p);
+                }}
+            />
+
+            {/* Confirm Archive Dialog */}
+            <ConfirmDialog
+                isOpen={Boolean(projectToArchive)}
+                title="Archive Project?"
+                description={`Move "${projectToArchive?.title || projectToArchive?.name}" to the workspace archive? It will be removed from active project boards. Only the Project Manager and Workspace Owner can view, restore, or permanently delete it.`}
+                confirmText="Move to Archive"
+                cancelText="Cancel"
+                isDanger={true}
+                isLoading={isArchiving}
+                onConfirm={handleConfirmArchive}
+                onClose={() => setProjectToArchive(null)}
             />
 
             {/* Manage Folders Tray (Slide-out) */}

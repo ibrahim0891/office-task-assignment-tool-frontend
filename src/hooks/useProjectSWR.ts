@@ -4,12 +4,29 @@ import useSWR, { mutate as globalMutate, SWRConfiguration } from "swr";
 import { api } from "../api";
 
 export const PROJECT_KEYS = {
-    projects: (teamId?: string, userId?: string) =>
-        teamId ? (["projects", teamId, userId || "all"] as const) : null,
-    portfolioSummary: (teamId?: string, userId?: string) =>
-        teamId ? (["portfolio-summary", teamId, userId || "all"] as const) : null,
-    projectDetail: (projectId?: string, teamId?: string) =>
-        projectId ? (["project-detail", projectId, teamId || "default"] as const) : null,
+    projects: (teamId?: string, userId?: string, allTeams: boolean = true) =>
+        allTeams
+            ? (["projects", "all", userId || "all"] as const)
+            : teamId ? (["projects", teamId, userId || "all"] as const) : null,
+    portfolioSummary: (teamId?: string, userId?: string, allTeams: boolean = true) =>
+        allTeams
+            ? (["portfolio-summary", "all", userId || "all"] as const)
+            : teamId ? (["portfolio-summary", teamId, userId || "all"] as const) : null,
+    projectDetail: (
+        projectId?: string,
+        teamId?: string,
+        filters?: { status?: string; priority?: string; columnId?: string }
+    ) =>
+        projectId
+            ? ([
+                  "project-detail",
+                  projectId,
+                  teamId || "default",
+                  filters?.status || "ALL",
+                  filters?.priority || "ALL",
+                  filters?.columnId || "ALL",
+              ] as const)
+            : null,
     projectAnalytics: (projectId?: string, startDate?: string) =>
         projectId ? (["project-analytics", projectId, startDate || "all"] as const) : null,
     projectInvitations: (teamId?: string) =>
@@ -29,11 +46,11 @@ const DEFAULT_SWR_OPTIONS: SWRConfiguration = {
 /**
  * Hook to fetch and cache the list of projects for a team/user.
  */
-export function useProjects(teamId?: string, userId?: string, config?: SWRConfiguration) {
-    const key = PROJECT_KEYS.projects(teamId, userId);
+export function useProjects(teamId?: string, userId?: string, allTeams: boolean = true, config?: SWRConfiguration) {
+    const key = PROJECT_KEYS.projects(teamId, userId, allTeams);
     const { data, error, isLoading, isValidating, mutate } = useSWR<any[]>(
         key,
-        () => (teamId ? api.getProjects(teamId, userId) : Promise.resolve([])),
+        () => api.getProjects(teamId, userId, allTeams),
         { ...DEFAULT_SWR_OPTIONS, ...config }
     );
 
@@ -49,11 +66,11 @@ export function useProjects(teamId?: string, userId?: string, config?: SWRConfig
 /**
  * Hook to fetch and cache the portfolio summary metrics for a team/user.
  */
-export function usePortfolioSummary(teamId?: string, userId?: string, config?: SWRConfiguration) {
-    const key = PROJECT_KEYS.portfolioSummary(teamId, userId);
+export function usePortfolioSummary(teamId?: string, userId?: string, allTeams: boolean = true, config?: SWRConfiguration) {
+    const key = PROJECT_KEYS.portfolioSummary(teamId, userId, allTeams);
     const { data, error, isLoading, isValidating, mutate } = useSWR<any>(
         key,
-        () => (teamId ? api.getPortfolioSummary(teamId, userId) : Promise.resolve(null)),
+        () => api.getPortfolioSummary(teamId, userId, allTeams),
         { ...DEFAULT_SWR_OPTIONS, ...config }
     );
 
@@ -74,11 +91,16 @@ export function usePortfolioSummary(teamId?: string, userId?: string, config?: S
 /**
  * Hook to fetch and cache a single project detail by ID.
  */
-export function useProjectDetail(projectId?: string, teamId?: string, config?: SWRConfiguration) {
-    const key = PROJECT_KEYS.projectDetail(projectId, teamId);
+export function useProjectDetail(
+    projectId?: string,
+    teamId?: string,
+    filters?: { status?: string; priority?: string; columnId?: string },
+    config?: SWRConfiguration
+) {
+    const key = PROJECT_KEYS.projectDetail(projectId, teamId, filters);
     const { data, error, isLoading, isValidating, mutate } = useSWR<any>(
         key,
-        () => (projectId ? api.getProjectDetail(projectId, teamId) : Promise.resolve(null)),
+        () => (projectId ? api.getProjectDetail(projectId, teamId, filters) : Promise.resolve(null)),
         { ...DEFAULT_SWR_OPTIONS, ...config }
     );
 
@@ -184,15 +206,15 @@ export const mutateProjectDetail = (projectId: string, teamId?: string, data?: a
     }
 };
 
-export const mutateProjects = (teamId?: string, userId?: string) => {
-    const key = PROJECT_KEYS.projects(teamId, userId);
+export const mutateProjects = (teamId?: string, userId?: string, allTeams: boolean = true) => {
+    const key = PROJECT_KEYS.projects(teamId, userId, allTeams);
     if (key) {
         return globalMutate(key);
     }
 };
 
-export const mutatePortfolioSummary = (teamId?: string, userId?: string) => {
-    const key = PROJECT_KEYS.portfolioSummary(teamId, userId);
+export const mutatePortfolioSummary = (teamId?: string, userId?: string, allTeams: boolean = true) => {
+    const key = PROJECT_KEYS.portfolioSummary(teamId, userId, allTeams);
     if (key) {
         return globalMutate(key);
     }

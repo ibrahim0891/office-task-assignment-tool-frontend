@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -41,6 +41,8 @@ import {
     ShieldCheck,
     Shield,
     Eye,
+    Scale,
+    ArrowUpDown,
 } from "lucide-react";
 import { api } from "../../api";
 import { useWorkspace } from "../../context/WorkspaceContext";
@@ -48,17 +50,21 @@ import { triggerMicroCelebration } from "../../utils/confetti";
 import { playFeedback } from "../../utils/feedback";
 import UpdateProjectTaskModal from "./UpdateProjectTaskModal";
 import ProjectColumnModal from "./ProjectColumnModal";
+import ProjectColumnWeightManagerModal from "./ProjectColumnWeightManagerModal";
 import ProjectSubtaskModal from "./ProjectSubtaskModal";
 import TaskFilterModal from "./TaskFilterModal";
 import { useProjectDetail } from "../../hooks/useProjectSWR";
 import { SubtaskKanbanCard } from "./SubtaskKanbanCard";
 import ProjectSubtaskDetailSkeleton from "./ProjectSubtaskDetailSkeleton";
+import PrioritySelectBadge from "./PrioritySelectBadge";
 import { UserAvatar } from "../ui/UserAvatar";
 import { Button } from "../ui/Button";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import { CustomDatePicker } from "../ui/CustomDatePicker";
 import { CustomSelect, SelectOption } from "../ui/CustomSelect";
-import { calculateTaskProgress, isSystemColumn, getStageMeta } from "../../utils/projectProgress";
-import { getProjectPermissions } from "../../utils/projectPermissions";
+import BulkUpdateSubtasksModal from "./BulkUpdateSubtasksModal";
+import { calculateTaskProgress, isSystemColumn, getStageMeta, calculateCumulativeColumnWeights } from "../../utils/projectProgress";
+import { getProjectPermissions, canModifySubtask } from "../../utils/projectPermissions";
 import { getLocalDateString, parseLocalDate, extractDateString, calculateDaySpan, formatDaySpan } from "../../utils/date";
 
 function getPriorityBadge(priority: string) {
@@ -77,10 +83,65 @@ function getPriorityBadge(priority: string) {
     }
 }
 
-function stripHtml(html: string) {
-    if (!html) return "";
-    return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
-}
+export type SortOptionType = "recent" | "custom" | "oldest" | "dueDate" | "priority";
+
+const SORT_OPTIONS: SelectOption[] = [
+    { value: "recent", label: "Newest First" },
+    { value: "custom", label: "Custom Order" },
+    { value: "oldest", label: "Oldest First" },
+    { value: "dueDate", label: "Due Date" },
+    { value: "priority", label: "Priority" },
+];
+
+const PRIORITY_RANK: Record<string, number> = {
+    URGENT: 4,
+    HIGH: 3,
+    MEDIUM: 2,
+    LOW: 1,
+};
+
+const getSortedSubtasks = (items: any[], mode: SortOptionType) => {
+    return [...items].sort((a, b) => {
+        if (mode === "recent") {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (timeB !== timeA) return timeB - timeA;
+            return (b.id || "").localeCompare(a.id || "");
+        }
+        if (mode === "oldest") {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            if (timeA !== timeB) return timeA - timeB;
+            return (a.id || "").localeCompare(b.id || "");
+        }
+        if (mode === "dueDate") {
+            const dueA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+            const dueB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+            if (dueA !== dueB) return dueA - dueB;
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeB - timeA;
+        }
+        if (mode === "priority") {
+            const prioA = PRIORITY_RANK[(a.priority || "MEDIUM").toUpperCase()] || 2;
+            const prioB = PRIORITY_RANK[(b.priority || "MEDIUM").toUpperCase()] || 2;
+            if (prioB !== prioA) return prioB - prioA;
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeB - timeA;
+        }
+        // "custom" mode
+        const orderA = typeof a.order === "number" ? a.order : 0;
+        const orderB = typeof b.order === "number" ? b.order : 0;
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+        // Backward compatibility for legacy subtasks where order is identical (e.g. 0): newest first
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+    });
+};
 
 interface ColumnDef {
     id: string;
@@ -103,10 +164,11 @@ export default function ProjectTaskDetailPage() {
     const params = useParams();
     const projectId = params.id as string;
     const taskId = params.taskId as string;
-    const { currentTeam, currentUser, userRole } = useWorkspace();
+    const { currentTeam, currentUser, userRole, openMemberProfile } = useWorkspace();
 
     const { project, isLoading, mutate: refreshProject } = useProjectDetail(projectId, currentTeam?.id);
     const [subtasks, setSubtasks] = useState<any[]>([]);
+    const [sortBy, setSortBy] = useState<SortOptionType>("recent");
 
     const task = React.useMemo(() => {
         return (project?.tasks || []).find((t: any) => t.id === taskId) || null;
@@ -121,12 +183,55 @@ export default function ProjectTaskDetailPage() {
     // Modals
     const [isEditMainTaskModalOpen, setIsEditMainTaskModalOpen] = useState(false);
     const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
+    const [isWeightManagerOpen, setIsWeightManagerOpen] = useState(false);
     const [columnModalInitialData, setColumnModalInitialData] = useState<any | null>(null);
     const [isSubtaskModalOpen, setIsSubtaskModalOpen] = useState(false);
     const [subtaskModalData, setSubtaskModalData] = useState<any | null>(null);
     const [subtaskModalInitialColStatus, setSubtaskModalInitialColStatus] = useState("Backlog");
-    const [subtaskModalInitialTab, setSubtaskModalInitialTab] = useState<"description" | "comments" | "activity" | "attachments">("description");
+    const [subtaskModalInitialTab, setSubtaskModalInitialTab] = useState<"description" | "checklist" | "comments" | "activity" | "attachments" | undefined>(undefined);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+    const [subtaskToDelete, setSubtaskToDelete] = useState<{ id: string; title?: string } | null>(null);
+    const [isDeletingSubtask, setIsDeletingSubtask] = useState(false);
+    const [columnToDelete, setColumnToDelete] = useState<{ col: ColumnDef; fallbackCol: ColumnDef; subtaskCount: number } | null>(null);
+    const [isDeletingColumn, setIsDeletingColumn] = useState(false);
+
+    // Bulk subtask selection
+    const [selectedSubtaskIds, setSelectedSubtaskIds] = useState<Set<string>>(new Set());
+    const [isBulkSubtaskModalOpen, setIsBulkSubtaskModalOpen] = useState(false);
+
+    const handleToggleSubtaskSelect = (subtaskId: string) => {
+        setSelectedSubtaskIds((prev) => {
+            const next = new Set(prev);
+            next.has(subtaskId) ? next.delete(subtaskId) : next.add(subtaskId);
+            return next;
+        });
+    };
+
+    const handleBulkUpdateSubtasks = async (data: {
+        startDate?: string;
+        dueDate?: string;
+        assignedToId?: string;
+    }) => {
+        const subtaskIds = Array.from(selectedSubtaskIds);
+        if (subtaskIds.length === 0) return;
+        try {
+            await api.batchUpdateProjectSubtasks(projectId, taskId, subtaskIds, data);
+
+            const parts: string[] = [];
+            if (data.startDate) parts.push(`start → ${new Date(data.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`);
+            if (data.dueDate) parts.push(`due → ${new Date(data.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`);
+            if (data.assignedToId) {
+                const m = candidateAssignees.find((a) => a.id === data.assignedToId);
+                parts.push(`assigned to ${m?.name ?? "member"}`);
+            }
+            toast.success(`Updated ${subtaskIds.length} ${subtaskIds.length === 1 ? "subtask" : "subtasks"}: ${parts.join(", ")}`);
+            setSelectedSubtaskIds(new Set());
+            loadProjectDetail();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to bulk update subtasks");
+            throw err;
+        }
+    };
 
     const subtaskIdParam = searchParams?.get("subtaskId") || searchParams?.get("subtask");
     const tabParam = searchParams?.get("tab");
@@ -137,7 +242,7 @@ export default function ProjectTaskDetailPage() {
         const targetSubtask = task.subtasks.find((s: any) => s.id === subtaskIdParam);
         if (targetSubtask) {
             setSubtaskModalData(targetSubtask);
-            setSubtaskModalInitialTab(tabParam === "comments" ? "comments" : "description");
+            setSubtaskModalInitialTab(tabParam ? (tabParam as any) : undefined);
             setIsSubtaskModalOpen(true);
         }
     }, [subtaskIdParam, tabParam, task?.subtasks]);
@@ -276,7 +381,7 @@ export default function ProjectTaskDetailPage() {
     const canCreateSubtask = isProjectMember;
 
     // Build candidate assignees for subtasks:
-    // If manager/leader: main task squad + manager/leader
+    // If manager/leader: main task members + manager/leader
     // If regular member: strictly for themselves
     const candidateAssignees: any[] = [];
     const addedIds = new Set<string>();
@@ -380,13 +485,17 @@ export default function ProjectTaskDetailPage() {
     useEffect(() => {
         const handleProjectDataUpdated = async (e: any) => {
             const detail = e.detail;
+            // Ignore socket re-fetch if this was our own subtask reorder event to prevent card flashing
+            if (detail?.action === "subtask_reorder" && detail?.actingUserId && currentUser?.id && detail.actingUserId === currentUser.id) {
+                return;
+            }
             if (!detail || !detail.projectId || detail.projectId === projectId) {
                 await loadProjectDetail();
             }
         };
         window.addEventListener("project_data_updated", handleProjectDataUpdated);
         return () => window.removeEventListener("project_data_updated", handleProjectDataUpdated);
-    }, [projectId, loadProjectDetail]);
+    }, [projectId, currentUser?.id, loadProjectDetail]);
 
     const [localColumns, setLocalColumns] = useState<ColumnDef[]>([]);
 
@@ -399,6 +508,10 @@ export default function ProjectTaskDetailPage() {
     }, [project?.columns]);
 
     const columns: ColumnDef[] = localColumns.length > 0 ? localColumns : (project?.columns || DEFAULT_SUBTASK_COLUMNS);
+
+    const cumulativeColumnWeights = useMemo(() => {
+        return calculateCumulativeColumnWeights(columns);
+    }, [columns]);
 
     useEffect(() => {
         checkScroll();
@@ -500,19 +613,13 @@ export default function ProjectTaskDetailPage() {
             const updatedCols = Array.from(columns);
             const [movedCol] = updatedCols.splice(source.index, 1);
             updatedCols.splice(destination.index, 0, movedCol);
-
-            // Optimistic UI update
             setLocalColumns(updatedCols);
 
-            const columnOrders = updatedCols.map((c, idx) => ({
-                id: c.id,
-                order: idx,
-            }));
-
             try {
-                // Silently persist new order to database
-                await api.reorderProjectColumns(projectId, columnOrders);
-                loadProjectDetail();
+                await api.reorderProjectColumns(
+                    projectId,
+                    updatedCols.map((c, idx) => ({ id: c.id, order: idx }))
+                );
             } catch (err: any) {
                 toast.error(err.message || "Failed to save column order");
                 if (project?.columns) {
@@ -522,60 +629,119 @@ export default function ProjectTaskDetailPage() {
             return;
         }
 
+        // Subtask reordering / moving across columns
+        const sourceColId = source.droppableId;
         const targetColId = destination.droppableId;
         const targetCol = columns.find((c) => c.id === targetColId);
-        if (!targetCol) return;
+        const draggedSubtask = subtasks.find((s) => s.id === draggableId);
+        if (!targetCol || !draggedSubtask) return;
+
+        const isMovingAcross = sourceColId !== targetColId;
+
+        // Check permissions if moving across columns
+        if (isMovingAcross && !canModifySubtask(draggedSubtask, currentUser, canManageTasks)) {
+            toast.error("Only the assigned member, project leader, or manager can move this subtask to another column.");
+            return;
+        }
 
         const isTargetComplete = Boolean(targetCol.isComplete || targetCol.name.toLowerCase() === "completed");
         const isTargetReview = targetCol.name.toLowerCase().includes("review");
 
-        // Optimistic local state update
+        let actualDaysPayload = draggedSubtask.actualDays;
+        if (isMovingAcross) {
+            if (isTargetComplete) {
+                const startDateRef = draggedSubtask.startDate || draggedSubtask.createdAt || new Date();
+                actualDaysPayload = calculateDaySpan(startDateRef, new Date());
+            } else if (draggedSubtask.isCompleted) {
+                actualDaysPayload = 0;
+            }
+        }
+
+        const updatedSubtask = isMovingAcross
+            ? {
+                  ...draggedSubtask,
+                  columnId: targetColId,
+                  isCompleted: isTargetComplete,
+                  actualDays: actualDaysPayload,
+                  acceptanceStatus: isTargetReview ? "PENDING" : "ACCEPTED",
+                  status: isTargetComplete
+                      ? "Completed"
+                      : isTargetReview
+                      ? "InReview"
+                      : targetCol.name.toLowerCase().includes("progress")
+                      ? "InProgress"
+                      : "Backlog",
+              }
+            : draggedSubtask;
+
+        // 1. Target column list
+        const targetList = getSortedSubtasks(
+            subtasks.filter((st) => st.id !== draggableId && getSubtaskColumnId(st) === targetColId),
+            sortBy === "custom" ? "custom" : sortBy
+        );
+        targetList.splice(destination.index, 0, updatedSubtask);
+
+        const targetOrders = targetList.map((st, idx) => ({
+            id: st.id,
+            order: idx,
+            columnId: targetColId,
+        }));
+
+        // 2. Source column list (if moved across columns)
+        let sourceOrders: { id: string; order: number; columnId: string }[] = [];
+        if (isMovingAcross) {
+            const sourceList = getSortedSubtasks(
+                subtasks.filter((st) => st.id !== draggableId && getSubtaskColumnId(st) === sourceColId),
+                sortBy === "custom" ? "custom" : sortBy
+            );
+            sourceOrders = sourceList.map((st, idx) => ({
+                id: st.id,
+                order: idx,
+                columnId: sourceColId,
+            }));
+        }
+
+        const allOrders = [...targetOrders, ...sourceOrders];
+        const orderMap = new Map(allOrders.map((item) => [item.id, item.order]));
+
+        // Switch sorting mode to 'custom' upon drag & reorder
+        setSortBy("custom");
+
+        // Optimistic UI state update
         setSubtasks((prev) =>
             prev.map((st) => {
                 if (st.id === draggableId) {
-                    return {
-                        ...st,
-                        columnId: targetColId,
-                        isCompleted: isTargetComplete,
-                        acceptanceStatus: isTargetReview ? "PENDING" : "ACCEPTED",
-                        status: isTargetComplete
-                            ? "Completed"
-                            : isTargetReview
-                            ? "InReview"
-                            : targetCol.name.toLowerCase().includes("progress")
-                            ? "InProgress"
-                            : "Backlog",
-                    };
+                    return { ...updatedSubtask, order: destination.index };
+                }
+                if (orderMap.has(st.id)) {
+                    return { ...st, order: orderMap.get(st.id)! };
                 }
                 return st;
             })
         );
 
-        if (isTargetComplete) {
+        if (isMovingAcross && isTargetComplete) {
             triggerMicroCelebration({ intensity: "medium" });
-            playFeedback();
+            playFeedback("complete");
+        } else {
+            playFeedback("click");
         }
 
-        const draggedSubtask = subtasks.find((s) => s.id === draggableId);
-        let actualDaysPayload = undefined;
-        if (isTargetComplete) {
-            const startDateRef = draggedSubtask?.startDate || draggedSubtask?.createdAt || new Date();
-            actualDaysPayload = calculateDaySpan(startDateRef, new Date());
-        } else if (draggedSubtask?.isCompleted && !isTargetComplete) {
-            actualDaysPayload = 0;
-        }
-
+        // Persist to database
         try {
-            await api.updateProjectSubtask(projectId, taskId, draggableId, {
-                columnId: targetColId,
-                isCompleted: isTargetComplete,
-                actualDays: actualDaysPayload,
-                completedAt: isTargetComplete ? new Date().toISOString() : null,
-                acceptanceStatus: isTargetReview ? "PENDING" : "ACCEPTED",
-            });
-            toast.success(`Moved to ${targetCol.name}`);
+            if (isMovingAcross) {
+                await api.updateProjectSubtask(projectId, taskId, draggableId, {
+                    columnId: targetColId,
+                    isCompleted: isTargetComplete,
+                    actualDays: actualDaysPayload,
+                    completedAt: isTargetComplete ? new Date().toISOString() : null,
+                    acceptanceStatus: isTargetReview ? "PENDING" : "ACCEPTED",
+                    order: destination.index,
+                });
+            }
+            await api.reorderProjectSubtasks(projectId, taskId, allOrders);
         } catch (err: any) {
-            toast.error(err.message || "Failed to move subtask");
+            toast.error(err.message || "Failed to update subtask order");
             loadProjectDetail();
         }
     };
@@ -622,15 +788,55 @@ export default function ProjectTaskDetailPage() {
         }
     };
 
-    // Delete subtask
-    const handleDeleteSubtask = async (subtaskId: string) => {
-        if (!window.confirm("Are you sure you want to delete this subtask?")) return;
+    // Update subtask priority directly
+    const handleUpdateSubtaskPriority = async (subtaskId: string, newPriority: string) => {
         try {
-            await api.deleteProjectSubtask(projectId, taskId, subtaskId);
-            toast.success("Subtask deleted");
+            await api.updateProjectSubtask(projectId, taskId, subtaskId, {
+                priority: newPriority,
+            });
+            toast.success(`Subtask priority updated to ${newPriority.toLowerCase()}`);
             loadProjectDetail();
         } catch (err: any) {
+            toast.error(err.message || "Failed to update subtask priority");
+            throw err;
+        }
+    };
+
+    // Update main task priority directly
+    const handleUpdateMainTaskPriority = async (newPriority: string) => {
+        try {
+            await api.updateProjectTask(projectId, taskId, {
+                priority: newPriority,
+            });
+            toast.success(`Task priority updated to ${newPriority.toLowerCase()}`);
+            loadProjectDetail();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update task priority");
+            throw err;
+        }
+    };
+
+    // Delete subtask
+    const handleDeleteSubtask = (subtaskId: string) => {
+        const found = subtasks.find((s: any) => s.id === subtaskId);
+        setSubtaskToDelete(found || { id: subtaskId });
+    };
+
+    const handleConfirmDeleteSubtask = async () => {
+        if (!subtaskToDelete) return;
+        setIsDeletingSubtask(true);
+        try {
+            await api.deleteProjectSubtask(projectId, taskId, subtaskToDelete.id);
+            toast.success("Subtask deleted");
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("project_data_updated", { detail: { projectId } }));
+            }
+            loadProjectDetail();
+            setSubtaskToDelete(null);
+        } catch (err: any) {
             toast.error(err.message || "Failed to delete subtask");
+        } finally {
+            setIsDeletingSubtask(false);
         }
     };
 
@@ -652,6 +858,27 @@ export default function ProjectTaskDetailPage() {
         loadProjectDetail();
     };
 
+    const handleSaveColumnWeights = async (
+        updatedWeights: { id: string; weight: number | null }[],
+        updatedOrders?: { id: string; order: number }[]
+    ) => {
+        await api.batchUpdateProjectColumnWeights(projectId, updatedWeights);
+        if (updatedOrders && updatedOrders.length > 0) {
+            await api.reorderProjectColumns(projectId, updatedOrders);
+        }
+        await loadProjectDetail();
+    };
+
+    const handleCreateColumnFromManager = async (name: string, weight?: number | null) => {
+        await api.createProjectColumn(projectId, name, "CUSTOM", false, weight);
+        await loadProjectDetail();
+    };
+
+    const handleRenameColumnFromManager = async (columnId: string, name: string) => {
+        await api.updateProjectColumn(projectId, columnId, { name });
+        await loadProjectDetail();
+    };
+
     const handleDeleteColumn = async (col: ColumnDef) => {
         if (isSystemColumn(col)) {
             toast.error("Core system workflow stages cannot be deleted.");
@@ -666,16 +893,22 @@ export default function ProjectTaskDetailPage() {
         const subtasksInThisCol = subtasks.filter((st) => getSubtaskColumnId(st) === col.id);
         const fallbackCol = columns.find((c) => c.id !== col.id) || DEFAULT_SUBTASK_COLUMNS[0];
 
-        const confirmMsg =
-            subtasksInThisCol.length > 0
-                ? `Column "${col.name}" contains ${subtasksInThisCol.length} subtasks. Moving them to "${fallbackCol.name}" before deleting. Proceed?`
-                : `Are you sure you want to delete column "${col.name}"?`;
+        setColumnToDelete({
+            col,
+            fallbackCol,
+            subtaskCount: subtasksInThisCol.length,
+        });
+    };
 
-        if (!window.confirm(confirmMsg)) return;
+    const handleConfirmDeleteColumn = async () => {
+        if (!columnToDelete) return;
+        const { col, fallbackCol, subtaskCount } = columnToDelete;
 
         try {
+            setIsDeletingColumn(true);
             // If subtasks exist, migrate them to fallback column
-            if (subtasksInThisCol.length > 0) {
+            if (subtaskCount > 0) {
+                const subtasksInThisCol = subtasks.filter((st) => getSubtaskColumnId(st) === col.id);
                 await Promise.all(
                     subtasksInThisCol.map((st) =>
                         api.updateProjectSubtask(projectId, taskId, st.id, {
@@ -688,13 +921,16 @@ export default function ProjectTaskDetailPage() {
 
             await api.deleteProjectColumn(projectId, col.id);
             toast.success(
-                subtasksInThisCol.length > 0
-                    ? `Column deleted. ${subtasksInThisCol.length} subtasks moved to ${fallbackCol.name}.`
+                subtaskCount > 0
+                    ? `Column deleted. ${subtaskCount} subtasks moved to ${fallbackCol.name}.`
                     : "Column deleted successfully."
             );
             loadProjectDetail();
+            setColumnToDelete(null);
         } catch (err: any) {
             toast.error(err.message || "Failed to delete column");
+        } finally {
+            setIsDeletingColumn(false);
         }
     };
 
@@ -794,13 +1030,16 @@ export default function ProjectTaskDetailPage() {
                         )}
 
                         {/* Priority Badge */}
-                        <span className="text-[11px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[3px] border border-[var(--app-border)] shrink-0" title={`Priority: ${task.priority}`}>
-                            {task.priority || "Medium"}
-                        </span>
+                        <PrioritySelectBadge
+                            priority={task.priority}
+                            canEdit={canManageTasks}
+                            size="sm"
+                            onUpdate={handleUpdateMainTaskPriority}
+                        />
                     </div>
                 </div>
 
-                {/* Right: Dates, Squad Avatars, Progress & Edit Button */}
+                {/* Right: Dates, Member Avatars, Progress & Edit Button */}
                 <div className="flex items-center gap-3 shrink-0 text-xs text-[var(--app-muted)]">
                     {/* Timeline Date Range */}
                     {(task.startDate || task.dueDate) && (
@@ -815,20 +1054,31 @@ export default function ProjectTaskDetailPage() {
                         </div>
                     )}
 
-                    {/* Squad Avatars */}
+                    {/* Member Avatars */}
                     {task.assignees && task.assignees.length > 0 && (
-                        <div className="hidden lg:flex items-center -space-x-1.5 shrink-0" title={`Squad: ${task.assignees.map((a: any) => (a.user?.name || a.name || "User")).join(", ")}`}>
+                        <div className="hidden lg:flex items-center -space-x-1.5 shrink-0" title={`Members: ${task.assignees.map((a: any) => (a.user?.name || a.name || "User")).join(", ")}`}>
                             {(task.assignees || []).slice(0, 3).map((u: any, idx: number) => {
                                 const userObj = u.user || u;
                                 const name = userObj.name || userObj.fullName || "User";
                                 const avatarUrl = userObj.avatarUrl || u.avatarUrl;
                                 return (
-                                    <div key={userObj.id || idx} className="ring-1.5 ring-[var(--app-card)] rounded-full">
+                                    <div 
+                                        key={userObj.id || idx} 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            openMemberProfile(userObj);
+                                        }}
+                                        className="ring-1.5 ring-[var(--app-card)] rounded-full cursor-pointer hover:scale-110 hover:z-10 transition-transform"
+                                    >
                                         <UserAvatar
                                             name={name}
                                             avatarUrl={avatarUrl}
                                             size="xs"
                                             showBorder={false}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openMemberProfile(userObj);
+                                            }}
                                         />
                                     </div>
                                 );
@@ -857,7 +1107,7 @@ export default function ProjectTaskDetailPage() {
                             variant="secondary"
                             size="sm"
                             onClick={() => setIsEditMainTaskModalOpen(true)}
-                            icon={<Edit2 className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />}
+                            icon={<Edit2 className="w-3.5 h-3.5 shrink-0" />}
                             title="Edit Main Task"
                             className="shadow-2xs text-xs"
                         >
@@ -867,20 +1117,27 @@ export default function ProjectTaskDetailPage() {
                 </div>
             </div>
 
-            {/* Main Task Description Row: Dynamic TipTap HTML with Max-Height and Smooth Scroll */}
-            {task.description && (
-                <div className="shrink-0 px-5 py-2.5 bg-[var(--app-card)]/30 border-b border-[var(--app-border)] select-text">
-                    <div
-                        className="max-h-28 sm:max-h-36 overflow-y-auto pr-2 text-xs leading-relaxed text-[var(--app-text)]/85 prose prose-xs dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: task.description }}
-                    />
-                </div>
-            )}
-
             {/* Subtask Controls & Filters Bar */}
             <div className="shrink-0 px-5 py-2.5 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-wrap items-center justify-between gap-3 select-none">
-                {/* Left Side: Scope Toggle (All vs Today) + Add Subtask & Columns Buttons */}
+                {/* Left Side: Add Subtask (Filled) + Scope Toggle (All vs Today) + Columns Buttons */}
                 <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                    {/* Add Subtask Action Button (Filled) */}
+                    {canCreateSubtask && (
+                        <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            icon={<Plus className="w-3.5 h-3.5" />}
+                            onClick={() => {
+                                setSubtaskModalData(null);
+                                setSubtaskModalInitialColStatus(columns[0]?.id || columns[0]?.name || "To Do");
+                                setIsSubtaskModalOpen(true);
+                            }}
+                        >
+                            Add Subtask
+                        </Button>
+                    )}
+
                     {/* Scope Segmented Toggle */}
                     <div className="flex items-center h-[32px] bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] p-0.5 text-xs font-medium shrink-0">
                         <button
@@ -919,41 +1176,6 @@ export default function ProjectTaskDetailPage() {
                             )}
                         </button>
                     </div>
-
-                    {/* Add Subtask Action Button */}
-                    {canCreateSubtask && (
-                        <Button
-                            type="button"
-                            variant="default"
-                            size="sm"
-                            icon={<Plus className="w-3.5 h-3.5" />}
-                            onClick={() => {
-                                setSubtaskModalData(null);
-                                setSubtaskModalInitialColStatus(columns[0]?.id || columns[0]?.name || "To Do");
-                                setIsSubtaskModalOpen(true);
-                            }}
-                        >
-                            Add Subtask
-                        </Button>
-                    )}
-
-                    {/* Columns Management CTA */}
-                    {canManageTasks && (
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            icon={<SlidersHorizontal className="w-3.5 h-3.5 text-[var(--app-muted)]" />}
-                            onClick={() => {
-                                setColumnModalInitialData(null);
-                                setIsColumnModalOpen(true);
-                            }}
-                            title="Manage workflow columns"
-                            className="shadow-2xs text-xs"
-                        >
-                            Columns
-                        </Button>
-                    )}
                 </div>
 
                 {/* Right Side: Search, Assignee Filter, Modal Filter & Reset */}
@@ -978,6 +1200,16 @@ export default function ProjectTaskDetailPage() {
                         placeholder="All Assignees"
                         buttonClassName="corner-brackets-4 text-xs h-[32px] !py-0 px-3 bg-[var(--app-card)]"
                         className="w-32 sm:w-40 h-[32px] shrink-0"
+                    />
+
+                    {/* Sort Selector */}
+                    <CustomSelect
+                        options={SORT_OPTIONS}
+                        value={sortBy}
+                        onChange={(val) => setSortBy(val as SortOptionType)}
+                        placeholder="Sort By"
+                        buttonClassName="corner-brackets-4 text-xs h-[32px] !py-0 px-2.5 bg-[var(--app-card)]"
+                        className="w-32 sm:w-36 h-[32px] shrink-0"
                     />
 
                     {/* Filter Modal Trigger Button */}
@@ -1046,9 +1278,10 @@ export default function ProjectTaskDetailPage() {
                             className="flex-1 p-4 flex gap-4 overflow-x-auto overflow-y-hidden"
                         >
                             {columns.map((col, colIndex) => {
-                                const colSubtasks = filteredSubtasks.filter(
+                                const rawColSubtasks = filteredSubtasks.filter(
                                     (st) => getSubtaskColumnId(st) === col.id
                                 );
+                                const colSubtasks = getSortedSubtasks(rawColSubtasks, sortBy);
                                 const isDoneCol = Boolean(col.isComplete || col.name.toLowerCase().includes("done") || col.name.toLowerCase().includes("completed"));
                                 const isProgressCol = col.name.toLowerCase().includes("progress") || col.name.toLowerCase().includes("doing");
                                 const isReviewCol = col.name.toLowerCase().includes("review") || col.name.toLowerCase().includes("qa");
@@ -1061,7 +1294,8 @@ export default function ProjectTaskDetailPage() {
                                     ? "border-t-2 border-t-[var(--status-at-risk,#D97706)]"
                                     : "border-t-2 border-t-[var(--status-todo,#6B7280)]";
 
-                                const stageMeta = getStageMeta(col);
+                                const colCumulativeInfo = cumulativeColumnWeights[col.id];
+                                const stageMeta = getStageMeta(col, colCumulativeInfo?.cumulativeWeight);
 
                                 return (
                                     <Draggable
@@ -1094,9 +1328,20 @@ export default function ProjectTaskDetailPage() {
                                                         <span className="text-[11px] font-semibold text-[var(--app-text)] truncate">
                                                             {col.name}
                                                         </span>
-                                                        <span className="text-[8px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1 py-0.2 rounded-[1px] tabular-nums shrink-0" title={`Stage weight: ${stageMeta.weight}%`}>
-                                                            {stageMeta.weight}%
-                                                        </span>
+                                                        {colCumulativeInfo && (
+                                                            <span
+                                                                className={`text-[8.5px] font-bold px-1.5 py-0.2 rounded-[2px] border tabular-nums shrink-0 ${
+                                                                    colCumulativeInfo.cumulativeWeight === 100
+                                                                        ? "bg-[var(--status-completed,#15803D)]/10 text-[var(--status-completed,#15803D)] border-[var(--status-completed,#15803D)]/30"
+                                                                        : colCumulativeInfo.cumulativeWeight >= 50
+                                                                        ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border-[var(--color-accent)]/30"
+                                                                        : "bg-[var(--app-bg)] text-[var(--app-muted)] border-[var(--app-border)]"
+                                                                }`}
+                                                                title={`Step Contribution: +${colCumulativeInfo.stepWeight}% | Milestone Progress: ${colCumulativeInfo.cumulativeWeight}%`}
+                                                            >
+                                                                {colCumulativeInfo.cumulativeWeight}%
+                                                            </span>
+                                                        )}
                                                         <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px] tabular-nums shrink-0">
                                                             {colSubtasks.length}
                                                         </span>
@@ -1175,6 +1420,7 @@ export default function ProjectTaskDetailPage() {
                                                                         index={idx}
                                                                         currentUser={currentUser}
                                                                         canManageTasks={canManageTasks}
+                                                                        isProjectMember={isProjectMember}
                                                                         candidateAssignees={candidateAssignees}
                                                                         onSelectSubtask={(sub) => {
                                                                             setSubtaskModalData(sub);
@@ -1187,6 +1433,9 @@ export default function ProjectTaskDetailPage() {
                                                                         onDeleteSubtask={handleDeleteSubtask}
                                                                         onReassignSubtask={handleReassignSubtask}
                                                                         onToggleComplete={handleToggleComplete}
+                                                                        onUpdatePriority={handleUpdateSubtaskPriority}
+                                                                        isSelected={selectedSubtaskIds.has(st.id)}
+                                                                        onToggleSelect={canManageTasks ? handleToggleSubtaskSelect : undefined}
                                                                     />
                                                                 ))
                                                             )}
@@ -1226,6 +1475,48 @@ export default function ProjectTaskDetailPage() {
                 </Droppable>
             </DragDropContext>
 
+            {/* Bulk Subtask Action Bar */}
+            {selectedSubtaskIds.size > 0 && canManageTasks && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[var(--app-card)] text-[var(--app-text)] border border-[var(--app-border-strong)] shadow-2xl rounded-[4px] px-4 py-2.5 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+                    <div className="flex items-center gap-2 pr-3 border-r border-[var(--app-border)]">
+                        <span className="w-5 h-5 rounded-full bg-[var(--color-accent)] text-white text-[11px] font-bold flex items-center justify-center">
+                            {selectedSubtaskIds.size}
+                        </span>
+                        <span className="text-xs font-semibold">
+                            {selectedSubtaskIds.size === 1 ? "1 subtask selected" : `${selectedSubtaskIds.size} subtasks selected`}
+                        </span>
+                    </div>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setIsBulkSubtaskModalOpen(true)}
+                        icon={<CalendarRange className="w-3.5 h-3.5" />}
+                        className="!h-8 !text-xs font-semibold"
+                    >
+                        Dates & Assignee
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedSubtaskIds(new Set())}
+                        className="!h-8 !text-xs text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                    >
+                        Deselect All
+                    </Button>
+                </div>
+            )}
+
+            {/* Bulk Update Subtasks Modal */}
+            <BulkUpdateSubtasksModal
+                isOpen={isBulkSubtaskModalOpen}
+                onClose={() => setIsBulkSubtaskModalOpen(false)}
+                subtaskCount={selectedSubtaskIds.size}
+                candidateAssignees={candidateAssignees}
+                projectStartDate={project?.startDate}
+                projectEndDate={project?.endDate}
+                onUpdate={handleBulkUpdateSubtasks}
+            />
+
             {/* Update Main Task Modal */}
             <UpdateProjectTaskModal
                 isOpen={isEditMainTaskModalOpen}
@@ -1245,7 +1536,19 @@ export default function ProjectTaskDetailPage() {
                 }}
                 onSave={handleSaveColumn}
                 onDelete={handleDeleteColumn}
+                onOpenWeightManager={() => setIsWeightManagerOpen(true)}
                 initialData={columnModalInitialData}
+            />
+
+            {/* Central Column Weight & Workflow Manager Modal */}
+            <ProjectColumnWeightManagerModal
+                isOpen={isWeightManagerOpen}
+                onClose={() => setIsWeightManagerOpen(false)}
+                columns={columns}
+                onSaveWeights={handleSaveColumnWeights}
+                onCreateColumn={handleCreateColumnFromManager}
+                onDeleteColumn={handleDeleteColumn}
+                onRenameColumn={handleRenameColumnFromManager}
             />
 
             {/* Full Subtask Modal (Create & Edit) */}
@@ -1254,7 +1557,7 @@ export default function ProjectTaskDetailPage() {
                 onClose={() => {
                     setIsSubtaskModalOpen(false);
                     setSubtaskModalData(null);
-                    setSubtaskModalInitialTab("description");
+                    setSubtaskModalInitialTab(undefined);
                 }}
                 projectId={projectId}
                 parentTask={task}
@@ -1267,6 +1570,36 @@ export default function ProjectTaskDetailPage() {
                 canManageTasks={canManageTasks}
                 candidateAssignees={candidateAssignees}
                 onRefresh={loadProjectDetail}
+            />
+
+            {/* Subtask Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={Boolean(subtaskToDelete)}
+                title="Delete Subtask"
+                description={`Are you sure you want to permanently delete "${subtaskToDelete?.title || "this subtask"}"? This action cannot be undone.`}
+                confirmText="Delete Subtask"
+                cancelText="Cancel"
+                isDanger={true}
+                isLoading={isDeletingSubtask}
+                onConfirm={handleConfirmDeleteSubtask}
+                onClose={() => setSubtaskToDelete(null)}
+            />
+
+            {/* Column Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={Boolean(columnToDelete)}
+                title="Delete Column"
+                description={
+                    columnToDelete?.subtaskCount && columnToDelete.subtaskCount > 0
+                        ? `Column "${columnToDelete.col.name}" contains ${columnToDelete.subtaskCount} subtasks. They will be moved to "${columnToDelete.fallbackCol.name}" before deleting. Proceed?`
+                        : `Are you sure you want to delete column "${columnToDelete?.col.name}"?`
+                }
+                confirmText="Delete Column"
+                cancelText="Cancel"
+                isDanger={true}
+                isLoading={isDeletingColumn}
+                onConfirm={handleConfirmDeleteColumn}
+                onClose={() => setColumnToDelete(null)}
             />
 
             {/* Subtask Filters Modal (Priority & Date Range) */}

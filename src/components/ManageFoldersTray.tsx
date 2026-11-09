@@ -15,6 +15,7 @@ interface ManageFoldersTrayProps {
 
 export default function ManageFoldersTray({ isOpen, onClose }: ManageFoldersTrayProps) {
     const {
+        currentUser,
         folders,
         isFoldersLoading,
         handleCreateFolder,
@@ -36,6 +37,7 @@ export default function ManageFoldersTray({ isOpen, onClose }: ManageFoldersTray
     const [movingProjectId, setMovingProjectId] = useState<string | null>(null);
 
     const isLeader = userRole === "LEADER";
+    const canCreateFolder = userRole !== "OBSERVER";
 
     const onCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -130,8 +132,8 @@ export default function ManageFoldersTray({ isOpen, onClose }: ManageFoldersTray
                     </button>
                 </div>
 
-                {/* Create folder form (Leader only) */}
-                {isLeader && (
+                {/* Create folder form (Enabled for workspace members) */}
+                {canCreateFolder && (
                     <form onSubmit={onCreate} className="p-4 border-b border-[var(--app-border)] flex items-end gap-2 shrink-0">
                         <div className="flex flex-col gap-1 shrink-0">
                             <span className="eyebrow">Icon</span>
@@ -184,6 +186,8 @@ export default function ManageFoldersTray({ isOpen, onClose }: ManageFoldersTray
                             const isDefault = defaultFolder?.id === folder.id;
                             const folderProjects = folder.projects || [];
                             const isEditing = editingFolderId === folder.id;
+                            const isFolderCreator = Boolean(folder.creatorId && folder.creatorId === currentUser?.id);
+                            const canManageFolder = isLeader || isFolderCreator;
 
                             return (
                                 <div
@@ -235,15 +239,20 @@ export default function ManageFoldersTray({ isOpen, onClose }: ManageFoldersTray
                                                         Default
                                                     </span>
                                                 )}
+                                                {!isDefault && !isFolderCreator && folder.creator && (
+                                                    <span className="text-[9px] bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-muted)] px-1.5 py-0.5 rounded-[2px] shrink-0 truncate max-w-[90px]" title={`Created by ${folder.creator.fullName || folder.creator.name}`}>
+                                                        by {folder.creator.fullName?.split(" ")[0] || folder.creator.name}
+                                                    </span>
+                                                )}
                                                 <span className="text-[10px] text-[var(--app-muted)] shrink-0">
                                                     ({folderProjects.length})
                                                 </span>
                                             </div>
                                         )}
 
-                                        {/* Actions */}
-                                        {isLeader && !isEditing && (
-                                            <div className="flex items-center gap-1">
+                                        {/* Actions (Only for Folder Creator or Workspace Owner) */}
+                                        {canManageFolder && !isEditing && (
+                                            <div className="flex items-center gap-1 shrink-0">
                                                 <button
                                                     onClick={() => onStartEdit(folder)}
                                                     className="text-[var(--app-muted)] hover:text-[var(--app-text)] p-1 rounded hover:bg-[var(--app-card)] border border-transparent hover:border-[var(--app-border)] cursor-pointer"
@@ -276,50 +285,54 @@ export default function ManageFoldersTray({ isOpen, onClose }: ManageFoldersTray
                                                 No projects in this folder
                                             </span>
                                         ) : (
-                                            folderProjects.map((project: any) => (
-                                                <div
-                                                    key={project.id}
-                                                    className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] px-2 py-1.5 flex items-center justify-between gap-2.5 text-[11px]"
-                                                >
-                                                    <div className="flex items-center gap-1.5 min-w-0">
-                                                        <span>{project.emoji || "📁"}</span>
-                                                        <span className="font-medium text-[var(--app-text)] truncate">
-                                                            {project.title}
-                                                        </span>
-                                                    </div>
+                                            folderProjects.map((project: any) => {
+                                                const canMoveProject = isLeader || (project.managerId && project.managerId === currentUser?.id);
 
-                                                    {/* Move Dropdown using CustomSelect */}
-                                                    {isLeader && (
-                                                        <div className="flex items-center gap-1 shrink-0 relative">
-                                                            {movingProjectId === project.id ? (
-                                                                <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--app-muted)]" />
-                                                            ) : (
-                                                                <CustomSelect
-                                                                    options={folders.map((f) => ({
-                                                                        value: f.id,
-                                                                        label: `${f.emoji || "📁"} ${f.name}`,
-                                                                        sublabel: f.id === folder.id ? "Current" : undefined,
-                                                                    }))}
-                                                                    value={folder.id}
-                                                                    onChange={(targetFolderId) => {
-                                                                        if (targetFolderId !== folder.id) {
-                                                                            handleMoveProject(project.id, targetFolderId);
-                                                                        }
-                                                                    }}
-                                                                    placeholder="Move to..."
-                                                                    renderSelected={() => (
-                                                                        <span className="text-[10px] font-medium text-[var(--app-muted)] hover:text-[var(--app-text)] truncate max-w-[85px]">
-                                                                            Move: {folder.name}
-                                                                        </span>
-                                                                    )}
-                                                                    buttonClassName="corner-brackets-4 text-[10px] h-[24px] !py-0 px-2 bg-[var(--app-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
-                                                                    className="w-32 h-[24px] shrink-0"
-                                                                />
-                                                            )}
+                                                return (
+                                                    <div
+                                                        key={project.id}
+                                                        className="bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] px-2 py-1.5 flex items-center justify-between gap-2.5 text-[11px]"
+                                                    >
+                                                        <div className="flex items-center gap-1.5 min-w-0">
+                                                            <span>{project.emoji || "📁"}</span>
+                                                            <span className="font-medium text-[var(--app-text)] truncate">
+                                                                {project.title}
+                                                            </span>
                                                         </div>
-                                                    )}
-                                                </div>
-                                            ))
+
+                                                        {/* Move Dropdown (Only for Project Manager or Workspace Owner) */}
+                                                        {canMoveProject && (
+                                                            <div className="flex items-center gap-1 shrink-0 relative">
+                                                                {movingProjectId === project.id ? (
+                                                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--app-muted)]" />
+                                                                ) : (
+                                                                    <CustomSelect
+                                                                        options={folders.map((f) => ({
+                                                                            value: f.id,
+                                                                            label: `${f.emoji || "📁"} ${f.name}`,
+                                                                            sublabel: f.id === folder.id ? "Current" : undefined,
+                                                                        }))}
+                                                                        value={folder.id}
+                                                                        onChange={(targetFolderId) => {
+                                                                            if (targetFolderId !== folder.id) {
+                                                                                handleMoveProject(project.id, targetFolderId);
+                                                                            }
+                                                                        }}
+                                                                        placeholder="Move to..."
+                                                                        renderSelected={() => (
+                                                                            <span className="text-[10px] font-medium text-[var(--app-muted)] hover:text-[var(--app-text)] truncate max-w-[85px]">
+                                                                                Move: {folder.name}
+                                                                            </span>
+                                                                        )}
+                                                                        buttonClassName="corner-brackets-4 text-[10px] h-[24px] !py-0 px-2 bg-[var(--app-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
+                                                                        className="w-32 h-[24px] shrink-0"
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })
                                         )}
                                     </div>
                                 </div>

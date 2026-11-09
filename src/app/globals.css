@@ -26,10 +26,13 @@ html {
   --color-warning: #B08800;
   --color-accent: #1A1A1A;
 
+  /* Button theme tokens */
+  --btn-primary-text: #FFFFFF;
+
   /* Typography */
   --font-serif: var(--font-secondary, var(--font-instrument-serif), 'Georgia', serif);
   --font-sans: var(--font-primary, var(--font-inter), 'Inter', -apple-system, system-ui, sans-serif);
-  --font-scale: 1.00;
+  --font-scale: 1.30;
 
   /* Priority theme tokens - visually distinct from status */
   --priority-urgent: #CB2431;
@@ -90,6 +93,8 @@ html[data-theme="nord-dark"] {
   --color-warning: #EBCB8B;     /* Nord Aurora Yellow nord13 */
   --color-accent: #88C0D0;      /* Nord Frost Cyan nord8 */
 
+  --btn-primary-text: #2E3440;
+
   --app-select-bg: #434C5E;     /* Nord Polar Night nord2 selection */
   --app-hover-bg: #3E4554;      /* Subtle hover */
 
@@ -111,6 +116,8 @@ html[data-theme="amoled-dark"] {
   --color-error: #EF4444;
   --color-warning: #F59E0B;
   --color-accent: #3B82F6;
+
+  --btn-primary-text: #FFFFFF;
 
   --app-select-bg: #1F1F1F;     /* Subtle active item background */
   --app-hover-bg: #161616;      /* Subtle hover */
@@ -134,6 +141,8 @@ html[data-theme="lws-dark"] {
   --color-error: #F43F5E;       /* Rose Red */
   --color-warning: #EAB308;     /* Amber */
   --color-accent: #00D26A;      /* LWS Emerald Green Accent */
+
+  --btn-primary-text: #0F172A;
 
   --app-select-bg: #334155;     /* Slate 700 selection background */
   --app-hover-bg: #273142;      /* Subtle hover */
@@ -409,15 +418,30 @@ html[data-ui="modern"] button.corner-brackets-4::before,
 html[data-ui="modern"] button.corner-brackets-4::after {
   display: none !important;
 }
-/* Primary variant: accent fill */
-html[data-ui="modern"] button[class*="bg-[var(--app-text)]"] {
+/* Primary variant: accent fill (exclude outline buttons and opacity-tinted buttons) */
+html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"]:not([class*="bg-[var(--color-accent)]/"]):not([class*="bg-transparent"]):not(.btn-outline),
+html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:not([class*="bg-[var(--app-text)]/"]):not([class*="bg-transparent"]):not(.btn-outline) {
   background-color: var(--color-accent) !important;
   border-color: var(--color-accent) !important;
-  color: #fff !important;
+  color: var(--btn-primary-text, #fff) !important;
 }
-html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:hover {
+html[data-ui="modern"] button[class*="bg-[var(--color-accent)]"]:not([class*="bg-[var(--color-accent)]/"]):not([class*="bg-transparent"]):not(.btn-outline):hover,
+html[data-ui="modern"] button[class*="bg-[var(--app-text)]"]:not([class*="bg-[var(--app-text)]/"]):not([class*="bg-transparent"]):not(.btn-outline):hover {
   background-color: color-mix(in srgb, var(--color-accent) 85%, black) !important;
   border-color: color-mix(in srgb, var(--color-accent) 85%, black) !important;
+}
+
+/* Outline variant in Modern mode: transparent fill with accent border and text */
+html[data-ui="modern"] button[class*="border-[var(--color-accent)]"][class*="bg-transparent"],
+html[data-ui="modern"] button.btn-outline {
+  background-color: transparent !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+html[data-ui="modern"] button[class*="border-[var(--color-accent)]"][class*="bg-transparent"]:hover,
+html[data-ui="modern"] button.btn-outline:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 12%, transparent) !important;
+  color: var(--color-accent) !important;
 }
 /* showDot indicator → accent colour */
 html[data-ui="modern"] button span[class*="bg-[var(--app-muted)]"],
@@ -443,13 +467,13 @@ html[data-ui="modern"] div[class*="corner-brackets-4"] {
   border-radius: var(--radius-card, 4px) !important;
 }
 
-html[data-ui="modern"] .kanban-task-card {
+html[data-ui="modern"] .kanban-task-card:not([data-selected="true"]):not(.is-selected) {
   background-color: var(--app-card) !important;
   border: 1px solid var(--app-border) !important;
   border-radius: var(--radius-card, 4px) !important;
   box-shadow: var(--shadow-card);
 }
-html[data-ui="modern"] .kanban-task-card:hover {
+html[data-ui="modern"] .kanban-task-card:not([data-selected="true"]):not(.is-selected):hover {
   box-shadow: var(--shadow-float);
   border-color: var(--app-border-strong) !important;
 }
@@ -804,12 +828,28 @@ html[data-ui="modern"] [class*="bg-[#1A1A1A]"][class*="h-2"] {
   background-color: var(--color-accent) !important;
 }
 
-/* 32. Accent glow on active kanban card (optional flair) */
+/* 32. Accented border and subtle accent background on active / selected kanban card */
+.kanban-task-card[data-selected="true"],
+.kanban-task-card.is-selected,
 html[data-ui="modern"] .kanban-task-card.active,
-html[data-ui="modern"] .kanban-task-card[data-selected="true"] {
-  border-color: var(--color-accent) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent),
-              var(--shadow-float) !important;
+html[data-ui="modern"] .kanban-task-card[data-selected="true"],
+html[data-ui="modern"] .kanban-task-card.is-selected {
+  border-color: color-mix(in srgb, var(--color-accent) 70%, var(--app-border)) !important;
+  border-left-width: 1px !important;
+  background-color: color-mix(in srgb, var(--color-accent) 2.5%, var(--app-card)) !important;
+  box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  position: relative;
+  z-index: 2;
+}
+
+.kanban-task-card[data-selected="true"]:hover,
+.kanban-task-card.is-selected:hover,
+html[data-ui="modern"] .kanban-task-card.active:hover,
+html[data-ui="modern"] .kanban-task-card[data-selected="true"]:hover,
+html[data-ui="modern"] .kanban-task-card.is-selected:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 4.5%, var(--app-card)) !important;
+  border-color: color-mix(in srgb, var(--color-accent) 85%, var(--app-border)) !important;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.10), 0 2px 4px rgba(0, 0, 0, 0.05) !important;
 }
 
 /* ─── End Modern SaaS UI Design System ──────────────────────────────────── */
@@ -831,14 +871,14 @@ html[data-ui="modern"] .kanban-task-card[data-selected="true"] {
 }
 
 html {
-  font-size: calc(15px * var(--font-scale, 1.25));
+  font-size: calc(15px * var(--font-scale, 1.30));
 }
 
 body {
   background: var(--app-bg);
   color: var(--app-text);
   font-family: var(--font-sans);
-  font-size: calc(14px * var(--font-scale, 1.25));
+  font-size: calc(14px * var(--font-scale, 1.30));
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
@@ -1052,7 +1092,7 @@ html[data-theme*="dark"] {
   }
 
   /* Component specific overrides */
-  .kanban-task-card {
+  .kanban-task-card:not([data-selected="true"]):not(.is-selected) {
     background-color: var(--app-card) !important;
     border-color: var(--app-border) !important;
     color: var(--app-text) !important;
@@ -1400,7 +1440,7 @@ html[data-ui="modern"] .font-heading {
 /* ─── Eyebrow label ─── */
 /* Small structural markers — the only capitalize pattern allowed */
 .eyebrow {
-  font-size: calc(11px * var(--font-scale, 1.25));
+  font-size: calc(11px * var(--font-scale, 1.30));
   font-weight: 500;
   color: var(--app-muted);
 }
@@ -1673,25 +1713,32 @@ html[data-ui="modern"] .font-heading {
   margin: 0.75rem 0;
   width: 100%;
   table-layout: fixed;
+  overflow: hidden;
+}
+
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin: 0.75rem 0;
 }
 
 .ProseMirror td,
 .ProseMirror th,
 .prose-content td,
 .prose-content th {
-  border: 1px solid #E5E5E3;
+  border: 1px solid var(--app-border, #E5E5E3);
   padding: 0.4rem 0.6rem;
   vertical-align: top;
   box-sizing: border-box;
   position: relative;
-  min-width: 1em;
+  min-width: 1.5em;
 }
 
 .ProseMirror th,
 .prose-content th {
   font-weight: 600;
   text-align: left;
-  background-color: #FAFAF9;
+  background-color: var(--app-bg, #FAFAF9);
+  color: var(--app-text);
 }
 
 .ProseMirror .selectedCell:after {
@@ -1699,8 +1746,23 @@ html[data-ui="modern"] .font-heading {
   position: absolute;
   content: "";
   left: 0; right: 0; top: 0; bottom: 0;
-  background: rgba(26, 26, 26, 0.08);
+  background: color-mix(in srgb, var(--color-accent, #2563eb) 15%, transparent);
   pointer-events: none;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: var(--color-accent, #2563eb);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
 }
 
 .ProseMirror hr,
@@ -1708,6 +1770,32 @@ html[data-ui="modern"] .font-heading {
   border: none;
   border-top: 1px solid #E5E5E3;
   margin: 0.85rem 0;
+}
+
+/* ─── Hyperlink Styling for Tiptap & Prose ─── */
+.ProseMirror a,
+.prose-content a,
+.tiptap-link {
+  color: #2563eb !important;
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 2.5px !important;
+  cursor: pointer;
+  word-break: break-word;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+[data-theme="dark"] .ProseMirror a,
+[data-theme="dark"] .prose-content a,
+[data-theme="dark"] .tiptap-link {
+  color: #60a5fa !important;
+}
+
+.ProseMirror a:hover,
+.prose-content a:hover,
+.tiptap-link:hover {
+  opacity: 0.8;
+  text-decoration-thickness: 1.5px !important;
 }
 
 /* ─── Print Styles — Clean Full-Width Printable Document ─── */
@@ -1829,51 +1917,51 @@ html:not([data-ui="modern"]) input[type="range"]::-moz-range-thumb {
 }
 
 /* ─── Font-Size Overrides for Dynamic Scaling ─── */
-.text-\[7px\] { font-size: calc(7px * var(--font-scale, 1.25)) !important; }
-.text-\[7\.5px\] { font-size: calc(7.5px * var(--font-scale, 1.25)) !important; }
-.text-\[8px\] { font-size: calc(8px * var(--font-scale, 1.25)) !important; }
-.text-\[8\.5px\] { font-size: calc(8.5px * var(--font-scale, 1.25)) !important; }
-.text-\[9px\] { font-size: calc(9px * var(--font-scale, 1.25)) !important; }
-.text-\[9\.5px\] { font-size: calc(9.5px * var(--font-scale, 1.25)) !important; }
-.text-\[10px\] { font-size: calc(10px * var(--font-scale, 1.25)) !important; }
-.text-\[10\.5px\] { font-size: calc(10.5px * var(--font-scale, 1.25)) !important; }
-.text-\[11px\] { font-size: calc(11px * var(--font-scale, 1.25)) !important; }
-.text-\[11\.5px\] { font-size: calc(11.5px * var(--font-scale, 1.25)) !important; }
-.text-\[12px\] { font-size: calc(12px * var(--font-scale, 1.25)) !important; }
-.text-\[12\.5px\] { font-size: calc(12.5px * var(--font-scale, 1.25)) !important; }
-.text-\[13px\] { font-size: calc(13px * var(--font-scale, 1.25)) !important; }
-.text-\[13\.5px\] { font-size: calc(13.5px * var(--font-scale, 1.25)) !important; }
-.text-\[14px\] { font-size: calc(14px * var(--font-scale, 1.25)) !important; }
-.text-\[14\.5px\] { font-size: calc(14.5px * var(--font-scale, 1.25)) !important; }
-.text-\[15px\] { font-size: calc(15px * var(--font-scale, 1.25)) !important; }
-.text-\[15\.5px\] { font-size: calc(15.5px * var(--font-scale, 1.25)) !important; }
-.text-\[16px\] { font-size: calc(16px * var(--font-scale, 1.25)) !important; }
-.text-\[16\.5px\] { font-size: calc(16.5px * var(--font-scale, 1.25)) !important; }
-.text-\[17px\] { font-size: calc(17px * var(--font-scale, 1.25)) !important; }
-.text-\[18px\] { font-size: calc(18px * var(--font-scale, 1.25)) !important; }
-.text-\[19px\] { font-size: calc(19px * var(--font-scale, 1.25)) !important; }
-.text-\[20px\] { font-size: calc(20px * var(--font-scale, 1.25)) !important; }
-.text-\[21px\] { font-size: calc(21px * var(--font-scale, 1.25)) !important; }
-.text-\[22px\] { font-size: calc(22px * var(--font-scale, 1.25)) !important; }
-.text-\[24px\] { font-size: calc(24px * var(--font-scale, 1.25)) !important; }
-.text-\[26px\] { font-size: calc(26px * var(--font-scale, 1.25)) !important; }
-.text-\[28px\] { font-size: calc(28px * var(--font-scale, 1.25)) !important; }
-.text-\[30px\] { font-size: calc(30px * var(--font-scale, 1.25)) !important; }
-.text-\[32px\] { font-size: calc(32px * var(--font-scale, 1.25)) !important; }
-.text-\[36px\] { font-size: calc(36px * var(--font-scale, 1.25)) !important; }
-.text-\[40px\] { font-size: calc(40px * var(--font-scale, 1.25)) !important; }
-.text-\[48px\] { font-size: calc(48px * var(--font-scale, 1.25)) !important; }
+.text-\[7px\] { font-size: calc(7px * var(--font-scale, 1.30)) !important; }
+.text-\[7\.5px\] { font-size: calc(7.5px * var(--font-scale, 1.30)) !important; }
+.text-\[8px\] { font-size: calc(8px * var(--font-scale, 1.30)) !important; }
+.text-\[8\.5px\] { font-size: calc(8.5px * var(--font-scale, 1.30)) !important; }
+.text-\[9px\] { font-size: calc(9px * var(--font-scale, 1.30)) !important; }
+.text-\[9\.5px\] { font-size: calc(9.5px * var(--font-scale, 1.30)) !important; }
+.text-\[10px\] { font-size: calc(10px * var(--font-scale, 1.30)) !important; }
+.text-\[10\.5px\] { font-size: calc(10.5px * var(--font-scale, 1.30)) !important; }
+.text-\[11px\] { font-size: calc(11px * var(--font-scale, 1.30)) !important; }
+.text-\[11\.5px\] { font-size: calc(11.5px * var(--font-scale, 1.30)) !important; }
+.text-\[12px\] { font-size: calc(12px * var(--font-scale, 1.30)) !important; }
+.text-\[12\.5px\] { font-size: calc(12.5px * var(--font-scale, 1.30)) !important; }
+.text-\[13px\] { font-size: calc(13px * var(--font-scale, 1.30)) !important; }
+.text-\[13\.5px\] { font-size: calc(13.5px * var(--font-scale, 1.30)) !important; }
+.text-\[14px\] { font-size: calc(14px * var(--font-scale, 1.30)) !important; }
+.text-\[14\.5px\] { font-size: calc(14.5px * var(--font-scale, 1.30)) !important; }
+.text-\[15px\] { font-size: calc(15px * var(--font-scale, 1.30)) !important; }
+.text-\[15\.5px\] { font-size: calc(15.5px * var(--font-scale, 1.30)) !important; }
+.text-\[16px\] { font-size: calc(16px * var(--font-scale, 1.30)) !important; }
+.text-\[16\.5px\] { font-size: calc(16.5px * var(--font-scale, 1.30)) !important; }
+.text-\[17px\] { font-size: calc(17px * var(--font-scale, 1.30)) !important; }
+.text-\[18px\] { font-size: calc(18px * var(--font-scale, 1.30)) !important; }
+.text-\[19px\] { font-size: calc(19px * var(--font-scale, 1.30)) !important; }
+.text-\[20px\] { font-size: calc(20px * var(--font-scale, 1.30)) !important; }
+.text-\[21px\] { font-size: calc(21px * var(--font-scale, 1.30)) !important; }
+.text-\[22px\] { font-size: calc(22px * var(--font-scale, 1.30)) !important; }
+.text-\[24px\] { font-size: calc(24px * var(--font-scale, 1.30)) !important; }
+.text-\[26px\] { font-size: calc(26px * var(--font-scale, 1.30)) !important; }
+.text-\[28px\] { font-size: calc(28px * var(--font-scale, 1.30)) !important; }
+.text-\[30px\] { font-size: calc(30px * var(--font-scale, 1.30)) !important; }
+.text-\[32px\] { font-size: calc(32px * var(--font-scale, 1.30)) !important; }
+.text-\[36px\] { font-size: calc(36px * var(--font-scale, 1.30)) !important; }
+.text-\[40px\] { font-size: calc(40px * var(--font-scale, 1.30)) !important; }
+.text-\[48px\] { font-size: calc(48px * var(--font-scale, 1.30)) !important; }
 
-.text-xs { font-size: calc(12px * var(--font-scale, 1.25)) !important; }
-.text-sm { font-size: calc(14px * var(--font-scale, 1.25)) !important; }
-.text-base { font-size: calc(16px * var(--font-scale, 1.25)) !important; }
-.text-lg { font-size: calc(18px * var(--font-scale, 1.25)) !important; }
-.text-xl { font-size: calc(20px * var(--font-scale, 1.25)) !important; }
-.text-2xl { font-size: calc(24px * var(--font-scale, 1.25)) !important; }
-.text-3xl { font-size: calc(30px * var(--font-scale, 1.25)) !important; }
-.text-4xl { font-size: calc(36px * var(--font-scale, 1.25)) !important; }
-.text-5xl { font-size: calc(48px * var(--font-scale, 1.25)) !important; }
-.text-6xl { font-size: calc(60px * var(--font-scale, 1.25)) !important; }
+.text-xs { font-size: calc(12px * var(--font-scale, 1.30)) !important; }
+.text-sm { font-size: calc(14px * var(--font-scale, 1.30)) !important; }
+.text-base { font-size: calc(16px * var(--font-scale, 1.30)) !important; }
+.text-lg { font-size: calc(18px * var(--font-scale, 1.30)) !important; }
+.text-xl { font-size: calc(20px * var(--font-scale, 1.30)) !important; }
+.text-2xl { font-size: calc(24px * var(--font-scale, 1.30)) !important; }
+.text-3xl { font-size: calc(30px * var(--font-scale, 1.30)) !important; }
+.text-4xl { font-size: calc(36px * var(--font-scale, 1.30)) !important; }
+.text-5xl { font-size: calc(48px * var(--font-scale, 1.30)) !important; }
+.text-6xl { font-size: calc(60px * var(--font-scale, 1.30)) !important; }
 
 /* React Flow Controls Theme Overrides */
 .react-flow__controls {

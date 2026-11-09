@@ -77,6 +77,7 @@ export default function AddTaskModal({ isOpen, onClose }: AddTaskModalProps) {
                 teamId: currentTeam.id,
                 createdById: currentUser.id,
                 assignedToId: newAssigneeId || undefined,
+                startDate: newStartDate || activeDateStr || getLocalDateString(),
                 date: newStartDate || activeDateStr || getLocalDateString(),
                 dueDate: newDueDate || undefined,
                 isRecurring: newIsRecurring,

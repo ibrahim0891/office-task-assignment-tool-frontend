@@ -9,6 +9,8 @@ interface UserAvatarProps {
     className?: string;
     title?: string;
     showBorder?: boolean;
+    onClick?: (e: React.MouseEvent) => void;
+    clickable?: boolean;
 }
 
 function getInitials(name?: string | null) {
@@ -51,6 +53,8 @@ export function UserAvatar({
     className = "",
     title,
     showBorder = true,
+    onClick,
+    clickable,
 }: UserAvatarProps) {
     const [imgError, setImgError] = useState(false);
 
@@ -69,6 +73,17 @@ export function UserAvatar({
 
     const initials = getInitials(name);
     const displayTitle = title || name || "User";
+    const isInteractive = Boolean(onClick || clickable);
+    const interactiveClass = isInteractive
+        ? "cursor-pointer hover:opacity-85 hover:scale-105 active:scale-95 transition-all"
+        : "";
+
+    const handleClick = (e: React.MouseEvent) => {
+        if (onClick) {
+            e.stopPropagation();
+            onClick(e);
+        }
+    };
 
     if (avatarUrl && !imgError) {
         return (
@@ -76,15 +91,17 @@ export function UserAvatar({
                 src={avatarUrl}
                 alt={displayTitle}
                 title={displayTitle}
+                onClick={handleClick}
                 onError={() => setImgError(true)}
-                className={`rounded-full object-cover shrink-0 bg-[var(--app-bg)] ${sizeClasses} ${borderClass} ${className}`}
+                className={`rounded-full object-cover shrink-0 bg-[var(--app-bg)] ${sizeClasses} ${borderClass} ${interactiveClass} ${className}`}
             />
         );
     }
 
     return (
         <div
-            className={`rounded-full ${colorScheme.bg} ${colorScheme.text} flex items-center justify-center font-bold shrink-0 select-none shadow-2xs ${sizeClasses} ${borderClass} ${className}`}
+            onClick={handleClick}
+            className={`rounded-full ${colorScheme.bg} ${colorScheme.text} flex items-center justify-center font-bold shrink-0 select-none shadow-2xs ${sizeClasses} ${borderClass} ${interactiveClass} ${className}`}
             title={displayTitle}
         >
             {initials || "U"}
