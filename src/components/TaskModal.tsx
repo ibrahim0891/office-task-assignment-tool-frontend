@@ -2848,7 +2848,7 @@ export default function TaskModal({
     if (viewMode === "modal") {
         return (
             <ModalWrapper
-                isOpen={true}
+                isOpen={isOpen}
                 onClose={handleAttemptClose}
                 maxWidth={isExpanded ? "max-w-7xl" : "max-w-5xl"}
                 className="h-[90vh] max-h-[900px] overflow-hidden text-left"
@@ -2860,7 +2860,7 @@ export default function TaskModal({
 
     return (
         <SideSheetWrapper
-            isOpen={true}
+            isOpen={isOpen}
             onClose={handleAttemptClose}
             width="2xl"
             isExpanded={isExpanded}
