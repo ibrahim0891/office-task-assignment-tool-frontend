@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Task, TaskColumn, User, api } from "../api";
 import { triggerMicroCelebration } from "../utils/confetti";
 import { CustomSelect } from "./ui/CustomSelect";
 import { Checkbox } from "./ui/Checkbox";
 import ConfirmDialog from "./ui/ConfirmDialog";
+import { useWorkspace } from "../context/WorkspaceContext";
 import {
     Trash2,
     Download,
@@ -14,17 +15,15 @@ import {
     Clock,
     AlertCircle,
     Layers,
-    Filter,
     MessageSquare,
     Paperclip,
     Search,
     X,
-    TrendingUp,
     ListTodo,
     AlertTriangle,
     Calendar,
+    Plus,
 } from "lucide-react";
-import { Button } from "./ui/Button";
 
 interface ListViewProps {
     tasks: Task[];
@@ -50,6 +49,8 @@ export default function ListView({
     onRefresh,
     onSelectTask,
 }: ListViewProps) {
+    const { setIsAddTaskOpen } = useWorkspace();
+
     const [search, setSearch] = useState("");
     const [selectedPriority, setSelectedPriority] = useState("");
     const [selectedStatus, setSelectedStatus] = useState("");
@@ -71,6 +72,21 @@ export default function ListView({
         useState(false);
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
     const [isBulkReassigning, setIsBulkReassigning] = useState(false);
+
+    // Popover state for inline pill editing
+    const [openPopover, setOpenPopover] = useState<{ taskId: string; type: "status" | "priority" } | null>(null);
+    const popoverRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!openPopover) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+                setOpenPopover(null);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [openPopover]);
 
     const activeMembership = teamMembers.find(
         (tm) => tm.user.id === currentUser.id,
@@ -433,19 +449,9 @@ export default function ListView({
         }
     };
 
-    // Calculate Totals for Footer
-    const totalEstHours = sortedTasks.reduce(
-        (sum, t) => sum + (Number(t.estimatedTime) || 0),
-        0,
-    );
-    const totalActHours = sortedTasks.reduce(
-        (sum, t) => sum + (Number(t.actualTime) || 0),
-        0,
-    );
-    const totalCarriedDays = sortedTasks.reduce(
-        (sum, t) => sum + (Number(t.carryCount) || 0),
-        0,
-    );
+    // Calculate Totals (kept for potential future use)
+    // const totalEstHours = ...
+    // const totalActHours = ...
 
     // Grouping computation
     interface TaskGroup {
@@ -560,15 +566,6 @@ export default function ListView({
     const hasMultipleMembers = teamMembers && teamMembers.length > 1;
     const showAssigneeFilter = !isMember && hasMultipleMembers;
 
-    const totalActiveTasks = activeTasks.length;
-    const doneTasksCount = activeTasks.filter((t) => isTaskCompleted(t)).length;
-    const completionRate =
-        totalActiveTasks > 0
-            ? Math.round((doneTasksCount / totalActiveTasks) * 100)
-            : 0;
-    const overdueTasksCount = activeTasks.filter((t) => isTaskOverdue(t)).length;
-    const dueTodayTasksCount = activeTasks.filter((t) => isTaskDueToday(t)).length;
-
     const presetCounts = React.useMemo(() => {
         const overdue = activeTasks.filter((t) => isTaskOverdue(t)).length;
         const today = activeTasks.filter((t) => isTaskDueToday(t)).length;
@@ -608,146 +605,28 @@ export default function ListView({
     return (
         <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden bg-[var(--app-bg,#FAFAF9)] text-[var(--app-text,#1A1A1A)] select-none">
-                {/* 1. Level 1: Header & Primary Action Toolbar */}
-                <div className="shrink-0 border-b border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FFFFFF)] px-5 py-3 flex items-center justify-between gap-4 select-none">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                        <ListTodo className="w-5 h-5 text-[var(--app-muted,#888883)] shrink-0" />
-                        <div>
-                            <h1 className="font-heading text-lg sm:text-xl font-bold tracking-tight text-[var(--app-text,#1A1A1A)] leading-tight">
+                {/* Tier 1: Header — Title + Preset Tabs + Actions */}
+                <div className="shrink-0 border-b border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FFFFFF)] px-5 py-2.5 flex items-center justify-between gap-4 select-none">
+                    {/* Left: Title + Preset Tabs */}
+                    <div className="flex items-center gap-4 min-w-0 flex-wrap">
+                        <div className="flex items-center gap-2 shrink-0">
+                            <ListTodo className="w-4 h-4 text-[var(--app-muted,#888883)] shrink-0" />
+                            <h1 className="font-heading text-base font-bold tracking-tight text-[var(--app-text,#1A1A1A)] leading-tight whitespace-nowrap">
                                 List View
                             </h1>
-                            <p className="text-[11px] text-[var(--app-muted,#888883)]">
-                                Search, group, filter, and track tasks across your workspace
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap shrink-0">
-                        <button
-                            type="button"
-                            onClick={handleExportCSV}
-                            className="relative bg-[var(--app-card,#FFFFFF)] hover:bg-[var(--app-hover-bg,#F5F5F3)] border border-[var(--app-border,#E5E5E3)] text-[var(--app-text,#1A1A1A)] text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-3xs"
-                            title="Export current filtered tasks to CSV"
-                        >
-                            <Download className="w-3.5 h-3.5 text-[var(--app-muted,#888883)] shrink-0" />
-                            <span>Export CSV</span>
-                        </button>
-                    </div>
-                </div>
-
-                {/* 2. Level 2: Compact KPI Stats Ribbon */}
-                <div className="shrink-0 border-b border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FFFFFF)] select-none">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-[var(--app-border,#E5E5E3)]">
-                        {/* Active Tasks */}
-                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-xs font-medium text-[var(--app-muted,#888883)]">Active Tasks</span>
-                                <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className="text-xl font-bold tracking-tight text-[var(--app-text,#1A1A1A)]">
-                                        {totalActiveTasks}
-                                    </span>
-                                    <span className="text-xs text-[var(--app-muted,#888883)] font-normal">in view</span>
-                                </div>
-                            </div>
-                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
-                                <Layers className="w-4 h-4" />
-                            </div>
                         </div>
 
-                        {/* Completion Rate */}
-                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-xs font-medium text-[var(--app-muted,#888883)]">Completion Rate</span>
-                                <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className={`text-xl font-bold tracking-tight ${
-                                        completionRate < 50
-                                            ? "text-[var(--color-error,#CB2431)]"
-                                            : completionRate < 80
-                                            ? "text-[var(--color-warning,#B08800)]"
-                                            : "text-[var(--color-success,#16A34A)]"
-                                    }`}>
-                                        {completionRate}%
-                                    </span>
-                                    <span className="text-xs text-[var(--app-muted,#888883)] font-normal">{doneTasksCount} done</span>
-                                </div>
-                            </div>
-                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
-                                <TrendingUp className="w-4 h-4" />
-                            </div>
-                        </div>
-
-                        {/* Overdue Tasks */}
-                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-xs font-medium text-[var(--app-muted,#888883)]">Overdue Tasks</span>
-                                <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className={`text-xl font-bold tracking-tight ${
-                                        overdueTasksCount > 0 ? "text-[var(--color-error,#CB2431)]" : "text-[var(--app-text,#1A1A1A)]"
-                                    }`}>
-                                        {overdueTasksCount}
-                                    </span>
-                                    <span className="text-xs text-[var(--app-muted,#888883)] font-normal">requires attention</span>
-                                </div>
-                            </div>
-                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
-                                <AlertCircle className="w-4 h-4" />
-                            </div>
-                        </div>
-
-                        {/* Due Today */}
-                        <div className="px-5 py-3 flex items-center justify-between gap-3 bg-[var(--app-card,#FFFFFF)]">
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-xs font-medium text-[var(--app-muted,#888883)]">Due Today</span>
-                                <div className="flex items-baseline gap-1.5 mt-0.5">
-                                    <span className="text-xl font-bold tracking-tight text-[var(--app-text,#1A1A1A)]">
-                                        {dueTodayTasksCount}
-                                    </span>
-                                    <span className="text-xs text-[var(--app-muted,#888883)] font-normal">scheduled today</span>
-                                </div>
-                            </div>
-                            <div className="w-8 h-8 rounded-md bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] flex items-center justify-center text-[var(--app-muted,#888883)] shrink-0">
-                                <Clock className="w-4 h-4" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 3. Level 3: Search, Presets & Filters Toolbar */}
-                <div className="shrink-0 border-b border-[var(--app-border,#E5E5E3)] bg-[var(--app-card,#FFFFFF)] px-5 py-2 flex flex-wrap items-center justify-between gap-3 select-none">
-                    {/* Left: Search Input + Preset Tabs */}
-                    <div className="flex items-center gap-3 flex-wrap">
-                        {/* Compact Search Input */}
-                        <div className="relative w-52 sm:w-60">
-                            <Search className="w-3.5 h-3.5 text-[var(--app-muted,#888883)] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search tasks..."
-                                className="w-full bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] focus:border-[var(--app-border-strong,#1A1A1A)] focus:outline-none text-xs text-[var(--app-text,#1A1A1A)] placeholder-[var(--app-muted,#888883)] pl-8 pr-7 py-1 rounded-[var(--radius-sm,4px)] transition-colors h-[30px]"
-                            />
-                            {search && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSearch("")}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] p-0.5 cursor-pointer"
-                                >
-                                    <X className="w-3 h-3" />
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Presets Segmented Tabs */}
+                        {/* Preset Tabs */}
                         <div className="inline-flex items-center bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] p-0.5 rounded-[var(--radius-sm,4px)] gap-0.5 shrink-0 overflow-x-auto">
                             {[
-                                { id: "all", label: "All", count: presetCounts.all, icon: Layers },
-                                { id: "overdue", label: "Overdue", count: presetCounts.overdue, icon: AlertCircle },
-                                { id: "today", label: "Today", count: presetCounts.today, icon: Clock },
-                                { id: "urgent", label: "Urgent", count: presetCounts.urgent, icon: AlertTriangle },
-                                { id: "carried", label: "Carried", count: presetCounts.carried, icon: Calendar },
+                                { id: "all", label: "All", count: presetCounts.all },
+                                { id: "overdue", label: "Overdue", count: presetCounts.overdue },
+                                { id: "today", label: "Today", count: presetCounts.today },
+                                { id: "urgent", label: "Urgent", count: presetCounts.urgent },
+                                { id: "carried", label: "Carried", count: presetCounts.carried },
                             ].map((preset) => {
                                 const isSelected = activePreset === preset.id;
-                                const Icon = preset.icon;
+                                const isAlert = preset.id === "overdue" && presetCounts.overdue > 0;
                                 return (
                                     <button
                                         key={preset.id}
@@ -759,99 +638,150 @@ export default function ListView({
                                                 : "text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-card,#FFFFFF)]/50 border border-transparent"
                                         }`}
                                     >
-                                        <Icon className="w-3 h-3 text-[var(--app-muted,#888883)] shrink-0" />
                                         <span>{preset.label}</span>
-                                        <span className={`px-1.5 py-0.2 rounded-[var(--radius-xs,2px)] text-[9px] tabular-nums font-semibold ${
-                                            isSelected
-                                                ? "bg-[var(--app-bg,#FAFAF9)] text-[var(--app-text,#1A1A1A)]"
-                                                : "bg-[var(--app-border,#E5E5E3)]/40 text-[var(--app-muted,#888883)]"
-                                        }`}>
-                                            {preset.count}
-                                        </span>
+                                        {preset.count > 0 && (
+                                            <span className={`px-1.5 rounded-[var(--radius-xs,2px)] text-[9px] tabular-nums font-semibold leading-5 ${
+                                                isSelected
+                                                    ? "bg-[var(--app-bg,#FAFAF9)] text-[var(--app-text,#1A1A1A)]"
+                                                    : isAlert
+                                                    ? "bg-[var(--color-danger,#CB2431)]/10 text-[var(--color-danger,#CB2431)]"
+                                                    : "bg-[var(--app-border,#E5E5E3)]/60 text-[var(--app-muted,#888883)]"
+                                            }`}>
+                                                {preset.count}
+                                            </span>
+                                        )}
                                     </button>
                                 );
                             })}
                         </div>
                     </div>
 
-                    {/* Right: Dropdowns + Reset Button */}
-                    <div className="flex items-center gap-2 flex-wrap text-xs">
-                        {/* Group By Selector */}
-                        <CustomSelect
-                            options={[
-                                { value: "none", label: "Group: Flat List" },
-                                { value: "status", label: "Group: By Status" },
-                                { value: "priority", label: "Group: By Priority" },
-                                { value: "dueDate", label: "Group: By Due Date" },
-                                ...(showAssigneeFilter
-                                    ? [{ value: "assignee", label: "Group: By Assignee" }]
-                                    : []),
-                            ]}
-                            value={groupBy}
-                            onChange={(val) => setGroupBy(val as GroupByField)}
-                            buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)]"
-                            className="w-36 h-[30px] shrink-0"
-                        />
-
-                        {/* Status Filter */}
-                        <CustomSelect
-                            options={[
-                                { value: "", label: "All Statuses" },
-                                ...columns.map((col) => ({
-                                    value: col.id,
-                                    label: col.name,
-                                })),
-                            ]}
-                            value={selectedStatus}
-                            onChange={(val) => setSelectedStatus(val)}
-                            buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)]"
-                            className="w-32 h-[30px] shrink-0"
-                        />
-
-                        {/* Priority Filter */}
-                        <CustomSelect
-                            options={[
-                                { value: "", label: "All Priorities" },
-                                { value: "URGENT", label: "Urgent" },
-                                { value: "HIGH", label: "High" },
-                                { value: "MEDIUM", label: "Medium" },
-                                { value: "LOW", label: "Low" },
-                            ]}
-                            value={selectedPriority}
-                            onChange={(val) => setSelectedPriority(val)}
-                            buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)]"
-                            className="w-32 h-[30px] shrink-0"
-                        />
-
-                        {/* Assignee Filter */}
-                        {showAssigneeFilter && (
-                            <CustomSelect
-                                options={[
-                                    { value: "", label: "All Assignees" },
-                                    ...teamMembers.map(({ user }) => ({
-                                        value: user.id,
-                                        label: user.fullName,
-                                        avatarUrl: user.avatarUrl || null,
-                                    })),
-                                ]}
-                                value={selectedAssignee}
-                                onChange={(val) => setSelectedAssignee(val)}
-                                buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)]"
-                                className="w-36 h-[30px] shrink-0"
-                            />
-                        )}
-
-                        {/* Reset Filter Button */}
-                        {hasActiveFilters && (
+                    {/* Right: New Task + Export */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        {!isObserver && (
                             <button
                                 type="button"
-                                onClick={handleClearFilters}
-                                className="text-xs text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] underline cursor-pointer px-1 py-1"
+                                onClick={() => setIsAddTaskOpen(true)}
+                                className="bg-[var(--app-text,#1A1A1A)] hover:opacity-85 text-[var(--app-bg,#FAFAF9)] text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-opacity cursor-pointer shrink-0"
                             >
-                                Reset
+                                <Plus className="w-3.5 h-3.5 shrink-0" />
+                                <span>New Task</span>
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={handleExportCSV}
+                            className="bg-[var(--app-card,#FFFFFF)] hover:bg-[var(--app-hover-bg,#F5F5F3)] border border-[var(--app-border,#E5E5E3)] text-[var(--app-text,#1A1A1A)] text-xs font-medium px-3 py-1.5 rounded-[var(--radius-sm,4px)] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-3xs"
+                            title="Export current filtered tasks to CSV"
+                        >
+                            <Download className="w-3.5 h-3.5 text-[var(--app-muted,#888883)] shrink-0" />
+                            <span>Export CSV</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Tier 2: Search + Group + Filter Sub-bar */}
+                <div className="shrink-0 border-b border-[var(--app-border,#E5E5E3)] bg-[var(--app-bg,#FAFAF9)] px-5 py-2 flex flex-wrap items-center gap-2 select-none">
+                    {/* Search */}
+                    <div className="relative w-52 sm:w-60">
+                        <Search className="w-3.5 h-3.5 text-[var(--app-muted,#888883)] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search tasks..."
+                            className="w-full bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] focus:border-[var(--app-text,#1A1A1A)] focus:outline-none text-xs text-[var(--app-text,#1A1A1A)] placeholder-[var(--app-muted,#888883)] pl-8 pr-7 py-1 rounded-[var(--radius-sm,4px)] transition-colors h-[30px]"
+                        />
+                        {search && (
+                            <button
+                                type="button"
+                                onClick={() => setSearch("")}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] p-0.5 cursor-pointer"
+                            >
+                                <X className="w-3 h-3" />
                             </button>
                         )}
                     </div>
+
+                    {/* Divider */}
+                    <div className="w-px h-5 bg-[var(--app-border,#E5E5E3)] mx-0.5 shrink-0" />
+
+                    {/* Group By */}
+                    <CustomSelect
+                        options={[
+                            { value: "none", label: "Group: Flat List" },
+                            { value: "status", label: "Group: By Status" },
+                            { value: "priority", label: "Group: By Priority" },
+                            { value: "dueDate", label: "Group: By Due Date" },
+                            ...(showAssigneeFilter
+                                ? [{ value: "assignee", label: "Group: By Assignee" }]
+                                : []),
+                        ]}
+                        value={groupBy}
+                        onChange={(val) => setGroupBy(val as GroupByField)}
+                        buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)]"
+                        className="w-36 h-[30px] shrink-0"
+                    />
+
+                    {/* Status Filter */}
+                    <CustomSelect
+                        options={[
+                            { value: "", label: "All Statuses" },
+                            ...columns.map((col) => ({
+                                value: col.id,
+                                label: col.name,
+                            })),
+                        ]}
+                        value={selectedStatus}
+                        onChange={(val) => setSelectedStatus(val)}
+                        buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)]"
+                        className="w-32 h-[30px] shrink-0"
+                    />
+
+                    {/* Priority Filter */}
+                    <CustomSelect
+                        options={[
+                            { value: "", label: "All Priorities" },
+                            { value: "URGENT", label: "Urgent" },
+                            { value: "HIGH", label: "High" },
+                            { value: "MEDIUM", label: "Medium" },
+                            { value: "LOW", label: "Low" },
+                        ]}
+                        value={selectedPriority}
+                        onChange={(val) => setSelectedPriority(val)}
+                        buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)]"
+                        className="w-32 h-[30px] shrink-0"
+                    />
+
+                    {/* Assignee Filter */}
+                    {showAssigneeFilter && (
+                        <CustomSelect
+                            options={[
+                                { value: "", label: "All Assignees" },
+                                ...teamMembers.map(({ user }) => ({
+                                    value: user.id,
+                                    label: user.fullName,
+                                    avatarUrl: user.avatarUrl || null,
+                                })),
+                            ]}
+                            value={selectedAssignee}
+                            onChange={(val) => setSelectedAssignee(val)}
+                            buttonClassName="text-xs h-[30px] !py-0 px-2.5 bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)]"
+                            className="w-36 h-[30px] shrink-0"
+                        />
+                    )}
+
+                    {/* Reset */}
+                    {hasActiveFilters && (
+                        <button
+                            type="button"
+                            onClick={handleClearFilters}
+                            className="ml-auto flex items-center gap-1 text-xs text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] px-2 py-1 rounded-[var(--radius-sm,4px)] hover:bg-[var(--app-card,#FFFFFF)] border border-transparent hover:border-[var(--app-border,#E5E5E3)] transition-colors cursor-pointer"
+                        >
+                            <X className="w-3 h-3" />
+                            <span>Reset</span>
+                        </button>
+                    )}
                 </div>
 
                 {/* Content Area */}
@@ -1180,98 +1110,126 @@ export default function ListView({
                                                                 </div>
                                                             </td>
 
-                                                            {/* Status (Inline Select) */}
+                                                            {/* Status — Pill Badge with Popover */}
                                                             <td
                                                                 className="py-2.5 px-3 text-center"
-                                                                onClick={(e) =>
-                                                                    e.stopPropagation()
-                                                                }
+                                                                onClick={(e) => e.stopPropagation()}
                                                             >
-                                                                {canEditTask ? (
-                                                                    <CustomSelect
-                                                                        options={columns.map(
-                                                                            (
-                                                                                c,
-                                                                            ) => ({
-                                                                                value: c.id,
-                                                                                label: c.name,
-                                                                            }),
-                                                                        )}
-                                                                        value={
-                                                                            task.columnId
+                                                                <div className="relative inline-block">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            canEditTask
+                                                                                ? setOpenPopover(
+                                                                                      openPopover?.taskId === task.id && openPopover.type === "status"
+                                                                                          ? null
+                                                                                          : { taskId: task.id, type: "status" }
+                                                                                  )
+                                                                                : undefined
                                                                         }
-                                                                        onChange={(
-                                                                            val,
-                                                                        ) =>
-                                                                            handleUpdateStatus(
-                                                                                task.id,
-                                                                                val,
-                                                                            )
-                                                                        }
-                                                                        className="w-28 mx-auto"
-                                                                    />
-                                                                ) : (
-                                                                    <span className="border border-[var(--app-border,#E5E5E3)] px-2 py-0.5 rounded-[2px] text-[10px] font-medium text-[var(--app-text,#1A1A1A)]">
-                                                                        {task
-                                                                            .column
-                                                                            ?.name ||
-                                                                            "—"}
-                                                                    </span>
-                                                                )}
+                                                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium border whitespace-nowrap transition-colors ${
+                                                                            canEditTask
+                                                                                ? "cursor-pointer hover:opacity-80"
+                                                                                : "cursor-default"
+                                                                        } ${
+                                                                            isTaskCompleted(task)
+                                                                                ? "bg-[var(--color-success,#16A34A)]/10 border-[var(--color-success,#16A34A)]/20 text-[var(--color-success,#16A34A)]"
+                                                                                : "bg-[var(--app-bg,#FAFAF9)] border-[var(--app-border,#E5E5E3)] text-[var(--app-text,#1A1A1A)]"
+                                                                        }`}
+                                                                        title={canEditTask ? "Click to change status" : undefined}
+                                                                    >
+                                                                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isTaskCompleted(task) ? "bg-[var(--color-success,#16A34A)]" : "bg-[var(--app-muted,#888883)]"}`} />
+                                                                        <span className="max-w-[90px] truncate">{task.column?.name || "—"}</span>
+                                                                        {canEditTask && <ChevronDown className="w-2.5 h-2.5 text-[var(--app-muted,#888883)] shrink-0" />}
+                                                                    </button>
+                                                                    {openPopover?.taskId === task.id && openPopover.type === "status" && (
+                                                                        <div
+                                                                            ref={popoverRef}
+                                                                            className="absolute z-50 top-full mt-1 left-1/2 -translate-x-1/2 bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] rounded-[var(--radius-sm,4px)] shadow-md py-1 min-w-[130px]"
+                                                                        >
+                                                                            {columns.map((col) => (
+                                                                                <button
+                                                                                    key={col.id}
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        handleUpdateStatus(task.id, col.id);
+                                                                                        setOpenPopover(null);
+                                                                                    }}
+                                                                                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-[var(--app-hover-bg,#F5F5F3)] transition-colors cursor-pointer ${
+                                                                                        task.columnId === col.id ? "font-semibold text-[var(--app-text,#1A1A1A)]" : "text-[var(--app-muted,#888883)]"
+                                                                                    }`}
+                                                                                >
+                                                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${task.columnId === col.id ? "bg-[var(--app-text,#1A1A1A)]" : "bg-[var(--app-border,#E5E5E3)]"}`} />
+                                                                                    {col.name}
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </td>
 
-                                                            {/* Priority (Inline Select) */}
+                                                            {/* Priority — Pill Badge with Popover */}
                                                             <td
                                                                 className="py-2.5 px-3 text-center"
-                                                                onClick={(e) =>
-                                                                    e.stopPropagation()
-                                                                }
+                                                                onClick={(e) => e.stopPropagation()}
                                                             >
-                                                                {canEditTask ? (
-                                                                    <CustomSelect
-                                                                        options={[
-                                                                            {
-                                                                                value: "URGENT",
-                                                                                label: "Urgent",
-                                                                            },
-                                                                            {
-                                                                                value: "HIGH",
-                                                                                label: "High",
-                                                                            },
-                                                                            {
-                                                                                value: "MEDIUM",
-                                                                                label: "Medium",
-                                                                            },
-                                                                            {
-                                                                                value: "LOW",
-                                                                                label: "Low",
-                                                                            },
-                                                                        ]}
-                                                                        value={
-                                                                            task.priority
-                                                                        }
-                                                                        onChange={(
-                                                                            val,
-                                                                        ) =>
-                                                                            handleUpdatePriority(
-                                                                                task.id,
-                                                                                val,
-                                                                            )
-                                                                        }
-                                                                        className="w-24 mx-auto"
-                                                                    />
-                                                                ) : (
-                                                                    <span
-                                                                        className={`text-[10px] font-medium ${getPriorityDot(
-                                                                            task.priority,
-                                                                        )}`}
-                                                                    >
-                                                                        ●{" "}
-                                                                        {
-                                                                            task.priority
-                                                                        }
-                                                                    </span>
-                                                                )}
+                                                                <div className="relative inline-block">
+                                                                    {(() => {
+                                                                        const pCfg: Record<string, { label: string; dot: string; pill: string }> = {
+                                                                            URGENT: { label: "Urgent", dot: "bg-[#CB2431]", pill: "bg-[#CB2431]/10 border-[#CB2431]/20 text-[#CB2431]" },
+                                                                            HIGH:   { label: "High",   dot: "bg-[#B08800]", pill: "bg-[#B08800]/10 border-[#B08800]/20 text-[#B08800]" },
+                                                                            MEDIUM: { label: "Medium", dot: "bg-[var(--app-muted,#888883)]", pill: "bg-[var(--app-bg,#FAFAF9)] border-[var(--app-border,#E5E5E3)] text-[var(--app-text,#1A1A1A)]" },
+                                                                            LOW:    { label: "Low",    dot: "bg-[var(--app-border,#E5E5E3)]", pill: "bg-[var(--app-bg,#FAFAF9)] border-[var(--app-border,#E5E5E3)] text-[var(--app-muted,#888883)]" },
+                                                                        };
+                                                                        const cfg = pCfg[task.priority] || pCfg.LOW;
+                                                                        return (
+                                                                            <>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() =>
+                                                                                        canEditTask
+                                                                                            ? setOpenPopover(
+                                                                                                  openPopover?.taskId === task.id && openPopover.type === "priority"
+                                                                                                      ? null
+                                                                                                      : { taskId: task.id, type: "priority" }
+                                                                                              )
+                                                                                            : undefined
+                                                                                    }
+                                                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[3px] text-[10px] font-medium border whitespace-nowrap transition-colors ${canEditTask ? "cursor-pointer hover:opacity-80" : "cursor-default"} ${cfg.pill}`}
+                                                                                    title={canEditTask ? "Click to change priority" : undefined}
+                                                                                >
+                                                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
+                                                                                    {cfg.label}
+                                                                                    {canEditTask && <ChevronDown className="w-2.5 h-2.5 opacity-60 shrink-0" />}
+                                                                                </button>
+                                                                                {openPopover?.taskId === task.id && openPopover.type === "priority" && (
+                                                                                    <div
+                                                                                        ref={popoverRef}
+                                                                                        className="absolute z-50 top-full mt-1 left-1/2 -translate-x-1/2 bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] rounded-[var(--radius-sm,4px)] shadow-md py-1 min-w-[110px]"
+                                                                                    >
+                                                                                        {(["URGENT", "HIGH", "MEDIUM", "LOW"] as const).map((p) => {
+                                                                                            const pc = pCfg[p];
+                                                                                            return (
+                                                                                                <button
+                                                                                                    key={p}
+                                                                                                    type="button"
+                                                                                                    onClick={() => {
+                                                                                                        handleUpdatePriority(task.id, p);
+                                                                                                        setOpenPopover(null);
+                                                                                                    }}
+                                                                                                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-[var(--app-hover-bg,#F5F5F3)] transition-colors cursor-pointer ${task.priority === p ? "font-semibold" : ""}`}
+                                                                                                >
+                                                                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${pc.dot}`} />
+                                                                                                    {pc.label}
+                                                                                                </button>
+                                                                                            );
+                                                                                        })}
+                                                                                    </div>
+                                                                                )}
+                                                                            </>
+                                                                        );
+                                                                    })()}
+                                                                </div>
                                                             </td>
 
                                                             {/* Due Date & Urgency Indicator */}
@@ -1332,42 +1290,6 @@ export default function ListView({
                             )}
                         </tbody>
 
-                        {/* Summary & Totals Footer */}
-                        {sortedTasks.length > 0 && (
-                            <tfoot>
-                                <tr className="border-t-2 border-[var(--app-border,#E5E5E3)] bg-[var(--app-bg,#FAFAF9)] text-[11px] font-semibold text-[var(--app-text,#1A1A1A)]">
-                                    <td
-                                        colSpan={2}
-                                        className="py-2.5 px-3 text-left"
-                                    >
-                                        <span className="text-[var(--app-muted,#888883)] font-normal">
-                                            Summary:{" "}
-                                        </span>
-                                        {sortedTasks.length} task
-                                        {sortedTasks.length === 1 ? "" : "s"}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-center text-[10px] text-[var(--app-muted,#888883)]">
-                                        {totalEstHours > 0 || totalActHours > 0
-                                            ? `${totalEstHours}h est / ${totalActHours}h act`
-                                            : "—"}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-center text-[10px] text-[var(--app-muted,#888883)]">
-                                        —
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right text-[10px] text-[var(--app-muted,#888883)]">
-                                        —
-                                    </td>
-                                    <td className="py-2.5 px-3 text-left text-[10px] text-[var(--app-muted,#888883)]">
-                                        —
-                                    </td>
-                                    <td className="py-2.5 px-3 text-center text-[10px] text-[var(--color-warning)] font-medium tabular-nums">
-                                        {totalCarriedDays > 0
-                                            ? `${totalCarriedDays}d carried`
-                                            : "—"}
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        )}
                     </table>
                 </div>
             </div>

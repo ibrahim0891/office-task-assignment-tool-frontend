@@ -57,15 +57,15 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                 heading: {
                     levels: [1, 2, 3],
                 },
-            }),
-            TextStyle,
-            FontFamily,
+            }) as any,
+            TextStyle as any,
+            FontFamily as any,
             Table.configure({
                 resizable: true,
-            }),
-            TableRow,
-            TableHeader,
-            TableCell,
+            }) as any,
+            TableRow as any,
+            TableHeader as any,
+            TableCell as any,
             TipTapLink.configure({
                 openOnClick: false,
                 autolink: true,
@@ -76,7 +76,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     rel: "noopener noreferrer",
                     class: "tiptap-link",
                 },
-            }),
+            }) as any,
         ],
         content: value || "",
         editable: !disabled,
@@ -110,6 +110,8 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
         );
     }
 
+    const chainFocus = () => editor.chain().focus() as any;
+
     const isH1 = editor.isActive("heading", { level: 1 });
     const isH2 = editor.isActive("heading", { level: 2 });
     const isH3 = editor.isActive("heading", { level: 3 });
@@ -133,7 +135,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().setParagraph().run()}
+                        onClick={() => chainFocus().setParagraph().run()}
                         className={`px-1.5 py-0.5 rounded-[2px] text-[10px] font-medium transition-colors cursor-pointer ${
                             isP
                                 ? "bg-[var(--app-select-bg)] text-[var(--color-accent)] font-semibold"
@@ -147,7 +149,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                        onClick={() => chainFocus().toggleHeading({ level: 1 }).run()}
                         className={`p-1 rounded-[2px] transition-colors cursor-pointer ${
                             isH1
                                 ? "bg-[var(--app-select-bg)] text-[var(--color-accent)]"
@@ -161,7 +163,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                        onClick={() => chainFocus().toggleHeading({ level: 2 }).run()}
                         className={`p-1 rounded-[2px] transition-colors cursor-pointer ${
                             isH2
                                 ? "bg-[var(--app-select-bg)] text-[var(--color-accent)]"
@@ -175,7 +177,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                        onClick={() => chainFocus().toggleHeading({ level: 3 }).run()}
                         className={`p-1 rounded-[2px] transition-colors cursor-pointer ${
                             isH3
                                 ? "bg-[var(--app-select-bg)] text-[var(--color-accent)]"
@@ -192,7 +194,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleBold().run()}
+                        onClick={() => chainFocus().toggleBold().run()}
                         className={`p-1 rounded-[2px] transition-colors cursor-pointer ${
                             isBold
                                 ? "bg-[var(--app-select-bg)] text-[var(--color-accent)]"
@@ -206,7 +208,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleItalic().run()}
+                        onClick={() => chainFocus().toggleItalic().run()}
                         className={`p-1 rounded-[2px] transition-colors cursor-pointer ${
                             isItalic
                                 ? "bg-[var(--app-select-bg)] text-[var(--color-accent)]"
@@ -220,7 +222,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleStrike().run()}
+                        onClick={() => chainFocus().toggleStrike().run()}
                         className={`p-1 rounded-[2px] transition-colors cursor-pointer ${
                             isStrike
                                 ? "bg-[var(--app-select-bg)] text-[var(--color-accent)]"
@@ -239,7 +241,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleBulletList().run()}
+                        onClick={() => chainFocus().toggleBulletList().run()}
                         className={`p-1 rounded-[2px] transition-colors cursor-pointer ${
                             isBullet
                                 ? "bg-[var(--app-select-bg)] text-[var(--color-accent)]"
@@ -253,7 +255,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                        onClick={() => chainFocus().toggleOrderedList().run()}
                         className={`p-1 rounded-[2px] transition-colors cursor-pointer ${
                             isOrdered
                                 ? "bg-[var(--app-select-bg)] text-[var(--color-accent)]"
@@ -270,7 +272,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+                        onClick={() => chainFocus().toggleCodeBlock().run()}
                         className={`p-1 rounded-[2px] transition-colors cursor-pointer ${
                             isCode
                                 ? "bg-[var(--app-select-bg)] text-[var(--color-accent)]"
@@ -284,7 +286,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                        onClick={() => chainFocus().toggleBlockquote().run()}
                         className={`p-1 rounded-[2px] transition-colors cursor-pointer ${
                             isQuote
                                 ? "bg-[var(--app-select-bg)] text-[var(--color-accent)]"
@@ -298,7 +300,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                     <button
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                        onClick={() => chainFocus().setHorizontalRule().run()}
                         className="p-1 rounded-[2px] text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-border)]/50 transition-colors cursor-pointer"
                         title="Horizontal Line"
                     >
@@ -323,9 +325,9 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
                             value={editor.getAttributes("textStyle").fontFamily || ""}
                             onChange={(val) => {
                                 if (val) {
-                                    editor.chain().focus().setFontFamily(val).run();
+                                    chainFocus().setFontFamily(val).run();
                                 } else {
-                                    editor.chain().focus().unsetFontFamily().run();
+                                    chainFocus().unsetFontFamily().run();
                                 }
                             }}
                             placeholder="Default Font"
@@ -337,7 +339,7 @@ export const TipTapEditor: React.FC<TipTapEditorProps> = ({
             )}
 
             {/* Content Area */}
-            <div className="p-3 flex-1 min-h-0 overflow-y-auto scrollbar-none text-[11px] leading-relaxed text-[var(--app-text)] focus:outline-none flex flex-col cursor-text" onClick={() => editor.chain().focus().run()}>
+            <div className="p-3 flex-1 min-h-0 overflow-y-auto scrollbar-none text-[11px] leading-relaxed text-[var(--app-text)] focus:outline-none flex flex-col cursor-text" onClick={() => chainFocus().run()}>
                 <EditorContent
                     editor={editor}
                     className="prose-content flex-1 min-h-0 focus:outline-none [&_.is-editor-empty]:before:content-['Describe_this_task…'] [&_.is-editor-empty]:before:text-[var(--app-muted)] [&_.is-editor-empty]:before:float-left [&_.is-editor-empty]:before:pointer-events-none"
