@@ -1487,14 +1487,14 @@ export default function TaskModal({
     };
 
     const inputClass =
-        "w-full bg-white border border-[#E5E5E3] rounded-[3px] px-2.5 py-1.5 text-[11px] text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+        "w-full bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] px-2.5 py-1.5 text-[11px] text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
     const modalInner = (
-        <div className="w-full h-full flex flex-col min-h-0 overflow-hidden bg-white text-[#1A1A1A] select-none">
+        <div className="w-full h-full flex flex-col min-h-0 overflow-hidden bg-[var(--app-card)] text-[var(--app-text)] select-none">
             {/* Modal Top Header Bar */}
-            <div className="px-4 py-3 border-b border-[#E5E5E3] flex justify-between items-center bg-[#FAFAF9] shrink-0">
+            <div className="px-4 py-3 border-b border-[var(--app-border)] flex justify-between items-center bg-[var(--app-bg)] shrink-0">
                 <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="text-[11px] font-medium text-[#888883] truncate">
+                    <span className="text-[11px] font-medium text-[var(--app-muted)] truncate">
                         Task Details
                     </span>
                     {isDirty && (
@@ -1511,14 +1511,14 @@ export default function TaskModal({
                         onClick={() => setIsSidebarOpen((prev) => !prev)}
                         className={`px-2 py-1.5 rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-medium ${
                             isSidebarOpen
-                                ? "bg-[#E5E5E3]/70 text-[#1A1A1A] border border-[#E5E5E3]"
-                                : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/50 border border-transparent"
+                                ? "bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)]"
+                                : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] border border-transparent"
                         }`}
                         title={isSidebarOpen ? "Hide comments & attachments panel" : "Show comments & attachments panel"}
                     >
                         <PanelRight className="w-4 h-4" />
                         {(visibleComments.length > 0 || (task.attachments?.length || 0) > 0) && (
-                            <span className="text-[10px] bg-white border border-[#E5E5E3] px-1.5 py-0.2 rounded-[2px] tabular-nums text-[#1A1A1A]">
+                            <span className="text-[10px] bg-[var(--app-card)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums text-[var(--app-text)]">
                                 {visibleComments.length + (task.attachments?.length || 0)}
                             </span>
                         )}
@@ -1528,7 +1528,7 @@ export default function TaskModal({
                     <button
                         type="button"
                         onClick={toggleViewMode}
-                        className="p-1.5 text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/50 rounded-[2px] transition-colors cursor-pointer"
+                        className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
                         title={
                             viewMode === "side_sheet"
                                 ? "Switch to Center Modal view (remembered)"
@@ -1546,7 +1546,7 @@ export default function TaskModal({
                     <button
                         type="button"
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="p-1.5 text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/50 rounded-[2px] transition-colors cursor-pointer"
+                        className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
                         title={isExpanded ? "Collapse to default width" : "Expand to full width"}
                     >
                         {isExpanded ? (
@@ -1561,7 +1561,7 @@ export default function TaskModal({
                         <button
                             type="button"
                             onClick={handleDeleteTask}
-                            className="border border-[#E5E5E3] hover:border-[#CB2431]/30 hover:bg-[#CB2431]/5 text-[#888883] hover:text-[#CB2431] text-[11px] px-2.5 py-1 rounded-[2px] font-medium transition-colors cursor-pointer"
+                            className="border border-[var(--app-border)] hover:border-[#CB2431]/30 hover:bg-[#CB2431]/5 text-[var(--app-muted)] hover:text-[#CB2431] text-[11px] px-2.5 py-1 rounded-[2px] font-medium transition-colors cursor-pointer"
                         >
                             Archive
                         </button>
@@ -1592,7 +1592,7 @@ export default function TaskModal({
                     <button
                         type="button"
                         onClick={handleAttemptClose}
-                        className="text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/50 rounded-[2px] transition-colors p-1 cursor-pointer"
+                        className="text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors p-1 cursor-pointer"
                         title="Close modal (Esc)"
                     >
                         <X className="w-4 h-4" />
@@ -1601,18 +1601,18 @@ export default function TaskModal({
             </div>
 
                 {/* Content Layout: Notion-style Left Scrollable Page + Right Collapsible Sidebar */}
-                <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden bg-white">
+                <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden bg-[var(--app-card)]">
                     {/* Left Column: Notion-style Scrollable Page (Title -> Metadata Properties -> Checklist -> Description) */}
-                    <div className={`flex-1 overflow-y-auto custom-scrollbar h-full min-h-0 text-left ${isSidebarOpen ? "md:border-r md:border-[#E5E5E3]" : ""}`}>
+                    <div className={`flex-1 overflow-y-auto custom-scrollbar h-full min-h-0 text-left ${isSidebarOpen ? "md:border-r md:border-[var(--app-border)]" : ""}`}>
                         <div className="max-w-3xl mx-auto px-5 sm:px-8 py-5 flex flex-col gap-6">
                             {/* 1. Title Section (Underline Hero Input, No Label) */}
                             <div className="shrink-0">
                                 {!canEditDetails ? (
-                                    <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight font-heading pt-1 select-text">
+                                    <h2 className="text-xl md:text-2xl font-bold text-[var(--app-text)] tracking-tight font-heading pt-1 select-text">
                                         {title}
                                     </h2>
                                 ) : (
-                                    <div className="border-b-2 border-[#E5E5E3] focus-within:border-[var(--color-accent)] transition-colors">
+                                    <div className="border-b-2 border-[var(--app-border)] focus-within:border-[var(--color-accent)] transition-colors">
                                         <input
                                             type="text"
                                             value={title}
@@ -1620,17 +1620,17 @@ export default function TaskModal({
                                             placeholder="Task title…"
                                             aria-label="Task title"
                                             maxLength={APP_CONFIG.MAX_TASK_TITLE_LENGTH}
-                                            className="w-full px-0 py-1.5 text-xl font-semibold tracking-tight bg-transparent border-0 text-[#1A1A1A] rounded-none focus:outline-none placeholder:text-[#888883]/60"
+                                            className="w-full px-0 py-1.5 text-xl font-semibold tracking-tight bg-transparent border-0 text-[var(--app-text)] rounded-none focus:outline-none placeholder:text-[var(--app-muted)]/60"
                                         />
                                     </div>
                                 )}
                             </div>
 
                             {/* 2. Notion-style 2-Column Metadata Properties */}
-                            <div className="flex flex-col gap-1.5 pb-3 border-b border-[#E5E5E3]/80">
+                            <div className="flex flex-col gap-1.5 pb-3 border-b border-[var(--app-border)]/80">
                                 {/* Status */}
                                 <div className="grid grid-cols-[115px_1fr] sm:grid-cols-[135px_1fr] items-center gap-2 py-0.5">
-                                    <span className="text-xs text-[#888883] flex items-center gap-2 truncate">
+                                    <span className="text-xs text-[var(--app-muted)] flex items-center gap-2 truncate">
                                         <Circle className="w-3.5 h-3.5 shrink-0 opacity-75" />
                                         <span>Status</span>
                                     </span>
@@ -1643,7 +1643,7 @@ export default function TaskModal({
                                             }))}
                                             value={columnId}
                                             onChange={handleStatusChange}
-                                            buttonClassName="!border-transparent hover:!border-[#E5E5E3] !bg-transparent hover:!bg-[#FAFAF9] !px-2 !py-1 !h-7 text-xs font-medium"
+                                            buttonClassName="!border-transparent hover:!border-[var(--app-border)] !bg-transparent hover:!bg-[var(--app-hover-bg)] !px-2 !py-1 !h-7 text-xs font-medium"
                                             className="w-full sm:w-auto min-w-[200px]"
                                         />
                                     </div>
@@ -1651,7 +1651,7 @@ export default function TaskModal({
 
                                 {/* Priority */}
                                 <div className="grid grid-cols-[115px_1fr] sm:grid-cols-[135px_1fr] items-center gap-2 py-0.5">
-                                    <span className="text-xs text-[#888883] flex items-center gap-2 truncate">
+                                    <span className="text-xs text-[var(--app-muted)] flex items-center gap-2 truncate">
                                         <AlertTriangle className="w-3.5 h-3.5 shrink-0 opacity-75" />
                                         <span>Priority</span>
                                     </span>
@@ -1666,7 +1666,7 @@ export default function TaskModal({
                                             ]}
                                             value={priority}
                                             onChange={(val) => setPriority(val)}
-                                            buttonClassName="!border-transparent hover:!border-[#E5E5E3] !bg-transparent hover:!bg-[#FAFAF9] !px-2 !py-1 !h-7 text-xs font-medium"
+                                            buttonClassName="!border-transparent hover:!border-[var(--app-border)] !bg-transparent hover:!bg-[var(--app-hover-bg)] !px-2 !py-1 !h-7 text-xs font-medium"
                                             className="w-full sm:w-auto min-w-[200px]"
                                         />
                                     </div>
@@ -1674,7 +1674,7 @@ export default function TaskModal({
 
                                 {/* Assignee */}
                                 <div className="grid grid-cols-[115px_1fr] sm:grid-cols-[135px_1fr] items-center gap-2 py-0.5">
-                                    <span className="text-xs text-[#888883] flex items-center gap-2 truncate">
+                                    <span className="text-xs text-[var(--app-muted)] flex items-center gap-2 truncate">
                                         <UserIcon className="w-3.5 h-3.5 shrink-0 opacity-75" />
                                         <span>Assignee</span>
                                     </span>
@@ -1707,7 +1707,7 @@ export default function TaskModal({
                                             }
                                             value={assignedToId}
                                             onChange={(val) => setAssignedToId(val)}
-                                            buttonClassName="!border-transparent hover:!border-[#E5E5E3] !bg-transparent hover:!bg-[#FAFAF9] !px-2 !py-1 !h-7 text-xs font-medium"
+                                            buttonClassName="!border-transparent hover:!border-[var(--app-border)] !bg-transparent hover:!bg-[var(--app-hover-bg)] !px-2 !py-1 !h-7 text-xs font-medium"
                                             className="w-full sm:w-auto min-w-[200px]"
                                         />
                                     </div>
@@ -1715,7 +1715,7 @@ export default function TaskModal({
 
                                 {/* Timeline (Start -> Due) */}
                                 <div className="grid grid-cols-[115px_1fr] sm:grid-cols-[135px_1fr] items-center gap-2 py-0.5">
-                                    <span className="text-xs text-[#888883] flex items-center gap-2 truncate">
+                                    <span className="text-xs text-[var(--app-muted)] flex items-center gap-2 truncate">
                                         <Calendar className="w-3.5 h-3.5 shrink-0 opacity-75" />
                                         <span>Timeline</span>
                                     </span>
@@ -1735,7 +1735,7 @@ export default function TaskModal({
                                                 className="w-full"
                                             />
                                         </div>
-                                        <span className="text-xs text-[#888883]">→</span>
+                                        <span className="text-xs text-[var(--app-muted)]">→</span>
                                         <div className="w-[140px]">
                                             <CustomDatePicker
                                                 disabled={!canEditDetails}
@@ -1755,7 +1755,7 @@ export default function TaskModal({
                                         <button
                                             type="button"
                                             onClick={() => setShowMoreProperties((prev) => !prev)}
-                                            className="inline-flex items-center gap-1 text-[11px] text-[#888883] hover:text-[#1A1A1A] transition-colors cursor-pointer ml-1"
+                                            className="inline-flex items-center gap-1 text-[11px] text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors cursor-pointer ml-1"
                                         >
                                             {showMoreProperties ? (
                                                 <ChevronDown className="w-3 h-3" />
@@ -1769,10 +1769,10 @@ export default function TaskModal({
 
                                 {showMoreProperties && (
                                     <div className="grid grid-cols-[115px_1fr] sm:grid-cols-[135px_1fr] items-center gap-2 py-0.5 animate-fade-in">
-                                        <span className="text-[11px] text-[#888883] pl-5 truncate">
+                                        <span className="text-[11px] text-[var(--app-muted)] pl-5 truncate">
                                             Created
                                         </span>
-                                        <span className="text-[11px] text-[#1A1A1A] tabular-nums">
+                                        <span className="text-[11px] text-[var(--app-text)] tabular-nums">
                                             {task.createdBy?.fullName || "—"} • {new Date(task.createdAt).toLocaleDateString()}
                                         </span>
                                     </div>
@@ -1803,27 +1803,27 @@ export default function TaskModal({
                                         <div className="flex flex-col gap-2 shrink-0">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <CheckSquare className="w-4 h-4 text-[#888883]" />
-                                                    <h4 className="text-xs font-semibold text-[#1A1A1A]">
+                                                    <CheckSquare className="w-4 h-4 text-[var(--app-muted)]" />
+                                                    <h4 className="text-xs font-semibold text-[var(--app-text)]">
                                                         Checklist
                                                     </h4>
                                                     {totalCount > 0 && (
-                                                        <span className="text-[10px] bg-[#FAFAF9] border border-[#E5E5E3] px-1.5 py-0.2 rounded-[2px] text-[#888883] tabular-nums">
+                                                        <span className="text-[10px] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] text-[var(--app-muted)] tabular-nums">
                                                             {completedCount}/{totalCount}
                                                         </span>
                                                     )}
                                                 </div>
                                                 {totalCount > 0 && (
-                                                    <span className="text-[11px] font-normal text-[#888883] tabular-nums">
+                                                    <span className="text-[11px] font-normal text-[var(--app-muted)] tabular-nums">
                                                         {progressPercent}% completed
                                                     </span>
                                                 )}
                                             </div>
 
                                             {totalCount > 0 && (
-                                                <div className="w-full h-1 bg-[#F5F5F3] rounded-[2px] border border-[#E5E5E3] overflow-hidden">
+                                                <div className="w-full h-1 bg-[var(--app-hover-bg)] rounded-[2px] border border-[var(--app-border)] overflow-hidden">
                                                     <div
-                                                        className="h-full bg-[#1A1A1A] transition-all duration-300 rounded-[1px]"
+                                                        className="h-full bg-[var(--app-text)] transition-all duration-300 rounded-[1px]"
                                                         style={{ width: `${progressPercent}%` }}
                                                     />
                                                 </div>
@@ -1843,13 +1843,13 @@ export default function TaskModal({
                                                     value={newSubtask}
                                                     onChange={(e) => setNewSubtask(e.target.value)}
                                                     disabled={isAddingSubtask}
-                                                    className="flex-1 px-3 py-1.5 text-xs bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] placeholder-[#888883] rounded-[2px] focus:outline-none focus:bg-white focus:border-[#1A1A1A] transition-colors"
+                                                    className="flex-1 px-3 py-1.5 text-xs bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] placeholder-[var(--app-muted)] rounded-[2px] focus:outline-none focus:bg-[var(--app-card)] focus:border-[var(--app-border-strong)] transition-colors"
                                                     maxLength={300}
                                                 />
                                                 <button
                                                     type="submit"
                                                     disabled={isAddingSubtask || !newSubtask.trim()}
-                                                    className="px-3 py-1.5 bg-[#FAFAF9] hover:bg-[#F0F0EE] text-[#1A1A1A] border border-[#DADAD6] text-xs font-semibold rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                                                    className="px-3 py-1.5 bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border-strong)] text-xs font-semibold rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                                                 >
                                                     {isAddingSubtask ? (
                                                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1865,7 +1865,7 @@ export default function TaskModal({
                                         <div className="flex flex-col gap-1.5">
                                             {checklistItems.length === 0 ? (
                                                 isObserver && (
-                                                    <p className="text-xs text-[#888883] italic">No checklist items.</p>
+                                                    <p className="text-xs text-[var(--app-muted)] italic">No checklist items.</p>
                                                 )
                                             ) : (
                                                 <DragDropContext onDragEnd={handleDragEndChecklist}>
@@ -1900,17 +1900,17 @@ export default function TaskModal({
                                                                                         !isEditing && !isObserver ? "cursor-pointer" : ""
                                                                                     } ${
                                                                                         dragSnapshot.isDragging
-                                                                                            ? "shadow-md ring-1 ring-[var(--app-border-strong)] bg-white z-50 w-full"
+                                                                                            ? "shadow-md ring-1 ring-[var(--app-border-strong)] bg-[var(--app-card)] z-50 w-full"
                                                                                             : item.isCompleted
-                                                                                            ? "border-[#E5E5E3] bg-[#FAFAF9]/60 opacity-80"
-                                                                                            : "border-[#E5E5E3] bg-white hover:border-[#DADAD6]"
+                                                                                            ? "border-[var(--app-border)] bg-[var(--app-hover-bg)]/40 opacity-80"
+                                                                                            : "border-[var(--app-border)] bg-[var(--app-card)] hover:border-[var(--app-border-strong)]"
                                                                                     } ${isDeleting ? "opacity-40" : ""}`}
                                                                                 >
                                                                                     {!isObserver && !isEditing && (
                                                                                         <div
                                                                                             {...dragProvided.dragHandleProps}
                                                                                             onClick={(e) => e.stopPropagation()}
-                                                                                            className="text-[#B5B5B0] hover:text-[#1A1A1A] cursor-grab active:cursor-grabbing p-0.5 -ml-1 rounded-[2px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                                            className="text-[var(--app-muted)] hover:text-[var(--app-text)] cursor-grab active:cursor-grabbing p-0.5 -ml-1 rounded-[2px] opacity-0 group-hover:opacity-100 transition-opacity"
                                                                                             title="Drag to reorder"
                                                                                         >
                                                                                             <GripVertical className="w-3.5 h-3.5" />
@@ -1921,11 +1921,11 @@ export default function TaskModal({
                                                                                         className={`w-4 h-4 rounded-[2px] flex items-center justify-center transition-all shrink-0 ${
                                                                                             item.isCompleted
                                                                                                 ? "bg-[var(--color-accent)] border border-[var(--color-accent)] text-white shadow-2xs"
-                                                                                                : "bg-white border border-[#DADAD6] hover:border-[var(--color-accent)]"
+                                                                                                : "bg-[var(--app-card)] border border-[var(--app-border-strong)] hover:border-[var(--color-accent)]"
                                                                                         } ${isObserver ? "opacity-60" : ""}`}
                                                                                     >
                                                                                         {isUpdating ? (
-                                                                                            <Loader2 className="w-2.5 h-2.5 animate-spin text-[#888883]" />
+                                                                                            <Loader2 className="w-2.5 h-2.5 animate-spin text-[var(--app-muted)]" />
                                                                                         ) : item.isCompleted ? (
                                                                                             <Check className="w-3 h-3 text-white stroke-[2.5]" />
                                                                                         ) : null}
@@ -1949,7 +1949,7 @@ export default function TaskModal({
                                                                                                         setEditingItemId(null);
                                                                                                     }
                                                                                                 }}
-                                                                                                className="px-2 py-1 border border-[#1A1A1A] focus:outline-none text-xs bg-white rounded-[2px] w-full"
+                                                                                                className="px-2 py-1 border border-[var(--app-border-strong)] focus:outline-none text-xs bg-[var(--app-card)] rounded-[2px] w-full"
                                                                                                 maxLength={300}
                                                                                             />
                                                                                             <button
@@ -1963,7 +1963,7 @@ export default function TaskModal({
                                                                                             <button
                                                                                                 type="button"
                                                                                                 onClick={() => setEditingItemId(null)}
-                                                                                                className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                                                                                                className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded transition-colors cursor-pointer"
                                                                                                 title="Cancel (Esc)"
                                                                                             >
                                                                                                 <X className="w-3.5 h-3.5" />
@@ -1973,8 +1973,8 @@ export default function TaskModal({
                                                                                         <span
                                                                                             className={`text-xs leading-relaxed break-words flex-1 select-none transition-colors ${
                                                                                                 item.isCompleted
-                                                                                                    ? "line-through text-[#888883]"
-                                                                                                    : "text-[#1A1A1A] font-normal"
+                                                                                                    ? "line-through text-[var(--app-muted)]"
+                                                                                                    : "text-[var(--app-text)] font-normal"
                                                                                             }`}
                                                                                         >
                                                                                             {item.title}
@@ -1992,7 +1992,7 @@ export default function TaskModal({
                                                                                                     setEditingItemId(item.id);
                                                                                                     setEditingItemTitle(item.title);
                                                                                                 }}
-                                                                                                className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] rounded-[2px] transition-colors cursor-pointer"
+                                                                                                className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
                                                                                                 title="Edit item title"
                                                                                             >
                                                                                                 <Pencil className="w-3.5 h-3.5" />
@@ -2001,7 +2001,7 @@ export default function TaskModal({
                                                                                                 type="button"
                                                                                                 onClick={() => handleDeleteSubtask(item.id)}
                                                                                                 disabled={isDeleting}
-                                                                                                className="p-1 text-[#888883] hover:text-red-600 hover:bg-red-50 rounded-[2px] transition-colors cursor-pointer"
+                                                                                                className="p-1 text-[var(--app-muted)] hover:text-red-600 hover:bg-red-50 rounded-[2px] transition-colors cursor-pointer"
                                                                                                 title="Delete item"
                                                                                             >
                                                                                                 {isDeleting ? (
@@ -2030,14 +2030,14 @@ export default function TaskModal({
                             })()}
 
                             {/* 4. Description Section (Seamless Notion-style) */}
-                            <div ref={descriptionSectionRef} className="flex flex-col gap-2.5 pt-2 border-t border-[#E5E5E3]/80 shrink-0 text-left">
+                            <div ref={descriptionSectionRef} className="flex flex-col gap-2.5 pt-2 border-t border-[var(--app-border)]/80 shrink-0 text-left">
                                 <div className="flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-[#888883]" />
-                                    <h4 className="text-xs font-semibold text-[#1A1A1A]">
+                                    <FileText className="w-4 h-4 text-[var(--app-muted)]" />
+                                    <h4 className="text-xs font-semibold text-[var(--app-text)]">
                                         Description & Details
                                     </h4>
                                 </div>
-                                <div className="border border-[#E5E5E3] rounded-[2px] bg-white p-2 min-h-[240px] flex flex-col">
+                                <div className="border border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] p-2 min-h-[240px] flex flex-col">
                                     <TipTapEditor
                                         value={description}
                                         onChange={(html) => setDescription(html)}
@@ -2050,22 +2050,22 @@ export default function TaskModal({
 
                     {/* Right Column: Collapsible Sidebar (Comments + Files tabs, Activity Log button at bottom) */}
                     {isSidebarOpen && (
-                        <div className="w-full md:w-[360px] lg:w-[380px] flex flex-col min-h-0 bg-[#FAFAF9] shrink-0 border-t md:border-t-0 border-[#E5E5E3] text-left">
+                        <div className="w-full md:w-[360px] lg:w-[380px] flex flex-col min-h-0 bg-[var(--app-bg)] shrink-0 border-t md:border-t-0 border-[var(--app-border)] text-left">
                             {/* Sidebar Tabs Bar */}
-                            <div className="flex items-center gap-1 px-3 py-2 border-b border-[#E5E5E3] bg-[#FAFAF9] shrink-0">
+                            <div className="flex items-center gap-1 px-3 py-2 border-b border-[var(--app-border)] bg-[var(--app-bg)] shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => handleSidebarTabChange("comments")}
                                     className={`px-2.5 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
                                         sidebarTab === "comments"
-                                            ? "bg-white border border-[#E5E5E3] text-[#1A1A1A] font-semibold"
-                                            : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/40"
+                                            ? "bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
+                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
                                     }`}
                                 >
                                     <MessageSquare className="w-3.5 h-3.5" />
                                     <span>Comments</span>
                                     {visibleComments.length > 0 && (
-                                        <span className="text-[10px] bg-[#F5F5F3] border border-[#E5E5E3] px-1.5 py-0.2 rounded-[2px] tabular-nums">
+                                        <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
                                             {visibleComments.length}
                                         </span>
                                     )}
@@ -2076,14 +2076,14 @@ export default function TaskModal({
                                     onClick={() => handleSidebarTabChange("attachments")}
                                     className={`px-2.5 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
                                         sidebarTab === "attachments"
-                                            ? "bg-white border border-[#E5E5E3] text-[#1A1A1A] font-semibold"
-                                            : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/40"
+                                            ? "bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
+                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
                                     }`}
                                 >
                                     <Paperclip className="w-3.5 h-3.5" />
                                     <span>Files</span>
                                     {(task.attachments?.length || 0) > 0 && (
-                                        <span className="text-[10px] bg-[#F5F5F3] border border-[#E5E5E3] px-1.5 py-0.2 rounded-[2px] tabular-nums">
+                                        <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
                                             {task.attachments?.length || 0}
                                         </span>
                                     )}
@@ -2100,7 +2100,7 @@ export default function TaskModal({
                                                     type="button"
                                                     onClick={() => loadTaskComments(commentsPage + 1, true)}
                                                     disabled={isLoadingMore}
-                                                    className="text-[10px] text-[#888883] hover:text-[#1A1A1A] font-semibold flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] border border-[#E5E5E3] bg-white hover:bg-[#FAFAF9] transition-all disabled:opacity-50 cursor-pointer"
+                                                    className="text-[10px] text-[var(--app-muted)] hover:text-[var(--app-text)] font-semibold flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] border border-[var(--app-border)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] transition-all disabled:opacity-50 cursor-pointer"
                                                 >
                                                     {isLoadingMore && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
                                                     <span>Load previous</span>
@@ -2114,14 +2114,14 @@ export default function TaskModal({
                                             className="flex-1 overflow-y-auto flex flex-col gap-2.5 pr-1 custom-scrollbar"
                                         >
                                             {isLoadingComments ? (
-                                                <div className="flex items-center justify-center py-8 gap-2 text-[#888883] text-[11px]">
+                                                <div className="flex items-center justify-center py-8 gap-2 text-[var(--app-muted)] text-[11px]">
                                                     <Loader2 className="w-4 h-4 animate-spin" />
                                                     <span>Loading comments...</span>
                                                 </div>
                                             ) : visibleComments.length === 0 ? (
-                                                <div className="py-10 text-center flex flex-col items-center justify-center gap-1 text-[#888883] my-auto">
-                                                    <MessageSquare className="w-5 h-5 text-[#DADAD6]" />
-                                                    <span className="text-[11px] font-medium text-[#1A1A1A] mt-0.5">
+                                                <div className="py-10 text-center flex flex-col items-center justify-center gap-1 text-[var(--app-muted)] my-auto">
+                                                    <MessageSquare className="w-5 h-5 text-[var(--app-muted)]/60" />
+                                                    <span className="text-[11px] font-medium text-[var(--app-text)] mt-0.5">
                                                         No comments yet
                                                     </span>
                                                     <span className="text-[10px]">
@@ -2133,7 +2133,7 @@ export default function TaskModal({
                                                     {visibleComments.map((c) => (
                                                         <div
                                                             key={c.id}
-                                                            className={`border p-2.5 rounded-[3px] text-left transition-colors flex flex-col gap-1 ${c.resolved ? "border-[#DADAD6] bg-[#FAFAF9] opacity-75" : "border-[#E5E5E3] bg-white"}`}
+                                                            className={`border p-2.5 rounded-[3px] text-left transition-colors flex flex-col gap-1 ${c.resolved ? "border-[var(--app-border-strong)] bg-[var(--app-bg)] opacity-75" : "border-[var(--app-border)] bg-[var(--app-card)]"}`}
                                                         >
                                                             <div className="flex justify-between items-center text-[10px] gap-1">
                                                                 <div
@@ -2144,20 +2144,20 @@ export default function TaskModal({
                                                                         <img
                                                                             src={c.user.avatarUrl}
                                                                             alt={c.user.fullName}
-                                                                            className="w-4 h-4 rounded-full object-cover border border-[#E5E5E3] shrink-0"
+                                                                            className="w-4 h-4 rounded-full object-cover border border-[var(--app-border)] shrink-0"
                                                                         />
                                                                     ) : (
-                                                                        <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] text-[#1A1A1A] font-semibold shrink-0">
+                                                                        <div className="w-4 h-4 rounded-[2px] border border-[var(--app-border-strong)] bg-[var(--app-bg)] flex items-center justify-center text-[7px] text-[var(--app-text)] font-semibold shrink-0">
                                                                             {c.user?.fullName
                                                                                 ? c.user.fullName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
                                                                                 : "U"}
                                                                         </div>
                                                                     )}
-                                                                    <span className="font-semibold text-[#1A1A1A] truncate">
+                                                                    <span className="font-semibold text-[var(--app-text)] truncate">
                                                                         {c.user?.fullName}
                                                                     </span>
                                                                 </div>
-                                                                <div className="flex items-center gap-1.5 text-[#888883] shrink-0">
+                                                                <div className="flex items-center gap-1.5 text-[var(--app-muted)] shrink-0">
                                                                     <span className="text-[9px]">
                                                                         {new Date(c.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                                                     </span>
@@ -2204,7 +2204,7 @@ export default function TaskModal({
                                                             <p className="text-[11px] text-[var(--app-text,#1A1A1A)] leading-relaxed break-words font-sans">
                                                                 {c.content.split(" ").map((word, idx) =>
                                                                     word.startsWith("@") ? (
-                                                                        <span key={idx} className="text-[#1A1A1A] font-semibold underline">
+                                                                        <span key={idx} className="text-[var(--app-text)] font-semibold underline">
                                                                             {word}{" "}
                                                                         </span>
                                                                     ) : (
@@ -2220,13 +2220,13 @@ export default function TaskModal({
                                         </div>
 
                                         {canPostComment && (
-                                            <form onSubmit={handleAddComment} className="flex gap-1.5 shrink-0 pt-2 border-t border-[#E5E5E3] relative">
+                                            <form onSubmit={handleAddComment} className="flex gap-1.5 shrink-0 pt-2 border-t border-[var(--app-border)] relative">
                                                 {showMentionMenu && mentionOptions.length > 0 && (
                                                     <div
                                                         ref={mentionMenuRef}
-                                                        className="absolute bottom-full mb-1 left-0 w-72 max-h-56 overflow-x-hidden overflow-y-auto scrollbar-none bg-white border border-[#E5E5E3] rounded-[3px] shadow-md z-50 flex flex-col p-1.5 corner-brackets"
+                                                        className="absolute bottom-full mb-1 left-0 w-72 max-h-56 overflow-x-hidden overflow-y-auto scrollbar-none bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] shadow-md z-50 flex flex-col p-1.5 corner-brackets"
                                                     >
-                                                        <div className="px-2 py-1 text-[10px] font-medium text-[#888883] border-b border-[#E5E5E3] mb-1 flex items-center justify-between shrink-0 min-w-0">
+                                                        <div className="px-2 py-1 text-[10px] font-medium text-[var(--app-muted)] border-b border-[var(--app-border)] mb-1 flex items-center justify-between shrink-0 min-w-0">
                                                             <span>Mention leader</span>
                                                             <span className="truncate ml-1">Use ↑↓ to navigate</span>
                                                         </div>
@@ -2236,14 +2236,14 @@ export default function TaskModal({
                                                                 type="button"
                                                                 onClick={() => insertMention(opt)}
                                                                 className={`w-full text-left px-2.5 py-1.5 rounded-[2px] text-[11px] flex items-center justify-between gap-2 transition-colors cursor-pointer ${
-                                                                    idx === mentionIndex ? "bg-[#FAFAF9] text-[#1A1A1A] font-semibold" : "text-[#1A1A1A] hover:bg-[#FAFAF9]"
+                                                                    idx === mentionIndex ? "bg-[var(--app-bg)] text-[var(--app-text)] font-semibold" : "text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
                                                                 }`}
                                                             >
                                                                 <div className="flex items-center gap-2 min-w-0">
                                                                     <span className="font-semibold text-[#22863A]">@</span>
                                                                     <div className="flex flex-col min-w-0">
                                                                         <span className="truncate font-medium text-[11px]">{opt.name}</span>
-                                                                        {opt.description && <span className="truncate text-[9px] text-[#888883]">{opt.description}</span>}
+                                                                        {opt.description && <span className="truncate text-[9px] text-[var(--app-muted)]">{opt.description}</span>}
                                                                     </div>
                                                                 </div>
                                                                 <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border shrink-0 ${
@@ -2272,7 +2272,7 @@ export default function TaskModal({
                                                 <button
                                                     type="submit"
                                                     disabled={isSendingComment || !comment.trim()}
-                                                    className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-3 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    className="relative corner-brackets-4 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] px-3 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     {isSendingComment ? <Loader2 className="w-3 h-3 animate-spin shrink-0" /> : <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />}
                                                     <span>{isSendingComment ? "Sending…" : "Send"}</span>
@@ -2291,14 +2291,14 @@ export default function TaskModal({
                                                     !isUploadingImage &&
                                                     fileInputRef.current?.click()
                                                 }
-                                                className={`border border-dashed border-[#E5E5E3] bg-white p-6 text-center rounded-[3px] flex flex-col items-center justify-center gap-1 text-[#888883] w-full min-h-[120px] ${!isObserver && !isUploadingImage ? "cursor-pointer hover:bg-[#FAFAF9] hover:border-[#888883] transition-all" : ""}`}
+                                                className={`border border-dashed border-[var(--app-border)] bg-[var(--app-card)] p-6 text-center rounded-[3px] flex flex-col items-center justify-center gap-1 text-[var(--app-muted)] w-full min-h-[120px] ${!isObserver && !isUploadingImage ? "cursor-pointer hover:bg-[var(--app-hover-bg)] hover:border-[var(--app-border-strong)] transition-all" : ""}`}
                                             >
                                                 {isUploadingImage ? (
-                                                    <Loader2 className="w-5 h-5 text-[#DADAD6] animate-spin" />
+                                                    <Loader2 className="w-5 h-5 text-[var(--app-muted)]/60 animate-spin" />
                                                 ) : (
-                                                    <Paperclip className="w-5 h-5 text-[#DADAD6]" />
+                                                    <Paperclip className="w-5 h-5 text-[var(--app-muted)]/60" />
                                                 )}
-                                                <span className="text-[11px] font-medium text-[#1A1A1A] mt-1">
+                                                <span className="text-[11px] font-medium text-[var(--app-text)] mt-1">
                                                     {isUploadingImage ? "Uploading image..." : "No attachments uploaded"}
                                                 </span>
                                                 {!isObserver && (
@@ -2321,12 +2321,12 @@ export default function TaskModal({
                                                     return (
                                                         <div
                                                             key={att.id}
-                                                            className="relative group border border-[#E5E5E3] bg-white rounded-[3px] overflow-hidden"
+                                                            className="relative group border border-[var(--app-border)] bg-[var(--app-card)] rounded-[3px] overflow-hidden"
                                                         >
                                                             {isImg ? (
                                                                 <div
                                                                     onClick={() => setFullscreenImage(att.url)}
-                                                                    className="w-full aspect-[4/3] relative cursor-pointer block overflow-hidden bg-[#FAFAF9]"
+                                                                    className="w-full aspect-[4/3] relative cursor-pointer block overflow-hidden bg-[var(--app-bg)]"
                                                                 >
                                                                     <img
                                                                         src={att.url}
@@ -2342,10 +2342,10 @@ export default function TaskModal({
                                                                     href={att.url}
                                                                     target="_blank"
                                                                     rel="noreferrer"
-                                                                    className="w-full aspect-[4/3] bg-[#F5F5F3] flex flex-col items-center justify-center gap-1 p-2 text-center text-[#1A1A1A] hover:bg-[#ECECE9] transition-colors"
+                                                                    className="w-full aspect-[4/3] bg-[var(--app-hover-bg)] flex flex-col items-center justify-center gap-1 p-2 text-center text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors"
                                                                 >
-                                                                    <ExternalLink className="w-4 h-4 text-[#888883]" />
-                                                                    <span className="text-[9px] text-[#888883] truncate w-full font-medium">
+                                                                    <ExternalLink className="w-4 h-4 text-[var(--app-muted)]" />
+                                                                    <span className="text-[9px] text-[var(--app-muted)] truncate w-full font-medium">
                                                                         {att.name || "Attachment"}
                                                                     </span>
                                                                 </a>
@@ -2359,7 +2359,7 @@ export default function TaskModal({
                                                                         setAttachmentToDelete({ id: att.id, name: att.name });
                                                                         setIsDeleteAttachmentConfirmOpen(true);
                                                                     }}
-                                                                    className="absolute top-1.5 right-1.5 bg-white/90 hover:bg-[#CB2431] text-[#888883] hover:text-white border border-[#E5E5E3] hover:border-[#CB2431] p-1 rounded-[2px] shadow-sm transition-colors cursor-pointer z-10 opacity-0 group-hover:opacity-100"
+                                                                    className="absolute top-1.5 right-1.5 bg-[var(--app-card)]/90 hover:bg-[#CB2431] text-[var(--app-muted)] hover:text-white border border-[var(--app-border)] hover:border-[#CB2431] p-1 rounded-[2px] shadow-sm transition-colors cursor-pointer z-10 opacity-0 group-hover:opacity-100"
                                                                     title="Delete attachment"
                                                                 >
                                                                     <Trash2 className="w-3 h-3" />
@@ -2380,12 +2380,12 @@ export default function TaskModal({
                                         />
 
                                         {!isObserver && task.attachments && task.attachments.length > 0 && (
-                                            <div className="shrink-0 pt-2 border-t border-[#E5E5E3]">
+                                            <div className="shrink-0 pt-2 border-t border-[var(--app-border)]">
                                                 <button
                                                     type="button"
                                                     onClick={() => fileInputRef.current?.click()}
                                                     disabled={isUploadingImage}
-                                                    className="relative w-full bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] text-[11px] font-medium py-2 rounded-[2px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 corner-brackets"
+                                                    className="relative w-full bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-[11px] font-medium py-2 rounded-[2px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 corner-brackets"
                                                 >
                                                     {isUploadingImage ? (
                                                         <>
@@ -2394,7 +2394,7 @@ export default function TaskModal({
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <Upload className="w-3.5 h-3.5 text-[#1A1A1A]" />
+                                                            <Upload className="w-3.5 h-3.5 text-[var(--app-text)]" />
                                                             <span>Upload Image</span>
                                                         </>
                                                     )}
@@ -2406,7 +2406,7 @@ export default function TaskModal({
                             </div>
 
                             {/* Bottom Activity Log Button */}
-                            <div className="p-3 border-t border-[#E5E5E3] bg-[#FAFAF9] shrink-0">
+                            <div className="p-3 border-t border-[var(--app-border)] bg-[var(--app-bg)] shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -2415,13 +2415,13 @@ export default function TaskModal({
                                             loadTaskActivities(1);
                                         }
                                     }}
-                                    className="w-full py-1.5 px-2.5 bg-white border border-[#E5E5E3] hover:border-[var(--color-accent,#1A1A1A)] hover:bg-[#FAFAF9] text-[11px] text-[#1A1A1A] font-medium rounded-[3px] transition-colors flex items-center justify-between group cursor-pointer"
+                                    className="w-full py-1.5 px-2.5 bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--color-accent,#1A1A1A)] hover:bg-[var(--app-hover-bg)] text-[11px] text-[var(--app-text)] font-medium rounded-[3px] transition-colors flex items-center justify-between group cursor-pointer"
                                 >
                                     <span className="flex items-center gap-1.5 min-w-0">
-                                        <ClipboardList className="w-3.5 h-3.5 text-[#888883] group-hover:text-[#1A1A1A] transition-colors shrink-0" />
+                                        <ClipboardList className="w-3.5 h-3.5 text-[var(--app-muted)] group-hover:text-[var(--app-text)] transition-colors shrink-0" />
                                         <span className="truncate">View Activity Logs</span>
                                     </span>
-                                    <ChevronRight className="w-3.5 h-3.5 text-[#888883] group-hover:text-[#1A1A1A] group-hover:translate-x-0.5 transition-all shrink-0" />
+                                    <ChevronRight className="w-3.5 h-3.5 text-[var(--app-muted)] group-hover:text-[var(--app-text)] group-hover:translate-x-0.5 transition-all shrink-0" />
                                 </button>
                             </div>
                         </div>
@@ -2431,12 +2431,12 @@ export default function TaskModal({
             {/* Warning Dialog when trying to close modal with unsaved changes */}
             {showUnsavedWarning && typeof document !== "undefined" && ReactDOM.createPortal(
                 <div className="fixed inset-0 z-[99999] overflow-hidden flex justify-center items-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="relative bg-white border border-[#E5E5E3] p-5 w-full max-w-md flex flex-col gap-4 text-left shadow-2xl rounded-[4px]">
-                        <div className="flex flex-col gap-1 border-b border-[#E5E5E3] pb-3">
-                            <h3 className="font-heading text-base font-bold text-[#1A1A1A]">
+                    <div className="relative bg-[var(--app-card)] border border-[var(--app-border)] p-5 w-full max-w-md flex flex-col gap-4 text-left shadow-2xl rounded-[4px]">
+                        <div className="flex flex-col gap-1 border-b border-[var(--app-border)] pb-3">
+                            <h3 className="font-heading text-base font-bold text-[var(--app-text)]">
                                 Unsaved Changes Warning
                             </h3>
-                            <p className="text-base text-[#888883]">
+                            <p className="text-base text-[var(--app-muted)]">
                                 You have unsaved changes to this task. What
                                 would you like to do before closing?
                             </p>
@@ -2446,7 +2446,7 @@ export default function TaskModal({
                             <button
                                 type="button"
                                 onClick={() => setShowUnsavedWarning(false)}
-                                className="px-3 py-1.5 text-[11px] font-medium text-[#888883] hover:text-[#1A1A1A] border border-[#E5E5E3] rounded-[3px] transition-colors cursor-pointer"
+                                className="px-3 py-1.5 text-[11px] font-medium text-[var(--app-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)] rounded-[3px] transition-colors cursor-pointer"
                             >
                                 Keep Editing
                             </button>
@@ -2464,7 +2464,7 @@ export default function TaskModal({
                                 type="button"
                                 disabled={isSaving}
                                 onClick={() => handleSaveChanges(true)}
-                                className="px-4 py-1.5 text-[11px] font-medium text-white bg-[#1A1A1A] hover:bg-[#333] rounded-[3px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                                className="px-4 py-1.5 text-[11px] font-medium text-white bg-[var(--app-text)] hover:bg-[#333] rounded-[3px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                             >
                                 {isSaving && (
                                     <Loader2 className="w-3 h-3 animate-spin shrink-0" />
@@ -2487,22 +2487,22 @@ export default function TaskModal({
                         onClick={() => setShowAllAuditLog(false)}
                     />
                     <div
-                        className="relative bg-white border border-[#E5E5E3] p-5 w-full max-w-lg flex flex-col gap-3 animate-fade-in text-left max-h-[80vh]"
+                        className="relative bg-[var(--app-card)] border border-[var(--app-border)] p-5 w-full max-w-lg flex flex-col gap-3 animate-fade-in text-left max-h-[80vh]"
                         style={{ boxShadow: "var(--shadow-float)" }}
                     >
-                        <div className="flex justify-between items-center pb-2 border-b border-[#E5E5E3]">
+                        <div className="flex justify-between items-center pb-2 border-b border-[var(--app-border)]">
                             <div>
-                                <h3 className="font-heading text-base font-semibold text-[#1A1A1A]">
+                                <h3 className="font-heading text-base font-semibold text-[var(--app-text)]">
                                     Task Audit Log
                                 </h3>
-                                <p className="text-base text-[#888883]">
+                                <p className="text-base text-[var(--app-muted)]">
                                     Click any row to view exact field changes
                                     for "{task.title}"
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowAllAuditLog(false)}
-                                className="text-[#888883] hover:text-[#1A1A1A] text-base px-1"
+                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] text-base px-1"
                             >
                                 ✕
                             </button>
@@ -2510,11 +2510,11 @@ export default function TaskModal({
 
                         <div className="flex-1 overflow-y-auto flex flex-col gap-2 py-1 pr-1">
                             {isLoadingActivities && activitiesList.length === 0 ? (
-                                <div className="py-12 text-center text-[#888883] text-base animate-pulse">
+                                <div className="py-12 text-center text-[var(--app-muted)] text-base animate-pulse">
                                     Loading activity logs...
                                 </div>
                             ) : activitiesList.length === 0 ? (
-                                <div className="py-12 text-center text-[#888883] text-base">
+                                <div className="py-12 text-center text-[var(--app-muted)] text-base">
                                     No activity logs recorded for this task.
                                 </div>
                             ) : (
@@ -2547,12 +2547,12 @@ export default function TaskModal({
                                                     }
                                                     className={`p-3 border transition-colors cursor-pointer text-left ${
                                                         isExpanded
-                                                            ? "border-[#1A1A1A] bg-white"
-                                                            : "border-[#E5E5E3] bg-[#FAFAF9] hover:border-[#DADAD6]"
+                                                            ? "border-[var(--app-border-strong)] bg-[var(--app-card)]"
+                                                            : "border-[var(--app-border)] bg-[var(--app-bg)] hover:border-[var(--app-border-strong)]"
                                                     }`}
                                                 >
-                                                    <div className="flex justify-between items-center text-base text-[#888883]">
-                                                        <span className="font-semibold text-[#1A1A1A]">
+                                                    <div className="flex justify-between items-center text-base text-[var(--app-muted)]">
+                                                        <span className="font-semibold text-[var(--app-text)]">
                                                             {act.user?.fullName ||
                                                                 "System"}
                                                         </span>
@@ -2563,10 +2563,10 @@ export default function TaskModal({
                                                         </span>
                                                     </div>
 
-                                                    <div className="text-[#1A1A1A] font-medium text-[11px] mt-1 flex justify-between items-center">
+                                                    <div className="text-[var(--app-text)] font-medium text-[11px] mt-1 flex justify-between items-center">
                                                         <span>{summaryText}</span>
                                                         {diffs.length > 0 && (
-                                                            <span className="text-base text-[#888883] hover:text-[#1A1A1A] font-semibold">
+                                                            <span className="text-base text-[var(--app-muted)] hover:text-[var(--app-text)] font-semibold">
                                                                 {isExpanded
                                                                     ? "Collapse ▲"
                                                                     : "View Details ▼"}
@@ -2576,7 +2576,7 @@ export default function TaskModal({
 
                                                     {isExpanded &&
                                                         diffs.length > 0 && (
-                                                            <div className="mt-2 pt-2 border-t border-[#E5E5E3] flex flex-col gap-1.5 animate-fade-in">
+                                                            <div className="mt-2 pt-2 border-t border-[var(--app-border)] flex flex-col gap-1.5 animate-fade-in">
                                                                 {diffs.map(
                                                                     (
                                                                         diff,
@@ -2586,15 +2586,15 @@ export default function TaskModal({
                                                                             key={
                                                                                 idx
                                                                             }
-                                                                            className="bg-[#FAFAF9] p-2 border border-[#E5E5E3] text-base leading-snug"
+                                                                            className="bg-[var(--app-bg)] p-2 border border-[var(--app-border)] text-base leading-snug"
                                                                         >
-                                                                            <span className="font-semibold text-[#1A1A1A]">
+                                                                            <span className="font-semibold text-[var(--app-text)]">
                                                                                 {
                                                                                     diff.field
                                                                                 }
                                                                                 :
                                                                             </span>{" "}
-                                                                            <span className="line-through text-[#888883] mr-1">
+                                                                            <span className="line-through text-[var(--app-muted)] mr-1">
                                                                                 {
                                                                                     diff.from
                                                                                 }
@@ -2624,7 +2624,7 @@ export default function TaskModal({
                                                 )
                                             }
                                             disabled={isLoadingMoreActivities}
-                                            className="w-full py-2.5 bg-[#FAFAF9] border border-[#E5E5E3] hover:border-[#1A1A1A] hover:bg-white text-base text-[#1A1A1A] font-medium rounded-[2px] transition-colors mt-2"
+                                            className="w-full py-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] hover:bg-[var(--app-card)] text-base text-[var(--app-text)] font-medium rounded-[2px] transition-colors mt-2"
                                         >
                                             {isLoadingMoreActivities
                                                 ? "Loading more..."
@@ -2637,8 +2637,8 @@ export default function TaskModal({
 
                         {/* Modal Footer with Clear Action */}
                         {canClearActivityLog && activitiesList.length > 0 && (
-                            <div className="pt-2.5 mt-auto border-t border-[#E5E5E3] flex justify-between items-center">
-                                <span className="text-[11px] text-[#888883]">
+                            <div className="pt-2.5 mt-auto border-t border-[var(--app-border)] flex justify-between items-center">
+                                <span className="text-[11px] text-[var(--app-muted)]">
                                     Task Creator Action
                                 </span>
                                 <button
@@ -2754,7 +2754,7 @@ export default function TaskModal({
                             e.stopPropagation();
                             setFullscreenImage(null);
                         }}
-                        className="absolute top-4 right-4 text-white hover:text-gray-300 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer z-50 border border-white/20"
+                        className="absolute top-4 right-4 text-white hover:text-gray-300 w-10 h-10 rounded-full bg-[var(--app-card)]/10 hover:bg-[var(--app-card)]/20 flex items-center justify-center transition-colors cursor-pointer z-50 border border-white/20"
                         title="Close Fullscreen View"
                     >
                         <X className="w-5 h-5" />
