@@ -8,6 +8,7 @@ export interface PriorityOption {
     value: "URGENT" | "HIGH" | "MEDIUM" | "LOW";
     label: string;
     dotCls: string;
+    textCls: string;
     badgeCls: string;
 }
 
@@ -16,24 +17,28 @@ export const PRIORITY_CONFIGS: Record<string, PriorityOption> = {
         value: "URGENT",
         label: "Urgent",
         dotCls: "bg-[var(--priority-urgent,#CB2431)]",
+        textCls: "text-[var(--priority-urgent,#CB2431)]",
         badgeCls: "text-[var(--priority-urgent,#CB2431)] bg-[var(--priority-urgent,#CB2431)]/10 border-[var(--priority-urgent,#CB2431)]/25 hover:bg-[var(--priority-urgent,#CB2431)]/15",
     },
     HIGH: {
         value: "HIGH",
         label: "High",
         dotCls: "bg-[var(--priority-high,#EA580C)]",
+        textCls: "text-[var(--priority-high,#EA580C)]",
         badgeCls: "text-[var(--priority-high,#EA580C)] bg-[var(--priority-high,#EA580C)]/10 border-[var(--priority-high,#EA580C)]/25 hover:bg-[var(--priority-high,#EA580C)]/15",
     },
     MEDIUM: {
         value: "MEDIUM",
         label: "Medium",
         dotCls: "bg-[var(--priority-medium,#CA8A04)]",
+        textCls: "text-[var(--priority-medium,#CA8A04)]",
         badgeCls: "text-[var(--priority-medium,#CA8A04)] bg-[var(--priority-medium,#CA8A04)]/10 border-[var(--priority-medium,#CA8A04)]/25 hover:bg-[var(--priority-medium,#CA8A04)]/15",
     },
     LOW: {
         value: "LOW",
         label: "Low",
         dotCls: "bg-[var(--priority-low,#6B7280)]",
+        textCls: "text-[var(--priority-low,#6B7280)]",
         badgeCls: "text-[var(--priority-low,#6B7280)] bg-[var(--priority-low,#6B7280)]/10 border-[var(--priority-low,#6B7280)]/25 hover:bg-[var(--priority-low,#6B7280)]/15",
     },
 };
@@ -50,6 +55,7 @@ interface PrioritySelectBadgeProps {
     onUpdate?: (newPriority: string) => Promise<void> | void;
     canEdit?: boolean;
     size?: "xs" | "sm" | "md";
+    variant?: "badge" | "inline";
     className?: string;
     showChevron?: boolean;
 }
@@ -59,6 +65,7 @@ export default function PrioritySelectBadge({
     onUpdate,
     canEdit = true,
     size = "sm",
+    variant = "badge",
     className = "",
     showChevron = true,
 }: PrioritySelectBadgeProps) {
@@ -165,19 +172,29 @@ export default function PrioritySelectBadge({
     };
 
     const sizeClasses =
-        size === "xs"
+        variant === "inline"
+            ? size === "xs"
+                ? "text-[10px] px-1 py-0.5 rounded-[3px]"
+                : size === "md"
+                ? "text-[12px] px-1.5 py-0.5 rounded-[3px]"
+                : "text-[11px] px-1 py-0.5 rounded-[3px]"
+            : size === "xs"
             ? "text-[9px] px-1.5 py-0.5 rounded-[2px]"
             : size === "md"
             ? "text-[12px] px-2.5 py-1 rounded-[3px]"
             : "text-[11px] px-2 py-0.5 rounded-[2px]";
 
-    const dotSizeClass = size === "xs" ? "w-1.5 h-1.5" : "w-2 h-2";
+    const dotSizeClass = size === "xs" ? "w-1.5 h-1.5" : "w-1.5 h-1.5";
     const chevronSizeClass = size === "xs" ? "w-2.5 h-2.5" : "w-3 h-3";
 
     if (!canEdit || !onUpdate) {
         return (
             <span
-                className={`inline-flex items-center gap-1.5 font-semibold border ${currentConfig.badgeCls} ${sizeClasses} ${className}`}
+                className={`inline-flex items-center gap-1.5 font-medium ${
+                    variant === "inline"
+                        ? `${currentConfig.textCls}`
+                        : `font-semibold border ${currentConfig.badgeCls}`
+                } ${sizeClasses} ${className}`}
                 title={`Priority: ${currentConfig.label}`}
             >
                 <span className={`${dotSizeClass} rounded-full ${currentConfig.dotCls} shrink-0`} />
@@ -193,11 +210,15 @@ export default function PrioritySelectBadge({
                 type="button"
                 onClick={handleToggle}
                 disabled={isUpdating}
-                className={`group inline-flex items-center gap-1.5 font-semibold border transition-all cursor-pointer select-none ${
-                    currentConfig.badgeCls
-                } ${sizeClasses} ${
-                    isOpen ? "ring-1 ring-[var(--app-border-strong)] shadow-xs" : ""
-                } ${className}`}
+                className={`group inline-flex items-center gap-1.5 transition-all cursor-pointer select-none ${
+                    variant === "inline"
+                        ? `font-medium ${currentConfig.textCls} hover:bg-[var(--app-hover-bg)] ${
+                              isOpen ? "bg-[var(--app-hover-bg)]" : ""
+                          }`
+                        : `font-semibold border ${currentConfig.badgeCls} ${
+                              isOpen ? "ring-1 ring-[var(--app-border-strong)] shadow-xs" : ""
+                          }`
+                } ${sizeClasses} ${className}`}
                 title="Click to change priority"
             >
                 {isUpdating ? (

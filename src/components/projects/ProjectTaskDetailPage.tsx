@@ -1024,68 +1024,73 @@ export default function ProjectTaskDetailPage() {
 
                         {/* Status / Completion Indicator next to Title */}
                         {isTaskFullyComplete ? (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--status-completed,#15803D)] bg-[var(--app-bg)] border border-[var(--app-border)] px-2 py-0.5 rounded-[3px] shrink-0">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--status-completed,#15803D)] shrink-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-completed,#15803D)]" />
                                 <span>Completed</span>
                             </span>
                         ) : isTaskOverdue ? (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--color-error)] bg-[var(--app-bg)] border border-[var(--app-border)] px-2 py-0.5 rounded-[3px] shrink-0">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--color-error)] shrink-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-error)]" />
                                 <span>At Risk</span>
                             </span>
                         ) : isTaskAtRisk ? (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--status-at-risk,#D97706)] bg-[var(--app-bg)] border border-[var(--app-border)] px-2 py-0.5 rounded-[3px] shrink-0">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--status-at-risk,#D97706)] shrink-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-at-risk,#D97706)]" />
                                 <span>At Risk</span>
                             </span>
                         ) : progressPct > 0 ? (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--status-in-progress,#7C3AED)] bg-[var(--app-bg)] border border-[var(--app-border)] px-2 py-0.5 rounded-[3px] shrink-0">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--status-in-progress,#7C3AED)] shrink-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-in-progress,#7C3AED)]" />
                                 <span>In Progress</span>
                             </span>
                         ) : (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--status-todo,#6B7280)] bg-[var(--app-bg)] border border-[var(--app-border)] px-2 py-0.5 rounded-[3px] shrink-0">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--status-todo,#6B7280)] shrink-0">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-todo,#6B7280)]" />
                                 <span>To Do</span>
                             </span>
                         )}
+
+                        <span className="text-[var(--app-border-strong)] text-xs select-none">·</span>
 
                         {/* Priority Badge */}
                         <PrioritySelectBadge
                             priority={task.priority}
                             canEdit={canManageTasks}
                             size="sm"
+                            variant="inline"
                             onUpdate={handleUpdateMainTaskPriority}
                         />
+
+                        {/* Remaining / Overdue Indicator next to Title */}
+                        {remainingDays && (
+                            <>
+                                <span className="text-[var(--app-border-strong)] text-xs select-none">·</span>
+                                <span
+                                    className={`text-[11px] font-medium tabular-nums shrink-0 ${
+                                        remainingDays.isOverdue
+                                            ? "text-[var(--color-error)]"
+                                            : remainingDays.isToday
+                                            ? "text-[var(--color-warning)]"
+                                            : "text-[var(--app-muted)]"
+                                    }`}
+                                >
+                                    {remainingDays.label}
+                                </span>
+                            </>
+                        )}
                     </div>
                 </div>
 
                 {/* Right: Dates, Member Avatars, Progress & Edit Button */}
                 <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 text-xs text-[var(--app-muted)]">
-                    {/* Human-readable Timeline Date Range + Remaining Days */}
+                    {/* Human-readable Timeline Date Range */}
                     {formattedTimeline && (
                         <div
-                            className="hidden md:flex items-center gap-1.5 bg-[var(--app-bg)] px-2.5 py-1 rounded-[3px] border border-[var(--app-border)] font-medium text-[11px]"
+                            className="hidden md:flex items-center gap-1.5 font-medium text-[11px] text-[var(--app-muted)]"
                             title={task.startDate && task.dueDate ? `Timeline: ${formattedTimeline} (${formatDaySpan(calculateDaySpan(task.startDate, task.dueDate))})` : "Task Timeline"}
                         >
-                            <Calendar className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                            <span className="text-[var(--app-text)]">{formattedTimeline}</span>
-                            {remainingDays && (
-                                <>
-                                    <span className="text-[var(--app-border-strong)]">·</span>
-                                    <span
-                                        className={`tabular-nums ${
-                                            remainingDays.isOverdue
-                                                ? "text-[var(--color-error)] font-semibold"
-                                                : remainingDays.isToday
-                                                ? "text-[var(--color-warning)] font-semibold"
-                                                : "text-[var(--app-muted)]"
-                                        }`}
-                                    >
-                                        {remainingDays.label}
-                                    </span>
-                                </>
-                            )}
+                            <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                            <span>{formattedTimeline}</span>
                         </div>
                     )}
 
@@ -1388,20 +1393,24 @@ export default function ProjectTaskDetailPage() {
                                                             {col.name}
                                                         </span>
                                                         {colCumulativeInfo && (
-                                                            <span
-                                                                className={`text-[8.5px] font-bold px-1.5 py-0.2 rounded-[2px] border tabular-nums shrink-0 ${
-                                                                    colCumulativeInfo.cumulativeWeight === 100
-                                                                        ? "bg-[var(--status-completed,#15803D)]/10 text-[var(--status-completed,#15803D)] border-[var(--status-completed,#15803D)]/30"
-                                                                        : colCumulativeInfo.cumulativeWeight >= 50
-                                                                        ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)] border-[var(--color-accent)]/30"
-                                                                        : "bg-[var(--app-bg)] text-[var(--app-muted)] border-[var(--app-border)]"
-                                                                }`}
-                                                                title={`Step Contribution: +${colCumulativeInfo.stepWeight}% | Milestone Progress: ${colCumulativeInfo.cumulativeWeight}%`}
-                                                            >
-                                                                {colCumulativeInfo.cumulativeWeight}%
-                                                            </span>
+                                                            <>
+                                                                <span className="text-[var(--app-border-strong)] text-[10px] select-none">·</span>
+                                                                <span
+                                                                    className={`text-[10px] font-medium tabular-nums shrink-0 ${
+                                                                        colCumulativeInfo.cumulativeWeight === 100
+                                                                            ? "text-[var(--status-completed,#15803D)]"
+                                                                            : colCumulativeInfo.cumulativeWeight >= 50
+                                                                            ? "text-[var(--color-accent)]"
+                                                                            : "text-[var(--app-muted)]"
+                                                                    }`}
+                                                                    title={`Step Contribution: +${colCumulativeInfo.stepWeight}% | Milestone Progress: ${colCumulativeInfo.cumulativeWeight}%`}
+                                                                >
+                                                                    {colCumulativeInfo.cumulativeWeight}%
+                                                                </span>
+                                                            </>
                                                         )}
-                                                        <span className="text-[9px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.5 rounded-[2px] tabular-nums shrink-0">
+                                                        <span className="text-[var(--app-border-strong)] text-[10px] select-none">·</span>
+                                                        <span className="text-[10px] font-medium text-[var(--app-muted)] tabular-nums shrink-0">
                                                             {colSubtasks.length}
                                                         </span>
                                                     </div>

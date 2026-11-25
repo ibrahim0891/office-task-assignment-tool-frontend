@@ -34,6 +34,9 @@ import {
     Plus,
     CheckSquare,
     GripVertical,
+    ChevronDown,
+    ChevronRight,
+    PanelRight,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult, DraggableProvided, DraggableStateSnapshot } from "@hello-pangea/dnd";
 
@@ -117,21 +120,24 @@ const compressImage30Percent = (file: File): Promise<string> => {
 const VALID_SUBTASK_TABS = ["description", "checklist", "comments", "activity", "attachments"] as const;
 export type SubtaskTab = (typeof VALID_SUBTASK_TABS)[number];
 
-export const getStoredSubtaskTab = (propInitialTab?: string): SubtaskTab => {
-    if (propInitialTab && VALID_SUBTASK_TABS.includes(propInitialTab as SubtaskTab)) {
-        return propInitialTab as SubtaskTab;
+const VALID_SIDEBAR_TABS = ["comments", "attachments"] as const;
+export type SubtaskSidebarTab = (typeof VALID_SIDEBAR_TABS)[number];
+
+export const getStoredSidebarTab = (propInitialTab?: string): SubtaskSidebarTab => {
+    if (propInitialTab && VALID_SIDEBAR_TABS.includes(propInitialTab as SubtaskSidebarTab)) {
+        return propInitialTab as SubtaskSidebarTab;
     }
     if (typeof window !== "undefined") {
         try {
-            const saved = localStorage.getItem("subtask_active_tab") as SubtaskTab;
-            if (saved && VALID_SUBTASK_TABS.includes(saved)) {
+            const saved = localStorage.getItem("subtask_sidebar_tab") as SubtaskSidebarTab;
+            if (saved && VALID_SIDEBAR_TABS.includes(saved)) {
                 return saved;
             }
         } catch {
             // Ignore localStorage access errors
         }
     }
-    return "description";
+    return "comments";
 };
 
 interface ProjectSubtaskModalProps {
@@ -233,13 +239,19 @@ export default function ProjectSubtaskModal({
         }
     };
 
-    // Active tab with synchronous localStorage restoration & persistence
-    const [activeTab, setActiveTab] = useState<SubtaskTab>(() => getStoredSubtaskTab(initialTab));
+    // Right sidebar tab & visibility state
+    const [sidebarTab, setSidebarTab] = useState<SubtaskSidebarTab>(() => getStoredSidebarTab(initialTab));
+    const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => Boolean(subtask));
+    const [showMoreProperties, setShowMoreProperties] = useState(false);
+    const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
 
-    const handleTabChange = (tab: SubtaskTab) => {
-        setActiveTab(tab);
+    const checklistSectionRef = useRef<HTMLDivElement>(null);
+    const descriptionSectionRef = useRef<HTMLDivElement>(null);
+
+    const handleSidebarTabChange = (tab: SubtaskSidebarTab) => {
+        setSidebarTab(tab);
         try {
-            localStorage.setItem("subtask_active_tab", tab);
+            localStorage.setItem("subtask_sidebar_tab", tab);
         } catch {
             // Ignore
         }
@@ -397,9 +409,9 @@ export default function ProjectSubtaskModal({
         }
     };
 
-    // Clipboard Paste Listener (Ctrl+V image upload - strictly active only on Attachments tab)
+    // Clipboard Paste Listener (Ctrl+V image upload - active when sidebar Attachments tab is open)
     useEffect(() => {
-        if (!isOpen || activeTab !== "attachments") return;
+        if (!isOpen || !isSidebarOpen || sidebarTab !== "attachments") return;
 
         const handlePaste = async (e: ClipboardEvent) => {
             const items = e.clipboardData?.items;
@@ -423,7 +435,7 @@ export default function ProjectSubtaskModal({
         return () => {
             window.removeEventListener("paste", handlePaste);
         };
-    }, [isOpen, activeTab, attachments, isEditMode, subtask?.id, projectId, parentTask?.id]);
+    }, [isOpen, isSidebarOpen, sidebarTab, attachments, isEditMode, subtask?.id, projectId, parentTask?.id]);
 
     // Format dates helper
     const toYMD = (dateInput: any) => {
@@ -580,15 +592,35 @@ export default function ProjectSubtaskModal({
         }
     }, [isOpen, subtask?.id, projectStartDate, projectEndDate]);
 
-    // Keep active tab in sync when modal opens or initialTab is explicitly specified
+    // Keep sidebar state & scroll target in sync when modal opens or initialTab is explicitly specified
     useEffect(() => {
         if (!isOpen) return;
-        if (initialTab) {
-            setActiveTab(initialTab);
+        setShowMoreProperties(false);
+        setIsActivityLogOpen(false);
+
+        if (initialTab === "activity") {
+            // Activity Log requested — open sidebar and expand activity section
+            setIsSidebarOpen(true);
+            setSidebarTab(getStoredSidebarTab());
+            setIsActivityLogOpen(true);
+        } else if (initialTab && VALID_SIDEBAR_TABS.includes(initialTab as SubtaskSidebarTab)) {
+            setIsSidebarOpen(true);
+            setSidebarTab(initialTab as SubtaskSidebarTab);
         } else {
-            setActiveTab(getStoredSubtaskTab());
+            setIsSidebarOpen(Boolean(subtask));
+            setSidebarTab(getStoredSidebarTab());
+
+            if (initialTab === "checklist") {
+                setTimeout(() => {
+                    checklistSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 80);
+            } else if (initialTab === "description") {
+                setTimeout(() => {
+                    descriptionSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 80);
+            }
         }
-    }, [isOpen, initialTab]);
+    }, [isOpen, initialTab, subtask?.id]);
 
     const mapCommentData = (c: any) => ({
         id: c.id,
@@ -626,16 +658,16 @@ export default function ProjectSubtaskModal({
         }
     }, [fetchedComments]);
 
-    // Auto-scroll to bottom of comments list whenever comments change or when tab switches
+    // Auto-scroll to bottom of comments list whenever comments change or when sidebar comments tab opens
     useEffect(() => {
-        if (activeTab === "comments" && comments.length > 0) {
+        if (isSidebarOpen && sidebarTab === "comments" && comments.length > 0) {
             scrollToBottom(false);
             const timer = setTimeout(() => {
                 scrollToBottom(true);
             }, 50);
             return () => clearTimeout(timer);
         }
-    }, [comments, activeTab]);
+    }, [comments, isSidebarOpen, sidebarTab]);
 
     // Real-time socket event listeners for comments
     useEffect(() => {
@@ -1439,6 +1471,25 @@ export default function ProjectSubtaskModal({
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-2 shrink-0">
+                    {/* Right Sidebar Toggle (Comments / Attachments / Activity) */}
+                    <button
+                        type="button"
+                        onClick={() => setIsSidebarOpen((prev) => !prev)}
+                        className={`px-2 py-1.5 rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-medium ${
+                            isSidebarOpen
+                                ? "bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border)]"
+                                : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] border border-transparent"
+                        }`}
+                        title={isSidebarOpen ? "Hide comments & attachments panel" : "Show comments & attachments panel"}
+                    >
+                        <PanelRight className="w-4 h-4" />
+                        {(comments.length > 0 || attachments.length > 0) && (
+                            <span className="text-[10px] bg-[var(--app-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
+                                {comments.length + attachments.length}
+                            </span>
+                        )}
+                    </button>
+
                     {/* View Mode Toggle (Center Modal vs Side Sheet) */}
                     <button
                         type="button"
@@ -1516,1022 +1567,992 @@ export default function ProjectSubtaskModal({
                 </div>
             </div>
 
-                {/* Modal Layout: 2-Column Split (Left: Tabs Content, Right: Attributes Sidebar) */}
+                {/* Modal Layout: Notion-style Left Scrollable Page + Right Collapsible Sidebar (Comments / Attachments / Activity) */}
                 <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden bg-[var(--app-bg)]">
-                    {/* Left Column: Tabbed Content (Description, Comments, Activity Log, Attachments) */}
-                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[var(--app-bg)] border-r border-[var(--app-border)]">
-                        {/* Subtask Title above Tabs */}
-                        <div className="px-5 pt-4 pb-3 bg-[var(--app-card)] border-b border-[var(--app-border)] shrink-0 flex flex-col gap-1.5">
-                            <label className="text-[10px] font-semibold tracking-wide text-[var(--app-muted)] uppercase flex items-center gap-1">
-                                <span>Subtask Title</span>
-                                <span className="text-[var(--color-error)]">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Enter subtask title..."
-                                autoFocus={canModifyThisSubtask}
-                                disabled={!canModifyThisSubtask}
-                                readOnly={!canModifyThisSubtask}
-                                className={`w-full px-3 py-2 text-sm sm:text-base font-semibold bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)] transition-colors ${
-                                    !canModifyThisSubtask ? "opacity-60 cursor-not-allowed bg-[var(--app-hover-bg)] select-none" : ""
-                                }`}
-                            />
-                        </div>
-
-                        {/* Tabs Bar */}
-                        <div className="flex items-center gap-1 px-4 py-2 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0">
-                            <button
-                                type="button"
-                                onClick={() => handleTabChange("description")}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
-                                    activeTab === "description"
-                                        ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
-                                }`}
-                            >
-                                <FileText className="w-3.5 h-3.5" />
-                                <span>Description</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => handleTabChange("checklist")}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
-                                    activeTab === "checklist"
-                                        ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
-                                }`}
-                            >
-                                <CheckSquare className="w-3.5 h-3.5" />
-                                <span>Checklist</span>
-                                {checklistItems.length > 0 && (
-                                    <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
-                                        {checklistItems.filter((i: any) => i.isCompleted).length}/{checklistItems.length}
+                    {/* Left Column: Notion-style Scrollable Page (Title -> Metadata Properties -> Checklist -> Description) */}
+                    <div className={`flex-1 overflow-y-auto bg-[var(--app-bg)] custom-scrollbar ${isSidebarOpen ? "md:border-r md:border-[var(--app-border)]" : ""}`}>
+                        <div className="max-w-3xl mx-auto px-5 sm:px-8 py-5 flex flex-col gap-6">
+                            {/* 1. Notion-style Subtask Title */}
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-semibold tracking-wider text-[var(--app-muted)] uppercase">
+                                        Subtask
                                     </span>
-                                )}
-                            </button>
+                                    <span className="text-[var(--color-error)] text-[10px]">*</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="Untitled subtask..."
+                                    autoFocus={canModifyThisSubtask}
+                                    disabled={!canModifyThisSubtask}
+                                    readOnly={!canModifyThisSubtask}
+                                    className={`w-full px-1.5 py-1 -mx-1.5 text-lg sm:text-xl font-bold bg-transparent border border-transparent hover:border-[var(--app-border)] focus:bg-[var(--app-card)] focus:border-[var(--app-border-strong)] text-[var(--app-text)] rounded-[3px] focus:outline-none transition-colors ${
+                                        !canModifyThisSubtask ? "opacity-75 cursor-not-allowed select-none" : ""
+                                    }`}
+                                />
+                            </div>
 
-                            <button
-                                type="button"
-                                onClick={() => handleTabChange("comments")}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
-                                    activeTab === "comments"
-                                        ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
-                                }`}
-                            >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                                <span>Comments</span>
-                                {comments.length > 0 && (
-                                    <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
-                                        {comments.length}
-                                    </span>
-                                )}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => handleTabChange("attachments")}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
-                                    activeTab === "attachments"
-                                        ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
-                                }`}
-                            >
-                                <Paperclip className="w-3.5 h-3.5" />
-                                <span>Attachments</span>
-                                {attachments.length > 0 && (
-                                    <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
-                                        {attachments.length}
-                                    </span>
-                                )}
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => handleTabChange("activity")}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
-                                    activeTab === "activity"
-                                        ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
-                                        : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
-                                }`}
-                            >
-                                <History className="w-3.5 h-3.5" />
-                                <span className="text-nowrap">Activity Log</span>
-                            </button>
-                        </div>
-
-                        {/* Tab Panes */}
-                        <div className="flex-1 p-5 overflow-hidden min-h-0 flex flex-col">
-                            {/* TAB 1: DESCRIPTION */}
-                            {activeTab === "description" && (
-                                <div className="flex-1 overflow-y-auto flex flex-col gap-3 min-h-[260px]">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-xs font-semibold text-[var(--app-text)]">
-                                            Subtask Description & Details
-                                        </h4>
+                            {/* 2. Notion-style Compact Property List */}
+                            <div className="flex flex-col gap-1.5 py-2 border-y border-[var(--app-border)]/70">
+                                {/* Stage */}
+                                {columns.length > 0 && (
+                                    <div className="grid grid-cols-[120px_1fr] sm:grid-cols-[140px_1fr] items-center gap-2 py-0.5">
+                                        <span className="text-xs text-[var(--app-muted)] flex items-center gap-2 truncate">
+                                            <Circle className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                                            <span>Stage</span>
+                                        </span>
+                                        <div className="min-w-0">
+                                            <CustomSelect
+                                                options={columnOptions}
+                                                value={columnId}
+                                                disabled={!canModifyThisSubtask}
+                                                onChange={(newColId) => {
+                                                    setColumnId(newColId);
+                                                    const selectedCol = columns.find((c) => c.id === newColId);
+                                                    if (selectedCol?.isComplete) {
+                                                        setIsCompleted(true);
+                                                        const startDateRef = startDate || subtask?.startDate || subtask?.createdAt || new Date();
+                                                        const computedActual = calculateDaySpan(startDateRef, new Date());
+                                                        setActualDays(computedActual);
+                                                    } else if (isCompleted && selectedCol && !selectedCol.isComplete) {
+                                                        setIsCompleted(false);
+                                                        setActualDays(0);
+                                                    }
+                                                }}
+                                                buttonClassName="w-full sm:w-auto min-w-[200px] text-xs py-1.5 bg-[var(--app-card)]"
+                                            />
+                                        </div>
                                     </div>
+                                )}
 
-                                    <div className="flex-1 border border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] p-2 min-h-[220px] flex flex-col">
-                                        <TipTapEditor
-                                            value={description}
-                                            onChange={setDescription}
+                                {/* Priority */}
+                                <div className="grid grid-cols-[120px_1fr] sm:grid-cols-[140px_1fr] items-center gap-2 py-0.5">
+                                    <span className="text-xs text-[var(--app-muted)] flex items-center gap-2 truncate">
+                                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                                        <span>Priority</span>
+                                    </span>
+                                    <div className="min-w-0">
+                                        <CustomSelect
+                                            options={priorityOptions}
+                                            value={priority}
                                             disabled={!canModifyThisSubtask}
+                                            onChange={(val) => setPriority(val)}
+                                            buttonClassName="w-full sm:w-auto min-w-[200px] text-xs py-1.5 bg-[var(--app-card)]"
                                         />
                                     </div>
                                 </div>
-                            )}
 
-                            {/* TAB 2: CHECKLIST */}
-                            {activeTab === "checklist" && (
-                                <div className="flex-1 flex flex-col min-h-0 gap-3.5 overflow-hidden">
-                                    {/* Checklist Header & Progress Stats */}
-                                    <div className="flex flex-col gap-2 shrink-0">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <CheckSquare className="w-4 h-4 text-[var(--app-muted)]" />
-                                                <h4 className="text-xs font-semibold text-[var(--app-text)]">
-                                                    Subtask checklist
-                                                </h4>
-                                            </div>
-                                            {checklistItems.length > 0 && (
-                                                <span className="text-xs text-[var(--app-muted)] font-normal tabular-nums">
-                                                    {checklistItems.filter((i: any) => i.isCompleted).length} of {checklistItems.length} completed (
-                                                    {Math.round(
-                                                        (checklistItems.filter((i: any) => i.isCompleted).length / checklistItems.length) * 100
-                                                    )}
-                                                    %)
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {/* Progress Bar */}
-                                        {checklistItems.length > 0 && (
-                                            <div className="w-full h-1 bg-[var(--app-hover-bg)] rounded-[2px] border border-[var(--app-border)] overflow-hidden">
-                                                <div
-                                                    className="h-full bg-[var(--app-text)] transition-all duration-300 rounded-[1px]"
-                                                    style={{
-                                                        width: `${
-                                                            (checklistItems.filter((i: any) => i.isCompleted).length / checklistItems.length) * 100
-                                                        }%`,
-                                                    }}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Add Checklist Item Input Form */}
-                                    {canModifyThisSubtask && (
-                                        <form
-                                            onSubmit={handleAddChecklistItem}
-                                            className="flex items-center gap-2 shrink-0"
-                                        >
-                                            <input
-                                                ref={checklistInputRef}
-                                                type="text"
-                                                value={newChecklistTitle}
-                                                onChange={(e) => setNewChecklistTitle(e.target.value)}
-                                                placeholder="Add a checklist item (press Enter)..."
-                                                className="flex-1 px-3 py-1.5 text-xs bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] placeholder-[var(--app-muted)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)] transition-colors"
-                                                disabled={isAddingChecklist}
+                                {/* Assignee */}
+                                <div className="grid grid-cols-[120px_1fr] sm:grid-cols-[140px_1fr] items-center gap-2 py-0.5">
+                                    <span className="text-xs text-[var(--app-muted)] flex items-center gap-2 truncate">
+                                        <User className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                                        <span>Assignee</span>
+                                    </span>
+                                    <div className="min-w-0 flex items-center gap-2">
+                                        {canManageTasks ? (
+                                            <CustomSelect
+                                                options={assigneeOptions}
+                                                value={assignedToId}
+                                                disabled={!canModifyThisSubtask}
+                                                onChange={(val) => setAssignedToId(val)}
+                                                placeholder="Select assignee..."
+                                                buttonClassName="w-full sm:w-auto min-w-[200px] text-xs py-1.5 bg-[var(--app-card)]"
                                             />
-                                            <button
-                                                type="submit"
-                                                disabled={!newChecklistTitle.trim() || isAddingChecklist}
-                                                className="px-3 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border-strong)] text-xs font-semibold rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                                            >
-                                                {isAddingChecklist ? (
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                ) : (
-                                                    <Plus className="w-3.5 h-3.5" />
-                                                )}
-                                                <span>Add</span>
-                                            </button>
-                                        </form>
-                                    )}
-
-                                    {/* Checklist Items Scrollable List */}
-                                    <div className="flex-1 overflow-y-auto flex flex-col gap-2 custom-scrollbar pr-1">
-                                        {checklistItems.length === 0 ? (
-                                            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center border border-dashed border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] my-auto min-h-[180px]">
-                                                <CheckSquare className="w-6 h-6 text-[var(--app-muted)] opacity-40 mb-2" />
-                                                <p className="text-xs font-medium text-[var(--app-text)]">No checklist items yet</p>
-                                                <p className="text-[11px] text-[var(--app-muted)] mt-0.5 max-w-xs">
-                                                    Break this subtask down into smaller actionable checklist items.
-                                                </p>
-                                            </div>
                                         ) : (
-                                            <DragDropContext onDragEnd={handleDragEndChecklist}>
-                                                <Droppable droppableId="subtask-checklist-droppable">
-                                                    {(provided) => (
-                                                        <div
-                                                            ref={provided.innerRef}
-                                                            {...provided.droppableProps}
-                                                            className="flex flex-col gap-1.5 pb-2"
-                                                        >
-                                                            {checklistItems.map((item: any, index: number) => {
-                                                                const isEditingThis = editingChecklistId === item.id;
-                                                                const isUpdatingThis = updatingChecklistId === item.id;
-
-                                                                return (
-                                                                    <Draggable
-                                                                        key={item.id}
-                                                                        draggableId={item.id}
-                                                                        index={index}
-                                                                        isDragDisabled={!canModifyThisSubtask || isEditingThis}
-                                                                    >
-                                                                        {(dragProvided, dragSnapshot) => (
-                                                                            <PortalAwareDraggable provided={dragProvided} snapshot={dragSnapshot}>
-                                                                            <div
-                                                                                className={`group flex items-center justify-between p-2.5 rounded-[2px] border transition-all ${
-                                                                                    dragSnapshot.isDragging
-                                                                                        ? "shadow-md ring-1 ring-[var(--app-border-strong)] bg-[var(--app-card)] z-50 w-full"
-                                                                                        : item.isCompleted
-                                                                                        ? "bg-[var(--app-hover-bg)]/40 border-[var(--app-border)] opacity-80"
-                                                                                        : "bg-[var(--app-card)] border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
-                                                                                }`}
-                                                                            >
-                                                                                {isEditingThis ? (
-                                                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                                                        <input
-                                                                                            type="text"
-                                                                                            value={editingChecklistTitle}
-                                                                                            onChange={(e) => setEditingChecklistTitle(e.target.value)}
-                                                                                            onKeyDown={(e) => {
-                                                                                                if (e.key === "Enter") {
-                                                                                                    e.preventDefault();
-                                                                                                    handleSaveChecklistEdit(item.id);
-                                                                                                } else if (e.key === "Escape") {
-                                                                                                    setEditingChecklistId(null);
-                                                                                                    setEditingChecklistTitle("");
-                                                                                                }
-                                                                                            }}
-                                                                                            autoFocus
-                                                                                            className="flex-1 px-2 py-1 text-xs bg-[var(--app-card)] border border-[var(--app-border-strong)] rounded-[2px] text-[var(--app-text)] focus:outline-none"
-                                                                                        />
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => handleSaveChecklistEdit(item.id)}
-                                                                                            disabled={!editingChecklistTitle.trim()}
-                                                                                            className="px-2.5 py-1 text-xs bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] font-semibold border border-[var(--app-border-strong)] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1"
-                                                                                        >
-                                                                                            <Check className="w-3.5 h-3.5" />
-                                                                                            <span>Save</span>
-                                                                                        </button>
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => {
-                                                                                                setEditingChecklistId(null);
-                                                                                                setEditingChecklistTitle("");
-                                                                                            }}
-                                                                                            className="px-2 py-1 text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
-                                                                                        >
-                                                                                            Cancel
-                                                                                        </button>
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <>
-                                                                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                                                                            {/* Drag Handle */}
-                                                                                            {canModifyThisSubtask && !isEditingThis && (
-                                                                                                <div
-                                                                                                    {...dragProvided.dragHandleProps}
-                                                                                                    className="text-[var(--app-muted)] hover:text-[var(--app-text)] cursor-grab active:cursor-grabbing p-0.5 -ml-1 rounded-[2px] opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                                                    title="Drag to reorder"
-                                                                                                >
-                                                                                                    <GripVertical className="w-3.5 h-3.5" />
-                                                                                                </div>
-                                                                                            )}
-
-                                                                                            {/* Themed Square Checkbox */}
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => handleToggleChecklistItem(item.id, !item.isCompleted)}
-                                                                                                disabled={!canModifyThisSubtask || isUpdatingThis}
-                                                                                                className="shrink-0 p-0 cursor-pointer disabled:cursor-not-allowed group/cb"
-                                                                                                title={item.isCompleted ? "Mark incomplete" : "Mark complete"}
-                                                                                            >
-                                                                                                <div
-                                                                                                    className={`w-4 h-4 rounded-[2px] flex items-center justify-center transition-all ${
-                                                                                                        item.isCompleted
-                                                                                                            ? "bg-[var(--color-accent)] border border-[var(--color-accent)] text-white shadow-2xs"
-                                                                                                            : "bg-[var(--app-card)] border border-[var(--app-border-strong)] group-hover/cb:border-[var(--color-accent)] group-hover/cb:bg-[var(--color-accent)]/5"
-                                                                                                    }`}
-                                                                                                >
-                                                                                                    {isUpdatingThis ? (
-                                                                                                        <Loader2 className="w-2.5 h-2.5 animate-spin text-[var(--app-muted)]" />
-                                                                                                    ) : item.isCompleted ? (
-                                                                                                        <Check className="w-3 h-3 text-white stroke-[2.5]" />
-                                                                                                    ) : null}
-                                                                                                </div>
-                                                                                            </button>
-
-                                                                                            <span
-                                                                                                onDoubleClick={() => {
-                                                                                                    if (canModifyThisSubtask) {
-                                                                                                        setEditingChecklistId(item.id);
-                                                                                                        setEditingChecklistTitle(item.title);
-                                                                                                    }
-                                                                                                }}
-                                                                                                className={`text-xs select-text break-words flex-1 cursor-text ${
-                                                                                                    item.isCompleted
-                                                                                                        ? "line-through text-[var(--app-muted)]"
-                                                                                                        : "text-[var(--app-text)] font-normal"
-                                                                                                }`}
-                                                                                            >
-                                                                                                {item.title}
-                                                                                            </span>
-                                                                                        </div>
-
-                                                                                        {canModifyThisSubtask && (
-                                                                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0 ml-2">
-                                                                                                <button
-                                                                                                    type="button"
-                                                                                                    onClick={() => {
-                                                                                                        setEditingChecklistId(item.id);
-                                                                                                        setEditingChecklistTitle(item.title);
-                                                                                                    }}
-                                                                                                    className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
-                                                                                                    title="Edit item"
-                                                                                                >
-                                                                                                    <Edit2 className="w-3.5 h-3.5" />
-                                                                                                </button>
-                                                                                                <button
-                                                                                                    type="button"
-                                                                                                    onClick={() => handleDeleteChecklistItem(item.id)}
-                                                                                                    className="p-1 text-[var(--app-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-[2px] transition-colors cursor-pointer"
-                                                                                                    title="Delete item"
-                                                                                                >
-                                                                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                                                                </button>
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </>
-                                                                                )}
-                                                                            </div>
-                                                                            </PortalAwareDraggable>
-                                                                        )}
-                                                                    </Draggable>
-                                                                );
-                                                            })}
-                                                            {provided.placeholder}
-                                                        </div>
-                                                    )}
-                                                </Droppable>
-                                            </DragDropContext>
+                                            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-xs text-[var(--app-text)]">
+                                                <UserAvatar name={currentUser?.name || "You"} avatarUrl={currentUser?.avatarUrl} size="xs" />
+                                                <span>
+                                                    <span className="font-semibold">{currentUser?.name || "You"}</span>{" "}
+                                                    <span className="text-[10px] text-[var(--app-muted)]">(Self)</span>
+                                                </span>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
-                            )}
 
-                            {/* TAB 2: COMMENTS */}
-                            {activeTab === "comments" && (
-                                <div className="flex-1 flex flex-col min-h-0 gap-3 overflow-hidden">
-                                    {/* Comments list */}
-                                    <div ref={commentsListRef} className="flex-1 overflow-y-auto flex flex-col gap-3 pr-1">
-                                        {loadingComments ? (
-                                            <div className="flex-1 flex items-center justify-center p-8 text-[var(--app-muted)]">
-                                                <Loader2 className="w-5 h-5 animate-spin text-[var(--app-muted)]" />
-                                            </div>
-                                        ) : comments.length === 0 ? (
-                                            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[var(--app-muted)]">
-                                                <MessageSquare className="w-8 h-8 mb-2 opacity-40" />
-                                                <span className="text-xs font-medium">No comments on this subtask</span>
-                                                <span className="text-[10px] mt-1">Start the conversation below</span>
+                                {/* Timeline (Start Date -> Due Date) */}
+                                <div className="grid grid-cols-[120px_1fr] sm:grid-cols-[140px_1fr] items-center gap-2 py-0.5">
+                                    <span className="text-xs text-[var(--app-muted)] flex items-center gap-2 truncate">
+                                        <Calendar className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                                        <span>Timeline</span>
+                                    </span>
+                                    <div className="flex flex-wrap items-center gap-2 min-w-0">
+                                        <div className="w-[140px]">
+                                            <CustomDatePicker
+                                                value={startDate}
+                                                minDate={projectStartDate || undefined}
+                                                maxDate={dueDate || projectEndDate || undefined}
+                                                onChange={(val) => {
+                                                    let finalVal = val;
+                                                    if (projectStartDate && finalVal && finalVal < projectStartDate) {
+                                                        finalVal = projectStartDate;
+                                                        toast.error(`Start date cannot precede project start date (${projectStartDate})`);
+                                                    }
+                                                    if (projectEndDate && finalVal && finalVal > projectEndDate) {
+                                                        finalVal = projectEndDate;
+                                                        toast.error(`Start date cannot exceed project end date (${projectEndDate})`);
+                                                    }
+                                                    setStartDate(finalVal);
+                                                    const newDue = (dueDate && finalVal > dueDate) ? finalVal : dueDate;
+                                                    if (dueDate && finalVal > dueDate) {
+                                                        setDueDate(finalVal);
+                                                    }
+                                                    if (finalVal && newDue) {
+                                                        setEstimatedDays(calculateDaySpan(finalVal, newDue));
+                                                    }
+                                                }}
+                                                disabled={!canModifyThisSubtask}
+                                                className="w-full text-xs"
+                                            />
+                                        </div>
+                                        <span className="text-xs text-[var(--app-muted)]">→</span>
+                                        <div className="w-[140px]">
+                                            <CustomDatePicker
+                                                value={dueDate}
+                                                minDate={startDate || projectStartDate || undefined}
+                                                maxDate={projectEndDate || undefined}
+                                                onChange={(val) => {
+                                                    let finalVal = val;
+                                                    if (projectEndDate && finalVal && finalVal > projectEndDate) {
+                                                        finalVal = projectEndDate;
+                                                        toast.error(`Due date cannot exceed project end date (${projectEndDate})`);
+                                                    }
+                                                    if (projectStartDate && finalVal && finalVal < projectStartDate) {
+                                                        finalVal = projectStartDate;
+                                                        toast.error(`Due date cannot precede project start date (${projectStartDate})`);
+                                                    }
+                                                    setDueDate(finalVal);
+                                                    const newStart = (startDate && finalVal < startDate) ? finalVal : startDate;
+                                                    if (startDate && finalVal < startDate) {
+                                                        setStartDate(finalVal);
+                                                    }
+                                                    if (finalVal && newStart) {
+                                                        setEstimatedDays(calculateDaySpan(newStart, finalVal));
+                                                    }
+                                                }}
+                                                disabled={!canModifyThisSubtask}
+                                                className="w-full text-xs"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Subtle Duration Summary + Collapsible More Properties */}
+                                <div className="grid grid-cols-[120px_1fr] sm:grid-cols-[140px_1fr] items-center gap-2 py-0.5">
+                                    <span className="text-xs text-[var(--app-muted)] flex items-center gap-2 truncate">
+                                        <Clock className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                                        <span>Duration</span>
+                                    </span>
+                                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[2px] text-[11px] tabular-nums">
+                                            <span className="text-[var(--app-muted)]">Est:</span>
+                                            <span className="font-semibold text-[var(--app-text)]">
+                                                {formatDaySpan(calculateDaySpan(startDate, dueDate))}
+                                            </span>
+                                        </span>
+                                        <span
+                                            className={`inline-flex items-center gap-1 px-2 py-0.5 border rounded-[2px] text-[11px] tabular-nums ${
+                                                isCompleted
+                                                    ? "bg-[var(--color-success,#16A34A)]/10 border-[var(--color-success,#16A34A)]/25 text-[var(--color-success,#16A34A)]"
+                                                    : "bg-[var(--app-card)] border-[var(--app-border)] text-[var(--app-muted)]"
+                                            }`}
+                                        >
+                                            <span>Actual:</span>
+                                            <span className="font-semibold">
+                                                {isCompleted
+                                                    ? formatDaySpan(actualDays || calculateDaySpan(subtask?.startDate || startDate || subtask?.createdAt, subtask?.completedAt || new Date()))
+                                                    : "Open"}
+                                            </span>
+                                        </span>
+
+                                        {(projectStartDate || projectEndDate) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowMoreProperties((prev) => !prev)}
+                                                className="inline-flex items-center gap-1 text-[11px] text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors cursor-pointer ml-1"
+                                            >
+                                                {showMoreProperties ? (
+                                                    <ChevronDown className="w-3 h-3" />
+                                                ) : (
+                                                    <ChevronRight className="w-3 h-3" />
+                                                )}
+                                                <span>{showMoreProperties ? "Less" : "Bounds"}</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {showMoreProperties && (projectStartDate || projectEndDate) && (
+                                    <div className="grid grid-cols-[120px_1fr] sm:grid-cols-[140px_1fr] items-center gap-2 py-0.5 animate-fade-in">
+                                        <span className="text-[11px] text-[var(--app-muted)] pl-5 truncate">
+                                            Project bounds
+                                        </span>
+                                        <span className="text-[11px] font-mono text-[var(--app-text)]">
+                                            {projectStartDate || "Start"} → {projectEndDate || "End"}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 3. Checklist Section */}
+                            <div ref={checklistSectionRef} className="flex flex-col gap-3">
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <CheckSquare className="w-4 h-4 text-[var(--app-muted)]" />
+                                            <h4 className="text-xs font-semibold text-[var(--app-text)]">
+                                                Checklist
+                                            </h4>
+                                            {checklistItems.length > 0 && (
+                                                <span className="text-[10px] bg-[var(--app-card)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] text-[var(--app-muted)] tabular-nums">
+                                                    {checklistItems.filter((i: any) => i.isCompleted).length}/{checklistItems.length}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {checklistItems.length > 0 && (
+                                            <span className="text-[11px] text-[var(--app-muted)] font-normal tabular-nums">
+                                                {Math.round(
+                                                    (checklistItems.filter((i: any) => i.isCompleted).length / checklistItems.length) * 100
+                                                )}
+                                                % completed
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Progress Bar */}
+                                    {checklistItems.length > 0 && (
+                                        <div className="w-full h-1 bg-[var(--app-hover-bg)] rounded-[2px] border border-[var(--app-border)] overflow-hidden">
+                                            <div
+                                                className="h-full bg-[var(--app-text)] transition-all duration-300 rounded-[1px]"
+                                                style={{
+                                                    width: `${
+                                                        (checklistItems.filter((i: any) => i.isCompleted).length / checklistItems.length) * 100
+                                                    }%`,
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Add Checklist Item Input Form */}
+                                {canModifyThisSubtask && (
+                                    <form
+                                        onSubmit={handleAddChecklistItem}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <input
+                                            ref={checklistInputRef}
+                                            type="text"
+                                            value={newChecklistTitle}
+                                            onChange={(e) => setNewChecklistTitle(e.target.value)}
+                                            placeholder="Add a checklist item (press Enter)..."
+                                            className="flex-1 px-3 py-1.5 text-xs bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] placeholder-[var(--app-muted)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)] transition-colors"
+                                            disabled={isAddingChecklist}
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={!newChecklistTitle.trim() || isAddingChecklist}
+                                            className="px-3 py-1.5 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] border border-[var(--app-border-strong)] text-xs font-semibold rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                                        >
+                                            {isAddingChecklist ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                                <Plus className="w-3.5 h-3.5" />
+                                            )}
+                                            <span>Add</span>
+                                        </button>
+                                    </form>
+                                )}
+
+                                {/* Checklist Items List */}
+                                {checklistItems.length === 0 ? (
+                                    !canModifyThisSubtask && (
+                                        <p className="text-xs text-[var(--app-muted)] italic">
+                                            No checklist items.
+                                        </p>
+                                    )
+                                ) : (
+                                    <DragDropContext onDragEnd={handleDragEndChecklist}>
+                                        <Droppable droppableId="subtask-checklist-droppable">
+                                            {(provided) => (
+                                                <div
+                                                    ref={provided.innerRef}
+                                                    {...provided.droppableProps}
+                                                    className="flex flex-col gap-1.5"
+                                                >
+                                                    {checklistItems.map((item: any, index: number) => {
+                                                        const isEditingThis = editingChecklistId === item.id;
+                                                        const isUpdatingThis = updatingChecklistId === item.id;
+
+                                                        return (
+                                                            <Draggable
+                                                                key={item.id}
+                                                                draggableId={item.id}
+                                                                index={index}
+                                                                isDragDisabled={!canModifyThisSubtask || isEditingThis}
+                                                            >
+                                                                {(dragProvided, dragSnapshot) => (
+                                                                    <PortalAwareDraggable provided={dragProvided} snapshot={dragSnapshot}>
+                                                                    <div
+                                                                        className={`group flex items-center justify-between p-2 rounded-[2px] border transition-all ${
+                                                                            dragSnapshot.isDragging
+                                                                                ? "shadow-md ring-1 ring-[var(--app-border-strong)] bg-[var(--app-card)] z-50 w-full"
+                                                                                : item.isCompleted
+                                                                                ? "bg-[var(--app-hover-bg)]/40 border-[var(--app-border)] opacity-80"
+                                                                                : "bg-[var(--app-card)] border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
+                                                                        }`}
+                                                                    >
+                                                                        {isEditingThis ? (
+                                                                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={editingChecklistTitle}
+                                                                                    onChange={(e) => setEditingChecklistTitle(e.target.value)}
+                                                                                    onKeyDown={(e) => {
+                                                                                        if (e.key === "Enter") {
+                                                                                            e.preventDefault();
+                                                                                            handleSaveChecklistEdit(item.id);
+                                                                                        } else if (e.key === "Escape") {
+                                                                                            setEditingChecklistId(null);
+                                                                                            setEditingChecklistTitle("");
+                                                                                        }
+                                                                                    }}
+                                                                                    autoFocus
+                                                                                    className="flex-1 px-2 py-1 text-xs bg-[var(--app-card)] border border-[var(--app-border-strong)] rounded-[2px] text-[var(--app-text)] focus:outline-none"
+                                                                                />
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleSaveChecklistEdit(item.id)}
+                                                                                    disabled={!editingChecklistTitle.trim()}
+                                                                                    className="px-2.5 py-1 text-xs bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text)] font-semibold border border-[var(--app-border-strong)] rounded-[2px] transition-colors cursor-pointer flex items-center gap-1"
+                                                                                >
+                                                                                    <Check className="w-3.5 h-3.5" />
+                                                                                    <span>Save</span>
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        setEditingChecklistId(null);
+                                                                                        setEditingChecklistTitle("");
+                                                                                    }}
+                                                                                    className="px-2 py-1 text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
+                                                                                >
+                                                                                    Cancel
+                                                                                </button>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <>
+                                                                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                                                    {canModifyThisSubtask && !isEditingThis && (
+                                                                                        <div
+                                                                                            {...dragProvided.dragHandleProps}
+                                                                                            className="text-[var(--app-muted)] hover:text-[var(--app-text)] cursor-grab active:cursor-grabbing p-0.5 -ml-1 rounded-[2px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                                            title="Drag to reorder"
+                                                                                        >
+                                                                                            <GripVertical className="w-3.5 h-3.5" />
+                                                                                        </div>
+                                                                                    )}
+
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => handleToggleChecklistItem(item.id, !item.isCompleted)}
+                                                                                        disabled={!canModifyThisSubtask || isUpdatingThis}
+                                                                                        className="shrink-0 p-0 cursor-pointer disabled:cursor-not-allowed group/cb"
+                                                                                        title={item.isCompleted ? "Mark incomplete" : "Mark complete"}
+                                                                                    >
+                                                                                        <div
+                                                                                            className={`w-4 h-4 rounded-[2px] flex items-center justify-center transition-all ${
+                                                                                                item.isCompleted
+                                                                                                    ? "bg-[var(--color-accent)] border border-[var(--color-accent)] text-white shadow-2xs"
+                                                                                                    : "bg-[var(--app-card)] border border-[var(--app-border-strong)] group-hover/cb:border-[var(--color-accent)] group-hover/cb:bg-[var(--color-accent)]/5"
+                                                                                            }`}
+                                                                                        >
+                                                                                            {isUpdatingThis ? (
+                                                                                                <Loader2 className="w-2.5 h-2.5 animate-spin text-[var(--app-muted)]" />
+                                                                                            ) : item.isCompleted ? (
+                                                                                                <Check className="w-3 h-3 text-white stroke-[2.5]" />
+                                                                                            ) : null}
+                                                                                        </div>
+                                                                                    </button>
+
+                                                                                    <span
+                                                                                        onDoubleClick={() => {
+                                                                                            if (canModifyThisSubtask) {
+                                                                                                setEditingChecklistId(item.id);
+                                                                                                setEditingChecklistTitle(item.title);
+                                                                                            }
+                                                                                        }}
+                                                                                        className={`text-xs select-text break-words flex-1 cursor-text ${
+                                                                                            item.isCompleted
+                                                                                                ? "line-through text-[var(--app-muted)]"
+                                                                                                : "text-[var(--app-text)] font-normal"
+                                                                                        }`}
+                                                                                    >
+                                                                                        {item.title}
+                                                                                    </span>
+                                                                                </div>
+
+                                                                                {canModifyThisSubtask && (
+                                                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0 ml-2">
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => {
+                                                                                                setEditingChecklistId(item.id);
+                                                                                                setEditingChecklistTitle(item.title);
+                                                                                            }}
+                                                                                            className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
+                                                                                            title="Edit item"
+                                                                                        >
+                                                                                            <Edit2 className="w-3.5 h-3.5" />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleDeleteChecklistItem(item.id)}
+                                                                                            className="p-1 text-[var(--app-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded-[2px] transition-colors cursor-pointer"
+                                                                                            title="Delete item"
+                                                                                        >
+                                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                                        </button>
+                                                                                    </div>
+                                                                                )}
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                    </PortalAwareDraggable>
+                                                                )}
+                                                            </Draggable>
+                                                        );
+                                                    })}
+                                                    {provided.placeholder}
+                                                </div>
+                                            )}
+                                        </Droppable>
+                                    </DragDropContext>
+                                )}
+                            </div>
+
+                            {/* 4. Description Section */}
+                            <div ref={descriptionSectionRef} className="flex flex-col gap-2.5 pt-2 border-t border-[var(--app-border)]/70">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-[var(--app-muted)]" />
+                                    <h4 className="text-xs font-semibold text-[var(--app-text)]">
+                                        Description & Details
+                                    </h4>
+                                </div>
+
+                                <div className="border border-[var(--app-border)] rounded-[2px] bg-[var(--app-card)] p-2 min-h-[240px] flex flex-col">
+                                    <TipTapEditor
+                                        value={description}
+                                        onChange={setDescription}
+                                        disabled={!canModifyThisSubtask}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Collapsible Sidebar (Comments + Attachments tabs, Activity Log at bottom) */}
+                    {isSidebarOpen && (
+                        <div className="w-full md:w-[360px] lg:w-[380px] flex flex-col min-h-0 bg-[var(--app-card)] shrink-0 border-t md:border-t-0 border-[var(--app-border)]">
+                            {/* Sidebar Tabs Bar (Comments / Files only) */}
+                            <div className="flex items-center gap-1 px-3 py-2 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSidebarTabChange("comments")}
+                                    className={`px-2.5 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
+                                        sidebarTab === "comments"
+                                            ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
+                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                    }`}
+                                >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    <span>Comments</span>
+                                    {comments.length > 0 && (
+                                        <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
+                                            {comments.length}
+                                        </span>
+                                    )}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => handleSidebarTabChange("attachments")}
+                                    className={`px-2.5 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
+                                        sidebarTab === "attachments"
+                                            ? "bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] font-semibold"
+                                            : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)]"
+                                    }`}
+                                >
+                                    <Paperclip className="w-3.5 h-3.5" />
+                                    <span>Files</span>
+                                    {attachments.length > 0 && (
+                                        <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
+                                            {attachments.length}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+
+                            {/* Sidebar Body (Comments or Attachments) */}
+                            <div className="flex-1 p-4 overflow-hidden min-h-0 flex flex-col">
+                                {/* SIDEBAR TAB 1: COMMENTS */}
+                                {sidebarTab === "comments" && (
+                                    <div className="flex-1 flex flex-col min-h-0 gap-3 overflow-hidden">
+                                        {!isEditMode ? (
+                                            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-[var(--app-muted)]">
+                                                <MessageSquare className="w-7 h-7 mb-2 opacity-40" />
+                                                <span className="text-xs font-medium">Save subtask first</span>
+                                                <span className="text-[10px] mt-1">Comments are available after creating the subtask.</span>
                                             </div>
                                         ) : (
-                                            comments.map((c) => {
-                                                const isCommentAuthor =
-                                                    (c.user?.id && c.user?.id === currentUser?.id) ||
-                                                    c.user?.id === currentUser?.id;
-                                                const isEditingThis = editingCommentId === c.id;
-                                                const isMenuOpen = openMenuCommentId === c.id;
+                                            <>
+                                                <div ref={commentsListRef} className="flex-1 overflow-y-auto flex flex-col gap-3 pr-1 custom-scrollbar">
+                                                    {loadingComments ? (
+                                                        <div className="flex-1 flex items-center justify-center p-8 text-[var(--app-muted)]">
+                                                            <Loader2 className="w-5 h-5 animate-spin text-[var(--app-muted)]" />
+                                                        </div>
+                                                    ) : comments.length === 0 ? (
+                                                        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[var(--app-muted)]">
+                                                            <MessageSquare className="w-8 h-8 mb-2 opacity-40" />
+                                                            <span className="text-xs font-medium">No comments on this subtask</span>
+                                                            <span className="text-[10px] mt-1">Start the conversation below</span>
+                                                        </div>
+                                                    ) : (
+                                                        comments.map((c) => {
+                                                            const isCommentAuthor =
+                                                                (c.user?.id && c.user?.id === currentUser?.id) ||
+                                                                c.user?.id === currentUser?.id;
+                                                            const isEditingThis = editingCommentId === c.id;
+                                                            const isMenuOpen = openMenuCommentId === c.id;
 
-                                                return (
-                                                    <div
-                                                        key={c.id}
-                                                        className={`p-3 border rounded-[2px] flex flex-col gap-2 group shrink-0 transition-all ${
-                                                            c.isResolved
-                                                                ? "bg-[var(--app-card)]/40 border-[var(--app-border)]/60 opacity-85"
-                                                                : "bg-[var(--app-card)] border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
-                                                        }`}
+                                                            return (
+                                                                <div
+                                                                    key={c.id}
+                                                                    className={`p-3 border rounded-[2px] flex flex-col gap-2 group shrink-0 transition-all ${
+                                                                        c.isResolved
+                                                                            ? "bg-[var(--app-bg)]/40 border-[var(--app-border)]/60 opacity-85"
+                                                                            : "bg-[var(--app-bg)] border-[var(--app-border)] hover:border-[var(--app-border-strong)]"
+                                                                    }`}
+                                                                >
+                                                                    <div className="flex items-center justify-between gap-2 min-h-[22px]">
+                                                                        <div className="flex items-center gap-2 min-w-0">
+                                                                            <UserAvatar
+                                                                                name={c.user?.name || "User"}
+                                                                                avatarUrl={c.user?.avatarUrl || c.avatarUrl}
+                                                                                size="xs"
+                                                                                title={c.user?.name || "User"}
+                                                                            />
+                                                                            <span className="text-[11px] font-semibold text-[var(--app-text)] truncate">
+                                                                                {c.user?.name || "User"}
+                                                                            </span>
+                                                                            <span className="text-[9px] text-[var(--app-muted)] shrink-0">
+                                                                                {new Date(c.createdAt).toLocaleTimeString([], {
+                                                                                    hour: "2-digit",
+                                                                                    minute: "2-digit",
+                                                                                })}
+                                                                            </span>
+                                                                            {c.isEdited && (
+                                                                                <span className="text-[9px] text-[var(--app-muted)] italic shrink-0">
+                                                                                    (edited)
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+
+                                                                        <div className="flex items-center gap-1 shrink-0 ml-auto h-5">
+                                                                            {c.isResolved ? (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleToggleResolve(c)}
+                                                                                    title={`Resolved by ${c.resolvedBy?.name || "someone"}. Click to reopen.`}
+                                                                                    className="px-1.5 py-0.5 bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/30 rounded-[2px] text-[9px] font-semibold flex items-center gap-1 hover:bg-[var(--color-success)]/20 transition-colors cursor-pointer"
+                                                                                >
+                                                                                    <Check className="w-2.5 h-2.5" />
+                                                                                    <span>Resolved</span>
+                                                                                </button>
+                                                                            ) : (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleToggleResolve(c)}
+                                                                                    title="Mark comment as resolved"
+                                                                                    className="opacity-0 group-hover:opacity-100 px-1.5 py-0.5 text-[var(--app-muted)] hover:text-[var(--color-success)] hover:bg-[var(--app-hover-bg)] border border-transparent hover:border-[var(--app-border)] rounded-[2px] transition-all cursor-pointer flex items-center gap-1 text-[9px]"
+                                                                                >
+                                                                                    <Check className="w-3 h-3" />
+                                                                                    <span>Resolve</span>
+                                                                                </button>
+                                                                            )}
+
+                                                                            <div className="relative" data-comment-menu={c.id}>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        setOpenMenuCommentId(isMenuOpen ? null : c.id);
+                                                                                    }}
+                                                                                    className={`p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer ${
+                                                                                        isMenuOpen
+                                                                                            ? "bg-[var(--app-hover-bg)] text-[var(--app-text)]"
+                                                                                            : ""
+                                                                                    }`}
+                                                                                    title="Comment actions"
+                                                                                >
+                                                                                    <MoreHorizontal className="w-3.5 h-3.5" />
+                                                                                </button>
+
+                                                                                {isMenuOpen && (
+                                                                                    <div
+                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                        className="absolute right-0 top-full mt-1 w-36 bg-[var(--app-card)] border border-[var(--app-border-strong)] shadow-xl rounded-[2px] py-1 z-30 flex flex-col animate-fade-in text-xs"
+                                                                                    >
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleCopyCommentText(c.text)}
+                                                                                            className="px-3 py-1.5 text-left text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] flex items-center gap-2 cursor-pointer transition-colors"
+                                                                                        >
+                                                                                            <Copy className="w-3 h-3 text-[var(--app-muted)]" />
+                                                                                            <span>Copy text</span>
+                                                                                        </button>
+
+                                                                                        {isCommentAuthor && (
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => handleStartEdit(c)}
+                                                                                                className="px-3 py-1.5 text-left text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] flex items-center gap-2 cursor-pointer transition-colors"
+                                                                                            >
+                                                                                                <Edit3 className="w-3 h-3 text-[var(--app-muted)]" />
+                                                                                                <span>Edit</span>
+                                                                                            </button>
+                                                                                        )}
+
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => handleToggleResolve(c)}
+                                                                                            className="px-3 py-1.5 text-left text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] flex items-center gap-2 cursor-pointer transition-colors"
+                                                                                        >
+                                                                                            {c.isResolved ? (
+                                                                                                <>
+                                                                                                    <RotateCcw className="w-3 h-3 text-[var(--app-muted)]" />
+                                                                                                    <span>Reopen</span>
+                                                                                                </>
+                                                                                            ) : (
+                                                                                                <>
+                                                                                                    <Check className="w-3 h-3 text-[var(--color-success)]" />
+                                                                                                    <span>Resolve</span>
+                                                                                                </>
+                                                                                            )}
+                                                                                        </button>
+
+                                                                                        {(isCommentAuthor || canManageTasks) && (
+                                                                                            <div className="border-t border-[var(--app-border)] my-1 pt-1">
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={() => {
+                                                                                                        setCommentToDeleteId(c.id);
+                                                                                                        setOpenMenuCommentId(null);
+                                                                                                    }}
+                                                                                                    className="w-full px-3 py-1.5 text-left text-[var(--color-error)] hover:bg-[var(--color-error)]/10 flex items-center gap-2 cursor-pointer transition-colors"
+                                                                                                >
+                                                                                                    <Trash2 className="w-3 h-3" />
+                                                                                                    <span>Delete</span>
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {isEditingThis ? (
+                                                                        <div className="flex flex-col gap-2 pl-7 pt-1">
+                                                                            <textarea
+                                                                                value={editingCommentText}
+                                                                                onChange={(e) => setEditingCommentText(e.target.value)}
+                                                                                rows={2}
+                                                                                className="w-full p-2 text-xs bg-[var(--app-card)] border border-[var(--app-border-strong)] text-[var(--app-text)] rounded-[2px] focus:outline-none resize-y"
+                                                                                autoFocus
+                                                                            />
+                                                                            <div className="flex items-center gap-2 justify-end">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={handleCancelEdit}
+                                                                                    disabled={isSavingEdit}
+                                                                                    className="px-2.5 py-1 text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
+                                                                                >
+                                                                                    Cancel
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleSaveEdit(c.id)}
+                                                                                    disabled={!editingCommentText.trim() || isSavingEdit}
+                                                                                    className="px-3 py-1 text-xs bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
+                                                                                >
+                                                                                    {isSavingEdit && <Loader2 className="w-3 h-3 animate-spin" />}
+                                                                                    <span>Save changes</span>
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <p
+                                                                            className={`text-xs leading-relaxed pl-7 break-words whitespace-pre-wrap ${
+                                                                                c.isResolved
+                                                                                    ? "text-[var(--app-muted)] opacity-80"
+                                                                                    : "text-[var(--app-text)]"
+                                                                            }`}
+                                                                        >
+                                                                            {c.text}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })
+                                                    )}
+                                                    <div ref={commentsEndRef} />
+                                                </div>
+
+                                                {/* Comment input box pinned at bottom */}
+                                                <form
+                                                    onSubmit={handlePostComment}
+                                                    className="pt-2 border-t border-[var(--app-border)] flex items-center gap-2 shrink-0 bg-[var(--app-card)]"
+                                                >
+                                                    <input
+                                                        type="text"
+                                                        value={newCommentText}
+                                                        onChange={(e) => setNewCommentText(e.target.value)}
+                                                        placeholder="Write a comment..."
+                                                        disabled={isPostingComment}
+                                                        className="flex-1 px-3 py-2 text-xs bg-[var(--app-bg)] border border-[var(--app-border)] text-[var(--app-text)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)]"
+                                                    />
+                                                    <button
+                                                        type="submit"
+                                                        disabled={!newCommentText.trim() || isPostingComment}
+                                                        className="px-3 py-2 bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border-strong)] text-[var(--app-text)] rounded-[2px] font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
                                                     >
-                                                        <div className="flex items-center justify-between gap-2 min-h-[22px]">
-                                                            {/* Author & Timestamp Info (Left Side) */}
-                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                <UserAvatar
-                                                                    name={c.user?.name || "User"}
-                                                                    avatarUrl={c.user?.avatarUrl || c.avatarUrl}
-                                                                    size="xs"
-                                                                    title={c.user?.name || "User"}
-                                                                />
-                                                                <span className="text-[11px] font-semibold text-[var(--app-text)] truncate">
-                                                                    {c.user?.name || "User"}
+                                                        {isPostingComment ? (
+                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                        ) : (
+                                                            <Send className="w-3.5 h-3.5" />
+                                                        )}
+                                                        <span>Post</span>
+                                                    </button>
+                                                </form>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* SIDEBAR TAB 2: ATTACHMENTS */}
+                                {sidebarTab === "attachments" && (
+                                    <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-1 custom-scrollbar">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="text-xs font-semibold text-[var(--app-text)]">
+                                                    Images & Deliverables
+                                                </h4>
+                                                <p className="text-[10px] text-[var(--app-muted)]">
+                                                    Drag, upload, or paste (Ctrl+V)
+                                                </p>
+                                            </div>
+                                            {attachments.length > 0 && canModifyThisSubtask && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    disabled={isUploadingImage}
+                                                    className="px-2 py-1 bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-[10px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1"
+                                                >
+                                                    <Plus className="w-3 h-3 text-[var(--app-muted)]" />
+                                                    <span>Add</span>
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {canModifyThisSubtask && (
+                                            <div
+                                                onClick={() => !isUploadingImage && fileInputRef.current?.click()}
+                                                onDragOver={(e) => {
+                                                    e.preventDefault();
+                                                    setIsDraggingOver(true);
+                                                }}
+                                                onDragLeave={() => setIsDraggingOver(false)}
+                                                onDrop={async (e) => {
+                                                    e.preventDefault();
+                                                    setIsDraggingOver(false);
+                                                    const file = e.dataTransfer.files?.[0];
+                                                    if (file) {
+                                                        await processAndUploadImage(file);
+                                                    }
+                                                }}
+                                                className={`p-4 border border-dashed rounded-[3px] text-center flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                                                    isDraggingOver
+                                                        ? "border-[var(--color-accent)] bg-[var(--app-hover-bg)]/60 ring-2 ring-[var(--color-accent)]/20"
+                                                        : "border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-bg)] hover:bg-[var(--app-hover-bg)]/40"
+                                                }`}
+                                            >
+                                                {isUploadingImage ? (
+                                                    <>
+                                                        <Loader2 className="w-5 h-5 text-[var(--color-accent)] animate-spin" />
+                                                        <span className="text-[11px] font-medium text-[var(--app-text)]">
+                                                            Processing image...
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="w-4 h-4 text-[var(--app-muted)]" />
+                                                        <span className="text-[11px] font-medium text-[var(--app-text)]">
+                                                            Click, drop, or Ctrl+V to attach
+                                                        </span>
+                                                        <span className="text-[10px] text-[var(--app-muted)]">
+                                                            PNG, JPG, WebP, GIF
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFileInputChange}
+                                            className="hidden"
+                                        />
+
+                                        {attachments.length > 0 ? (
+                                            <div className="grid grid-cols-2 gap-2.5 pt-1">
+                                                {attachments.map((att: any) => {
+                                                    const isImg =
+                                                        att.type === "IMAGE" ||
+                                                        att.url?.startsWith("data:image/") ||
+                                                        att.url?.includes("cloudinary.com") ||
+                                                        att.url?.match(/\.(jpeg|jpg|gif|png|webp|svg)/i);
+
+                                                    return (
+                                                        <div
+                                                            key={att.id}
+                                                            className="group relative border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-bg)] rounded-[3px] overflow-hidden shadow-2xs transition-all flex flex-col"
+                                                        >
+                                                            {isImg ? (
+                                                                <div
+                                                                    onClick={() => setFullscreenImage(att.url)}
+                                                                    className="w-full aspect-[4/3] relative cursor-pointer block overflow-hidden bg-[var(--app-bg)]"
+                                                                >
+                                                                    <img
+                                                                        src={att.url}
+                                                                        alt={att.name || "Attachment"}
+                                                                        className="w-full h-full object-cover block transition-transform group-hover:scale-105"
+                                                                    />
+                                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-colors">
+                                                                        <Maximize2 className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" />
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <a
+                                                                    href={att.url}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="w-full aspect-[4/3] bg-[var(--app-bg)] flex flex-col items-center justify-center gap-1.5 p-2 text-center text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors"
+                                                                >
+                                                                    <Paperclip className="w-4 h-4 text-[var(--app-muted)]" />
+                                                                    <span className="text-[10px] text-[var(--app-muted)] truncate w-full font-medium">
+                                                                        {att.name || "Attachment"}
+                                                                    </span>
+                                                                </a>
+                                                            )}
+
+                                                            <div className="px-2 py-1 border-t border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-between text-[10px] text-[var(--app-muted)]">
+                                                                <span className="truncate flex-1 font-medium text-[var(--app-text)]" title={att.name}>
+                                                                    {att.name || "Image"}
                                                                 </span>
-                                                                <span className="text-[9px] text-[var(--app-muted)] shrink-0">
-                                                                    {new Date(c.createdAt).toLocaleTimeString([], {
+                                                            </div>
+
+                                                            {canModifyThisSubtask && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleDeleteAttachment(att.id);
+                                                                    }}
+                                                                    className="absolute top-1.5 right-1.5 bg-[var(--app-card)]/90 hover:bg-[var(--color-error)] text-[var(--app-muted)] hover:text-white border border-[var(--app-border)] hover:border-[var(--color-error)] p-1 rounded-[2px] shadow-sm transition-colors cursor-pointer z-10 opacity-0 group-hover:opacity-100"
+                                                                    title="Delete attachment"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            !canModifyThisSubtask && (
+                                                <div className="py-8 text-center text-xs text-[var(--app-muted)] italic">
+                                                    No attachments uploaded for this subtask.
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Activity Log — collapsible bottom section with toggle button */}
+                            {isEditMode && (
+                                <div className="border-t border-[var(--app-border)] shrink-0 bg-[var(--app-card)]">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsActivityLogOpen((prev) => !prev)}
+                                        className="w-full px-4 py-2.5 flex items-center justify-between text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <History className="w-3.5 h-3.5" />
+                                            <span className="font-medium">Activity Log</span>
+                                            {activities.length > 0 && (
+                                                <span className="text-[10px] bg-[var(--app-hover-bg)] border border-[var(--app-border)] px-1.5 py-0.2 rounded-[2px] tabular-nums">
+                                                    {activities.length}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {isActivityLogOpen ? (
+                                            <ChevronDown className="w-3.5 h-3.5" />
+                                        ) : (
+                                            <ChevronRight className="w-3.5 h-3.5" />
+                                        )}
+                                    </button>
+
+                                    {isActivityLogOpen && (
+                                        <div className="px-4 pb-3 max-h-[220px] overflow-y-auto custom-scrollbar animate-fade-in">
+                                            {activities.length === 0 ? (
+                                                <p className="text-[11px] text-[var(--app-muted)] italic py-3 text-center">
+                                                    No activity recorded yet.
+                                                </p>
+                                            ) : (
+                                                <div className="flex flex-col gap-2.5 pl-2 border-l border-[var(--app-border)]">
+                                                    {activities.map((act) => (
+                                                        <div key={act.id} className="relative flex flex-col gap-0.5 pl-3.5">
+                                                            <div className="absolute -left-[13px] top-1 w-2 h-2 rounded-full bg-[var(--app-border-strong)] border-[1.5px] border-[var(--app-card)]" />
+                                                            <span className="text-[11px] font-medium text-[var(--app-text)]">
+                                                                {act.description}
+                                                            </span>
+                                                            <div className="flex items-center gap-1.5 text-[9px] text-[var(--app-muted)]">
+                                                                <span>{act.user?.name || "System"}</span>
+                                                                <span>•</span>
+                                                                <span>
+                                                                    {new Date(act.timestamp).toLocaleDateString()}{" "}
+                                                                    {new Date(act.timestamp).toLocaleTimeString([], {
                                                                         hour: "2-digit",
                                                                         minute: "2-digit",
                                                                     })}
                                                                 </span>
-                                                                {c.isEdited && (
-                                                                    <span className="text-[9px] text-[var(--app-muted)] italic shrink-0">
-                                                                        (edited)
-                                                                    </span>
-                                                                )}
-                                                            </div>
-
-                                                            {/* Right controls: Quick Resolve / Resolved Badge, 3-Dot Menu */}
-                                                            <div className="flex items-center gap-1 shrink-0 ml-auto h-5">
-                                                                {/* OUTSIDE BUTTON: Resolve / Resolved Badge */}
-                                                                {c.isResolved ? (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleToggleResolve(c)}
-                                                                        title={`Resolved by ${c.resolvedBy?.name || "someone"}. Click to reopen.`}
-                                                                        className="px-1.5 py-0.5 bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/30 rounded-[2px] text-[9px] font-semibold flex items-center gap-1 hover:bg-[var(--color-success)]/20 transition-colors cursor-pointer"
-                                                                    >
-                                                                        <Check className="w-2.5 h-2.5" />
-                                                                        <span>Resolved</span>
-                                                                    </button>
-                                                                ) : (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleToggleResolve(c)}
-                                                                        title="Mark comment as resolved"
-                                                                        className="opacity-0 group-hover:opacity-100 px-1.5 py-0.5 text-[var(--app-muted)] hover:text-[var(--color-success)] hover:bg-[var(--app-hover-bg)] border border-transparent hover:border-[var(--app-border)] rounded-[2px] transition-all cursor-pointer flex items-center gap-1 text-[9px]"
-                                                                    >
-                                                                        <Check className="w-3 h-3" />
-                                                                        <span>Resolve</span>
-                                                                    </button>
-                                                                )}
-
-                                                                {/* 3-DOT MENU */}
-                                                                <div className="relative" data-comment-menu={c.id}>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setOpenMenuCommentId(isMenuOpen ? null : c.id);
-                                                                        }}
-                                                                        className={`p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer ${
-                                                                            isMenuOpen
-                                                                                ? "bg-[var(--app-hover-bg)] text-[var(--app-text)]"
-                                                                                : ""
-                                                                        }`}
-                                                                        title="Comment actions"
-                                                                    >
-                                                                        <MoreHorizontal className="w-3.5 h-3.5" />
-                                                                    </button>
-
-                                                                    {/* Dropdown Menu Popover */}
-                                                                    {isMenuOpen && (
-                                                                        <div
-                                                                            onClick={(e) => e.stopPropagation()}
-                                                                            className="absolute right-0 top-full mt-1 w-36 bg-[var(--app-card)] border border-[var(--app-border-strong)] shadow-xl rounded-[2px] py-1 z-30 flex flex-col animate-fade-in text-xs"
-                                                                        >
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => handleCopyCommentText(c.text)}
-                                                                                className="px-3 py-1.5 text-left text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] flex items-center gap-2 cursor-pointer transition-colors"
-                                                                            >
-                                                                                <Copy className="w-3 h-3 text-[var(--app-muted)]" />
-                                                                                <span>Copy text</span>
-                                                                            </button>
-
-                                                                            {isCommentAuthor && (
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => handleStartEdit(c)}
-                                                                                    className="px-3 py-1.5 text-left text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] flex items-center gap-2 cursor-pointer transition-colors"
-                                                                                >
-                                                                                    <Edit3 className="w-3 h-3 text-[var(--app-muted)]" />
-                                                                                    <span>Edit</span>
-                                                                                </button>
-                                                                            )}
-
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => handleToggleResolve(c)}
-                                                                                className="px-3 py-1.5 text-left text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] flex items-center gap-2 cursor-pointer transition-colors"
-                                                                            >
-                                                                                {c.isResolved ? (
-                                                                                    <>
-                                                                                        <RotateCcw className="w-3 h-3 text-[var(--app-muted)]" />
-                                                                                        <span>Reopen</span>
-                                                                                    </>
-                                                                                ) : (
-                                                                                    <>
-                                                                                        <Check className="w-3 h-3 text-[var(--color-success)]" />
-                                                                                        <span>Resolve</span>
-                                                                                    </>
-                                                                                )}
-                                                                            </button>
-
-                                                                            {(isCommentAuthor || canManageTasks) && (
-                                                                                <div className="border-t border-[var(--app-border)] my-1 pt-1">
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => {
-                                                                                            setCommentToDeleteId(c.id);
-                                                                                            setOpenMenuCommentId(null);
-                                                                                        }}
-                                                                                        className="w-full px-3 py-1.5 text-left text-[var(--color-error)] hover:bg-[var(--color-error)]/10 flex items-center gap-2 cursor-pointer transition-colors"
-                                                                                    >
-                                                                                        <Trash2 className="w-3 h-3" />
-                                                                                        <span>Delete</span>
-                                                                                    </button>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
                                                             </div>
                                                         </div>
-
-                                                        {/* Comment Body / Inline Edit */}
-                                                        {isEditingThis ? (
-                                                            <div className="flex flex-col gap-2 pl-7 pt-1">
-                                                                <textarea
-                                                                    value={editingCommentText}
-                                                                    onChange={(e) => setEditingCommentText(e.target.value)}
-                                                                    rows={2}
-                                                                    className="w-full p-2 text-xs bg-[var(--app-bg)] border border-[var(--app-border-strong)] text-[var(--app-text)] rounded-[2px] focus:outline-none resize-y"
-                                                                    autoFocus
-                                                                />
-                                                                <div className="flex items-center gap-2 justify-end">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={handleCancelEdit}
-                                                                        disabled={isSavingEdit}
-                                                                        className="px-2.5 py-1 text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-hover-bg)] rounded-[2px] transition-colors cursor-pointer"
-                                                                    >
-                                                                        Cancel
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleSaveEdit(c.id)}
-                                                                        disabled={!editingCommentText.trim() || isSavingEdit}
-                                                                        className="px-3 py-1 text-xs bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border-strong)] text-[var(--app-text)] font-semibold rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
-                                                                    >
-                                                                        {isSavingEdit && <Loader2 className="w-3 h-3 animate-spin" />}
-                                                                        <span>Save changes</span>
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <p
-                                                                className={`text-xs leading-relaxed pl-7 break-words whitespace-pre-wrap ${
-                                                                    c.isResolved
-                                                                        ? "text-[var(--app-muted)] opacity-80"
-                                                                        : "text-[var(--app-text)]"
-                                                                }`}
-                                                            >
-                                                                {c.text}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })
-                                        )}
-                                        {/* Bottom anchor for smooth auto-scroll */}
-                                        <div ref={commentsEndRef} />
-                                    </div>
-
-                                    {/* Comment input box pinned at bottom */}
-                                    <form
-                                        onSubmit={handlePostComment}
-                                        className="pt-2 border-t border-[var(--app-border)] flex items-center gap-2 shrink-0 bg-[var(--app-bg)]"
-                                    >
-                                        <input
-                                            type="text"
-                                            value={newCommentText}
-                                            onChange={(e) => setNewCommentText(e.target.value)}
-                                            placeholder="Write a comment or note..."
-                                            disabled={isPostingComment}
-                                            className="flex-1 px-3 py-2 text-xs bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] rounded-[2px] focus:outline-none focus:border-[var(--app-border-strong)]"
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={!newCommentText.trim() || isPostingComment}
-                                            className="px-3.5 py-2 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border-strong)] text-[var(--app-text)] rounded-[2px] font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
-                                        >
-                                            {isPostingComment ? (
-                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            ) : (
-                                                <Send className="w-3.5 h-3.5" />
-                                            )}
-                                            <span>Post</span>
-                                        </button>
-                                    </form>
-                                </div>
-                            )}
-
-                            {/* TAB 3: ACTIVITY LOG */}
-                            {activeTab === "activity" && (
-                                <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-1">
-                                    <h4 className="text-xs font-semibold text-[var(--app-text)]">
-                                        Audit History & Timeline
-                                    </h4>
-
-                                    <div className="flex flex-col gap-3 pl-2 border-l border-[var(--app-border)]">
-                                        {activities.map((act) => (
-                                            <div key={act.id} className="relative flex flex-col gap-1 pl-4">
-                                                <div className="absolute -left-[17px] top-1 w-2.5 h-2.5 rounded-full bg-[var(--app-border-strong)] border-2 border-[var(--app-card)]" />
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[11px] font-semibold text-[var(--app-text)]">
-                                                        {act.description}
-                                                    </span>
+                                                    ))}
                                                 </div>
-                                                <div className="flex items-center gap-2 text-[9px] text-[var(--app-muted)]">
-                                                    <span>by {act.user?.name || "System"}</span>
-                                                    <span>•</span>
-                                                    <span>
-                                                        {new Date(act.timestamp).toLocaleDateString()}{" "}
-                                                        {new Date(act.timestamp).toLocaleTimeString([], {
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                        })}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* TAB 4: ATTACHMENTS */}
-                            {activeTab === "attachments" && (
-                                <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h4 className="text-xs font-semibold text-[var(--app-text)]">
-                                                Subtask Images & Deliverables
-                                            </h4>
-                                            <p className="text-[10px] text-[var(--app-muted)]">
-                                                Upload screenshots, mockups, or paste directly from clipboard (Ctrl+V)
-                                            </p>
-                                        </div>
-                                        {attachments.length > 0 && canModifyThisSubtask && (
-                                            <button
-                                                type="button"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                disabled={isUploadingImage}
-                                                className="px-2.5 py-1 bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] border border-[var(--app-border)] text-[var(--app-text)] text-[10px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
-                                            >
-                                                <Plus className="w-3 h-3 text-[var(--app-muted)]" />
-                                                <span>Attach Image</span>
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {/* Upload drop zone */}
-                                    {canModifyThisSubtask && (
-                                        <div
-                                            onClick={() => !isUploadingImage && fileInputRef.current?.click()}
-                                            onDragOver={(e) => {
-                                                e.preventDefault();
-                                                setIsDraggingOver(true);
-                                            }}
-                                            onDragLeave={() => setIsDraggingOver(false)}
-                                            onDrop={async (e) => {
-                                                e.preventDefault();
-                                                setIsDraggingOver(false);
-                                                const file = e.dataTransfer.files?.[0];
-                                                if (file) {
-                                                    await processAndUploadImage(file);
-                                                }
-                                            }}
-                                            className={`p-6 border border-dashed rounded-[3px] text-center flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
-                                                isDraggingOver
-                                                    ? "border-[var(--color-accent)] bg-[var(--app-hover-bg)]/60 ring-2 ring-[var(--color-accent)]/20"
-                                                    : "border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)]/40"
-                                            }`}
-                                        >
-                                            {isUploadingImage ? (
-                                                <>
-                                                    <Loader2 className="w-6 h-6 text-[var(--color-accent)] animate-spin" />
-                                                    <span className="text-xs font-medium text-[var(--app-text)]">
-                                                        Processing & attaching image...
-                                                    </span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className="w-10 h-10 rounded-full bg-[var(--app-bg)] border border-[var(--app-border)] flex items-center justify-center text-[var(--app-muted)] shadow-2xs">
-                                                        <Upload className="w-4 h-4" />
-                                                    </div>
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="text-xs font-medium text-[var(--app-text)]">
-                                                            Click or drag an image here, or paste from clipboard (Ctrl+V)
-                                                        </span>
-                                                        <span className="text-[10px] text-[var(--app-muted)]">
-                                                            Supports PNG, JPG, WebP, GIF
-                                                        </span>
-                                                    </div>
-                                                </>
                                             )}
                                         </div>
                                     )}
-
-                                    {/* Hidden File Input */}
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleFileInputChange}
-                                        className="hidden"
-                                    />
-
-                                    {/* Attachments Image Grid */}
-                                    {attachments.length > 0 ? (
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
-                                            {attachments.map((att: any) => {
-                                                const isImg =
-                                                    att.type === "IMAGE" ||
-                                                    att.url?.startsWith("data:image/") ||
-                                                    att.url?.includes("cloudinary.com") ||
-                                                    att.url?.match(/\.(jpeg|jpg|gif|png|webp|svg)/i);
-
-                                                return (
-                                                    <div
-                                                        key={att.id}
-                                                        className="group relative border border-[var(--app-border)] hover:border-[var(--app-border-strong)] bg-[var(--app-card)] rounded-[3px] overflow-hidden shadow-2xs transition-all flex flex-col"
-                                                    >
-                                                        {isImg ? (
-                                                            <div
-                                                                onClick={() => setFullscreenImage(att.url)}
-                                                                className="w-full aspect-[4/3] relative cursor-pointer block overflow-hidden bg-[var(--app-bg)]"
-                                                            >
-                                                                <img
-                                                                    src={att.url}
-                                                                    alt={att.name || "Attachment"}
-                                                                    className="w-full h-full object-cover block transition-transform group-hover:scale-105"
-                                                                />
-                                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center transition-colors">
-                                                                    <Maximize2 className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" />
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <a
-                                                                href={att.url}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="w-full aspect-[4/3] bg-[var(--app-bg)] flex flex-col items-center justify-center gap-1.5 p-3 text-center text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] transition-colors"
-                                                            >
-                                                                <Paperclip className="w-5 h-5 text-[var(--app-muted)]" />
-                                                                <span className="text-[10px] text-[var(--app-muted)] truncate w-full font-medium">
-                                                                    {att.name || "Attachment"}
-                                                                </span>
-                                                            </a>
-                                                        )}
-
-                                                        {/* Caption / Title footer */}
-                                                        <div className="px-2 py-1.5 border-t border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-between text-[10px] text-[var(--app-muted)]">
-                                                            <span className="truncate flex-1 font-medium text-[var(--app-text)]" title={att.name}>
-                                                                {att.name || "Image"}
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Delete button (hover) */}
-                                                        {canModifyThisSubtask && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleDeleteAttachment(att.id);
-                                                                }}
-                                                                className="absolute top-1.5 right-1.5 bg-[var(--app-card)]/90 hover:bg-[var(--color-error)] text-[var(--app-muted)] hover:text-white border border-[var(--app-border)] hover:border-[var(--color-error)] p-1 rounded-[2px] shadow-sm transition-colors cursor-pointer z-10 opacity-0 group-hover:opacity-100"
-                                                                title="Delete attachment"
-                                                            >
-                                                                <Trash2 className="w-3 h-3" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        !canModifyThisSubtask && (
-                                            <div className="py-8 text-center text-xs text-[var(--app-muted)] italic">
-                                                No attachments uploaded for this subtask.
-                                            </div>
-                                        )
-                                    )}
                                 </div>
                             )}
                         </div>
-                    </div>
-
-                    {/* Right Column: Form Attributes Sidebar */}
-                    <div className="w-full md:w-[360px] p-5 flex flex-col gap-4 overflow-y-auto bg-[var(--app-card)] shrink-0">
-                        {/* Column / Status */}
-                        {columns.length > 0 && (
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-medium text-[var(--app-text)]">
-                                    Column / Stage
-                                </label>
-                                <CustomSelect
-                                    options={columnOptions}
-                                    value={columnId}
-                                    disabled={!canModifyThisSubtask}
-                                    onChange={(newColId) => {
-                                        setColumnId(newColId);
-                                        const selectedCol = columns.find((c) => c.id === newColId);
-                                        if (selectedCol?.isComplete) {
-                                            setIsCompleted(true);
-                                            const startDateRef = startDate || subtask?.startDate || subtask?.createdAt || new Date();
-                                            const computedActual = calculateDaySpan(startDateRef, new Date());
-                                            setActualDays(computedActual);
-                                        } else if (isCompleted && selectedCol && !selectedCol.isComplete) {
-                                            setIsCompleted(false);
-                                            setActualDays(0);
-                                        }
-                                    }}
-                                    buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
-                                />
-                            </div>
-                        )}
-
-                        {/* Priority */}
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-[11px] font-medium text-[var(--app-text)]">
-                                Priority Level
-                            </label>
-                            <CustomSelect
-                                options={priorityOptions}
-                                value={priority}
-                                disabled={!canModifyThisSubtask}
-                                onChange={(val) => setPriority(val)}
-                                buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
-                            />
-                        </div>
-
-                        {/* Assignee */}
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center justify-between">
-                                <span>Assigned Member</span>
-                                {!canManageTasks && (
-                                    <span className="text-[9px] text-[var(--app-muted)] italic font-normal">
-                                        (Self-assignment)
-                                    </span>
-                                )}
-                            </label>
-                            {canManageTasks ? (
-                                <CustomSelect
-                                    options={assigneeOptions}
-                                    value={assignedToId}
-                                    disabled={!canModifyThisSubtask}
-                                    onChange={(val) => setAssignedToId(val)}
-                                    placeholder="Select assignee..."
-                                    buttonClassName="w-full text-xs py-2 bg-[var(--app-bg)]"
-                                />
-                            ) : (
-                                <div className="flex items-center gap-2 p-2 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] text-xs text-[var(--app-text)]">
-                                    <UserAvatar name={currentUser?.name || "You"} avatarUrl={currentUser?.avatarUrl} size="xs" />
-                                    <span>
-                                        <span className="font-semibold">{currentUser?.name || "You"}</span> (Self)
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Start Date & Due Date */}
-                        <div className="grid grid-cols-2 gap-2.5">
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center gap-1">
-                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>Start Date</span>
-                                </label>
-                                <CustomDatePicker
-                                    value={startDate}
-                                    minDate={projectStartDate || undefined}
-                                    maxDate={dueDate || projectEndDate || undefined}
-                                    onChange={(val) => {
-                                        let finalVal = val;
-                                        if (projectStartDate && finalVal && finalVal < projectStartDate) {
-                                            finalVal = projectStartDate;
-                                            toast.error(`Start date cannot precede project start date (${projectStartDate})`);
-                                        }
-                                        if (projectEndDate && finalVal && finalVal > projectEndDate) {
-                                            finalVal = projectEndDate;
-                                            toast.error(`Start date cannot exceed project end date (${projectEndDate})`);
-                                        }
-                                        setStartDate(finalVal);
-                                        const newDue = (dueDate && finalVal > dueDate) ? finalVal : dueDate;
-                                        if (dueDate && finalVal > dueDate) {
-                                            setDueDate(finalVal);
-                                        }
-                                        if (finalVal && newDue) {
-                                            setEstimatedDays(calculateDaySpan(finalVal, newDue));
-                                        }
-                                    }}
-                                    disabled={!canModifyThisSubtask}
-                                    className="w-full text-xs"
-                                />
-                            </div>
-
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[11px] font-medium text-[var(--app-text)] flex items-center gap-1">
-                                    <Calendar className="w-3 h-3 text-[var(--app-muted)]" />
-                                    <span>Due Date</span>
-                                </label>
-                                <CustomDatePicker
-                                    value={dueDate}
-                                    minDate={startDate || projectStartDate || undefined}
-                                    maxDate={projectEndDate || undefined}
-                                    onChange={(val) => {
-                                        let finalVal = val;
-                                        if (projectEndDate && finalVal && finalVal > projectEndDate) {
-                                            finalVal = projectEndDate;
-                                            toast.error(`Due date cannot exceed project end date (${projectEndDate})`);
-                                        }
-                                        if (projectStartDate && finalVal && finalVal < projectStartDate) {
-                                            finalVal = projectStartDate;
-                                            toast.error(`Due date cannot precede project start date (${projectStartDate})`);
-                                        }
-                                        setDueDate(finalVal);
-                                        const newStart = (startDate && finalVal < startDate) ? finalVal : startDate;
-                                        if (startDate && finalVal < startDate) {
-                                            setStartDate(finalVal);
-                                        }
-                                        if (finalVal && newStart) {
-                                            setEstimatedDays(calculateDaySpan(newStart, finalVal));
-                                        }
-                                    }}
-                                    disabled={!canModifyThisSubtask}
-                                    className="w-full text-xs"
-                                />
-                            </div>
-
-                            {(projectStartDate || projectEndDate) && (
-                                <div className="col-span-2 text-[10px] text-[var(--app-muted)] flex items-center justify-between px-0.5 -mt-1">
-                                    <span>Project timeline bounds:</span>
-                                    <span className="font-mono font-medium text-[var(--app-text)]">
-                                        {projectStartDate || "Start"} → {projectEndDate || "End"}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Computed Duration Metrics */}
-                        <div className="grid grid-cols-2 gap-2">
-                            {/* Estimated Duration Card */}
-                            <div className="flex flex-col p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-[2px] min-w-0">
-                                <div className="flex items-center gap-1.5 text-[10px] text-[var(--app-muted)] font-medium">
-                                    <Clock className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                                    <span className="truncate">Est. Duration</span>
-                                </div>
-                                <div className="text-sm font-bold text-[var(--app-text)] tabular-nums mt-1">
-                                    {formatDaySpan(calculateDaySpan(startDate, dueDate))}
-                                </div>
-                                <span className="text-[9.5px] text-[var(--app-muted)] mt-0.5 truncate" title="Calendar day count from Start Date to Due Date">
-                                    Start → Due span
-                                </span>
-                            </div>
-
-                            {/* Actual Duration Card */}
-                            <div className={`flex flex-col p-2.5 rounded-[2px] border min-w-0 ${
-                                isCompleted
-                                    ? "bg-[var(--color-success,#16A34A)]/5 border-[var(--color-success,#16A34A)]/25"
-                                    : "bg-[var(--app-bg)] border-[var(--app-border)]"
-                            }`}>
-                                <div className="flex items-center justify-between gap-1 text-[10px]">
-                                    <span className="text-[var(--app-muted)] flex items-center gap-1 font-medium truncate">
-                                        {isCompleted ? (
-                                            <CheckCircle2 className="w-3 h-3 text-[var(--color-success,#16A34A)] shrink-0" />
-                                        ) : (
-                                            <Clock className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                                        )}
-                                        <span className="truncate">Actual Time</span>
-                                    </span>
-                                    {isCompleted ? (
-                                        <span className="text-[8px] font-semibold text-[var(--color-success,#16A34A)] bg-[var(--color-success,#16A34A)]/10 px-1 py-0.2 rounded-[1px] leading-none shrink-0 border border-[var(--color-success,#16A34A)]/20">
-                                            Done
-                                        </span>
-                                    ) : (
-                                        <span className="text-[8px] font-medium text-[var(--app-muted)] bg-[var(--app-card)] px-1 py-0.2 rounded-[1px] leading-none shrink-0 border border-[var(--app-border)]">
-                                            Open
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="mt-1">
-                                    <span className={`text-sm font-bold tabular-nums ${
-                                        isCompleted ? "text-[var(--color-success,#16A34A)]" : "text-[var(--app-muted)]"
-                                    }`}>
-                                        {isCompleted
-                                            ? formatDaySpan(actualDays || calculateDaySpan(subtask?.startDate || startDate || subtask?.createdAt, subtask?.completedAt || new Date()))
-                                            : "—"}
-                                    </span>
-                                </div>
-                                <span className="text-[9.5px] text-[var(--app-muted)] mt-0.5 truncate" title={isCompleted ? "Day count from Start date to Done date" : "Logged upon completion"}>
-                                    {isCompleted ? "Start → Done" : "Logged on completion"}
-                                </span>
-                            </div>
-                        </div>
-
-                    </div>
+                    )}
                 </div>
 
                 {/* Fullscreen Image Lightbox Modal */}

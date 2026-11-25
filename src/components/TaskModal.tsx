@@ -31,6 +31,12 @@ import {
     Pencil,
     ListTodo,
     GripVertical,
+    PanelRight,
+    ChevronDown,
+    Circle,
+    AlertTriangle,
+    User as UserIcon,
+    Calendar,
 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult, DraggableProvided, DraggableStateSnapshot } from "@hello-pangea/dnd";
 
@@ -213,13 +219,19 @@ export default function TaskModal({
     };
 
     // Modal sub-components state
-    const [activeTab, setActiveTab] = useState<
-        "details" | "comments" | "description" | "checklist" | "attachments"
-    >(() => getRememberedTab());
+    const [sidebarTab, setSidebarTab] = useState<"comments" | "attachments">(() => {
+        const remembered = getRememberedTab();
+        return remembered === "attachments" ? "attachments" : "comments";
+    });
+    const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+    const [showMoreProperties, setShowMoreProperties] = useState(false);
 
-    const handleTabChange = useCallback(
-        (tab: "comments" | "description" | "checklist" | "attachments") => {
-            setActiveTab(tab);
+    const checklistSectionRef = useRef<HTMLDivElement>(null);
+    const descriptionSectionRef = useRef<HTMLDivElement>(null);
+
+    const handleSidebarTabChange = useCallback(
+        (tab: "comments" | "attachments") => {
+            setSidebarTab(tab);
             if (typeof window !== "undefined") {
                 try {
                     localStorage.setItem(LAST_TASK_TAB_STORAGE_KEY, tab);
@@ -462,22 +474,31 @@ export default function TaskModal({
             setChecklistItems(sortChecklist(task.checklist || []));
             setShowUnsavedWarning(false);
 
-            let mappedTab:
-                | "details"
-                | "comments"
-                | "description"
-                | "checklist"
-                | "attachments" = getRememberedTab();
+            setShowMoreProperties(false);
 
-            if (initialTab && initialTab !== "details") {
-                mappedTab = initialTab;
+            if (initialTab === "comments" || initialTab === "attachments") {
+                setIsSidebarOpen(true);
+                setSidebarTab(initialTab);
                 if (typeof window !== "undefined") {
                     try {
                         localStorage.setItem(LAST_TASK_TAB_STORAGE_KEY, initialTab);
                     } catch {}
                 }
+            } else {
+                setIsSidebarOpen(true);
+                const remembered = getRememberedTab();
+                setSidebarTab(remembered === "attachments" ? "attachments" : "comments");
+
+                if (initialTab === "checklist") {
+                    setTimeout(() => {
+                        checklistSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }, 80);
+                } else if (initialTab === "description") {
+                    setTimeout(() => {
+                        descriptionSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }, 80);
+                }
             }
-            setActiveTab(mappedTab);
             setHiddenCommentIds([]);
             setCommentsList([]);
             setActivitiesList([]);
@@ -568,14 +589,14 @@ export default function TaskModal({
     }, [task?.id]);
 
     useEffect(() => {
-        if (isOpen && activeTab === "comments") {
+        if (isOpen) {
             const silent = commentsList.length > 0;
             loadTaskComments(1, false, silent);
         }
-    }, [isOpen, task.id, activeTab, commentUpdateTrigger, loadTaskComments]);
+    }, [isOpen, task.id, commentUpdateTrigger, loadTaskComments]);
 
     useLayoutEffect(() => {
-        if (!isOpen || activeTab !== "comments") return;
+        if (!isOpen) return;
         if (!commentsContainerRef.current) return;
         
         const container = commentsContainerRef.current;
@@ -592,7 +613,7 @@ export default function TaskModal({
             container.scrollTop = lastScrollTopRef.current;
             lastScrollTopRef.current = 0;
         }
-    }, [commentsList, isOpen, activeTab]);
+    }, [commentsList, isOpen]);
 
     const handleCommentsScroll = () => {
         if (!commentsContainerRef.current) return;
@@ -668,7 +689,8 @@ export default function TaskModal({
                     );
                     toast.success(`Uploaded clipboard image "${filename}"`);
                     onRefresh();
-                    handleTabChange("attachments");
+                    setIsSidebarOpen(true);
+                    handleSidebarTabChange("attachments");
                 } catch (err: any) {
                     toast.error(err.message || "Failed to upload clipboard image.");
                 } finally {
@@ -1470,23 +1492,38 @@ export default function TaskModal({
     const modalInner = (
         <div className="w-full h-full flex flex-col min-h-0 overflow-hidden bg-white text-[#1A1A1A] select-none">
             {/* Modal Top Header Bar */}
-            <div className="p-4 border-b border-[#E5E5E3] flex justify-between items-center bg-[#FAFAF9] shrink-0">
-                <div className="flex items-center gap-3">
-                    <p className="text-[11px] text-[#888883]">
-                        Created by{" "}
-                        <span className="text-[#1A1A1A] font-medium">
-                            {task.createdBy?.fullName}
-                        </span>{" "}
-                        on {new Date(task.createdAt).toLocaleDateString()}
-                    </p>
+            <div className="px-4 py-3 border-b border-[#E5E5E3] flex justify-between items-center bg-[#FAFAF9] shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="text-[11px] font-medium text-[#888883] truncate">
+                        Task Details
+                    </span>
                     {isDirty && (
-                        <span className="text-base text-[#B08800] bg-[#B08800]/10 px-2 py-0.5 rounded font-medium  ">
+                        <span className="text-[11px] text-[#B08800] bg-[#B08800]/10 px-2 py-0.5 rounded-[2px] font-medium shrink-0">
                             Unsaved Changes
                         </span>
                     )}
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                    {/* Right Sidebar Toggle (Comments / Attachments) */}
+                    <button
+                        type="button"
+                        onClick={() => setIsSidebarOpen((prev) => !prev)}
+                        className={`px-2 py-1.5 rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-medium ${
+                            isSidebarOpen
+                                ? "bg-[#E5E5E3]/70 text-[#1A1A1A] border border-[#E5E5E3]"
+                                : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/50 border border-transparent"
+                        }`}
+                        title={isSidebarOpen ? "Hide comments & attachments panel" : "Show comments & attachments panel"}
+                    >
+                        <PanelRight className="w-4 h-4" />
+                        {(visibleComments.length > 0 || (task.attachments?.length || 0) > 0) && (
+                            <span className="text-[10px] bg-white border border-[#E5E5E3] px-1.5 py-0.2 rounded-[2px] tabular-nums text-[#1A1A1A]">
+                                {visibleComments.length + (task.attachments?.length || 0)}
+                            </span>
+                        )}
+                    </button>
+
                     {/* View Mode Toggle (Center Modal vs Side Sheet) */}
                     <button
                         type="button"
@@ -1563,995 +1600,837 @@ export default function TaskModal({
                 </div>
             </div>
 
-                {/* Content Grid */}
-                <div className="flex-1 overflow-hidden p-3.5 grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0 h-full">
-                    {/* Left Column (Scrollable without scrollbars) */}
-                    <div className="md:col-span-2 flex flex-col gap-3.5 overflow-y-auto scrollbar-none pr-1 h-full min-h-0 flex-1 text-left">
-                        {/* Title Section (Always visible) */}
-                        <div className="flex flex-col gap-1 shrink-0 px-1 mb-2">
-                            <label className="eyebrow">Title *</label>
+                {/* Content Layout: Notion-style Left Scrollable Page + Right Collapsible Sidebar */}
+                <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden bg-white">
+                    {/* Left Column: Notion-style Scrollable Page (Title -> Metadata Properties -> Checklist -> Description) */}
+                    <div className={`flex-1 overflow-y-auto custom-scrollbar h-full min-h-0 text-left ${isSidebarOpen ? "md:border-r md:border-[#E5E5E3]" : ""}`}>
+                        <div className="max-w-3xl mx-auto px-5 sm:px-8 py-5 flex flex-col gap-6">
+                            {/* 1. Title Section (Underline Hero Input, No Label) */}
+                            <div className="shrink-0">
+                                {!canEditDetails ? (
+                                    <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight font-heading pt-1 select-text">
+                                        {title}
+                                    </h2>
+                                ) : (
+                                    <div className="border-b-2 border-[#E5E5E3] focus-within:border-[var(--color-accent)] transition-colors">
+                                        <input
+                                            type="text"
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                            placeholder="Task title…"
+                                            aria-label="Task title"
+                                            maxLength={APP_CONFIG.MAX_TASK_TITLE_LENGTH}
+                                            className="w-full px-0 py-1.5 text-xl font-semibold tracking-tight bg-transparent border-0 text-[#1A1A1A] rounded-none focus:outline-none placeholder:text-[#888883]/60"
+                                        />
+                                    </div>
+                                )}
+                            </div>
 
-                            {!canEditDetails ? (
-                                <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A] tracking-tight font-heading pt-1 select-text">
-                                    {title}
-                                </h2>
-                            ) : (
-                                <input
-                                    type="text"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="Task title…"
-                                    maxLength={APP_CONFIG.MAX_TASK_TITLE_LENGTH}
-                                    className={`${inputClass} font-sans font-normal text-base`}
-                                />
-                            )}
-                        </div>
+                            {/* 2. Notion-style 2-Column Metadata Properties */}
+                            <div className="flex flex-col gap-1.5 pb-3 border-b border-[#E5E5E3]/80">
+                                {/* Status */}
+                                <div className="grid grid-cols-[115px_1fr] sm:grid-cols-[135px_1fr] items-center gap-2 py-0.5">
+                                    <span className="text-xs text-[#888883] flex items-center gap-2 truncate">
+                                        <Circle className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                                        <span>Status</span>
+                                    </span>
+                                    <div className="min-w-0">
+                                        <CustomSelect
+                                            disabled={!canEditStatus}
+                                            options={columns.map((col) => ({
+                                                value: col.id,
+                                                label: col.name,
+                                            }))}
+                                            value={columnId}
+                                            onChange={handleStatusChange}
+                                            buttonClassName="!border-transparent hover:!border-[#E5E5E3] !bg-transparent hover:!bg-[#FAFAF9] !px-2 !py-1 !h-7 text-xs font-medium"
+                                            className="w-full sm:w-auto min-w-[200px]"
+                                        />
+                                    </div>
+                                </div>
 
-                        {/* Tab Navigation Bar - Zero Shift Underline Tabs */}
-                        <div className="flex items-center gap-5 border-b border-[#E5E5E3] pb-0 shrink-0 mb-3.5 text-left px-1">
-                            <button
-                                type="button"
-                                onClick={() => handleTabChange("comments")}
-                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
-                                    activeTab === "comments"
-                                        ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
-                                        : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
-                                }`}
-                            >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                                <span>Comments ({visibleComments.length})</span>
-                            </button>
+                                {/* Priority */}
+                                <div className="grid grid-cols-[115px_1fr] sm:grid-cols-[135px_1fr] items-center gap-2 py-0.5">
+                                    <span className="text-xs text-[#888883] flex items-center gap-2 truncate">
+                                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                                        <span>Priority</span>
+                                    </span>
+                                    <div className="min-w-0">
+                                        <CustomSelect
+                                            disabled={!canEditDetails}
+                                            options={[
+                                                { value: "LOW", label: "Low" },
+                                                { value: "MEDIUM", label: "Medium" },
+                                                { value: "HIGH", label: "High" },
+                                                { value: "URGENT", label: "Urgent" },
+                                            ]}
+                                            value={priority}
+                                            onChange={(val) => setPriority(val)}
+                                            buttonClassName="!border-transparent hover:!border-[#E5E5E3] !bg-transparent hover:!bg-[#FAFAF9] !px-2 !py-1 !h-7 text-xs font-medium"
+                                            className="w-full sm:w-auto min-w-[200px]"
+                                        />
+                                    </div>
+                                </div>
 
-                            <button
-                                type="button"
-                                onClick={() => handleTabChange("description")}
-                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
-                                    activeTab === "description"
-                                        ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
-                                        : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
-                                }`}
-                            >
-                                <FileText className="w-3.5 h-3.5" />
-                                <span>Description</span>
-                            </button>
+                                {/* Assignee */}
+                                <div className="grid grid-cols-[115px_1fr] sm:grid-cols-[135px_1fr] items-center gap-2 py-0.5">
+                                    <span className="text-xs text-[#888883] flex items-center gap-2 truncate">
+                                        <UserIcon className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                                        <span>Assignee</span>
+                                    </span>
+                                    <div className="min-w-0">
+                                        <CustomSelect
+                                            disabled={!canEditDetails}
+                                            options={
+                                                userRole === "MEMBER"
+                                                    ? [
+                                                          {
+                                                              value: currentUser.id,
+                                                              label: `${currentUser.fullName} (You)`,
+                                                              avatarUrl: currentUser.avatarUrl || null,
+                                                          },
+                                                          ...(task.assignedTo && task.assignedTo.id !== currentUser.id
+                                                              ? [
+                                                                    {
+                                                                        value: task.assignedTo.id,
+                                                                        label: task.assignedTo.fullName,
+                                                                        avatarUrl: task.assignedTo.avatarUrl || null,
+                                                                    },
+                                                                ]
+                                                              : []),
+                                                      ]
+                                                    : teamMembers.map(({ user }) => ({
+                                                          value: user.id,
+                                                          label: user.id === currentUser.id ? `${user.fullName} (You)` : user.fullName,
+                                                          avatarUrl: user.avatarUrl || null,
+                                                      }))
+                                            }
+                                            value={assignedToId}
+                                            onChange={(val) => setAssignedToId(val)}
+                                            buttonClassName="!border-transparent hover:!border-[#E5E5E3] !bg-transparent hover:!bg-[#FAFAF9] !px-2 !py-1 !h-7 text-xs font-medium"
+                                            className="w-full sm:w-auto min-w-[200px]"
+                                        />
+                                    </div>
+                                </div>
 
-                            <button
-                                type="button"
-                                onClick={() => handleTabChange("checklist")}
-                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
-                                    activeTab === "checklist"
-                                        ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
-                                        : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
-                                }`}
-                            >
-                                <CheckSquare className="w-3.5 h-3.5" />
-                                <span>
-                                    Checklist ({checklistItems.length > 0 ? `${checklistItems.filter((c) => c.isCompleted).length}/${checklistItems.length}` : 0})
-                                </span>
-                            </button>
+                                {/* Timeline (Start -> Due) */}
+                                <div className="grid grid-cols-[115px_1fr] sm:grid-cols-[135px_1fr] items-center gap-2 py-0.5">
+                                    <span className="text-xs text-[#888883] flex items-center gap-2 truncate">
+                                        <Calendar className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                                        <span>Timeline</span>
+                                    </span>
+                                    <div className="flex flex-wrap items-center gap-2 min-w-0">
+                                        <div className="w-[140px]">
+                                            <CustomDatePicker
+                                                disabled={!canEditDetails}
+                                                value={dateStr}
+                                                maxDate={dueDateStr || undefined}
+                                                align="left"
+                                                onChange={(val) => {
+                                                    setDateStr(val);
+                                                    if (dueDateStr && val > dueDateStr) {
+                                                        setDueDateStr(val);
+                                                    }
+                                                }}
+                                                className="w-full"
+                                            />
+                                        </div>
+                                        <span className="text-xs text-[#888883]">→</span>
+                                        <div className="w-[140px]">
+                                            <CustomDatePicker
+                                                disabled={!canEditDetails}
+                                                value={dueDateStr}
+                                                minDate={dateStr || undefined}
+                                                align="left"
+                                                onChange={(val) => {
+                                                    setDueDateStr(val);
+                                                    if (dateStr && val < dateStr) {
+                                                        setDateStr(val);
+                                                    }
+                                                }}
+                                                className="w-full"
+                                            />
+                                        </div>
 
-                            <button
-                                type="button"
-                                onClick={() => handleTabChange("attachments")}
-                                className={`pb-2 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer -mb-[1px] text-[11px] ${
-                                    activeTab === "attachments"
-                                        ? "border-[#1A1A1A] text-[#1A1A1A] font-semibold"
-                                        : "border-transparent text-[#888883] hover:text-[#1A1A1A] font-medium"
-                                }`}
-                            >
-                                <Paperclip className="w-3.5 h-3.5" />
-                                <span>
-                                    Attachments ({task.attachments?.length || 0}
-                                    )
-                                </span>
-                            </button>
-                        </div>
-
-                        {/* TAB 1: COMMENTS */}
-                        {activeTab === "comments" && (
-                            <div className="relative flex flex-col flex-1 min-h-0 h-full gap-3 animate-fade-in border border-[#E5E5E3] bg-[#FAFAF9] p-3 rounded-[3px] corner-brackets">
-                                {/* Load More Button at the top */}
-                                {hasMoreComments && showLoadMore && (
-                                    <div className="flex justify-center shrink-0 mb-1">
                                         <button
                                             type="button"
-                                            onClick={() => loadTaskComments(commentsPage + 1, true)}
-                                            disabled={isLoadingMore}
-                                            className="text-[10px] text-[#888883] hover:text-[#1A1A1A] font-semibold flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] border border-[#E5E5E3] bg-white hover:bg-[#FAFAF9] transition-all disabled:opacity-50 cursor-pointer shadow-3xs"
+                                            onClick={() => setShowMoreProperties((prev) => !prev)}
+                                            className="inline-flex items-center gap-1 text-[11px] text-[#888883] hover:text-[#1A1A1A] transition-colors cursor-pointer ml-1"
                                         >
-                                            {isLoadingMore && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
-                                            <span>Load previous comments</span>
+                                            {showMoreProperties ? (
+                                                <ChevronDown className="w-3 h-3" />
+                                            ) : (
+                                                <ChevronRight className="w-3 h-3" />
+                                            )}
+                                            <span>{showMoreProperties ? "Less" : "More"}</span>
                                         </button>
+                                    </div>
+                                </div>
+
+                                {showMoreProperties && (
+                                    <div className="grid grid-cols-[115px_1fr] sm:grid-cols-[135px_1fr] items-center gap-2 py-0.5 animate-fade-in">
+                                        <span className="text-[11px] text-[#888883] pl-5 truncate">
+                                            Created
+                                        </span>
+                                        <span className="text-[11px] text-[#1A1A1A] tabular-nums">
+                                            {task.createdBy?.fullName || "—"} • {new Date(task.createdAt).toLocaleDateString()}
+                                        </span>
                                     </div>
                                 )}
 
-                                 {/* Comment Thread List filling available height */}
-                                <div
-                                    ref={commentsContainerRef}
-                                    onScroll={handleCommentsScroll}
-                                    className="flex-1 overflow-y-auto flex flex-col gap-3 min-h-0 pr-1"
-                                >
-                                    {isLoadingComments ? (
-                                        <div className="flex flex-col items-center justify-center h-full gap-2 text-[#888883] text-[11px] my-auto">
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            <span>Loading comments...</span>
-                                        </div>
-                                    ) : visibleComments.length === 0 ? (
-                                        <div className="p-8 text-center flex flex-col items-center justify-center gap-1 text-[#888883] flex-1 w-full h-full min-h-[220px]">
-                                            <MessageSquare className="w-4 h-4 text-[#DADAD6]" />
-                                            <span className="text-[11px] font-medium text-[#1A1A1A] mt-0.5">
-                                                No comments yet
-                                            </span>
-                                            <span className="text-[10px]">
-                                                Be the first to share notes or
-                                                feedback on this task.
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col gap-2 pb-2">
-                                            {visibleComments.map((c) => {
-                                                return (
-                                                    <div
-                                                        key={c.id}
-                                                        className={`border p-2.5 rounded-[3px] text-left transition-colors flex flex-col gap-1 ${c.resolved ? "border-[#DADAD6] bg-[#FAFAF9] opacity-75" : "border-[#E5E5E3] bg-white"}`}
-                                                    >
-                                                        <div className="flex justify-between items-center text-[10px]">
-                                                            <div
-                                                                onClick={() =>
-                                                                    c.user &&
-                                                                    openMemberProfile(
-                                                                        c.user,
-                                                                    )
-                                                                }
-                                                                className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
-                                                            >
-                                                                {c.user?.avatarUrl ? (
-                                                                    <img
-                                                                        src={c.user.avatarUrl}
-                                                                        alt={c.user.fullName}
-                                                                        className="w-4 h-4 rounded-full object-cover border border-[#E5E5E3] shrink-0"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] text-[#1A1A1A] font-semibold shrink-0">
-                                                                        {c.user?.fullName
-                                                                            ? c.user.fullName
-                                                                                  .split(" ")
-                                                                                  .map((n: string) => n[0])
-                                                                                  .join("")
-                                                                                  .toUpperCase()
-                                                                                  .slice(0, 2)
-                                                                            : "U"}
-                                                                    </div>
-                                                                )}
-                                                                <span className="font-semibold text-[#1A1A1A]">
-                                                                    {c.user?.fullName}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex items-center gap-2 text-[#888883]">
-                                                                <span>
-                                                                    {new Date(
-                                                                        c.createdAt,
-                                                                    ).toLocaleDateString()}{" "}
-                                                                    {new Date(
-                                                                        c.createdAt,
-                                                                    ).toLocaleTimeString(
-                                                                        [],
-                                                                        {
-                                                                            hour: "2-digit",
-                                                                            minute: "2-digit",
-                                                                        },
-                                                                    )}
-                                                                </span>
-                                                                {c.resolved && (
-                                                                    <span className="px-1.5 py-0.5 rounded-[2px] bg-[#22863A]/10 text-[#22863A] text-[9px] font-semibold flex items-center gap-1 shadow-2xs shrink-0">
-                                                                        ✓ Resolved
-                                                                    </span>
-                                                                )}
-                                                                {!c.resolved
-                                                                    ? (c.userId ===
-                                                                          currentUser.id ||
-                                                                          task.createdById ===
-                                                                              currentUser.id ||
-                                                                          task.assignedToId ===
-                                                                              currentUser.id) && (
-                                                                          <button
-                                                                              type="button"
-                                                                              disabled={resolvingCommentId !== null}
-                                                                              onClick={() =>
-                                                                                  handleResolveComment(
-                                                                                      c.id,
-                                                                                  )
-                                                                              }
-                                                                              className="px-2 py-0.5 border border-[#CB2431]/30 bg-[#CB2431]/5 hover:bg-[#CB2431] text-[#CB2431] hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                              title="Resolve comment"
-                                                                          >
-                                                                              {resolvingCommentId === c.id ? (
-                                                                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                                                              ) : (
-                                                                                  <Check className="w-3 h-3" />
-                                                                              )}
-                                                                              <span>
-                                                                                  {resolvingCommentId === c.id ? "Resolving..." : "Resolve"}
-                                                                              </span>
-                                                                          </button>
-                                                                      )
-                                                                    : (c.userId ===
-                                                                          currentUser.id ||
-                                                                          task.createdById ===
-                                                                              currentUser.id ||
-                                                                          task.assignedToId ===
-                                                                              currentUser.id) && (
-                                                                          <button
-                                                                              type="button"
-                                                                              disabled={resolvingCommentId !== null}
-                                                                              onClick={() =>
-                                                                                  handleReopenComment(
-                                                                                      c.id,
-                                                                                  )
-                                                                              }
-                                                                              className="px-2 py-0.5 border border-[var(--app-border,#E5E5E3)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text,#1A1A1A)] rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                              title="Reopen comment"
-                                                                          >
-                                                                              {resolvingCommentId === c.id && (
-                                                                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                                                              )}
-                                                                              <span>
-                                                                                  {resolvingCommentId === c.id ? "Reopening..." : "Reopen"}
-                                                                              </span>
-                                                                          </button>
-                                                                      )}
-                                                                {c.userId ===
-                                                                    currentUser.id && (
-                                                                    <button
-                                                                        type="button"
-                                                                        disabled={isDeletingComment}
-                                                                        onClick={() =>
-                                                                            setCommentToDeleteId(
-                                                                                c.id,
-                                                                            )
-                                                                        }
-                                                                        className="px-2 py-0.5 border border-[var(--color-danger,#CB2431)]/30 bg-[var(--color-danger,#CB2431)]/10 hover:bg-[var(--color-danger,#CB2431)] text-[var(--color-danger,#CB2431)] hover:text-white rounded-[2px] text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                        title="Delete comment permanently"
-                                                                    >
-                                                                        <span>
-                                                                            Delete
-                                                                        </span>
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <p className="text-[11px] text-[var(--app-text,#1A1A1A)] leading-relaxed break-words font-sans">
-                                                            {c.content
-                                                                .split(" ")
-                                                                .map(
-                                                                    (word, idx) => {
-                                                                        if (
-                                                                            word.startsWith(
-                                                                                "@",
-                                                                            )
-                                                                        ) {
-                                                                            return (
-                                                                                <span
-                                                                                    key={
-                                                                                        idx
-                                                                                    }
-                                                                                    className="text-[#1A1A1A] font-semibold underline"
-                                                                                >
-                                                                                    {
-                                                                                        word
-                                                                                    }{" "}
-                                                                                </span>
-                                                                            );
-                                                                        }
-                                                                        return (
-                                                                            word +
-                                                                            " "
-                                                                        );
-                                                                    },
-                                                                )}
-                                                        </p>
-                                                    </div>
-                                                );
-                                            })}
-                                            <div ref={commentsEndRef} />
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Comment Form Pinned at Bottom */}
-                                {canPostComment && (
-                                    <form
-                                        onSubmit={handleAddComment}
-                                        className="flex gap-1.5 shrink-0 pt-2 border-t border-[#E5E5E3] relative"
-                                    >
-                                        {/* Mention Selection Popover Menu */}
-                                        {showMentionMenu && mentionOptions.length > 0 && (
-                                            <div
-                                                ref={mentionMenuRef}
-                                                className="absolute bottom-full mb-1 left-0 w-72 max-h-56 overflow-x-hidden overflow-y-auto scrollbar-none bg-white border border-[#E5E5E3] rounded-[3px] shadow-md z-50 flex flex-col p-1.5 corner-brackets"
-                                            >
-                                                <div className="px-2 py-1 text-[10px] font-medium text-[#888883] border-b border-[#E5E5E3] mb-1 flex items-center justify-between shrink-0 min-w-0">
-                                                    <span>Mention leader</span>
-                                                    <span className="truncate ml-1">Use ↑↓ to navigate</span>
-                                                </div>
-                                                {mentionOptions.map((opt, idx) => (
-                                                    <button
-                                                        key={opt.id}
-                                                        type="button"
-                                                        onClick={() => insertMention(opt)}
-                                                        className={`w-full text-left px-2.5 py-1.5 rounded-[2px] text-[11px] flex items-center justify-between gap-2 transition-colors cursor-pointer ${
-                                                            idx === mentionIndex
-                                                                ? "bg-[#FAFAF9] text-[#1A1A1A] font-semibold"
-                                                                : "text-[#1A1A1A] hover:bg-[#FAFAF9]"
-                                                        }`}
-                                                    >
-                                                        <div className="flex items-center gap-2 min-w-0">
-                                                            <span className="font-semibold text-[#22863A]">@</span>
-                                                            <div className="flex flex-col min-w-0">
-                                                                <span className="truncate font-medium text-[11px]">
-                                                                    {opt.name}
-                                                                </span>
-                                                                {opt.description && (
-                                                                    <span className="truncate text-[9px] text-[#888883]">
-                                                                        {opt.description}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <span
-                                                            className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border shrink-0 ${
-                                                                opt.role === "LEADER"
-                                                                    ? "text-[#CB2431] bg-[#CB2431]/10 border-[#CB2431]/20"
-                                                                    : opt.role === "OBSERVER"
-                                                                    ? "text-[#B08800] bg-[#B08800]/10 border-[#B08800]/20"
-                                                                    : "text-[#22863A] bg-[#22863A]/10 border-[#22863A]/20"
-                                                            }`}
-                                                        >
-                                                            {opt.isGroup ? "All Leaders" : opt.role === "LEADER" ? "Leader" : opt.role === "OBSERVER" ? "Observer" : "Member"}
-                                                        </span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        <input
-                                            ref={commentInputRef}
-                                            type="text"
-                                            placeholder="Write a comment... (Type @ to mention)"
-                                            value={comment}
-                                            disabled={isSendingComment}
-                                            onChange={handleCommentChange}
-                                            onKeyDown={handleCommentKeyDown}
-                                            className={`flex-1 ${inputClass}`}
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={isSendingComment || !comment.trim()}
-                                            className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-3.5 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {isSendingComment ? (
-                                                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                            ) : (
-                                                <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />
-                                            )}
-                                            <span>{isSendingComment ? "Sending…" : "Send"}</span>
-                                        </button>
-                                    </form>
+                                {!canEditStatus && (
+                                    <div className="pt-1">
+                                        <span className="text-[10px] text-[#CB2431] font-medium">
+                                            {isObserver
+                                                ? "Observers have read-only access."
+                                                : "Only workspace leader, task creator, or assignee can change status."}
+                                        </span>
+                                    </div>
                                 )}
                             </div>
-                        )}
 
-                        {/* TAB 2: DESCRIPTION */}
-                        {activeTab === "description" &&
-                            (() => {
-                                const cleanText = description
-                                    ? description.replace(/<[^>]*>/g, "").trim()
-                                    : "";
-                                const hasDescription = Boolean(
-                                    cleanText.length > 0,
-                                );
+                            {/* 3. Checklist Section (Seamless Notion-style) */}
+                            {(() => {
+                                const totalCount = checklistItems.length;
+                                const completedCount = checklistItems.filter((c) => c.isCompleted).length;
+                                const progressPercent = totalCount > 0
+                                    ? Math.round((completedCount / totalCount) * 100)
+                                    : 0;
 
                                 return (
-                                    <div className="flex flex-col flex-1 min-h-0 h-full gap-3.5 animate-fade-in text-left">
-                                        <div className="flex items-center justify-between shrink-0">
-                                            <label className="eyebrow">
-                                                Description
-                                            </label>
-                                            {canEditDetails && hasDescription && (
+                                    <div ref={checklistSectionRef} className="flex flex-col shrink-0 gap-3">
+                                        {/* Header & Progress */}
+                                        <div className="flex flex-col gap-2 shrink-0">
+                                            <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setIsDeleteDescConfirmOpen(
-                                                                true,
-                                                            )
-                                                        }
-                                                        className="relative corner-brackets-4 bg-white hover:bg-[#FFF5F5] border border-[#E5E5E3] hover:border-[#CB2431] text-[#CB2431] px-2.5 py-1 text-[11px] font-medium rounded-[2px] transition-colors cursor-pointer flex items-center gap-1.5"
-                                                        title="Delete description"
-                                                    >
-                                                        <Trash2 className="w-3 h-3 text-[#CB2431]" />
-                                                        <span>Clear</span>
-                                                    </button>
+                                                    <CheckSquare className="w-4 h-4 text-[#888883]" />
+                                                    <h4 className="text-xs font-semibold text-[#1A1A1A]">
+                                                        Checklist
+                                                    </h4>
+                                                    {totalCount > 0 && (
+                                                        <span className="text-[10px] bg-[#FAFAF9] border border-[#E5E5E3] px-1.5 py-0.2 rounded-[2px] text-[#888883] tabular-nums">
+                                                            {completedCount}/{totalCount}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {totalCount > 0 && (
+                                                    <span className="text-[11px] font-normal text-[#888883] tabular-nums">
+                                                        {progressPercent}% completed
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {totalCount > 0 && (
+                                                <div className="w-full h-1 bg-[#F5F5F3] rounded-[2px] border border-[#E5E5E3] overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-[#1A1A1A] transition-all duration-300 rounded-[1px]"
+                                                        style={{ width: `${progressPercent}%` }}
+                                                    />
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="flex-1 min-h-[250px] flex flex-col border border-[#E5E5E3] rounded-[2px] bg-white p-2">
-                                            <TipTapEditor
-                                                value={description}
-                                                onChange={(html) =>
-                                                    setDescription(html)
-                                                }
-                                                disabled={!canEditDetails}
-                                            />
+                                        {/* Add New Checklist Item Input */}
+                                        {!isObserver && (
+                                            <form
+                                                onSubmit={handleAddSubtask}
+                                                className="flex items-center gap-2 shrink-0"
+                                            >
+                                                <input
+                                                    ref={checklistInputRef}
+                                                    type="text"
+                                                    placeholder="Add a checklist item (press Enter)..."
+                                                    value={newSubtask}
+                                                    onChange={(e) => setNewSubtask(e.target.value)}
+                                                    disabled={isAddingSubtask}
+                                                    className="flex-1 px-3 py-1.5 text-xs bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] placeholder-[#888883] rounded-[2px] focus:outline-none focus:bg-white focus:border-[#1A1A1A] transition-colors"
+                                                    maxLength={300}
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    disabled={isAddingSubtask || !newSubtask.trim()}
+                                                    className="px-3 py-1.5 bg-[#FAFAF9] hover:bg-[#F0F0EE] text-[#1A1A1A] border border-[#DADAD6] text-xs font-semibold rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                                                >
+                                                    {isAddingSubtask ? (
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    ) : (
+                                                        <Plus className="w-3.5 h-3.5" />
+                                                    )}
+                                                    <span>Add</span>
+                                                </button>
+                                            </form>
+                                        )}
+
+                                        {/* Checklist Items List */}
+                                        <div className="flex flex-col gap-1.5">
+                                            {checklistItems.length === 0 ? (
+                                                isObserver && (
+                                                    <p className="text-xs text-[#888883] italic">No checklist items.</p>
+                                                )
+                                            ) : (
+                                                <DragDropContext onDragEnd={handleDragEndChecklist}>
+                                                    <Droppable droppableId="team-task-checklist-droppable">
+                                                        {(provided) => (
+                                                            <div
+                                                                ref={provided.innerRef}
+                                                                {...provided.droppableProps}
+                                                                className="flex flex-col gap-1.5"
+                                                            >
+                                                                {checklistItems.map((item, index) => {
+                                                                    const isEditing = editingItemId === item.id;
+                                                                    const isUpdating = isUpdatingItemId === item.id;
+                                                                    const isDeleting = isDeletingItemId === item.id;
+
+                                                                    return (
+                                                                        <Draggable
+                                                                            key={item.id}
+                                                                            draggableId={item.id}
+                                                                            index={index}
+                                                                            isDragDisabled={isObserver || isEditing}
+                                                                        >
+                                                                            {(dragProvided, dragSnapshot) => (
+                                                                                <PortalAwareDraggable provided={dragProvided} snapshot={dragSnapshot}>
+                                                                                <div
+                                                                                    onClick={() => {
+                                                                                        if (!isEditing && !isObserver && !isUpdating) {
+                                                                                            handleToggleSubtask(item.id, !item.isCompleted);
+                                                                                        }
+                                                                                    }}
+                                                                                    className={`group border rounded-[2px] p-2 transition-all flex items-center gap-2.5 ${
+                                                                                        !isEditing && !isObserver ? "cursor-pointer" : ""
+                                                                                    } ${
+                                                                                        dragSnapshot.isDragging
+                                                                                            ? "shadow-md ring-1 ring-[var(--app-border-strong)] bg-white z-50 w-full"
+                                                                                            : item.isCompleted
+                                                                                            ? "border-[#E5E5E3] bg-[#FAFAF9]/60 opacity-80"
+                                                                                            : "border-[#E5E5E3] bg-white hover:border-[#DADAD6]"
+                                                                                    } ${isDeleting ? "opacity-40" : ""}`}
+                                                                                >
+                                                                                    {!isObserver && !isEditing && (
+                                                                                        <div
+                                                                                            {...dragProvided.dragHandleProps}
+                                                                                            onClick={(e) => e.stopPropagation()}
+                                                                                            className="text-[#B5B5B0] hover:text-[#1A1A1A] cursor-grab active:cursor-grabbing p-0.5 -ml-1 rounded-[2px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                                            title="Drag to reorder"
+                                                                                        >
+                                                                                            <GripVertical className="w-3.5 h-3.5" />
+                                                                                        </div>
+                                                                                    )}
+
+                                                                                    <div
+                                                                                        className={`w-4 h-4 rounded-[2px] flex items-center justify-center transition-all shrink-0 ${
+                                                                                            item.isCompleted
+                                                                                                ? "bg-[var(--color-accent)] border border-[var(--color-accent)] text-white shadow-2xs"
+                                                                                                : "bg-white border border-[#DADAD6] hover:border-[var(--color-accent)]"
+                                                                                        } ${isObserver ? "opacity-60" : ""}`}
+                                                                                    >
+                                                                                        {isUpdating ? (
+                                                                                            <Loader2 className="w-2.5 h-2.5 animate-spin text-[#888883]" />
+                                                                                        ) : item.isCompleted ? (
+                                                                                            <Check className="w-3 h-3 text-white stroke-[2.5]" />
+                                                                                        ) : null}
+                                                                                    </div>
+
+                                                                                    {isEditing ? (
+                                                                                        <div
+                                                                                            className="flex items-center gap-1.5 flex-1 min-w-0"
+                                                                                            onClick={(e) => e.stopPropagation()}
+                                                                                        >
+                                                                                            <input
+                                                                                                type="text"
+                                                                                                autoFocus
+                                                                                                value={editingItemTitle}
+                                                                                                onChange={(e) => setEditingItemTitle(e.target.value)}
+                                                                                                onKeyDown={(e) => {
+                                                                                                    if (e.key === "Enter") {
+                                                                                                        e.preventDefault();
+                                                                                                        handleSaveEditedTitle(item.id);
+                                                                                                    } else if (e.key === "Escape") {
+                                                                                                        setEditingItemId(null);
+                                                                                                    }
+                                                                                                }}
+                                                                                                className="px-2 py-1 border border-[#1A1A1A] focus:outline-none text-xs bg-white rounded-[2px] w-full"
+                                                                                                maxLength={300}
+                                                                                            />
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => handleSaveEditedTitle(item.id)}
+                                                                                                className="p-1 text-emerald-700 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
+                                                                                                title="Save changes (Enter)"
+                                                                                            >
+                                                                                                <Check className="w-3.5 h-3.5" />
+                                                                                            </button>
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => setEditingItemId(null)}
+                                                                                                className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                                                                                                title="Cancel (Esc)"
+                                                                                            >
+                                                                                                <X className="w-3.5 h-3.5" />
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <span
+                                                                                            className={`text-xs leading-relaxed break-words flex-1 select-none transition-colors ${
+                                                                                                item.isCompleted
+                                                                                                    ? "line-through text-[#888883]"
+                                                                                                    : "text-[#1A1A1A] font-normal"
+                                                                                            }`}
+                                                                                        >
+                                                                                            {item.title}
+                                                                                        </span>
+                                                                                    )}
+
+                                                                                    {!isObserver && !isEditing && (
+                                                                                        <div
+                                                                                            className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                                                                            onClick={(e) => e.stopPropagation()}
+                                                                                        >
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => {
+                                                                                                    setEditingItemId(item.id);
+                                                                                                    setEditingItemTitle(item.title);
+                                                                                                }}
+                                                                                                className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] rounded-[2px] transition-colors cursor-pointer"
+                                                                                                title="Edit item title"
+                                                                                            >
+                                                                                                <Pencil className="w-3.5 h-3.5" />
+                                                                                            </button>
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={() => handleDeleteSubtask(item.id)}
+                                                                                                disabled={isDeleting}
+                                                                                                className="p-1 text-[#888883] hover:text-red-600 hover:bg-red-50 rounded-[2px] transition-colors cursor-pointer"
+                                                                                                title="Delete item"
+                                                                                            >
+                                                                                                {isDeleting ? (
+                                                                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                                                                ) : (
+                                                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                                                )}
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                                </PortalAwareDraggable>
+                                                                            )}
+                                                                        </Draggable>
+                                                                    );
+                                                                })}
+                                                                {provided.placeholder}
+                                                            </div>
+                                                        )}
+                                                    </Droppable>
+                                                </DragDropContext>
+                                            )}
                                         </div>
                                     </div>
                                 );
                             })()}
 
-                        {/* TAB 3: CHECKLIST */}
-                        {activeTab === "checklist" && (() => {
-                            const totalCount = checklistItems.length;
-                            const completedCount = checklistItems.filter((c) => c.isCompleted).length;
-                            const progressPercent = totalCount > 0
-                                ? Math.round((completedCount / totalCount) * 100)
-                                : 0;
+                            {/* 4. Description Section (Seamless Notion-style) */}
+                            <div ref={descriptionSectionRef} className="flex flex-col gap-2.5 pt-2 border-t border-[#E5E5E3]/80 shrink-0 text-left">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-[#888883]" />
+                                    <h4 className="text-xs font-semibold text-[#1A1A1A]">
+                                        Description & Details
+                                    </h4>
+                                </div>
+                                <div className="border border-[#E5E5E3] rounded-[2px] bg-white p-2 min-h-[240px] flex flex-col">
+                                    <TipTapEditor
+                                        value={description}
+                                        onChange={(html) => setDescription(html)}
+                                        disabled={!canEditDetails}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                            return (
-                                <div className="relative flex flex-col flex-1 min-h-0 h-full gap-3 animate-fade-in border border-[#E5E5E3] bg-[#FAFAF9] p-3.5 rounded-[3px] corner-brackets">
-                                    {/* Title Bar */}
-                                    <div className="flex flex-col gap-1.5 shrink-0 px-0.5">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <label className="eyebrow">Checklist</label>
-                                                {totalCount > 0 && (
-                                                    <span className="text-[11px] text-[#888883]">
-                                                        ({completedCount} of {totalCount} completed)
+                    {/* Right Column: Collapsible Sidebar (Comments + Files tabs, Activity Log button at bottom) */}
+                    {isSidebarOpen && (
+                        <div className="w-full md:w-[360px] lg:w-[380px] flex flex-col min-h-0 bg-[#FAFAF9] shrink-0 border-t md:border-t-0 border-[#E5E5E3] text-left">
+                            {/* Sidebar Tabs Bar */}
+                            <div className="flex items-center gap-1 px-3 py-2 border-b border-[#E5E5E3] bg-[#FAFAF9] shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSidebarTabChange("comments")}
+                                    className={`px-2.5 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
+                                        sidebarTab === "comments"
+                                            ? "bg-white border border-[#E5E5E3] text-[#1A1A1A] font-semibold"
+                                            : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/40"
+                                    }`}
+                                >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    <span>Comments</span>
+                                    {visibleComments.length > 0 && (
+                                        <span className="text-[10px] bg-[#F5F5F3] border border-[#E5E5E3] px-1.5 py-0.2 rounded-[2px] tabular-nums">
+                                            {visibleComments.length}
+                                        </span>
+                                    )}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => handleSidebarTabChange("attachments")}
+                                    className={`px-2.5 py-1.5 text-xs font-medium rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
+                                        sidebarTab === "attachments"
+                                            ? "bg-white border border-[#E5E5E3] text-[#1A1A1A] font-semibold"
+                                            : "text-[#888883] hover:text-[#1A1A1A] hover:bg-[#E5E5E3]/40"
+                                    }`}
+                                >
+                                    <Paperclip className="w-3.5 h-3.5" />
+                                    <span>Files</span>
+                                    {(task.attachments?.length || 0) > 0 && (
+                                        <span className="text-[10px] bg-[#F5F5F3] border border-[#E5E5E3] px-1.5 py-0.2 rounded-[2px] tabular-nums">
+                                            {task.attachments?.length || 0}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+
+                            {/* Sidebar Body (Comments or Attachments) */}
+                            <div className="flex-1 p-3.5 overflow-hidden min-h-0 flex flex-col">
+                                {sidebarTab === "comments" && (
+                                    <div className="flex-1 flex flex-col min-h-0 gap-2.5 overflow-hidden">
+                                        {hasMoreComments && showLoadMore && (
+                                            <div className="flex justify-end shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => loadTaskComments(commentsPage + 1, true)}
+                                                    disabled={isLoadingMore}
+                                                    className="text-[10px] text-[#888883] hover:text-[#1A1A1A] font-semibold flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] border border-[#E5E5E3] bg-white hover:bg-[#FAFAF9] transition-all disabled:opacity-50 cursor-pointer"
+                                                >
+                                                    {isLoadingMore && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                                                    <span>Load previous</span>
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <div
+                                            ref={commentsContainerRef}
+                                            onScroll={handleCommentsScroll}
+                                            className="flex-1 overflow-y-auto flex flex-col gap-2.5 pr-1 custom-scrollbar"
+                                        >
+                                            {isLoadingComments ? (
+                                                <div className="flex items-center justify-center py-8 gap-2 text-[#888883] text-[11px]">
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    <span>Loading comments...</span>
+                                                </div>
+                                            ) : visibleComments.length === 0 ? (
+                                                <div className="py-10 text-center flex flex-col items-center justify-center gap-1 text-[#888883] my-auto">
+                                                    <MessageSquare className="w-5 h-5 text-[#DADAD6]" />
+                                                    <span className="text-[11px] font-medium text-[#1A1A1A] mt-0.5">
+                                                        No comments yet
+                                                    </span>
+                                                    <span className="text-[10px]">
+                                                        Be the first to share notes or feedback.
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col gap-2 pb-1">
+                                                    {visibleComments.map((c) => (
+                                                        <div
+                                                            key={c.id}
+                                                            className={`border p-2.5 rounded-[3px] text-left transition-colors flex flex-col gap-1 ${c.resolved ? "border-[#DADAD6] bg-[#FAFAF9] opacity-75" : "border-[#E5E5E3] bg-white"}`}
+                                                        >
+                                                            <div className="flex justify-between items-center text-[10px] gap-1">
+                                                                <div
+                                                                    onClick={() => c.user && openMemberProfile(c.user)}
+                                                                    className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity min-w-0"
+                                                                >
+                                                                    {c.user?.avatarUrl ? (
+                                                                        <img
+                                                                            src={c.user.avatarUrl}
+                                                                            alt={c.user.fullName}
+                                                                            className="w-4 h-4 rounded-full object-cover border border-[#E5E5E3] shrink-0"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-4 h-4 rounded-[2px] border border-[#DADAD6] bg-[#FAFAF9] flex items-center justify-center text-[7px] text-[#1A1A1A] font-semibold shrink-0">
+                                                                            {c.user?.fullName
+                                                                                ? c.user.fullName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+                                                                                : "U"}
+                                                                        </div>
+                                                                    )}
+                                                                    <span className="font-semibold text-[#1A1A1A] truncate">
+                                                                        {c.user?.fullName}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 text-[#888883] shrink-0">
+                                                                    <span className="text-[9px]">
+                                                                        {new Date(c.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                                    </span>
+                                                                    {c.resolved && (
+                                                                        <span className="px-1.5 py-0.5 rounded-[2px] bg-[#22863A]/10 text-[#22863A] text-[9px] font-semibold shrink-0">
+                                                                            ✓ Resolved
+                                                                        </span>
+                                                                    )}
+                                                                    {!c.resolved
+                                                                        ? (c.userId === currentUser.id || task.createdById === currentUser.id || task.assignedToId === currentUser.id) && (
+                                                                            <button
+                                                                                type="button"
+                                                                                disabled={resolvingCommentId !== null}
+                                                                                onClick={() => handleResolveComment(c.id)}
+                                                                                className="px-1.5 py-0.5 border border-[#CB2431]/30 bg-[#CB2431]/5 hover:bg-[#CB2431] text-[#CB2431] hover:text-white rounded-[2px] text-[9px] font-semibold transition-all cursor-pointer flex items-center gap-0.5 shrink-0 disabled:opacity-50"
+                                                                            >
+                                                                                {resolvingCommentId === c.id ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Check className="w-2.5 h-2.5" />}
+                                                                                <span>Resolve</span>
+                                                                            </button>
+                                                                        )
+                                                                        : (c.userId === currentUser.id || task.createdById === currentUser.id || task.assignedToId === currentUser.id) && (
+                                                                            <button
+                                                                                type="button"
+                                                                                disabled={resolvingCommentId !== null}
+                                                                                onClick={() => handleReopenComment(c.id)}
+                                                                                className="px-1.5 py-0.5 border border-[var(--app-border,#E5E5E3)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-text,#1A1A1A)] rounded-[2px] text-[9px] font-semibold transition-all cursor-pointer flex items-center gap-0.5 shrink-0 disabled:opacity-50"
+                                                                            >
+                                                                                {resolvingCommentId === c.id && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                                                                                <span>Reopen</span>
+                                                                            </button>
+                                                                        )}
+                                                                    {c.userId === currentUser.id && (
+                                                                        <button
+                                                                            type="button"
+                                                                            disabled={isDeletingComment}
+                                                                            onClick={() => setCommentToDeleteId(c.id)}
+                                                                            className="px-1.5 py-0.5 border border-[var(--color-danger,#CB2431)]/30 bg-[var(--color-danger,#CB2431)]/10 hover:bg-[var(--color-danger,#CB2431)] text-[var(--color-danger,#CB2431)] hover:text-white rounded-[2px] text-[9px] font-semibold transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                                                                        >
+                                                                            Delete
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-[11px] text-[var(--app-text,#1A1A1A)] leading-relaxed break-words font-sans">
+                                                                {c.content.split(" ").map((word, idx) =>
+                                                                    word.startsWith("@") ? (
+                                                                        <span key={idx} className="text-[#1A1A1A] font-semibold underline">
+                                                                            {word}{" "}
+                                                                        </span>
+                                                                    ) : (
+                                                                        word + " "
+                                                                    )
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    ))}
+                                                    <div ref={commentsEndRef} />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {canPostComment && (
+                                            <form onSubmit={handleAddComment} className="flex gap-1.5 shrink-0 pt-2 border-t border-[#E5E5E3] relative">
+                                                {showMentionMenu && mentionOptions.length > 0 && (
+                                                    <div
+                                                        ref={mentionMenuRef}
+                                                        className="absolute bottom-full mb-1 left-0 w-72 max-h-56 overflow-x-hidden overflow-y-auto scrollbar-none bg-white border border-[#E5E5E3] rounded-[3px] shadow-md z-50 flex flex-col p-1.5 corner-brackets"
+                                                    >
+                                                        <div className="px-2 py-1 text-[10px] font-medium text-[#888883] border-b border-[#E5E5E3] mb-1 flex items-center justify-between shrink-0 min-w-0">
+                                                            <span>Mention leader</span>
+                                                            <span className="truncate ml-1">Use ↑↓ to navigate</span>
+                                                        </div>
+                                                        {mentionOptions.map((opt, idx) => (
+                                                            <button
+                                                                key={opt.id}
+                                                                type="button"
+                                                                onClick={() => insertMention(opt)}
+                                                                className={`w-full text-left px-2.5 py-1.5 rounded-[2px] text-[11px] flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                                                                    idx === mentionIndex ? "bg-[#FAFAF9] text-[#1A1A1A] font-semibold" : "text-[#1A1A1A] hover:bg-[#FAFAF9]"
+                                                                }`}
+                                                            >
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    <span className="font-semibold text-[#22863A]">@</span>
+                                                                    <div className="flex flex-col min-w-0">
+                                                                        <span className="truncate font-medium text-[11px]">{opt.name}</span>
+                                                                        {opt.description && <span className="truncate text-[9px] text-[#888883]">{opt.description}</span>}
+                                                                    </div>
+                                                                </div>
+                                                                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-[2px] border shrink-0 ${
+                                                                    opt.role === "LEADER"
+                                                                        ? "text-[#CB2431] bg-[#CB2431]/10 border-[#CB2431]/20"
+                                                                        : opt.role === "OBSERVER"
+                                                                        ? "text-[#B08800] bg-[#B08800]/10 border-[#B08800]/20"
+                                                                        : "text-[#22863A] bg-[#22863A]/10 border-[#22863A]/20"
+                                                                }`}>
+                                                                    {opt.isGroup ? "All Leaders" : opt.role === "LEADER" ? "Leader" : opt.role === "OBSERVER" ? "Observer" : "Member"}
+                                                                </span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <input
+                                                    ref={commentInputRef}
+                                                    type="text"
+                                                    placeholder="Write a comment... (Type @ to mention)"
+                                                    value={comment}
+                                                    disabled={isSendingComment}
+                                                    onChange={handleCommentChange}
+                                                    onKeyDown={handleCommentKeyDown}
+                                                    className={`flex-1 ${inputClass}`}
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    disabled={isSendingComment || !comment.trim()}
+                                                    className="relative corner-brackets-4 bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] px-3 py-1.5 rounded-[2px] text-[11px] font-medium transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {isSendingComment ? <Loader2 className="w-3 h-3 animate-spin shrink-0" /> : <span className="w-1.5 h-1.5 bg-[#555555] rounded-[0.5px] inline-block" />}
+                                                    <span>{isSendingComment ? "Sending…" : "Send"}</span>
+                                                </button>
+                                            </form>
+                                        )}
+                                    </div>
+                                )}
+
+                                {sidebarTab === "attachments" && (
+                                    <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-1 custom-scrollbar">
+                                        {!task.attachments || task.attachments.length === 0 ? (
+                                            <div
+                                                onClick={() =>
+                                                    !isObserver &&
+                                                    !isUploadingImage &&
+                                                    fileInputRef.current?.click()
+                                                }
+                                                className={`border border-dashed border-[#E5E5E3] bg-white p-6 text-center rounded-[3px] flex flex-col items-center justify-center gap-1 text-[#888883] w-full min-h-[120px] ${!isObserver && !isUploadingImage ? "cursor-pointer hover:bg-[#FAFAF9] hover:border-[#888883] transition-all" : ""}`}
+                                            >
+                                                {isUploadingImage ? (
+                                                    <Loader2 className="w-5 h-5 text-[#DADAD6] animate-spin" />
+                                                ) : (
+                                                    <Paperclip className="w-5 h-5 text-[#DADAD6]" />
+                                                )}
+                                                <span className="text-[11px] font-medium text-[#1A1A1A] mt-1">
+                                                    {isUploadingImage ? "Uploading image..." : "No attachments uploaded"}
+                                                </span>
+                                                {!isObserver && (
+                                                    <span className="text-[10px]">
+                                                        {isUploadingImage
+                                                            ? "Please wait while your image is uploading..."
+                                                            : "Click here or paste an image (Ctrl+V)"}
                                                     </span>
                                                 )}
                                             </div>
-                                            {totalCount > 0 && completedCount < totalCount && (
-                                                <span className="text-[11px] font-medium text-[#888883]">
-                                                    {progressPercent}%
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {/* Minimal Progress Bar - hidden when all tasks are done or none exist */}
-                                        {totalCount > 0 && completedCount < totalCount && (
-                                            <div className="w-full h-1 bg-[#E5E5E3] rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-[#1A1A1A] transition-all duration-300 rounded-full"
-                                                    style={{ width: `${progressPercent}%` }}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Add New Checklist Item Input */}
-                                    {!isObserver && (
-                                        <form
-                                            onSubmit={handleAddSubtask}
-                                            className="flex items-center gap-2 shrink-0"
-                                        >
-                                            <input
-                                                ref={checklistInputRef}
-                                                type="text"
-                                                placeholder="Add a checklist item... (Press Enter to add)"
-                                                value={newSubtask}
-                                                onChange={(e) => setNewSubtask(e.target.value)}
-                                                disabled={isAddingSubtask}
-                                                className="px-3 py-2 border border-[#E5E5E3] focus:border-[#1A1A1A] focus:outline-none text-[12px] bg-white rounded-[3px] transition-colors flex-1"
-                                                maxLength={300}
-                                            />
-                                            <button
-                                                type="submit"
-                                                disabled={isAddingSubtask || !newSubtask.trim()}
-                                                className="px-3 py-2 bg-[#1A1A1A] hover:bg-black text-white text-[11px] font-semibold rounded-[3px] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                                            >
-                                                {isAddingSubtask ? (
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                ) : (
-                                                    <Plus className="w-3.5 h-3.5" />
-                                                )}
-                                                <span>Add</span>
-                                            </button>
-                                        </form>
-                                    )}
-
-                                    {/* Checklist Items List */}
-                                    <div className="flex-1 overflow-y-auto flex flex-col gap-2 min-h-0 pr-1">
-                                        {checklistItems.length === 0 ? (
-                                            <div className="p-8 text-center flex flex-col items-center justify-center gap-1 text-[#888883] bg-white border border-dashed border-[#E5E5E3] rounded-[3px] flex-1 w-full h-full min-h-[220px]">
-                                                <ListTodo className="w-6 h-6 text-[#DADAD6]" />
-                                                <span className="text-[12px] font-semibold text-[#1A1A1A] mt-1">
-                                                    No checklist items yet
-                                                </span>
-                                                <span className="text-[11px] text-[#888883] max-w-xs">
-                                                    Break this task down into smaller actionable checklist items to track progress.
-                                                </span>
-                                            </div>
                                         ) : (
-                                            <DragDropContext onDragEnd={handleDragEndChecklist}>
-                                                <Droppable droppableId="team-task-checklist-droppable">
-                                                    {(provided) => (
+                                            <div className="grid grid-cols-2 gap-2.5 text-left">
+                                                {task.attachments.map((att) => {
+                                                    const isImg =
+                                                        att.type === "IMAGE" ||
+                                                        att.url.includes("cloudinary.com") ||
+                                                        att.url.startsWith("data:image/") ||
+                                                        att.url.match(/\.(jpeg|jpg|gif|png|webp|svg)/i);
+
+                                                    return (
                                                         <div
-                                                            ref={provided.innerRef}
-                                                            {...provided.droppableProps}
-                                                            className="flex flex-col gap-1.5 pb-2"
+                                                            key={att.id}
+                                                            className="relative group border border-[#E5E5E3] bg-white rounded-[3px] overflow-hidden"
                                                         >
-                                                            {checklistItems.map((item, index) => {
-                                                                const isEditing = editingItemId === item.id;
-                                                                const isUpdating = isUpdatingItemId === item.id;
-                                                                const isDeleting = isDeletingItemId === item.id;
+                                                            {isImg ? (
+                                                                <div
+                                                                    onClick={() => setFullscreenImage(att.url)}
+                                                                    className="w-full aspect-[4/3] relative cursor-pointer block overflow-hidden bg-[#FAFAF9]"
+                                                                >
+                                                                    <img
+                                                                        src={att.url}
+                                                                        alt={att.name}
+                                                                        className="w-full h-full object-cover block"
+                                                                    />
+                                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 flex items-center justify-center transition-colors">
+                                                                        <Maximize2 className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" />
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <a
+                                                                    href={att.url}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="w-full aspect-[4/3] bg-[#F5F5F3] flex flex-col items-center justify-center gap-1 p-2 text-center text-[#1A1A1A] hover:bg-[#ECECE9] transition-colors"
+                                                                >
+                                                                    <ExternalLink className="w-4 h-4 text-[#888883]" />
+                                                                    <span className="text-[9px] text-[#888883] truncate w-full font-medium">
+                                                                        {att.name || "Attachment"}
+                                                                    </span>
+                                                                </a>
+                                                            )}
 
-                                                                return (
-                                                                    <Draggable
-                                                                        key={item.id}
-                                                                        draggableId={item.id}
-                                                                        index={index}
-                                                                        isDragDisabled={isObserver || isEditing}
-                                                                    >
-                                                                        {(dragProvided, dragSnapshot) => (
-                                                                            <PortalAwareDraggable provided={dragProvided} snapshot={dragSnapshot}>
-                                                                            <div
-                                                                                onClick={() => {
-                                                                                    if (!isEditing && !isObserver && !isUpdating) {
-                                                                                        handleToggleSubtask(item.id, !item.isCompleted);
-                                                                                    }
-                                                                                }}
-                                                                                className={`group border rounded-[3px] p-2.5 transition-all flex items-center gap-2.5 ${
-                                                                                    !isEditing && !isObserver ? "cursor-pointer" : ""
-                                                                                } ${
-                                                                                    dragSnapshot.isDragging
-                                                                                        ? "shadow-md ring-1 ring-[var(--app-border-strong)] bg-white z-50 w-full"
-                                                                                        : item.isCompleted
-                                                                                        ? "border-[#E5E5E3] bg-[#FAFAF9]"
-                                                                                        : "border-[#E5E5E3] bg-white hover:border-[#DADAD6]"
-                                                                                } ${isDeleting ? "opacity-40" : ""}`}
-                                                                            >
-                                                                                {/* Drag Handle */}
-                                                                                {!isObserver && !isEditing && (
-                                                                                    <div
-                                                                                        {...dragProvided.dragHandleProps}
-                                                                                        onClick={(e) => e.stopPropagation()}
-                                                                                        className="text-[#B5B5B0] hover:text-[#1A1A1A] cursor-grab active:cursor-grabbing p-0.5 -ml-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                                        title="Drag to reorder"
-                                                                                    >
-                                                                                        <GripVertical className="w-3.5 h-3.5" />
-                                                                                    </div>
-                                                                                )}
-
-                                                                                {/* Checkbox */}
-                                                                                <div
-                                                                                    className={`w-4 h-4 rounded-[2px] flex items-center justify-center transition-all shrink-0 ${
-                                                                                        item.isCompleted
-                                                                                            ? "bg-[var(--color-accent)] border border-[var(--color-accent)] text-white shadow-2xs"
-                                                                                            : "bg-[var(--app-card)] border border-[var(--app-border-strong)] hover:border-[var(--color-accent)]"
-                                                                                    } ${isObserver ? "opacity-60" : ""}`}
-                                                                                >
-                                                                                    {isUpdating ? (
-                                                                                        <Loader2 className="w-2.5 h-2.5 animate-spin text-[var(--app-muted)]" />
-                                                                                    ) : item.isCompleted ? (
-                                                                                        <Check className="w-3 h-3 text-white stroke-[2.5]" />
-                                                                                    ) : null}
-                                                                                </div>
-
-                                                                                {/* Item Title / Inline Edit */}
-                                                                                {isEditing ? (
-                                                                                    <div
-                                                                                        className="flex items-center gap-1.5 flex-1 min-w-0"
-                                                                                        onClick={(e) => e.stopPropagation()}
-                                                                                    >
-                                                                                        <input
-                                                                                            type="text"
-                                                                                            autoFocus
-                                                                                            value={editingItemTitle}
-                                                                                            onChange={(e) => setEditingItemTitle(e.target.value)}
-                                                                                            onKeyDown={(e) => {
-                                                                                                if (e.key === "Enter") {
-                                                                                                    e.preventDefault();
-                                                                                                    handleSaveEditedTitle(item.id);
-                                                                                                } else if (e.key === "Escape") {
-                                                                                                    setEditingItemId(null);
-                                                                                                }
-                                                                                            }}
-                                                                                            className="px-2 py-1 border border-[#1A1A1A] focus:outline-none text-[12px] bg-white rounded-[2px] w-full"
-                                                                                            maxLength={300}
-                                                                                        />
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => handleSaveEditedTitle(item.id)}
-                                                                                            className="p-1 text-emerald-700 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
-                                                                                            title="Save changes (Enter)"
-                                                                                        >
-                                                                                            <Check className="w-3.5 h-3.5" />
-                                                                                        </button>
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => setEditingItemId(null)}
-                                                                                            className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-gray-100 rounded transition-colors cursor-pointer"
-                                                                                            title="Cancel (Esc)"
-                                                                                        >
-                                                                                            <X className="w-3.5 h-3.5" />
-                                                                                        </button>
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    <span
-                                                                                        className={`text-[12px] leading-relaxed break-words flex-1 select-none transition-colors ${
-                                                                                            item.isCompleted
-                                                                                                ? "line-through text-[#888883]"
-                                                                                                : "text-[#1A1A1A] font-medium"
-                                                                                        }`}
-                                                                                    >
-                                                                                        {item.title}
-                                                                                    </span>
-                                                                                )}
-
-                                                                                {/* Action Buttons (Edit & Delete) */}
-                                                                                {!isObserver && !isEditing && (
-                                                                                    <div
-                                                                                        className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                                                                                        onClick={(e) => e.stopPropagation()}
-                                                                                    >
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => {
-                                                                                                setEditingItemId(item.id);
-                                                                                                setEditingItemTitle(item.title);
-                                                                                            }}
-                                                                                            className="p-1 text-[#888883] hover:text-[#1A1A1A] hover:bg-[#FAFAF9] rounded transition-colors cursor-pointer"
-                                                                                            title="Edit item title"
-                                                                                        >
-                                                                                            <Pencil className="w-3.5 h-3.5" />
-                                                                                        </button>
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={() => handleDeleteSubtask(item.id)}
-                                                                                            disabled={isDeleting}
-                                                                                            className="p-1 text-[#888883] hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
-                                                                                            title="Delete item"
-                                                                                        >
-                                                                                            {isDeleting ? (
-                                                                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                                                            ) : (
-                                                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                                                            )}
-                                                                                        </button>
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                            </PortalAwareDraggable>
-                                                                        )}
-                                                                    </Draggable>
-                                                                );
-                                                            })}
-                                                            {provided.placeholder}
+                                                            {!isObserver && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setAttachmentToDelete({ id: att.id, name: att.name });
+                                                                        setIsDeleteAttachmentConfirmOpen(true);
+                                                                    }}
+                                                                    className="absolute top-1.5 right-1.5 bg-white/90 hover:bg-[#CB2431] text-[#888883] hover:text-white border border-[#E5E5E3] hover:border-[#CB2431] p-1 rounded-[2px] shadow-sm transition-colors cursor-pointer z-10 opacity-0 group-hover:opacity-100"
+                                                                    title="Delete attachment"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" />
+                                                                </button>
+                                                            )}
                                                         </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageFileUpload}
+                                            className="hidden"
+                                        />
+
+                                        {!isObserver && task.attachments && task.attachments.length > 0 && (
+                                            <div className="shrink-0 pt-2 border-t border-[#E5E5E3]">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    disabled={isUploadingImage}
+                                                    className="relative w-full bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] text-[11px] font-medium py-2 rounded-[2px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 corner-brackets"
+                                                >
+                                                    {isUploadingImage ? (
+                                                        <>
+                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                            <span>Uploading…</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Upload className="w-3.5 h-3.5 text-[#1A1A1A]" />
+                                                            <span>Upload Image</span>
+                                                        </>
                                                     )}
-                                                </Droppable>
-                                            </DragDropContext>
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
-                                </div>
-                            );
-                        })()}
-
-                        {/* TAB 4: ATTACHMENTS */}
-                        {activeTab === "attachments" && (
-                            <div className="relative flex flex-col flex-1 min-h-0 h-full gap-3 animate-fade-in border border-[#E5E5E3] bg-[#FAFAF9] p-3 rounded-[3px] corner-brackets">
-                                {/* Masonry Attachments Gallery filling available height */}
-                                <div className="flex-1 overflow-y-auto min-h-0 pr-1 flex flex-col">
-                                    {!task.attachments ||
-                                    task.attachments.length === 0 ? (
-                                        <div
-                                            onClick={() =>
-                                                !isObserver &&
-                                                !isUploadingImage &&
-                                                fileInputRef.current?.click()
-                                            }
-                                            className={`border border-dashed border-[#E5E5E3] bg-white p-8 text-center rounded-[3px] flex flex-col items-center justify-center gap-1 text-[#888883] flex-1 w-full h-full min-h-[220px] ${!isObserver && !isUploadingImage ? "cursor-pointer hover:bg-[#FAFAF9] hover:border-[#888883] transition-all" : ""}`}
-                                        >
-                                            {isUploadingImage ? (
-                                                <Loader2 className="w-5 h-5 text-[#DADAD6] animate-spin" />
-                                            ) : (
-                                                <Paperclip className="w-5 h-5 text-[#DADAD6]" />
-                                            )}
-                                            <span className="text-[11px] font-medium text-[#1A1A1A] mt-1">
-                                                {isUploadingImage
-                                                    ? "Uploading image..."
-                                                    : "No attachments uploaded"}
-                                            </span>
-                                            {!isObserver && (
-                                                <span className="text-[10px]">
-                                                    {isUploadingImage
-                                                        ? "Please wait while your image is uploading..."
-                                                        : "Click here or paste an image to upload"}
-                                                </span>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="columns-2 gap-2 space-y-2 text-left">
-                                            {task.attachments.map((att) => {
-                                                const isImg =
-                                                    att.type === "IMAGE" ||
-                                                    att.url.includes(
-                                                        "cloudinary.com",
-                                                    ) ||
-                                                    att.url.startsWith(
-                                                        "data:image/",
-                                                    ) ||
-                                                    att.url.match(
-                                                        /\.(jpeg|jpg|gif|png|webp|svg)/i,
-                                                    );
-
-                                                return (
-                                                    <div
-                                                        key={att.id}
-                                                        className="break-inside-avoid relative group border border-[#E5E5E3] bg-white rounded-[3px] overflow-hidden"
-                                                    >
-                                                        {/* Tight Full Image Display */}
-                                                        {isImg ? (
-                                                            <div
-                                                                onClick={() =>
-                                                                    setFullscreenImage(
-                                                                        att.url,
-                                                                    )
-                                                                }
-                                                                className="w-full relative cursor-pointer block overflow-hidden bg-[#FAFAF9]"
-                                                            >
-                                                                <img
-                                                                    src={
-                                                                        att.url
-                                                                    }
-                                                                    alt={
-                                                                        att.name
-                                                                    }
-                                                                    className="w-full h-auto object-cover block"
-                                                                />
-                                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 flex items-center justify-center transition-colors">
-                                                                    <Maximize2 className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" />
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <a
-                                                                href={att.url}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="w-full py-3 bg-[#F5F5F3] flex flex-col items-center justify-center gap-1 p-2 text-center text-[#1A1A1A] hover:bg-[#ECECE9] transition-colors"
-                                                            >
-                                                                <ExternalLink className="w-4 h-4 text-[#888883]" />
-                                                                <span className="text-[9px] text-[#888883] truncate w-full font-medium">
-                                                                    {att.name ||
-                                                                        "Attachment"}
-                                                                </span>
-                                                            </a>
-                                                        )}
-
-                                                        {/* Delete Action Button at Top-Right Corner */}
-                                                        {!isObserver && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(
-                                                                    e,
-                                                                ) => {
-                                                                    e.stopPropagation();
-                                                                    setAttachmentToDelete(
-                                                                        {
-                                                                            id: att.id,
-                                                                            name: att.name,
-                                                                        },
-                                                                    );
-                                                                    setIsDeleteAttachmentConfirmOpen(
-                                                                        true,
-                                                                    );
-                                                                }}
-                                                                className="absolute top-1.5 right-1.5 bg-white/90 hover:bg-[#CB2431] text-[#888883] hover:text-white border border-[#E5E5E3] hover:border-[#CB2431] p-1 rounded-[2px] shadow-sm transition-colors cursor-pointer z-10 opacity-0 group-hover:opacity-100"
-                                                                title="Delete attachment"
-                                                            >
-                                                                <Trash2 className="w-3 h-3" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Hidden File Input always rendered in DOM */}
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageFileUpload}
-                                    className="hidden"
-                                />
-
-                                {/* Upload Action Button Pinned at Bottom (Only visible after a content is uploaded) */}
-                                {!isObserver &&
-                                    task.attachments &&
-                                    task.attachments.length > 0 && (
-                                        <div className="shrink-0 pt-2 border-t border-[#E5E5E3]">
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    fileInputRef.current?.click()
-                                                }
-                                                disabled={isUploadingImage}
-                                                className="relative w-full bg-white hover:bg-[#FAFAF9] border border-[#E5E5E3] text-[#1A1A1A] text-[11px] font-medium py-2 rounded-[2px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 corner-brackets"
-                                            >
-                                                {isUploadingImage ? (
-                                                    <>
-                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                        <span>Uploading…</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Upload className="w-3.5 h-3.5 text-[#1A1A1A]" />
-                                                        <span>
-                                                            Upload Image
-                                                        </span>
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
-                                    )}
+                                )}
                             </div>
-                        )}
-                    </div>
 
-                    {/* Right Column — Sticky Properties */}
-                    <div className="flex flex-col gap-4 sticky top-0 self-start md:col-span-1 border-l border-[#E5E5E3] pl-5 h-full overflow-y-visible text-left">
-                        {/* Status */}
-                        <div className="flex flex-col gap-1">
-                            <label className="eyebrow">Status</label>
-                            <CustomSelect
-                                disabled={!canEditStatus}
-                                options={columns.map((col) => ({
-                                    value: col.id,
-                                    label: col.name,
-                                }))}
-                                value={columnId}
-                                onChange={handleStatusChange}
-                                className="w-full"
-                            />
-                            {!canEditStatus && (
-                                <span className="text-[9px] text-[#CB2431] font-medium px-0.5 mt-0.5">
-                                    {isObserver
-                                        ? "Observers have read-only access."
-                                        : "Only workspace leader, task creator, or assignee can change status."}
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Priority */}
-                        <div className="flex flex-col gap-1">
-                            <label className="eyebrow">Priority</label>
-                            <CustomSelect
-                                disabled={!canEditDetails}
-                                options={[
-                                    { value: "LOW", label: "Low" },
-                                    { value: "MEDIUM", label: "Medium" },
-                                    { value: "HIGH", label: "High" },
-                                    { value: "URGENT", label: "Urgent" },
-                                ]}
-                                value={priority}
-                                onChange={(val) => setPriority(val)}
-                                className="w-full"
-                            />
-                        </div>
-
-                        {/* Assignee */}
-                        <div className="flex flex-col gap-1">
-                            <label className="eyebrow">Assignee</label>
-                            <CustomSelect
-                                disabled={!canEditDetails}
-                                options={
-                                    userRole === "MEMBER"
-                                        ? [
-                                              {
-                                                  value: currentUser.id,
-                                                  label: `${currentUser.fullName} (You)`,
-                                                  avatarUrl:
-                                                      currentUser.avatarUrl ||
-                                                      null,
-                                              },
-                                              ...(task.assignedTo &&
-                                              task.assignedTo.id !==
-                                                  currentUser.id
-                                                  ? [
-                                                        {
-                                                            value: task
-                                                                .assignedTo.id,
-                                                            label: task
-                                                                .assignedTo
-                                                                .fullName,
-                                                            avatarUrl:
-                                                                task.assignedTo
-                                                                    .avatarUrl ||
-                                                                null,
-                                                        },
-                                                    ]
-                                                  : []),
-                                          ]
-                                        : teamMembers.map(({ user }) => ({
-                                              value: user.id,
-                                              label:
-                                                  user.id === currentUser.id
-                                                      ? `${user.fullName} (You)`
-                                                      : user.fullName,
-                                              avatarUrl: user.avatarUrl || null,
-                                          }))
-                                }
-                                value={assignedToId}
-                                onChange={(val) => setAssignedToId(val)}
-                                className="w-full"
-                            />
-                        </div>
-
-                        {/* Dates */}
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="flex flex-col gap-1">
-                                <label className="eyebrow">Start</label>
-                                <CustomDatePicker
-                                    disabled={!canEditDetails}
-                                    value={dateStr}
-                                    maxDate={dueDateStr || undefined}
-                                    align="left"
-                                    onChange={(val) => {
-                                        setDateStr(val);
-                                        if (dueDateStr && val > dueDateStr) {
-                                            setDueDateStr(val);
+                            {/* Bottom Activity Log Button */}
+                            <div className="p-3 border-t border-[#E5E5E3] bg-[#FAFAF9] shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowAllAuditLog(true);
+                                        if (activitiesList.length === 0) {
+                                            loadTaskActivities(1);
                                         }
                                     }}
-                                    className="w-full"
-                                />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                                <label className="eyebrow">Due</label>
-                                <CustomDatePicker
-                                    disabled={!canEditDetails}
-                                    value={dueDateStr}
-                                    minDate={dateStr || undefined}
-                                    align="right"
-                                    onChange={(val) => {
-                                        setDueDateStr(val);
-                                        if (dateStr && val < dateStr) {
-                                            setDateStr(val);
-                                        }
-                                    }}
-                                    className="w-full"
-                                />
+                                    className="w-full py-1.5 px-2.5 bg-white border border-[#E5E5E3] hover:border-[var(--color-accent,#1A1A1A)] hover:bg-[#FAFAF9] text-[11px] text-[#1A1A1A] font-medium rounded-[3px] transition-colors flex items-center justify-between group cursor-pointer"
+                                >
+                                    <span className="flex items-center gap-1.5 min-w-0">
+                                        <ClipboardList className="w-3.5 h-3.5 text-[#888883] group-hover:text-[#1A1A1A] transition-colors shrink-0" />
+                                        <span className="truncate">View Activity Logs</span>
+                                    </span>
+                                    <ChevronRight className="w-3.5 h-3.5 text-[#888883] group-hover:text-[#1A1A1A] group-hover:translate-x-0.5 transition-all shrink-0" />
+                                </button>
                             </div>
                         </div>
-
-
-                        {/* Activity Log Button — Pushed to the Very End */}
-                        <div className="mt-auto pt-3 border-t border-[var(--app-border,#E5E5E3)]">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowAllAuditLog(true);
-                                    if (activitiesList.length === 0) {
-                                        loadTaskActivities(1);
-                                    }
-                                }}
-                                className="w-full py-1.5 px-2.5 bg-[var(--app-card,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] hover:border-[var(--color-accent,#1A1A1A)] hover:bg-[var(--app-hover-bg,white)] text-[11px] text-[var(--app-text,#1A1A1A)] font-medium rounded-[3px] transition-colors flex items-center justify-between group cursor-pointer"
-                            >
-                                <span className="flex items-center gap-1.5 min-w-0">
-                                    <ClipboardList className="w-3.5 h-3.5 text-[var(--app-muted,#888883)] group-hover:text-[var(--app-text,#1A1A1A)] transition-colors shrink-0" />
-                                    <span className="truncate">View Activity Logs</span>
-                                </span>
-                                <ChevronRight className="w-3.5 h-3.5 text-[var(--app-muted,#888883)] group-hover:text-[var(--app-text,#1A1A1A)] group-hover:translate-x-0.5 transition-all shrink-0" />
-                            </button>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
             {/* Warning Dialog when trying to close modal with unsaved changes */}
-            {showUnsavedWarning && (
-                <div className="fixed inset-0 z-60 overflow-hidden flex justify-center items-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            {showUnsavedWarning && typeof document !== "undefined" && ReactDOM.createPortal(
+                <div className="fixed inset-0 z-[99999] overflow-hidden flex justify-center items-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
                     <div className="relative bg-white border border-[#E5E5E3] p-5 w-full max-w-md flex flex-col gap-4 text-left shadow-2xl rounded-[4px]">
                         <div className="flex flex-col gap-1 border-b border-[#E5E5E3] pb-3">
                             <h3 className="font-heading text-base font-bold text-[#1A1A1A]">
@@ -2567,7 +2446,7 @@ export default function TaskModal({
                             <button
                                 type="button"
                                 onClick={() => setShowUnsavedWarning(false)}
-                                className="px-3 py-1.5 text-[11px] font-medium text-[#888883] hover:text-[#1A1A1A] border border-[#E5E5E3] rounded-[3px] transition-colors"
+                                className="px-3 py-1.5 text-[11px] font-medium text-[#888883] hover:text-[#1A1A1A] border border-[#E5E5E3] rounded-[3px] transition-colors cursor-pointer"
                             >
                                 Keep Editing
                             </button>
@@ -2577,7 +2456,7 @@ export default function TaskModal({
                                     setShowUnsavedWarning(false);
                                     onClose();
                                 }}
-                                className="px-3 py-1.5 text-[11px] font-medium text-[#CB2431] border border-[#CB2431]/20 hover:bg-[#CB2431]/10 rounded-[3px] transition-colors"
+                                className="px-3 py-1.5 text-[11px] font-medium text-[#CB2431] border border-[#CB2431]/20 hover:bg-[#CB2431]/10 rounded-[3px] transition-colors cursor-pointer"
                             >
                                 Discard & Close
                             </button>
@@ -2585,7 +2464,7 @@ export default function TaskModal({
                                 type="button"
                                 disabled={isSaving}
                                 onClick={() => handleSaveChanges(true)}
-                                className="px-4 py-1.5 text-[11px] font-medium text-white bg-[#1A1A1A] hover:bg-[#333] rounded-[3px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                                className="px-4 py-1.5 text-[11px] font-medium text-white bg-[#1A1A1A] hover:bg-[#333] rounded-[3px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                             >
                                 {isSaving && (
                                     <Loader2 className="w-3 h-3 animate-spin shrink-0" />
@@ -2596,7 +2475,8 @@ export default function TaskModal({
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Audit Log Modal Overlay */}

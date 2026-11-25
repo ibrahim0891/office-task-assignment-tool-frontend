@@ -20,7 +20,9 @@ import ProjectSettingsView from "./ProjectSettingsView";
 import ProjectInvitationsTray from "./ProjectInvitationsTray";
 import EditProjectModal from "./EditProjectModal";
 import ProjectDetailDrawer from "./ProjectDetailDrawer";
+import ProjectDetailsPane from "./ProjectDetailsPane";
 import ProjectColumnWeightManagerModal from "./ProjectColumnWeightManagerModal";
+import ManageProjectTaskFoldersDrawer from "./ManageProjectTaskFoldersDrawer";
 import { useProjectDetail } from "../../hooks/useProjectSWR";
 import ProjectDetailSkeleton from "./ProjectDetailSkeleton";
 import { Button } from "../ui/Button";
@@ -58,7 +60,17 @@ export default function ProjectDetail() {
     });
     const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
     const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
+    const [isDetailsPaneOpen, setIsDetailsPaneOpen] = useState<boolean>(true);
     const [isWeightManagerOpen, setIsWeightManagerOpen] = useState(false);
+    const [isManageFoldersOpen, setIsManageFoldersOpen] = useState(false);
+
+    const toggleDetailsView = () => {
+        if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+            setIsDetailsPaneOpen((prev) => !prev);
+        } else {
+            setIsDetailDrawerOpen(true);
+        }
+    };
 
     const loadProjectDetail = React.useCallback(async () => {
         await refreshProject();
@@ -230,7 +242,7 @@ export default function ProjectDetail() {
                             <FolderKanban className="w-5 h-5 text-[var(--app-muted)] shrink-0" />
                         )}
 
-                        {/* Title & Inline Metadata (Status + Team) */}
+                        {/* Title & Inline Metadata (Status + Remaining/Overdue) */}
                         <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
                             <h1
                                 className="font-heading text-base sm:text-lg font-bold tracking-tight text-[var(--app-text)] truncate leading-snug max-w-[260px] sm:max-w-[380px] lg:max-w-[520px]"
@@ -240,65 +252,59 @@ export default function ProjectDetail() {
                             </h1>
 
                             {/* Dynamic Status Indicator next to Title */}
-                            <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold shrink-0 px-2 py-0.5 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)] ${status.color}`}>
+                            <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium shrink-0 ${status.color}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                                 <span>{status.label}</span>
                             </span>
 
-                            {/* Owning Team Tag */}
-                            {project.team && (
-                                <span className="text-[11px] font-medium text-[var(--app-muted)] bg-[var(--app-bg)] px-2 py-0.5 rounded-[3px] border border-[var(--app-border)] flex items-center gap-1 shrink-0" title={`Owning Team: ${project.team.name}`}>
-                                    {project.team.emoji ? (
-                                        <span className="emoji-font text-[10px] shrink-0">{project.team.emoji}</span>
-                                    ) : (
-                                        <Building2 className="w-3 h-3 shrink-0 text-[var(--app-muted)]" />
-                                    )}
-                                    <span className="truncate max-w-[180px]">{project.team.name}</span>
-                                </span>
+                            {/* Remaining / Overdue Indicator next to Title */}
+                            {remainingDays && (
+                                <>
+                                    <span className="text-[var(--app-border-strong)] text-xs select-none">·</span>
+                                    <span
+                                        className={`text-[11px] font-medium tabular-nums shrink-0 ${
+                                            remainingDays.isOverdue
+                                                ? "text-[var(--color-error)]"
+                                                : remainingDays.isToday
+                                                ? "text-[var(--color-warning)]"
+                                                : "text-[var(--app-muted)]"
+                                        }`}
+                                    >
+                                        {remainingDays.label}
+                                    </span>
+                                </>
                             )}
                         </div>
                     </div>
 
                     {/* Right: Dates & Details Action */}
-                    <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 text-xs text-[var(--app-muted)]">
-                        {/* Human-readable Timeline Date Range + Remaining Days */}
+                    <div className="flex items-center gap-3 shrink-0 text-xs text-[var(--app-muted)]">
+                        {/* Human-readable Timeline Date Range */}
                         {formattedTimeline && (
                             <div
-                                className="hidden md:flex items-center gap-1.5 bg-[var(--app-bg)] px-2.5 py-1 rounded-[3px] border border-[var(--app-border)] font-medium text-[11px]"
+                                className="hidden md:flex items-center gap-1.5 font-medium text-[11px] text-[var(--app-muted)]"
                                 title={project.startDate && project.endDate ? `Timeline: ${formattedTimeline} (${formatDaySpan(calculateDaySpan(project.startDate, project.endDate))})` : "Project Timeline"}
                             >
-                                <Calendar className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                                <span className="text-[var(--app-text)]">{formattedTimeline}</span>
-                                {remainingDays && (
-                                    <>
-                                        <span className="text-[var(--app-border-strong)]">·</span>
-                                        <span
-                                            className={`tabular-nums ${
-                                                remainingDays.isOverdue
-                                                    ? "text-[var(--color-error)] font-semibold"
-                                                    : remainingDays.isToday
-                                                    ? "text-[var(--color-warning)] font-semibold"
-                                                    : "text-[var(--app-muted)]"
-                                            }`}
-                                        >
-                                            {remainingDays.label}
-                                        </span>
-                                    </>
-                                )}
+                                <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                <span>{formattedTimeline}</span>
                             </div>
                         )}
 
-                        {/* View Details Button (Secondary) */}
+                        {/* View Details Button (Toggle Docked Pane on Desktop / Drawer on Mobile) */}
                         <Button
                             type="button"
                             variant="secondary"
                             size="sm"
-                            onClick={() => setIsDetailDrawerOpen(true)}
+                            onClick={toggleDetailsView}
                             icon={<Info className="w-3.5 h-3.5 shrink-0" />}
-                            title="View Project Scope, Description & Members"
-                            className="shadow-2xs text-xs"
+                            title="Toggle Project Details Pane"
+                            className={`shadow-2xs text-xs ${
+                                isDetailsPaneOpen
+                                    ? "lg:border-[var(--color-accent)]/40 lg:bg-[var(--app-hover-bg)]"
+                                    : ""
+                            }`}
                         >
-                            View Details
+                            Details
                         </Button>
                     </div>
                 </div>
@@ -363,23 +369,37 @@ export default function ProjectDetail() {
                     </div>
                 </div>
 
-                {/* Tab Content */}
-                <div className="flex-1 flex flex-col overflow-hidden">
-                    {activeTab === "main-board" && (
-                        <ProjectBoardView
+                {/* Main Content + Docked Details Pane */}
+                <div className="flex-1 flex flex-row overflow-hidden">
+                    <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+                        {activeTab === "main-board" && (
+                            <ProjectBoardView
+                                project={project}
+                                onRefresh={loadProjectDetail}
+                                statusFilter={statusFilter}
+                                onStatusFilterChange={setStatusFilter}
+                                onOpenManageColumns={canManageTasks ? () => setIsWeightManagerOpen(true) : undefined}
+                                onOpenManageFolders={() => setIsManageFoldersOpen(true)}
+                                onSwitchToMembers={() => setActiveTab("members")}
+                            />
+                        )}
+                        {activeTab === "members" && <ProjectMembersView project={project} onRefresh={loadProjectDetail} />}
+                        {activeTab === "timeline" && <ProjectTimelineView project={project} />}
+                        {activeTab === "analytics" && <ProjectAnalyticsView project={project} />}
+                        {activeTab === "assets" && <ProjectAssetsView project={project} onRefresh={loadProjectDetail} />}
+                        {activeTab === "settings" && <ProjectSettingsView project={project} onRefresh={loadProjectDetail} />}
+                    </div>
+
+                    {isDetailsPaneOpen && (
+                        <ProjectDetailsPane
                             project={project}
-                            onRefresh={loadProjectDetail}
-                            statusFilter={statusFilter}
-                            onStatusFilterChange={setStatusFilter}
+                            canEdit={canManageTasks}
+                            onEditClick={() => setIsEditProjectModalOpen(true)}
                             onOpenManageColumns={canManageTasks ? () => setIsWeightManagerOpen(true) : undefined}
-                            onSwitchToMembers={() => setActiveTab("members")}
+                            onOpenManageFolders={() => setIsManageFoldersOpen(true)}
+                            onClose={() => setIsDetailsPaneOpen(false)}
                         />
                     )}
-                    {activeTab === "members" && <ProjectMembersView project={project} onRefresh={loadProjectDetail} />}
-                    {activeTab === "timeline" && <ProjectTimelineView project={project} />}
-                    {activeTab === "analytics" && <ProjectAnalyticsView project={project} />}
-                    {activeTab === "assets" && <ProjectAssetsView project={project} onRefresh={loadProjectDetail} />}
-                    {activeTab === "settings" && <ProjectSettingsView project={project} onRefresh={loadProjectDetail} />}
                 </div>
             </div>
 
@@ -419,6 +439,16 @@ export default function ProjectDetail() {
                 onCreateColumn={handleCreateColumn}
                 onRenameColumn={handleRenameColumn}
                 onDeleteColumn={handleDeleteColumn}
+            />
+
+            {/* Manage Project Task Folders Drawer */}
+            <ManageProjectTaskFoldersDrawer
+                isOpen={isManageFoldersOpen}
+                onClose={() => setIsManageFoldersOpen(false)}
+                projectId={project.id}
+                folders={project?.taskFolders || []}
+                canManage={canManageTasks}
+                onFoldersUpdated={() => loadProjectDetail()}
             />
         </div>
     );

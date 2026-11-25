@@ -211,12 +211,12 @@ function MainTaskGridCard({
     return (
         <div
             className={`group relative bg-[var(--app-card)] border ${isSelected ? "border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/30" : "border-[var(--app-border)]"} ${priorityDetails.accentBorder} hover:border-[var(--app-border-strong)] rounded-[3px] p-4 flex flex-col justify-between gap-3.5 transition-all duration-200 cursor-pointer shadow-subtle hover:shadow-float corner-brackets`}
-            onClick={() => onViewDetails(task)}
+            onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
         >
             <div className="flex flex-col gap-2.5">
                 {/* Top Meta Row: Checkbox (no text overlap) + Badges + Edit Button */}
                 <div className="flex items-center justify-between gap-2 min-h-[24px]">
-                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                    <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
                         {canManageTasks && onToggleSelect && (
                             <div
                                 className={`flex items-center transition-all duration-150 ${
@@ -237,7 +237,7 @@ function MainTaskGridCard({
                         )}
 
                         {isCompleted ? (
-                            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-[2px] border flex items-center gap-1.5 shrink-0 ${statusConfig.cls}`}>
+                            <span className="text-[11px] font-medium flex items-center gap-1.5 shrink-0 text-[var(--status-completed,#15803D)]">
                                 <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
                                 <span>{statusConfig.label}</span>
                             </span>
@@ -247,16 +247,19 @@ function MainTaskGridCard({
                                     priority={task.priority}
                                     canEdit={canManageTasks}
                                     size="sm"
+                                    variant="inline"
                                     onUpdate={onUpdatePriority ? (newP) => onUpdatePriority(task.id, newP) : undefined}
                                 />
 
+                                <span className="text-[var(--app-border-strong)] text-[10px] select-none">·</span>
+
                                 {riskBadge ? (
-                                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-[2px] border shrink-0 ${riskBadge.cls}`}>
+                                    <span className={`text-[11px] font-medium shrink-0 ${riskBadge.cls.split(" ").find((c) => c.startsWith("text-")) || "text-[var(--color-error)]"}`}>
                                         {riskBadge.label}
                                     </span>
                                 ) : (
                                     statusConfig.label && (
-                                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-[2px] border flex items-center gap-1.5 shrink-0 ${statusConfig.cls}`}>
+                                        <span className={`text-[11px] font-medium flex items-center gap-1.5 shrink-0 ${statusConfig.cls.split(" ").find((c) => c.startsWith("text-")) || "text-[var(--app-muted)]"}`}>
                                             <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
                                             <span>{statusConfig.label}</span>
                                         </span>
@@ -264,10 +267,13 @@ function MainTaskGridCard({
                                 )}
 
                                 {task.folder && (
-                                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-[2px] bg-[var(--app-hover-bg)] text-[var(--app-muted)] border border-[var(--app-border)] flex items-center gap-1 shrink-0" title={`Folder: ${task.folder.name}`}>
-                                        <span>{task.folder.emoji || "📁"}</span>
-                                        <span className="truncate max-w-[100px]">{task.folder.name}</span>
-                                    </span>
+                                    <>
+                                        <span className="text-[var(--app-border-strong)] text-[10px] select-none">·</span>
+                                        <span className="text-[11px] font-medium text-[var(--app-muted)] flex items-center gap-1 shrink-0" title={`Folder: ${task.folder.name}`}>
+                                            <span>{task.folder.emoji || "📁"}</span>
+                                            <span className="truncate max-w-[100px]">{task.folder.name}</span>
+                                        </span>
+                                    </>
                                 )}
                             </>
                         )}
@@ -471,12 +477,12 @@ function MainTaskListItem({
                     ? "bg-[var(--color-accent)]/8 hover:bg-[var(--color-accent)]/12"
                     : "hover:bg-[var(--app-hover-bg)]"
             }`}
-            onClick={() => onViewDetails(task)}
+            onClick={() => router.push(`/projects/${projectId}/tasks/${task.id}`)}
         >
             {/* Checkbox */}
             {canSelect && (
                 <td
-                    className="py-3.5 px-3 text-center whitespace-nowrap w-10"
+                    className="py-3 px-2.5 text-center whitespace-nowrap w-9"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <input
@@ -488,41 +494,31 @@ function MainTaskListItem({
                 </td>
             )}
 
-            {/* Serial Number */}
-            <td className="py-3.5 px-3 text-center whitespace-nowrap text-[var(--app-muted)] text-[12px] font-medium w-12">
-                {index}
-            </td>
-
             {/* Task Title & Description */}
-            <td className="py-3.5 px-4 min-w-[240px]">
+            <td className="py-3 px-2.5 min-w-[160px]">
                 <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/projects/${projectId}/tasks/${task.id}`);
-                            }}
-                            className="font-semibold text-[14px] text-[var(--app-text)] hover:text-[var(--color-accent)] hover:underline transition-colors line-clamp-1 cursor-pointer"
-                            title="Open subtask board"
-                        >
-                            {task.title}
-                        </span>
-                    </div>
+                    <span
+                        className="font-semibold text-[13px] text-[var(--app-text)] group-hover:text-[var(--color-accent)] transition-colors line-clamp-1"
+                        title={task.title}
+                    >
+                        {task.title}
+                    </span>
                     {cleanDescription && (
-                        <span className="text-[11.5px] text-[var(--app-muted)] line-clamp-1 max-w-[320px]">{cleanDescription}</span>
+                        <span className="text-[11px] text-[var(--app-muted)] line-clamp-1 max-w-[260px]">{cleanDescription}</span>
                     )}
                 </div>
             </td>
 
             {/* Status */}
-            <td className="py-3.5 px-4 whitespace-nowrap">
-                <span className="text-xs font-medium text-[var(--app-text)]">
-                    {statusConfig.label}
+            <td className="py-3 px-2.5 whitespace-nowrap">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--app-text)]">
+                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotCls}`} />
+                    <span>{statusConfig.label}</span>
                 </span>
             </td>
 
             {/* Priority & Risk */}
-            <td className="py-3.5 px-4 whitespace-nowrap">
+            <td className="py-3 px-2.5 whitespace-nowrap">
                 <div className="flex items-center gap-1.5">
                     {!isCompleted ? (
                         <>
@@ -530,82 +526,72 @@ function MainTaskListItem({
                                 priority={task.priority}
                                 canEdit={canManageTasks}
                                 size="sm"
+                                variant="inline"
                                 onUpdate={onUpdatePriority ? (newP) => onUpdatePriority(task.id, newP) : undefined}
                             />
                             {riskBadge && (
-                                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-[2px] border ${riskBadge.cls}`}>
-                                    {riskBadge.label}
-                                </span>
+                                <>
+                                    <span className="text-[var(--app-border-strong)] text-[10px] select-none">·</span>
+                                    <span className={`text-[11px] font-medium ${riskBadge.cls.split(" ").find((c) => c.startsWith("text-")) || "text-[var(--color-error)]"}`}>
+                                        {riskBadge.label}
+                                    </span>
+                                </>
                             )}
                         </>
                     ) : (
-                        <span className="text-xs text-[var(--status-completed,#15803D)] font-semibold">Done</span>
+                        <span className="text-[11px] text-[var(--status-completed,#15803D)] font-semibold">Done</span>
                     )}
                 </div>
             </td>
 
-            {/* Assignees Members */}
-            <td className="py-3.5 px-4 whitespace-nowrap">
-                <div className="flex items-center gap-2">
-                    <div className={`flex items-center ${assigneesList.length > 1 ? "-space-x-2" : ""}`}>
-                        {assigneesList.length > 0 ? (
-                            assigneesList.slice(0, 3).map((user, idx) => {
-                                const name = user.name || user.fullName || "User";
-                                const avatarUrl = user.avatarUrl || user.user?.avatarUrl;
-                                const isMultiple = assigneesList.length > 1;
-                                return (
-                                    <div
-                                        key={user.id || idx}
-                                        className={isMultiple ? "relative ring-2 ring-[var(--app-card)] rounded-full hover:scale-110 hover:z-20 transition-transform cursor-pointer shrink-0" : "shrink-0 cursor-pointer"}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            openMemberProfile(user);
-                                        }}
-                                    >
-                                        <UserAvatar
-                                            name={name}
-                                            avatarUrl={avatarUrl}
-                                            size={isMultiple ? "md" : "sm"}
-                                            title={name}
-                                        />
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <span className="text-[10px] text-[var(--app-muted)] italic">Unassigned</span>
-                        )}
-                        {assigneesList.length > 3 && (
-                            <div className={`rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center font-semibold text-[var(--app-muted)] shrink-0 ring-2 ring-[var(--app-card)] ${assigneesList.length > 1 ? "w-6 h-6 text-[9px]" : "w-5 h-5 text-[8px]"}`}>
-                                +{assigneesList.length - 3}
-                            </div>
-                        )}
-                    </div>
-                    {assigneesList.length === 1 && (
-                        <span 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                openMemberProfile(assigneesList[0]);
-                            }}
-                            className="text-[11.5px] text-[var(--app-text)] font-medium truncate max-w-[110px] cursor-pointer hover:underline"
-                        >
-                            {assigneesList[0].name || assigneesList[0].fullName}
-                        </span>
+            {/* Assignees Members (Avatars only, name on hover tooltip) */}
+            <td className="py-3 px-2.5 whitespace-nowrap">
+                <div className={`flex items-center ${assigneesList.length > 1 ? "-space-x-1.5" : ""}`}>
+                    {assigneesList.length > 0 ? (
+                        assigneesList.slice(0, 3).map((user, idx) => {
+                            const name = user.name || user.fullName || "User";
+                            const avatarUrl = user.avatarUrl || user.user?.avatarUrl;
+                            return (
+                                <div
+                                    key={user.id || idx}
+                                    className={assigneesList.length > 1 ? "relative ring-2 ring-[var(--app-card)] rounded-full hover:scale-110 hover:z-20 transition-transform cursor-pointer shrink-0" : "shrink-0 cursor-pointer"}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        openMemberProfile(user);
+                                    }}
+                                >
+                                    <UserAvatar
+                                        name={name}
+                                        avatarUrl={avatarUrl}
+                                        size="xs"
+                                        title={name}
+                                    />
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <span className="text-[10px] text-[var(--app-muted)] italic">—</span>
+                    )}
+                    {assigneesList.length > 3 && (
+                        <div className="w-5 h-5 rounded-full border border-[var(--app-border)] bg-[var(--app-card)] flex items-center justify-center text-[8px] font-semibold text-[var(--app-muted)] shrink-0 ring-2 ring-[var(--app-card)]">
+                            +{assigneesList.length - 3}
+                        </div>
                     )}
                 </div>
             </td>
 
             {/* Due Date & Span */}
-            <td className="py-3.5 px-4 whitespace-nowrap text-xs text-[var(--app-muted)]">
+            <td className="py-3 px-2.5 whitespace-nowrap text-[11px] text-[var(--app-muted)]">
                 {task.dueDate ? (
                     <div
-                        className="flex items-center gap-1.5 w-fit"
+                        className="flex items-center gap-1 w-fit tabular-nums"
                         title={task.startDate ? `Timeline: ${new Date(task.startDate).toLocaleDateString()} – ${new Date(task.dueDate).toLocaleDateString()} (${formatDaySpan(calculateDaySpan(task.startDate, task.dueDate))})` : `Due: ${new Date(task.dueDate).toLocaleDateString()}`}
                     >
-                        <Calendar className="w-3.5 h-3.5 text-[var(--app-muted)]" />
+                        <Calendar className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
                         <span>{new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
                         {task.startDate && (
-                            <span className="font-medium text-[var(--app-text)] ml-0.5">
-                                • {calculateDaySpan(task.startDate, task.dueDate)}d
+                            <span className="font-medium text-[var(--app-text)]">
+                                · {calculateDaySpan(task.startDate, task.dueDate)}d
                             </span>
                         )}
                     </div>
@@ -615,11 +601,11 @@ function MainTaskListItem({
             </td>
 
             {/* Subtask Progress */}
-            <td className="py-3.5 px-4 min-w-[170px]">
-                <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-xs">
+            <td className="py-3 px-2.5 min-w-[110px]">
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-[11px] gap-2">
                         <span className="tabular-nums font-medium text-[var(--app-muted)]">
-                            {totalSubtasks > 0 ? `${doneSubtasks}/${totalSubtasks} subtasks` : "0 subtasks"}
+                            {totalSubtasks > 0 ? `${doneSubtasks}/${totalSubtasks}` : "0"}
                         </span>
                         <span className="font-semibold tabular-nums text-[var(--app-text)]">
                             {progressPercent}%
@@ -640,51 +626,21 @@ function MainTaskListItem({
                 </div>
             </td>
 
-            {/* Actions */}
-            <td className="py-3 px-4 text-right whitespace-nowrap">
-                <div className="flex items-center justify-end gap-2">
-                    {canManageTasks && (
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onEditTask(task);
-                            }}
-                            title="Edit Main Task"
-                            className="p-1.5 rounded-[2px] hover:bg-[var(--app-card)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent hover:border-[var(--app-border)] transition-colors cursor-pointer"
-                        >
-                            <Edit2 className="w-4 h-4" />
-                        </button>
-                    )}
-                    <Button
+            {/* Actions (Hover Edit Icon only) */}
+            <td className="py-3 px-2.5 text-right whitespace-nowrap w-10">
+                {canManageTasks && (
+                    <button
                         type="button"
-                        variant="secondary"
-                        size="sm"
                         onClick={(e) => {
                             e.stopPropagation();
-                            onViewDetails(task);
+                            onEditTask(task);
                         }}
-                        icon={<Info className="w-3.5 h-3.5 text-[var(--color-accent)]" />}
-                        className="h-[32px] px-3 text-xs font-semibold text-nowrap whitespace-nowrap shadow-3xs"
-                        title="View details"
+                        title="Edit Main Task"
+                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-[2px] hover:bg-[var(--app-card)] text-[var(--app-muted)] hover:text-[var(--app-text)] border border-transparent hover:border-[var(--app-border)] transition-all cursor-pointer"
                     >
-                        View Details
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/projects/${projectId}/tasks/${task.id}`);
-                        }}
-                        icon={<ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />}
-                        className="h-[32px] px-3 text-xs font-semibold text-nowrap whitespace-nowrap shadow-3xs"
-                        title="Open subtask board"
-                    >
-                        Open
-                    </Button>
-                </div>
+                        <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                )}
             </td>
         </tr>
     );
@@ -696,6 +652,7 @@ interface ProjectBoardViewProps {
     statusFilter?: string;
     onStatusFilterChange?: (status: string) => void;
     onOpenManageColumns?: () => void;
+    onOpenManageFolders?: () => void;
     onSwitchToMembers?: () => void;
 }
 
@@ -705,6 +662,7 @@ export default function ProjectBoardView({
     statusFilter,
     onStatusFilterChange,
     onOpenManageColumns,
+    onOpenManageFolders,
     onSwitchToMembers,
 }: ProjectBoardViewProps) {
     const router = useRouter();
@@ -715,7 +673,11 @@ export default function ProjectBoardView({
     const selectedStatus = statusFilter !== undefined ? statusFilter : localStatusFilter;
 
     const taskFolders = project?.taskFolders || [];
-    const [isManageFoldersOpen, setIsManageFoldersOpen] = useState(false);
+    const [localManageFoldersOpen, setLocalManageFoldersOpen] = useState(false);
+    const openManageFolders = () => {
+        if (onOpenManageFolders) onOpenManageFolders();
+        else setLocalManageFoldersOpen(true);
+    };
     const [selectedFolder, setSelectedFolder] = useState<string>("ALL");
 
     const handleStatusChange = (val: string) => {
@@ -726,19 +688,6 @@ export default function ProjectBoardView({
     };
 
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
-    const customizeMenuRef = React.useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!isCustomizeOpen) return;
-        const handleClickOutside = (event: MouseEvent) => {
-            if (customizeMenuRef.current && !customizeMenuRef.current.contains(event.target as Node)) {
-                setIsCustomizeOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [isCustomizeOpen]);
     const [groupBy, setGroupBy] = useState<"none" | "priority" | "status" | "folder">(() => {
         if (typeof window !== "undefined") {
             try {
@@ -1205,9 +1154,9 @@ export default function ProjectBoardView({
         <div className="flex-1 flex flex-col min-h-0 bg-[var(--app-bg)]">
             {/* Header Toolbar (hidden when project has 0 tasks and no active filters to avoid chrome clutter) */}
             {showToolbar && (
-            <div className="shrink-0 px-5 py-2.5 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-wrap items-center justify-between gap-3 select-none">
+            <div className="shrink-0 px-5 py-2.5 border-b border-[var(--app-border)] bg-[var(--app-card)] flex flex-wrap items-center justify-between gap-2 select-none">
                 {/* Left Side: Primary Action + Divider + Scope Toggle */}
-                <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
                     {canManageTasks && (
                         <>
                             <Button
@@ -1217,7 +1166,7 @@ export default function ProjectBoardView({
                                 icon={<Plus className="w-3.5 h-3.5" />}
                                 onClick={() => setIsCreateTaskModalOpen(true)}
                             >
-                                Add Main Task
+                                New Task
                             </Button>
                             <div className="hidden sm:block h-5 w-px bg-[var(--app-border)]" />
                         </>
@@ -1228,14 +1177,14 @@ export default function ProjectBoardView({
                         <button
                             type="button"
                             onClick={() => setFilterMode("all")}
-                            className={`h-full px-3 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                            className={`h-full px-2.5 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1 ${
                                 filterMode === "all"
                                     ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
                                     : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
                             }`}
                         >
-                            <span>All Tasks</span>
-                            <span className={`text-xs tabular-nums font-normal transition-colors ${
+                            <span>All</span>
+                            <span className={`text-[11px] tabular-nums font-normal transition-colors ${
                                 filterMode === "all" ? "text-[var(--app-muted)]" : "text-[var(--app-muted)]/70"
                             }`}>
                                 ({tasks.length})
@@ -1244,16 +1193,16 @@ export default function ProjectBoardView({
                         <button
                             type="button"
                             onClick={() => setFilterMode("my-tasks")}
-                            className={`h-full px-3 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+                            className={`h-full px-2.5 rounded-[1px] transition-colors cursor-pointer flex items-center gap-1 ${
                                 filterMode === "my-tasks"
                                     ? "bg-[var(--app-card)] text-[var(--app-text)] font-semibold shadow-xs border border-[var(--app-border-strong)]"
                                     : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
                             }`}
                         >
-                            <User className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                            <span>My Tasks</span>
+                            <User className="w-3 h-3 text-[var(--app-muted)]" />
+                            <span>Mine</span>
                             {myTasksCount > 0 && (
-                                <span className={`text-xs tabular-nums font-normal transition-colors ${
+                                <span className={`text-[11px] tabular-nums font-normal transition-colors ${
                                     filterMode === "my-tasks" ? "text-[var(--app-muted)]" : "text-[var(--app-muted)]/70"
                                 }`}>
                                     ({myTasksCount})
@@ -1263,17 +1212,17 @@ export default function ProjectBoardView({
                     </div>
                 </div>
 
-                {/* Right Side: View Controls (Search, Filter, Group, Grid/List) + Divider + Customize Dropdown */}
-                <div className="flex items-center gap-2 flex-wrap min-w-0 justify-end ml-auto">
+                {/* Right Side: View Controls (Search, Filter, Group, Grid/List) */}
+                <div className="flex items-center gap-1.5 flex-wrap min-w-0 justify-end ml-auto">
                     {/* Search Input */}
-                    <div className="relative w-44 sm:w-52 h-[32px] shrink-0">
+                    <div className="relative w-32 sm:w-36 h-[32px] shrink-0">
                         <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--app-muted)] pointer-events-none" />
                         <input
                             type="text"
-                            placeholder="Search main tasks..."
+                            placeholder="Search..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full h-[32px] bg-[var(--app-bg)] focus:bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] focus:border-[var(--app-border-strong)] rounded-[2px] pl-8 pr-7 text-xs text-[var(--app-text)] placeholder-[var(--app-muted)] focus:outline-none transition-colors"
+                            className="w-full h-[32px] bg-[var(--app-bg)] focus:bg-[var(--app-card)] border border-[var(--app-border)] hover:border-[var(--app-border-strong)] focus:border-[var(--app-border-strong)] rounded-[2px] pl-8 pr-6 text-xs text-[var(--app-text)] placeholder-[var(--app-muted)] focus:outline-none transition-colors"
                         />
                         {searchQuery && (
                             <button
@@ -1311,15 +1260,15 @@ export default function ProjectBoardView({
                     {/* Group By selector */}
                     <CustomSelect
                         options={[
-                            { value: "none", label: "Group: None" },
-                            ...(taskFolders.length > 0 ? [{ value: "folder", label: "Group: Folder" }] : []),
-                            { value: "status", label: "Group: Status" },
-                            { value: "priority", label: "Group: Priority" },
+                            { value: "none", label: "Group" },
+                            ...(taskFolders.length > 0 ? [{ value: "folder", label: "By Folder" }] : []),
+                            { value: "status", label: "By Status" },
+                            { value: "priority", label: "By Priority" },
                         ]}
                         value={groupBy}
                         onChange={(val) => handleGroupByChange(val as any)}
                         buttonClassName="text-xs h-[32px] !py-0 px-2.5 bg-[var(--app-card)]"
-                        className="w-32 sm:w-36 h-[32px] shrink-0"
+                        className="w-26 sm:w-28 h-[32px] shrink-0"
                     />
 
                     {/* View Switcher */}
@@ -1348,69 +1297,6 @@ export default function ProjectBoardView({
                         >
                             <List className="w-3.5 h-3.5" />
                         </button>
-                    </div>
-
-                    <div className="hidden sm:block h-5 w-px bg-[var(--app-border)]" />
-
-                    {/* Customize Dropdown (Folders & Columns) */}
-                    <div className="relative shrink-0" ref={customizeMenuRef}>
-                        <button
-                            type="button"
-                            onClick={() => setIsCustomizeOpen((prev) => !prev)}
-                            className={`h-[32px] px-2.5 text-xs font-medium border rounded-[2px] flex items-center gap-1.5 transition-colors cursor-pointer ${
-                                isCustomizeOpen
-                                    ? "border-[var(--app-border-strong)] bg-[var(--app-hover-bg)] text-[var(--app-text)]"
-                                    : "border-[var(--app-border)] bg-[var(--app-card)] hover:bg-[var(--app-hover-bg)] text-[var(--app-muted)] hover:text-[var(--app-text)]"
-                            }`}
-                            title="Customize folders and workflow columns"
-                        >
-                            <Scale className="w-3.5 h-3.5" />
-                            <span>Customize</span>
-                            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isCustomizeOpen ? "rotate-180" : ""}`} />
-                        </button>
-
-                        {isCustomizeOpen && (
-                            <div className="absolute right-0 mt-1.5 w-52 bg-[var(--app-card)] border border-[var(--app-border)] rounded-[3px] shadow-float py-1 z-30 animate-fade-in">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsCustomizeOpen(false);
-                                        setIsManageFoldersOpen(true);
-                                    }}
-                                    className="w-full px-3 py-2 text-left text-xs text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] flex items-center justify-between gap-2 transition-colors cursor-pointer"
-                                >
-                                    <span className="flex items-center gap-2">
-                                        <Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                                        <span>Manage Folders</span>
-                                    </span>
-                                    {taskFolders.length > 0 && (
-                                        <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-[var(--app-bg)] border border-[var(--app-border)] font-semibold tabular-nums text-[var(--app-muted)]">
-                                            {taskFolders.length}
-                                        </span>
-                                    )}
-                                </button>
-                                {onOpenManageColumns && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsCustomizeOpen(false);
-                                            onOpenManageColumns();
-                                        }}
-                                        className="w-full px-3 py-2 text-left text-xs text-[var(--app-text)] hover:bg-[var(--app-hover-bg)] flex items-center justify-between gap-2 transition-colors cursor-pointer"
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            <Scale className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                                            <span>Manage Columns</span>
-                                        </span>
-                                        {(project?.columns?.length ?? 0) > 0 && (
-                                            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-[var(--app-bg)] border border-[var(--app-border)] font-semibold tabular-nums text-[var(--app-muted)]">
-                                                {project.columns.length}
-                                            </span>
-                                        )}
-                                    </button>
-                                )}
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -1577,7 +1463,7 @@ export default function ProjectBoardView({
             )}
 
             {/* Content View: Grid or List */}
-            <div className="flex-1 overflow-y-auto p-5">
+            <div className="@container flex-1 overflow-y-auto p-5">
                 {filteredTasks.length === 0 ? (
                     tasks.length === 0 && activeFilterCount === 0 ? (
                         <div className="max-w-xl mx-auto mt-6 sm:mt-10 border border-dashed border-[var(--app-border)] rounded-[3px] bg-[var(--app-card)] p-8 text-center relative corner-brackets-4 flex flex-col items-center">
@@ -1632,7 +1518,7 @@ export default function ProjectBoardView({
                                             variant="secondary"
                                             size="sm"
                                             icon={<Folder className="w-3.5 h-3.5 text-[var(--app-muted)]" />}
-                                            onClick={() => setIsManageFoldersOpen(true)}
+                                            onClick={openManageFolders}
                                             className="text-xs"
                                         >
                                             <span>Folders</span>
@@ -1742,7 +1628,7 @@ export default function ProjectBoardView({
                                             </span>
                                         </div>
                                         {!isCollapsed && (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+                                            <div className="grid grid-cols-1 @xl:grid-cols-2 @4xl:grid-cols-3 @6xl:grid-cols-4 gap-5">
                                                 {group.tasks.map((task: any) => (
                                                     <MainTaskGridCard
                                                         key={task.id}
@@ -1765,7 +1651,7 @@ export default function ProjectBoardView({
 
                             {/* Unfoldered tasks in grid view rendered simply below without accordion */}
                             {groupBy === "folder" && unfolderedTasks.length > 0 && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+                                <div className="grid grid-cols-1 @xl:grid-cols-2 @4xl:grid-cols-3 @6xl:grid-cols-4 gap-5">
                                     {unfolderedTasks.map((task: any) => (
                                         <MainTaskGridCard
                                             key={task.id}
@@ -1784,7 +1670,7 @@ export default function ProjectBoardView({
                             )}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+                        <div className="grid grid-cols-1 @xl:grid-cols-2 @4xl:grid-cols-3 @6xl:grid-cols-4 gap-5">
                             {filteredTasks.map((task: any) => (
                                 <MainTaskGridCard
                                     key={task.id}
@@ -1823,7 +1709,7 @@ export default function ProjectBoardView({
                                 <thead>
                                     <tr className="border-b border-[var(--app-border)] bg-[var(--app-bg)] text-[10px] font-medium text-[var(--app-muted)]">
                                         {canManageTasks && (
-                                            <th className="py-3 px-3 font-semibold text-center w-10">
+                                            <th className="py-2.5 px-2.5 font-semibold text-center w-9">
                                                 <input
                                                     type="checkbox"
                                                     checked={isAllSelected}
@@ -1836,14 +1722,13 @@ export default function ProjectBoardView({
                                                 />
                                             </th>
                                         )}
-                                        <th className="py-3 px-3 font-semibold text-center w-12">#</th>
-                                        <th className="py-3 px-4 font-semibold">Task & Category</th>
-                                        <th className="py-3 px-4 font-semibold">Status</th>
-                                        <th className="py-3 px-4 font-semibold">Priority</th>
-                                        <th className="py-3 px-4 font-semibold">Members</th>
-                                        <th className="py-3 px-4 font-semibold">Due Date</th>
-                                        <th className="py-3 px-4 font-semibold">Subtasks Progress</th>
-                                        <th className="py-3 px-4 font-semibold text-right">Actions</th>
+                                        <th className="py-2.5 px-2.5 font-semibold">Task</th>
+                                        <th className="py-2.5 px-2.5 font-semibold">Status</th>
+                                        <th className="py-2.5 px-2.5 font-semibold">Priority</th>
+                                        <th className="py-2.5 px-2.5 font-semibold">Members</th>
+                                        <th className="py-2.5 px-2.5 font-semibold">Due</th>
+                                        <th className="py-2.5 px-2.5 font-semibold">Subtasks</th>
+                                        <th className="py-2.5 px-2.5 font-semibold text-right w-10"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1865,7 +1750,7 @@ export default function ProjectBoardView({
                                                             className="bg-[var(--app-hover-bg)]/80 hover:bg-[var(--app-hover-bg)] border-y border-[var(--app-border)] cursor-pointer select-none transition-colors"
                                                             onClick={() => toggleGroupCollapse(group.key)}
                                                         >
-                                                            <td colSpan={canManageTasks ? 9 : 8} className="py-2.5 px-3">
+                                                            <td colSpan={canManageTasks ? 8 : 7} className="py-2.5 px-3">
                                                                 <div className="flex items-center justify-between">
                                                                     <div className="flex items-center gap-2.5">
                                                                         {canManageTasks && (
@@ -2032,17 +1917,19 @@ export default function ProjectBoardView({
                 onRefresh={onRefresh}
             />
 
-            {/* Manage Project Task Folders Drawer */}
-            <ManageProjectTaskFoldersDrawer
-                isOpen={isManageFoldersOpen}
-                onClose={() => setIsManageFoldersOpen(false)}
-                projectId={project.id}
-                folders={taskFolders}
-                canManage={canManageTasks}
-                onFoldersUpdated={() => {
-                    if (onRefresh) onRefresh(true);
-                }}
-            />
+            {/* Manage Project Task Folders Drawer (fallback when not controlled by parent) */}
+            {!onOpenManageFolders && (
+                <ManageProjectTaskFoldersDrawer
+                    isOpen={localManageFoldersOpen}
+                    onClose={() => setLocalManageFoldersOpen(false)}
+                    projectId={project.id}
+                    folders={taskFolders}
+                    canManage={canManageTasks}
+                    onFoldersUpdated={() => {
+                        if (onRefresh) onRefresh(true);
+                    }}
+                />
+            )}
 
             {/* Move Tasks to Folder Modal */}
             <MoveTasksToFolderModal
@@ -2051,7 +1938,7 @@ export default function ProjectBoardView({
                 taskCount={selectedTaskIds.size}
                 folders={taskFolders}
                 onMove={handleBulkMoveTasks}
-                onOpenManageFolders={() => setIsManageFoldersOpen(true)}
+                onOpenManageFolders={openManageFolders}
             />
 
             {/* Bulk Update Dates Modal */}

@@ -268,6 +268,7 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                                 priority={subtask.priority}
                                 canEdit={canModifyThisSubtask}
                                 size="xs"
+                                variant="inline"
                                 onUpdate={onUpdatePriority ? (newP) => onUpdatePriority(subtask.id, newP) : undefined}
                             />
                         </div>
@@ -328,8 +329,8 @@ export const SubtaskKanbanCard: React.FC<SubtaskKanbanCardProps> = ({
                                 {assigneeName}
                             </span>
                             {isMySubtask && (
-                                <span className="text-[7.5px] font-semibold px-1 py-0.2 bg-[var(--app-text)] text-[var(--app-bg)] rounded-[1px] shrink-0">
-                                    You
+                                <span className="text-[10px] text-[var(--app-muted)] font-normal shrink-0">
+                                    (You)
                                 </span>
                             )}
                         </div>

@@ -41,8 +41,8 @@ export default function WorkspaceHeader({
     ).length;
 
     return (
-        <header className="h-12 border-b border-[#E5E5E3] px-5 flex items-center justify-between shrink-0 select-none print:hidden bg-white">
-            <div className="flex items-center gap-4">
+        <header className="h-12 border-b border-[#E5E5E3] px-5 flex items-center justify-between gap-4 shrink-0 select-none print:hidden bg-white">
+            <div className="flex items-center gap-4 shrink-0">
                 <span className="text-[11px] font-medium text-[#888883] border border-[#E5E5E3] px-2.5 py-1 rounded-[3px]">
                     {viewLabel}
                 </span>
@@ -62,7 +62,26 @@ export default function WorkspaceHeader({
                 )}
             </div>
 
-            <div className="flex items-center gap-2.5">
+            {onOpenSpotlight && (
+                <div className="flex-1 flex justify-center min-w-0">
+                    <button
+                        type="button"
+                        onClick={onOpenSpotlight}
+                        className="w-full max-w-md px-3 py-1.5 border border-[#E5E5E3] hover:border-[#888883] rounded-[3px] bg-[#FAFAF9] hover:bg-white text-[#888883] hover:text-[#1A1A1A] transition-colors flex items-center justify-between gap-3 cursor-pointer text-[11px]"
+                        title="Search workspace (⌘K)"
+                    >
+                        <span className="flex items-center gap-2 min-w-0">
+                            <Search className="w-3.5 h-3.5 text-[#888883] shrink-0" />
+                            <span className="truncate">Search tasks, docs, projects…</span>
+                        </span>
+                        <kbd className="hidden sm:inline-flex items-center text-[9px] font-mono border border-[#E5E5E3] bg-white px-1.5 py-0.5 rounded-[2px] text-[#888883] shrink-0">
+                            ⌘K
+                        </kbd>
+                    </button>
+                </div>
+            )}
+
+            <div className="flex items-center gap-2.5 shrink-0">
                 {!isStandalone && onOpenPwaInstall && (
                     <button
                         onClick={onOpenPwaInstall}
@@ -71,20 +90,6 @@ export default function WorkspaceHeader({
                     >
                         <Download className="w-3.5 h-3.5 text-[#888883]" />
                         <span className="hidden sm:inline">Install App</span>
-                    </button>
-                )}
-
-                {onOpenSpotlight && (
-                    <button
-                        onClick={onOpenSpotlight}
-                        className="relative corner-brackets-4 px-2.5 py-1.5 border border-[#E5E5E3] rounded-[2px] bg-white hover:bg-[#FAFAF9] text-[#888883] hover:text-[#1A1A1A] transition-colors flex items-center gap-2 cursor-pointer text-[11px]"
-                        title="Search workspace (⌘K)"
-                    >
-                        <Search className="w-3.5 h-3.5 text-[#888883]" />
-                        <span className="hidden sm:inline text-[#888883]">Search…</span>
-                        <kbd className="hidden sm:inline-flex items-center text-[9px] font-mono border border-[#E5E5E3] bg-[#FAFAF9] px-1 rounded-[2px] text-[#888883]">
-                            ⌘K
-                        </kbd>
                     </button>
                 )}
 
