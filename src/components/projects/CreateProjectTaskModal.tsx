@@ -223,43 +223,21 @@ export default function CreateProjectTaskModal({
                     />
                 </div>
 
-                {/* Column Selection */}
-                {columns.length > 0 && (
-                    <div className="flex flex-col gap-1.5">
-                        <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
-                            <Layers className="w-3.5 h-3.5 text-[var(--app-muted)]" />
-                            <span>Workflow Stage / Column</span>
-                        </label>
-                        <CustomSelect
-                            options={columns.map((col: any) => ({
-                                value: col.id,
-                                label: col.name,
-                            }))}
-                            value={columnId}
-                            onChange={(val) => setColumnId(val)}
-                            className="w-full"
-                        />
-                    </div>
-                )}
-
-                {/* Folder & Priority Selection (Side by Side) */}
-                <div className={`grid gap-3 ${taskFolders.length > 0 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
-                    {taskFolders.length > 0 && (
+                {/* Workflow Stage & Priority Selection (Side by Side) */}
+                <div className={`grid gap-3 ${columns.length > 0 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+                    {columns.length > 0 && (
                         <div className="flex flex-col gap-1.5">
                             <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
-                                <Folder className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
-                                <span>Folder (Optional)</span>
+                                <Layers className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                                <span>Workflow Stage / Column</span>
                             </label>
                             <CustomSelect
-                                options={[
-                                    { value: "", label: "No Folder (Common Space)" },
-                                    ...taskFolders.map((f: any) => ({
-                                        value: f.id,
-                                        label: `${f.emoji || "📁"} ${f.name}`,
-                                    })),
-                                ]}
-                                value={folderId}
-                                onChange={(val) => setFolderId(val)}
+                                options={columns.map((col: any) => ({
+                                    value: col.id,
+                                    label: col.name,
+                                }))}
+                                value={columnId}
+                                onChange={(val) => setColumnId(val)}
                                 className="w-full"
                             />
                         </div>
@@ -284,6 +262,28 @@ export default function CreateProjectTaskModal({
                         />
                     </div>
                 </div>
+
+                {/* Folder Selection */}
+                {taskFolders.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                        <label className="eyebrow text-[10px] tracking-wider text-[var(--app-text)] font-bold flex items-center gap-1.5">
+                            <Folder className="w-3.5 h-3.5 text-[var(--app-muted)] shrink-0" />
+                            <span>Folder (Optional)</span>
+                        </label>
+                        <CustomSelect
+                            options={[
+                                { value: "", label: "No Folder (Common Space)" },
+                                ...taskFolders.map((f: any) => ({
+                                    value: f.id,
+                                    label: `${f.emoji || "📁"} ${f.name}`,
+                                })),
+                            ]}
+                            value={folderId}
+                            onChange={(val) => setFolderId(val)}
+                            className="w-full"
+                        />
+                    </div>
+                )}
 
                 {/* Description - TipTap Editor */}
                 <div className="flex flex-col gap-1.5">

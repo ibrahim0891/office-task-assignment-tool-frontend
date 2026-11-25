@@ -603,7 +603,6 @@ export default function TaskModal({
     // Calculate dirty status (un-saved changes exist)
     const isTitleDirty = title !== task.title;
     const isDescDirty = description !== (task.description || "");
-    const isColumnDirty = columnId !== task.columnId;
     const isPriorityDirty = priority !== task.priority;
     const isAssigneeDirty = assignedToId !== task.assignedToId;
     const isDateDirty = dateStr !== getTaskStartDate(task);
@@ -613,7 +612,6 @@ export default function TaskModal({
     const isDirty =
         isTitleDirty ||
         isDescDirty ||
-        isColumnDirty ||
         isPriorityDirty ||
         isAssigneeDirty ||
         isDateDirty ||
@@ -708,6 +706,50 @@ export default function TaskModal({
         }
     };
 
+    // Save status/column change immediately and independently from date/detail edits
+    const handleStatusChange = async (newColumnId: string) => {
+        if (!canEditStatus || newColumnId === columnId) return;
+        const prevColumnId = columnId;
+        setColumnId(newColumnId);
+        if (prevTaskRef.current) {
+            prevTaskRef.current = { ...prevTaskRef.current, columnId: newColumnId };
+        }
+        try {
+            await api.updateTask(
+                task.id,
+                { columnId: newColumnId },
+                {
+                    userId: currentUser.id,
+                    teamId: task.teamId,
+                },
+            );
+
+            const newCol = columns.find((c) => c.id === newColumnId);
+            const oldCol = columns.find((c) => c.id === prevColumnId);
+            const isNewDone =
+                newCol?.isComplete ||
+                newCol?.name.toLowerCase().includes("done") ||
+                newCol?.name.toLowerCase().includes("complete");
+            const isOldDone =
+                oldCol?.isComplete ||
+                oldCol?.name.toLowerCase().includes("done") ||
+                oldCol?.name.toLowerCase().includes("complete");
+
+            if (isNewDone && !isOldDone) {
+                triggerMicroCelebration({ intensity: "medium" });
+            }
+
+            toast.success("Status updated!");
+            onRefresh();
+        } catch (err: any) {
+            setColumnId(prevColumnId);
+            if (prevTaskRef.current) {
+                prevTaskRef.current = { ...prevTaskRef.current, columnId: prevColumnId };
+            }
+            toast.error(err.message || "Failed to update status.");
+        }
+    };
+
     // Save batch updates to API
     const handleSaveChanges = async (andClose = false) => {
         if (isObserver) return;
@@ -722,25 +764,30 @@ export default function TaskModal({
             return;
         }
 
-        if (dateStr && dueDateStr && dateStr > dueDateStr) {
+        const datesModified = isDateDirty || isDueDateDirty;
+        if (datesModified && dateStr && dueDateStr && dateStr > dueDateStr) {
             toast.error("Start date cannot be later than due date.");
             return;
         }
 
         setIsSaving(true);
         try {
+            const payload: Record<string, any> = {
+                title,
+                description,
+                columnId,
+                priority,
+                assignedToId,
+            };
+            if (datesModified) {
+                payload.startDate = dateStr;
+                payload.date = dateStr;
+                payload.dueDate = dueDateStr || null;
+            }
+
             await api.updateTask(
                 task.id,
-                {
-                    title,
-                    description,
-                    columnId,
-                    priority,
-                    assignedToId,
-                    startDate: dateStr,
-                    date: dateStr,
-                    dueDate: dueDateStr || null,
-                },
+                payload,
                 {
                     userId: currentUser.id,
                     teamId: task.teamId,
@@ -2366,7 +2413,7 @@ export default function TaskModal({
                                     label: col.name,
                                 }))}
                                 value={columnId}
-                                onChange={(val) => setColumnId(val)}
+                                onChange={handleStatusChange}
                                 className="w-full"
                             />
                             {!canEditStatus && (

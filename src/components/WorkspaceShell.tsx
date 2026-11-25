@@ -191,23 +191,35 @@ export default function WorkspaceShell({
 
     // UI Design Mode state — 'editorial' (default) or 'modern'
     const [uiMode, setUiModeState] = useState<"editorial" | "modern">("editorial");
-    const [modernTheme, setModernTheme] = useState<"modern-light" | "modern-dark">("modern-light");
+    const [modernTheme, setModernTheme] = useState<"modern-light" | "modern-dark" | "modern-auto">("modern-light");
+
+    const resolveModernTheme = (mt: "modern-light" | "modern-dark" | "modern-auto"): "modern-light" | "modern-dark" => {
+        if (mt === "modern-auto") {
+            return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "modern-dark"
+                : "modern-light";
+        }
+        return mt;
+    };
+
+    const applyModernThemeToDom = (mt: "modern-light" | "modern-dark" | "modern-auto") => {
+        const resolved = resolveModernTheme(mt);
+        if (resolved === "modern-dark") {
+            document.documentElement.setAttribute("data-theme", "modern-dark");
+        } else {
+            document.documentElement.removeAttribute("data-theme");
+        }
+        applyAccentColor(resolved);
+    };
 
     const setUiMode = (mode: "editorial" | "modern") => {
         setUiModeState(mode);
         document.documentElement.setAttribute("data-ui", mode);
         localStorage.setItem("sys_ui_mode", mode);
         if (mode === "modern") {
-            // Switch to modern's own sub-theme; clear editorial data-theme
-            const savedModernTheme = (localStorage.getItem("sys_modern_theme") || "modern-light") as "modern-light" | "modern-dark";
+            const savedModernTheme = (localStorage.getItem("sys_modern_theme") || "modern-light") as "modern-light" | "modern-dark" | "modern-auto";
             setModernTheme(savedModernTheme);
-            if (savedModernTheme === "modern-dark") {
-                document.documentElement.setAttribute("data-theme", "modern-dark");
-            } else {
-                document.documentElement.removeAttribute("data-theme");
-            }
-            // Apply the user's saved Modern accent immediately
-            applyAccentColor(savedModernTheme);
+            applyModernThemeToDom(savedModernTheme);
         } else {
             // Restore editorial theme
             const savedEditorialTheme = (localStorage.getItem("sys_theme") || "light") as "light" | "nord-dark" | "amoled-dark" | "lws-dark";
@@ -223,15 +235,9 @@ export default function WorkspaceShell({
         const savedUiMode = (localStorage.getItem("sys_ui_mode") || "editorial") as "editorial" | "modern";
         setUiModeState(savedUiMode);
         if (savedUiMode === "modern") {
-            const savedModernTheme = (localStorage.getItem("sys_modern_theme") || "modern-light") as "modern-light" | "modern-dark";
+            const savedModernTheme = (localStorage.getItem("sys_modern_theme") || "modern-light") as "modern-light" | "modern-dark" | "modern-auto";
             setModernTheme(savedModernTheme);
-            if (savedModernTheme === "modern-dark") {
-                document.documentElement.setAttribute("data-theme", "modern-dark");
-            } else {
-                document.documentElement.removeAttribute("data-theme");
-            }
-            // Restore user's chosen Modern accent
-            applyAccentColor(savedModernTheme);
+            applyModernThemeToDom(savedModernTheme);
         } else {
             const savedTheme = localStorage.getItem("sys_theme") as any;
             if (savedTheme) {
@@ -244,20 +250,23 @@ export default function WorkspaceShell({
         }
     }, []);
 
+    // Listen to OS color scheme changes when Modern Auto mode is active
+    React.useEffect(() => {
+        if (typeof window === "undefined" || uiMode !== "modern" || modernTheme !== "modern-auto") return;
+        const mq = window.matchMedia("(prefers-color-scheme: dark)");
+        const handleChange = () => applyModernThemeToDom("modern-auto");
+        mq.addEventListener("change", handleChange);
+        return () => mq.removeEventListener("change", handleChange);
+    }, [uiMode, modernTheme]);
+
     const handleToggleTheme = (e?: React.MouseEvent) => {
         if (uiMode === "modern") {
-            // Modern mode: toggle between modern-light and modern-dark
-            const nextModernTheme = modernTheme === "modern-light" ? "modern-dark" : "modern-light";
+            const currentResolved = resolveModernTheme(modernTheme);
+            const nextModernTheme = currentResolved === "modern-light" ? "modern-dark" : "modern-light";
             toggleThemeWithCircularReveal(e, () => {
                 setModernTheme(nextModernTheme);
                 localStorage.setItem("sys_modern_theme", nextModernTheme);
-                if (nextModernTheme === "modern-dark") {
-                    document.documentElement.setAttribute("data-theme", "modern-dark");
-                } else {
-                    document.documentElement.removeAttribute("data-theme");
-                }
-                // Apply the user's saved accent for the new sub-theme
-                applyAccentColor(nextModernTheme);
+                applyModernThemeToDom(nextModernTheme);
             });
             toast.success(`Switched to Modern ${nextModernTheme === "modern-dark" ? "Dark" : "Light"}`);
         } else {
@@ -463,7 +472,7 @@ export default function WorkspaceShell({
                         setCurrentView={undefined}
                         toggleConfigModal={() => setIsConfigModalOpen(true)}
                         userRole={userRole}
-                        theme={theme}
+                        theme={uiMode === "modern" ? resolveModernTheme(modernTheme) : theme}
                         onToggleTheme={handleToggleTheme}
                         onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
                         onOpenSpotlight={() => setIsSpotlightOpen(true)}
@@ -495,7 +504,7 @@ export default function WorkspaceShell({
                     currentView={pathname.replace("/", "") || "kanban"}
                     toggleConfigModal={() => setIsConfigModalOpen(true)}
                     userRole={userRole}
-                    theme={theme}
+                    theme={uiMode === "modern" ? resolveModernTheme(modernTheme) : theme}
                     onToggleTheme={handleToggleTheme}
                 />
 
@@ -504,7 +513,7 @@ export default function WorkspaceShell({
                     {/* Global Header Toolbar */}
                     <WorkspaceHeader
                         viewLabel={viewLabel}
-                        theme={theme}
+                        theme={uiMode === "modern" ? resolveModernTheme(modernTheme) : theme}
                         onToggleTheme={handleToggleTheme}
                         onOpenSystemSettings={() => setIsSystemSettingsOpen(true)}
                         onOpenSpotlight={() => setIsSpotlightOpen(true)}

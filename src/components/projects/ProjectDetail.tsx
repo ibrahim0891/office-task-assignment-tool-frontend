@@ -26,7 +26,7 @@ import ProjectDetailSkeleton from "./ProjectDetailSkeleton";
 import { Button } from "../ui/Button";
 import { calculateProjectProgress, calculateProjectHealth } from "../../utils/projectProgress";
 import { getProjectPermissions } from "../../utils/projectPermissions";
-import { calculateDaySpan, formatDaySpan, calculateRemainingDays } from "../../utils/date";
+import { calculateDaySpan, formatDaySpan, calculateRemainingDays, extractDateString, parseLocalDate } from "../../utils/date";
 
 type Tab = "main-board" | "members" | "timeline" | "analytics" | "assets" | "settings";
 
@@ -173,18 +173,35 @@ export default function ProjectDetail() {
     const status = calculateProjectHealth(project);
     const leaders = (project.members || []).filter((m: any) => m.role === "Leader" || m.role === "LEADER");
 
-    // Format dates to YYYY-MM-DD for display
-    const formatDate = (dateInput: any) => {
-        if (!dateInput) return "";
-        const d = new Date(dateInput);
-        return d.toISOString().split("T")[0];
+    const formatShortDate = (dateInput: any, includeYear: boolean) => {
+        const str = extractDateString(dateInput);
+        if (!str) return "";
+        const d = parseLocalDate(str);
+        if (isNaN(d.getTime())) return str;
+        return d.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            ...(includeYear ? { year: "numeric" } : {}),
+        });
     };
 
+    const formattedTimeline = (() => {
+        if (!project.startDate && !project.endDate) return null;
+        const startStr = extractDateString(project.startDate);
+        const endStr = extractDateString(project.endDate);
+        const startYear = startStr ? startStr.split("-")[0] : "";
+        const endYear = endStr ? endStr.split("-")[0] : "";
+        const sameYear = Boolean(startYear && endYear && startYear === endYear);
+        const startLabel = startStr ? formatShortDate(startStr, !sameYear) : "—";
+        const endLabel = endStr ? formatShortDate(endStr, true) : "—";
+        return `${startLabel} – ${endLabel}`;
+    })();
 
     const permissions = getProjectPermissions(project, currentUser, userRole, currentTeam);
     const canManageTasks = permissions.canManageTasks;
 
-    const calculatedProgress = Array.isArray(project.tasks) && project.tasks.length > 0
+    const totalTasksCount = Array.isArray(project.tasks) ? project.tasks.length : 0;
+    const calculatedProgress = totalTasksCount > 0
         ? calculateProjectProgress(project.tasks, project.columns)
         : (project.progress !== undefined ? project.progress : 0);
 
@@ -216,14 +233,14 @@ export default function ProjectDetail() {
                         {/* Title & Inline Metadata (Status + Team) */}
                         <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
                             <h1
-                                className="font-heading text-base sm:text-lg font-bold tracking-tight text-[var(--app-text)] truncate leading-snug max-w-[280px] sm:max-w-[400px] lg:max-w-[600px]"
+                                className="font-heading text-base sm:text-lg font-bold tracking-tight text-[var(--app-text)] truncate leading-snug max-w-[260px] sm:max-w-[380px] lg:max-w-[520px]"
                                 title={project.title}
                             >
                                 {project.title}
                             </h1>
 
                             {/* Dynamic Status Indicator next to Title */}
-                            <span className={`inline-flex items-center gap-1 text-xs font-semibold shrink-0 ${status.color}`}>
+                            <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold shrink-0 px-2 py-0.5 rounded-[3px] bg-[var(--app-bg)] border border-[var(--app-border)] ${status.color}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                                 <span>{status.label}</span>
                             </span>
@@ -236,40 +253,39 @@ export default function ProjectDetail() {
                                     ) : (
                                         <Building2 className="w-3 h-3 shrink-0 text-[var(--app-muted)]" />
                                     )}
-                                    <span className="truncate max-w-[120px]">{project.team.name}</span>
+                                    <span className="truncate max-w-[180px]">{project.team.name}</span>
                                 </span>
                             )}
                         </div>
                     </div>
 
-                    {/* Right: Dates & Actions */}
-                    <div className="flex items-center gap-2 sm:gap-3 shrink-0 text-xs text-[var(--app-muted)]">
-                        {/* Timeline Date Range */}
-                        {(project.startDate || project.endDate) && (
+                    {/* Right: Dates & Details Action */}
+                    <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 text-xs text-[var(--app-muted)]">
+                        {/* Human-readable Timeline Date Range + Remaining Days */}
+                        {formattedTimeline && (
                             <div
                                 className="hidden md:flex items-center gap-1.5 bg-[var(--app-bg)] px-2.5 py-1 rounded-[3px] border border-[var(--app-border)] font-medium text-[11px]"
-                                title={project.startDate && project.endDate ? `Timeline: ${formatDate(project.startDate)} – ${formatDate(project.endDate)} (${formatDaySpan(calculateDaySpan(project.startDate, project.endDate))})` : "Project Timeline"}
+                                title={project.startDate && project.endDate ? `Timeline: ${formattedTimeline} (${formatDaySpan(calculateDaySpan(project.startDate, project.endDate))})` : "Project Timeline"}
                             >
                                 <Calendar className="w-3 h-3 text-[var(--app-muted)] shrink-0" />
-                                <span>{formatDate(project.startDate) || "—"}</span>
-                                <span>–</span>
-                                <span>{formatDate(project.endDate) || "—"}</span>
+                                <span className="text-[var(--app-text)]">{formattedTimeline}</span>
+                                {remainingDays && (
+                                    <>
+                                        <span className="text-[var(--app-border-strong)]">·</span>
+                                        <span
+                                            className={`tabular-nums ${
+                                                remainingDays.isOverdue
+                                                    ? "text-[var(--color-error)] font-semibold"
+                                                    : remainingDays.isToday
+                                                    ? "text-[var(--color-warning)] font-semibold"
+                                                    : "text-[var(--app-muted)]"
+                                            }`}
+                                        >
+                                            {remainingDays.label}
+                                        </span>
+                                    </>
+                                )}
                             </div>
-                        )}
-
-                        {/* Manage Columns / Workflow Stages Button (Outline) */}
-                        {canManageTasks && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setIsWeightManagerOpen(true)}
-                                icon={<Scale className="w-3.5 h-3.5 shrink-0 text-[var(--color-accent)]" />}
-                                title="Manage project workflow stages, columns & progression weights"
-                                className="shadow-2xs text-xs !bg-transparent !text-[var(--color-accent)] !border-[var(--color-accent)] hover:!bg-[var(--color-accent)]/10"
-                            >
-                                Manage Columns
-                            </Button>
                         )}
 
                         {/* View Details Button (Secondary) */}
@@ -310,11 +326,11 @@ export default function ProjectDetail() {
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`relative flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-medium transition-colors cursor-pointer border-b-2 whitespace-nowrap rounded-none ${
                                         isActive
-                                            ? "text-[var(--app-text)] border-[var(--app-text)]"
+                                            ? "text-[var(--app-text)] border-[var(--color-accent)] font-semibold"
                                             : "text-[var(--app-muted)] border-transparent hover:text-[var(--app-text)] hover:border-[var(--app-border)]"
                                     }`}
                                 >
-                                    <Icon className="w-3.5 h-3.5" />
+                                    <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[var(--color-accent)]" : ""}`} />
                                     <span>{tab.label}</span>
                                     {count !== null && count > 0 && (
                                         <span className={`text-[10px] tabular-nums font-normal transition-colors ${
@@ -330,16 +346,18 @@ export default function ProjectDetail() {
                         })}
                     </div>
 
-                    {/* Progress Gauge (Repositioned to the right of tabs for balanced layout) */}
-                    <div className="hidden sm:flex items-center gap-2.5 text-[11px] shrink-0" title="Project Completion Progress">
-                        <span className="text-[var(--app-muted)]">Progress</span>
-                        <div className="w-28 sm:w-36 h-1.5 bg-[var(--app-border)]/60 rounded-full overflow-hidden">
+                    {/* Progress Gauge with Task Count Summary */}
+                    <div className="hidden sm:flex items-center gap-2.5 text-[11px] shrink-0" title={`Project Completion Progress (${totalTasksCount} ${totalTasksCount === 1 ? "task" : "tasks"})`}>
+                        <span className="text-[var(--app-muted)] tabular-nums">
+                            {totalTasksCount === 0 ? "No tasks" : `${totalTasksCount} ${totalTasksCount === 1 ? "task" : "tasks"}`}
+                        </span>
+                        <div className="w-24 sm:w-32 h-1.5 bg-[var(--app-border)]/60 rounded-full overflow-hidden">
                             <div
                                 className="h-full bg-[var(--status-completed,#15803D)] rounded-full transition-all duration-300"
                                 style={{ width: `${calculatedProgress}%` }}
                             />
                         </div>
-                        <span className="font-semibold text-[var(--app-text)] tabular-nums">
+                        <span className="font-semibold text-[var(--app-text)] tabular-nums min-w-[28px] text-right">
                             {calculatedProgress}%
                         </span>
                     </div>
@@ -353,6 +371,8 @@ export default function ProjectDetail() {
                             onRefresh={loadProjectDetail}
                             statusFilter={statusFilter}
                             onStatusFilterChange={setStatusFilter}
+                            onOpenManageColumns={canManageTasks ? () => setIsWeightManagerOpen(true) : undefined}
+                            onSwitchToMembers={() => setActiveTab("members")}
                         />
                     )}
                     {activeTab === "members" && <ProjectMembersView project={project} onRefresh={loadProjectDetail} />}

@@ -55,10 +55,13 @@ export default function RootLayout({
                                     // Apply UI Design Mode (editorial | modern) — must run before paint
                                     var uiMode = localStorage.getItem('sys_ui_mode') || 'editorial';
                                     document.documentElement.setAttribute('data-ui', uiMode);
-                                    // For Modern mode: restore its own dark/light sub-theme
+                                    // For Modern mode: restore its own dark/light/auto sub-theme
                                     if (uiMode === 'modern') {
                                         var modernTheme = localStorage.getItem('sys_modern_theme') || 'modern-light';
-                                        if (modernTheme === 'modern-dark') {
+                                        var resolvedModern = modernTheme === 'modern-auto'
+                                            ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'modern-dark' : 'modern-light')
+                                            : modernTheme;
+                                        if (resolvedModern === 'modern-dark') {
                                             document.documentElement.setAttribute('data-theme', 'modern-dark');
                                         } else {
                                             document.documentElement.removeAttribute('data-theme');
@@ -68,7 +71,7 @@ export default function RootLayout({
                                     // Apply Accent Color — mode-aware, runs before paint
                                     var isDark = theme && theme !== 'light';
                                     if (uiMode === 'modern') {
-                                        var modernDark = (typeof modernTheme !== 'undefined' && modernTheme === 'modern-dark');
+                                        var modernDark = (typeof resolvedModern !== 'undefined' && resolvedModern === 'modern-dark');
                                         var modernAccent = modernDark
                                             ? (localStorage.getItem('sys_accent_modern_dark') || '#A78BFA')
                                             : (localStorage.getItem('sys_accent_modern_light') || '#8B5CF6');

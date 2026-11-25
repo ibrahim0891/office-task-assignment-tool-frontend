@@ -193,10 +193,7 @@ export default function MainTaskDetailDrawer({
             {/* ── Top Header ── */}
             <div className="flex items-center justify-between px-6 py-4.5 border-b border-[var(--app-border)] bg-[var(--app-card)] shrink-0">
                 <div className="flex flex-col min-w-0 pr-4">
-                    <span className="eyebrow text-[9.5px] text-[var(--app-muted)] tracking-wider">
-                        MAIN TASK OVERVIEW & DETAILS
-                    </span>
-                    <h2 className="text-base font-bold text-[var(--app-text)] truncate leading-tight mt-0.5" title={task.title}>
+                    <h2 className="text-base font-bold text-[var(--app-text)] truncate leading-tight" title={task.title}>
                         {task.title}
                     </h2>
                 </div>
@@ -205,7 +202,7 @@ export default function MainTaskDetailDrawer({
                     {canEdit && onEditClick && (
                         <Button
                             type="button"
-                            variant="secondary"
+                            variant="primary"
                             size="sm"
                             onClick={() => {
                                 onClose();

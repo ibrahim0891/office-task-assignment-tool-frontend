@@ -18,6 +18,7 @@ import {
     PanelLeft,
     PanelTop,
     Layout,
+    Monitor,
 } from "lucide-react";
 import { HexColorPicker } from "react-colorful";
 import SideSheetWrapper from "./ui/SideSheetWrapper";
@@ -46,8 +47,8 @@ interface SystemPreferenceModalProps {
     setTheme: (theme: "light" | "nord-dark" | "amoled-dark" | "lws-dark" | "modern-dark") => void;
     uiMode: "editorial" | "modern";
     setUiMode: (mode: "editorial" | "modern") => void;
-    modernTheme: "modern-light" | "modern-dark";
-    setModernTheme: (theme: "modern-light" | "modern-dark") => void;
+    modernTheme: "modern-light" | "modern-dark" | "modern-auto";
+    setModernTheme: (theme: "modern-light" | "modern-dark" | "modern-auto") => void;
     navLayout: "sidebar" | "topbar";
     setNavLayout: (layout: "sidebar" | "topbar") => void;
     primaryFont: string;
@@ -78,6 +79,8 @@ export default function SystemPreferenceModal({
     setFontScale,
     onReset,
 }: SystemPreferenceModalProps) {
+    const [activePrefTab, setActivePrefTab] = useState<"appearance" | "layout" | "feedback">("appearance");
+
     const [enableConfetti, setEnableConfetti] = useState<boolean>(() => {
         if (typeof window === "undefined") return true;
         return localStorage.getItem("sys_enable_confetti") !== "false";
@@ -161,7 +164,10 @@ export default function SystemPreferenceModal({
 
     // Derive current accent context from mode
     const isModernMode = uiMode === "modern";
-    const isModernDark = modernTheme === "modern-dark";
+    const isModernDark =
+        modernTheme === "modern-auto"
+            ? typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches
+            : modernTheme === "modern-dark";
     const isDarkMode = isModernMode ? isModernDark : theme !== "light";
 
     const currentAccentList = isModernMode
@@ -295,9 +301,6 @@ export default function SystemPreferenceModal({
                             System Preferences
                         </h2>
                     </div>
-                    <p className="text-[11px] text-[var(--app-muted,#888883)] leading-tight">
-                        Customize layout, design language, color palette, typography & feedback.
-                    </p>
                 </div>
                 <button
                     type="button"
@@ -309,10 +312,40 @@ export default function SystemPreferenceModal({
                 </button>
             </div>
 
-            {/* ── Scrollable All-in-One Settings Body ── */}
+            {/* ── Segmented Category Tabs ── */}
+            <div className="px-5 sm:px-6 py-2.5 border-b border-[var(--app-border,#E5E5E3)] bg-[var(--app-bg,#FAFAF9)] shrink-0">
+                <div className="grid grid-cols-3 gap-1 p-0.5 bg-[var(--app-card,#FFFFFF)] border border-[var(--app-border,#E5E5E3)] rounded-[3px]">
+                    {[
+                        { id: "appearance" as const, label: "Appearance", icon: Palette },
+                        { id: "layout" as const, label: "Layout & Text", icon: Layout },
+                        { id: "feedback" as const, label: "Feedback", icon: Sparkles },
+                    ].map((tab) => {
+                        const Icon = tab.icon;
+                        const active = activePrefTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setActivePrefTab(tab.id)}
+                                className={`flex items-center justify-center gap-1.5 py-1.5 px-2 text-xs font-medium rounded-[2px] transition-all cursor-pointer ${
+                                    active
+                                        ? "bg-[var(--color-accent)] text-white font-semibold shadow-2xs"
+                                        : "text-[var(--app-muted,#888883)] hover:text-[var(--app-text,#1A1A1A)] hover:bg-[var(--app-hover-bg,#F5F5F3)]"
+                                }`}
+                            >
+                                <Icon className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">{tab.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* ── Scrollable Tabbed Settings Body ── */}
             <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 flex flex-col gap-6 custom-scrollbar">
 
                 {/* ── SECTION 0: NAVIGATION & APP SHELL LAYOUT ── */}
+                {activePrefTab === "layout" && (
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center gap-2 pb-1 border-b border-[var(--app-border,#E5E5E3)]/50">
                         <Layout className="w-3.5 h-3.5 text-[var(--color-accent)]" />
@@ -359,9 +392,6 @@ export default function SystemPreferenceModal({
                                     <div className="w-3/4 h-1.5 bg-[var(--app-hover-bg)] rounded-[0.5px]" />
                                 </div>
                             </div>
-                            <span className="text-[10px] text-[var(--app-muted)] leading-tight">
-                                Vertical collapsible sidebar with quick workspace switcher.
-                            </span>
                         </button>
 
                         {/* Desktop Topbar Navigation Card */}
@@ -402,14 +432,13 @@ export default function SystemPreferenceModal({
                                     <div className="flex-1 h-full bg-[var(--app-hover-bg)] rounded-[0.5px]" />
                                 </div>
                             </div>
-                            <span className="text-[10px] text-[var(--app-muted)] leading-tight">
-                                2-tier horizontal desktop ribbon. Full-width canvas.
-                            </span>
                         </button>
                     </div>
                 </section>
+                )}
 
                 {/* ── SECTION 1: UI DESIGN LANGUAGE & THEME ── */}
+                {activePrefTab === "appearance" && (
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center gap-2 pb-1 border-b border-[var(--app-border,#E5E5E3)]/50">
                         <Palette className="w-3.5 h-3.5 text-[var(--color-accent)]" />
@@ -517,7 +546,23 @@ export default function SystemPreferenceModal({
                                         }`}
                                     >
                                         <Moon className="w-3.5 h-3.5" />
-                                        Dark (Warm Navy)
+                                        Dark
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setModernTheme("modern-auto");
+                                            toast.success("Auto mode (follows system) activated");
+                                        }}
+                                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-medium border rounded-[3px] transition-all cursor-pointer ${
+                                            modernTheme === "modern-auto"
+                                                ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_16%,var(--app-card))] text-[var(--color-accent)] font-semibold shadow-xs"
+                                                : "border-[var(--app-border)] bg-[var(--app-card)] text-[var(--app-muted)] hover:border-[var(--color-accent)]/40"
+                                        }`}
+                                        title="Automatically match your OS light/dark setting"
+                                    >
+                                        <Monitor className="w-3.5 h-3.5" />
+                                        Auto
                                     </button>
                                 </div>
                             </div>
@@ -630,8 +675,10 @@ export default function SystemPreferenceModal({
                         </div>
                     )}
                 </section>
+                )}
 
                 {/* ── SECTION 2: ACCENT COLOR ── */}
+                {activePrefTab === "appearance" && (
                 <section className="flex flex-col gap-2.5">
                     <div className="flex items-center justify-between pb-1 border-b border-[var(--app-border,#E5E5E3)]/50">
                         <div className="flex items-center gap-2">
@@ -773,82 +820,62 @@ export default function SystemPreferenceModal({
                         </div>
                     )}
                 </section>
+                )}
 
                 {/* ── SECTION 3: TYPOGRAPHY & FONTS ── */}
+                {activePrefTab === "layout" && (
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center gap-2 pb-1 border-b border-[var(--app-border,#E5E5E3)]/50">
                         <Type className="w-3.5 h-3.5 text-[var(--color-accent)]" />
                         <h3 className="eyebrow text-[10px] tracking-wider text-[var(--app-text,#1A1A1A)] font-bold">
-                            Typography & Font Scaling
+                            Fonts & Text Size
                         </h3>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {/* Primary Interface Font */}
+                        {/* Body Font */}
                         <div className="flex flex-col gap-1">
-                            <label className="eyebrow">
-                                Primary Interface Font
-                            </label>
+                            <label className="eyebrow">Body Font</label>
                             <CustomSelect
                                 options={styledFontOptions}
                                 value={primaryFont}
-                                onChange={(val) =>
-                                    setPrimaryFont(val)
-                                }
+                                onChange={(val) => setPrimaryFont(val)}
                                 className="w-full"
                             />
                         </div>
 
-                        {/* Secondary / Title Font */}
+                        {/* Heading Font */}
                         <div className="flex flex-col gap-1">
-                            <label className="eyebrow">
-                                Secondary / Title Font
-                            </label>
+                            <label className="eyebrow">Heading Font</label>
                             <CustomSelect
                                 options={styledFontOptions}
                                 value={secondaryFont}
-                                onChange={(val) =>
-                                    setSecondaryFont(val)
-                                }
+                                onChange={(val) => setSecondaryFont(val)}
                                 align="right"
                                 className="w-full"
                             />
                         </div>
 
-                        {/* Preset Pairings */}
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center justify-between">
-                                <label className="eyebrow">
-                                    Preset Pairings
-                                </label>
-                                <span className="text-[10px] text-[var(--app-muted)]">
-                                    1-Click Apply
-                                </span>
-                            </div>
+                        {/* Font Presets */}
+                        <div className="flex flex-col gap-1 sm:col-span-2">
+                            <label className="eyebrow">Font Presets</label>
                             <CustomSelect
-                                options={FONT_PRESETS.map(
-                                    (p) => ({
-                                        value: `${p.primary}|${p.secondary}`,
-                                        label: p.name,
-                                        sublabel: `${p.primary} + ${p.secondary}`,
-                                        style: { fontFamily: fontMap[p.primary] || "inherit" },
-                                    }),
-                                )}
+                                options={FONT_PRESETS.map((p) => ({
+                                    value: `${p.primary}|${p.secondary}`,
+                                    label: p.name,
+                                    sublabel: `${p.primary} + ${p.secondary}`,
+                                    style: { fontFamily: fontMap[p.primary] || "inherit" },
+                                }))}
                                 value={
                                     FONT_PRESETS.some(
-                                        (p) =>
-                                            p.primary ===
-                                                primaryFont &&
-                                            p.secondary ===
-                                                secondaryFont,
+                                        (p) => p.primary === primaryFont && p.secondary === secondaryFont,
                                     )
                                         ? `${primaryFont}|${secondaryFont}`
                                         : ""
                                 }
-                                placeholder="Select a preset combination…"
+                                placeholder="Choose a pairing…"
                                 onChange={(val) => {
-                                    const [prim, sec] =
-                                        val.split("|");
+                                    const [prim, sec] = val.split("|");
                                     if (prim && sec) {
                                         setPrimaryFont(prim);
                                         setSecondaryFont(sec);
@@ -857,32 +884,12 @@ export default function SystemPreferenceModal({
                                 className="w-full"
                             />
                         </div>
-
-                        {/* Font Scale Option Dropdown */}
-                        <div className="flex flex-col gap-1">
-                            <label className="eyebrow">
-                                Font Scale Preset
-                            </label>
-                            <CustomSelect
-                                options={scaleOptions}
-                                value={closestScaleOption.value}
-                                onChange={(val) =>
-                                    setFontScale(
-                                        parseFloat(val),
-                                    )
-                                }
-                                align="right"
-                                className="w-full"
-                            />
-                        </div>
                     </div>
 
-                    {/* Font Scale Fine-tuning Slider */}
+                    {/* Text Size Slider */}
                     <div className="flex flex-col gap-1.5 p-3 bg-[var(--app-hover-bg,#FAFAF9)] border border-[var(--app-border,#E5E5E3)] rounded-[3px]">
                         <div className="flex justify-between items-center">
-                            <label className="eyebrow text-[9px]">
-                                System Font Scale
-                            </label>
+                            <label className="eyebrow text-[9px]">Text Size</label>
                             <span className="text-[11px] text-[var(--app-text,#1A1A1A)] font-semibold font-mono">
                                 {Math.round(fontScale * 100)}%
                             </span>
@@ -912,8 +919,10 @@ export default function SystemPreferenceModal({
                         </div>
                     </div>
                 </section>
+                )}
 
                 {/* ── SECTION 4: INTERACTIONS & AUDIO ── */}
+                {activePrefTab === "feedback" && (
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center gap-2 pb-1 border-b border-[var(--app-border,#E5E5E3)]/50">
                         <Sparkles className="w-3.5 h-3.5 text-[var(--color-accent)]" />
@@ -940,8 +949,10 @@ export default function SystemPreferenceModal({
                         />
                     </div>
                 </section>
+                )}
 
                 {/* ── SECTION 5: LIVE INTERFACE & TYPOGRAPHY PREVIEW ── */}
+                {(activePrefTab === "appearance" || activePrefTab === "layout") && (
                 <section className="flex flex-col gap-2">
                     <div className="flex items-center justify-between pb-1 border-b border-[var(--app-border,#E5E5E3)]/50">
                         <div className="flex items-center gap-2">
@@ -1015,6 +1026,7 @@ export default function SystemPreferenceModal({
                         </div>
                     </div>
                 </section>
+                )}
             </div>
 
             {/* ── Sticky Bottom Action Footer ── */}
